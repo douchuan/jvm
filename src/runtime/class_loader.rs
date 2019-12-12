@@ -1,0 +1,155 @@
+use crate::classfile::{constant_pool, types::*};
+use crate::runtime::{self, class_path_manager, system_dictionary};
+use crate::oop::{self, ClassObject, ClassRef, ValueType};
+use crate::parser as class_parser;
+use crate::util;
+use std::sync::{Arc, Mutex};
+
+#[derive(Copy, Clone)]
+pub enum ClassLoader {
+    Base,
+    Bootstrap,
+}
+
+pub fn require_class(class_loader: Option<ClassLoader>, name: &str) -> Option<ClassRef> {
+    let class_loader = class_loader.unwrap_or(ClassLoader::Bootstrap);
+    class_loader.load_class(name)
+}
+
+pub fn require_class2(index: U2, cp: &ConstantPool) -> Option<ClassRef> {
+    let class = constant_pool::get_class_name(index, cp)?;
+    let class = String::from_utf8_lossy(class);
+    require_class(None, class.as_ref())
+}
+
+impl ClassLoader {
+    fn load_class(&self, name: &str) -> Option<ClassRef> {
+        if is_array(name) {
+            self.load_array_class(name)
+        } else {
+            match self {
+                ClassLoader::Base => (),
+                ClassLoader::Bootstrap => {
+                    let it = system_dictionary::find(name);
+                    if it.is_some() {
+                        return it;
+                    }
+                }
+            }
+
+            let mut class = self.load_class_from_path(name);
+
+            match class.clone() {
+                Some(mut class) => match self {
+                    ClassLoader::Base => (),
+
+                    ClassLoader::Bootstrap => {
+                        system_dictionary::put(name, class.clone());
+                        util::sync_call_ctx(&class, |it| {
+                            it.set_class_state(oop::class::State::Loaded);
+                            it.link_class();
+                        });
+                    }
+                },
+
+                None => (),
+            }
+
+            class
+        }
+    }
+
+    fn load_array_class(&self, name: &str) -> Option<ClassRef> {
+        match calc_dimension(name) {
+            Some(1) => {
+                // dimension == 1
+                match name.as_bytes().first() {
+                    Some(b'L') => {
+                        //[Ljava/lang/Object;
+                        let elm = &name[2..name.len() - 1];
+                        match self.load_class(elm) {
+                            Some(elm) => {
+                                let class = ClassObject::new_object_ary(*self, elm);
+                                Some(new_ref!(class))
+                            }
+                            None => None,
+                        }
+                    }
+
+                    Some(t) => {
+                        //B, Z...
+                        let elm = t.into();
+                        let class = ClassObject::new_prime_ary(*self, elm);
+                        Some(new_ref!(class))
+                    }
+
+                    None => unreachable!(),
+                }
+            }
+
+            _ => {
+                // dimension > 1
+                let down_type_name = &name[1..];
+                match self.load_array_class(down_type_name) {
+                    Some(down_type) => {
+                        let class = ClassObject::new_wrapped_ary(*self, down_type);
+                        Some(new_ref!(class))
+                    }
+
+                    None => None,
+                }
+            }
+        }
+    }
+
+    fn load_class_from_path(&self, name: &str) -> Option<ClassRef> {
+        match class_path_manager::search_class(name) {
+            Ok(class_path_manager::ClassPathResult(_, _, buf)) => {
+                match class_parser::parse_buf(&buf) {
+                    Ok(cf) => {
+                        let cfr = Arc::new(cf);
+                        let class = ClassObject::new_class(cfr, Some(*self));
+                        Some(new_ref!(class))
+                    }
+
+                    Err(_) => None,
+                }
+            }
+
+            Err(_) => None,
+        }
+    }
+}
+
+fn calc_dimension(name: &str) -> Option<usize> {
+    if is_array(name) {
+        name.find(|c| c != '[')
+    } else {
+        None
+    }
+}
+
+fn is_array(name: &str) -> bool {
+    name.bytes().nth(0) == Some(b'[')
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn t_basic() {
+        use super::calc_dimension;
+        assert_eq!(calc_dimension(""), None);
+        assert_eq!(calc_dimension("Ljava/lang/Object;"), None);
+        assert_eq!(calc_dimension("Z"), None);
+        assert_eq!(calc_dimension("[B"), Some(1));
+        assert_eq!(calc_dimension("[[B"), Some(2));
+        assert_eq!(calc_dimension("[[[B"), Some(3));
+        assert_eq!(calc_dimension("[[[[B"), Some(4));
+        assert_eq!(calc_dimension("[[[[[B"), Some(5));
+        assert_eq!(calc_dimension("[Ljava/lang/Object;"), Some(1));
+        assert_eq!(calc_dimension("[[Ljava/lang/Object;"), Some(2));
+
+        let name = "[Ljava/lang/Object;";
+        assert_eq!("java/lang/Object", &name[2..name.len() - 1]);
+    }
+}

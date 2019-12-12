@@ -1,0 +1,31 @@
+init_field
+  计数 (super & class)
+
+RuntimeConstantPool  
+
+
+
+oop: Ordinary Object Pointer
+klass: meta datas
+
+
+oop-klass why？
+----------------------------
+vtable，fields信息放入klass中，oop用std::vector<oop> _instanceFieldValues保存field值，
+每次set/get field值时，需要通过kclass找到field的index，虽然耗时，但当有成百上千的oop时，
+节省空间
+
+  kclass          			oop
+    vtable  <--index-->		std::vector<oop> _instanceFieldValues
+    fields
+
+
+
+arch
+-----------------------
+
+    runtime
+    --------
+      oop
+    --------
+    classfile
