@@ -12,7 +12,10 @@ use crate::runtime::{class_loader, execution};
 use crate::util;
 
 #[derive(Debug, Clone)]
-pub struct MethodId (pub usize, pub Method);
+pub struct MethodId {
+    pub offset: usize,
+    pub method: Method
+}
 
 #[derive(Debug, Clone)]
 pub struct Method {

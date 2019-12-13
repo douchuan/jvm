@@ -137,21 +137,18 @@ impl ClassObject {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self) -> bool {
+    pub fn init_class(&mut self) {
         if self.state == State::Linked {
             self.state = State::BeingIni;
 
-            //todo: verify this impl
             if let Some(super_class) = self.super_class.as_ref() {
-                if !super_class.lock().unwrap().init_class() {
-                    return false;
-                }
+                super_class.lock().unwrap().init_class();
             }
+
+            self.init_static_fields();
 
             self.state = State::FullyIni;
         }
-
-        true
     }
 
     pub fn is_array(&self) -> bool {
@@ -161,14 +158,14 @@ impl ClassObject {
         }
     }
 
-    pub fn get_dimension(&self) -> usize {
+    pub fn get_dimension(&self) -> Option<usize> {
         match self.down_type.as_ref() {
-            Some(down_type) => 1 + down_type.lock().unwrap().get_dimension(),
+            Some(down_type) => Some(1 + down_type.lock().unwrap().get_dimension().unwrap()),
             None => {
                 if self.is_array() {
-                    1
+                    Some(1)
                 } else {
-                    0
+                    None
                 }
             }
         }
@@ -267,11 +264,11 @@ impl ClassObject {
             let field = Field::new(cp, it, self);
             let id = field.get_id();
             if field.is_static() {
-                let fid = FieldId(n_static, field);
+                let fid = FieldId{offset: n_static, field};
                 self.static_fields.insert(id, fid);
                 n_static += 1;
             } else {
-                let fid = FieldId(n_inst, field);
+                let fid = FieldId{offset: n_inst, field};
                 self.inst_fields.insert(id, fid);
                 n_inst += 1;
             }
@@ -308,11 +305,11 @@ impl ClassObject {
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
             let method = Method::new(cp, it, self);
             let id = method.get_id();
-            let method_id = MethodId(i, method);
+            let method_id = MethodId { offset: i, method };
 
             self.all_methods.insert(id.clone(), method_id.clone());
 
-            if !method_id.1.is_static() {
+            if !method_id.method.is_static() {
                 self.v_table.insert(id, method_id);
             }
         });
@@ -349,13 +346,13 @@ impl ClassObject {
         let cp = &class_file.cp;
         let values = &mut self.static_filed_values;
         self.static_fields.iter().for_each(|(_, it)| {
-            if it.1.is_final() {
-                match it.1.get_attr_constant_value() {
-                    Some(v) => values[it.0] = v,
-                    None => values[it.0] = it.1.get_constant_value(),
+            if it.field.is_final() {
+                match it.field.get_attr_constant_value() {
+                    Some(v) => values[it.offset] = v,
+                    None => values[it.offset] = it.field.get_constant_value(),
                 }
             } else {
-                values[it.0] = it.1.get_constant_value();
+                values[it.offset] = it.field.get_constant_value();
             }
         });
     }

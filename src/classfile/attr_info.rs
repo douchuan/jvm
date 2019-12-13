@@ -159,61 +159,26 @@ impl From<&[u8]> for AttrTag {
 
 #[derive(Debug, Clone)]
 pub struct Code {
-    length: U4,
+    pub length: U4,
     pub max_stack: U2,
     pub max_locals: U2,
-    code_n: U4,
+    pub code_n: U4,
     pub code: Vec<U1>,
     pub exceptions_n: U2,
     pub exceptions: Vec<CodeException>,
-    attrs_n: U2,
-    attrs: Vec<AttrType>,
-}
-
-impl Code {
-    pub fn new(
-        length: U4,
-        max_stack: U2,
-        max_locals: U2,
-        code_n: U4,
-        code: Vec<U1>,
-        exceptions_n: U2,
-        exceptions: Vec<CodeException>,
-        attrs_n: U2,
-        attrs: Vec<AttrType>,
-    ) -> Self {
-        Self {
-            length,
-            max_stack,
-            max_locals,
-            code_n,
-            code,
-            exceptions_n,
-            exceptions,
-            attrs_n,
-            attrs,
-        }
-    }
+    pub attrs_n: U2,
+    pub attrs: Vec<AttrType>,
 }
 
 #[derive(Debug, Clone)]
 pub struct CodeException {
-    start_pc: U2,
-    end_pc: U2,
+    pub start_pc: U2,
+    pub end_pc: U2,
     pub handler_pc: U2,
     pub catch_type: U2,
 }
 
 impl CodeException {
-    pub fn new(start_pc: U2, end_pc: U2, handler_pc: U2, catch_type: U2) -> Self {
-        Self {
-            start_pc,
-            end_pc,
-            handler_pc,
-            catch_type,
-        }
-    }
-
     pub fn contains(&self, pc: U2) -> bool {
         (self.start_pc..self.end_pc).contains(&pc)
     }
@@ -238,59 +203,25 @@ pub enum NestedClassAccessPropertyFlag {
 
 #[derive(Debug, Copy, Clone)]
 pub struct InnerClass {
-    inner_class_info_index: U2,
-    outer_class_info_index: U2,
-    inner_name_index: U2,
-    inner_class_access_flags: U2,
-}
-
-impl InnerClass {
-    pub fn new(
-        inner_class_info_index: U2,
-        outer_class_info_index: U2,
-        inner_name_index: U2,
-        inner_class_access_flags: U2,
-    ) -> Self {
-        Self {
-            inner_class_info_index,
-            outer_class_info_index,
-            inner_name_index,
-            inner_class_access_flags,
-        }
-    }
+    pub inner_class_info_index: U2,
+    pub outer_class_info_index: U2,
+    pub inner_name_index: U2,
+    pub inner_class_access_flags: U2,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct LineNumber {
-    start_pc: U2,
-    number: U2,
-}
-
-impl LineNumber {
-    pub fn new(start_pc: U2, number: U2) -> Self {
-        Self { start_pc, number }
-    }
+    pub start_pc: U2,
+    pub number: U2,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct LocalVariable {
-    start_pc: U2,
-    length: U2,
-    name_index: U2,
-    signature_index: U2,
-    index: U2,
-}
-
-impl LocalVariable {
-    pub fn new(start_pc: U2, length: U2, name_index: U2, signature_index: U2, index: U2) -> Self {
-        Self {
-            start_pc,
-            length,
-            name_index,
-            signature_index,
-            index,
-        }
-    }
+    pub start_pc: U2,
+    pub length: U2,
+    pub name_index: U2,
+    pub signature_index: U2,
+    pub index: U2,
 }
 
 #[derive(Debug)]
@@ -352,59 +283,27 @@ pub enum ElementValueType {
 
 #[derive(Debug, Clone)]
 pub struct AnnotationElementValue {
-    value: AnnotationEntry,
-}
-
-impl AnnotationElementValue {
-    pub fn new(value: AnnotationEntry) -> Self {
-        Self { value }
-    }
+    pub value: AnnotationEntry,
 }
 
 #[derive(Debug, Clone)]
 pub struct ElementValuePair {
-    name_index: U2,
-    value: ElementValueType,
-}
-
-impl ElementValuePair {
-    pub fn new(name_index: U2, value: ElementValueType) -> Self {
-        Self { name_index, value }
-    }
+    pub name_index: U2,
+    pub value: ElementValueType,
 }
 
 #[derive(Debug, Clone)]
 pub struct AnnotationEntry {
-    type_index: U2,
-    pairs_n: U2,
-    pairs: Vec<ElementValuePair>,
-}
-
-impl AnnotationEntry {
-    pub fn new(type_index: U2, pairs_n: U2, pairs: Vec<ElementValuePair>) -> Self {
-        Self {
-            type_index,
-            pairs_n,
-            pairs,
-        }
-    }
+    pub type_index: U2,
+    pub pairs_n: U2,
+    pub pairs: Vec<ElementValuePair>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BootstrapMethod {
-    method_ref: U2,
-    arguments_n: U2,
-    arguments: Vec<U2>,
-}
-
-impl BootstrapMethod {
-    pub fn new(method_ref: U2, arguments_n: U2, arguments: Vec<U2>) -> Self {
-        Self {
-            method_ref,
-            arguments_n,
-            arguments,
-        }
-    }
+    pub method_ref: U2,
+    pub arguments_n: U2,
+    pub arguments: Vec<U2>,
 }
 
 #[derive(Debug)]
@@ -416,12 +315,6 @@ pub enum MethodParameterAccessFlag {
 
 #[derive(Debug, Copy, Clone)]
 pub struct MethodParameter {
-    name_index: U2,
-    acc_flags: U2,
-}
-
-impl MethodParameter {
-    pub fn new(name_index: U2, acc_flags: U2) -> Self {
-        Self { name_index, acc_flags }
-    }
+    pub name_index: U2,
+    pub acc_flags: U2,
 }

@@ -8,7 +8,10 @@ use crate::classfile::{
 use crate::oop::{ClassObject, ClassRef, Oop, ValueType};
 use crate::util;
 
-pub struct FieldId (pub usize, pub Field);
+pub struct FieldId {
+    pub offset: usize,
+    pub field: Field
+}
 
 pub struct Field {
     name: String,

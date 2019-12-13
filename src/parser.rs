@@ -341,7 +341,7 @@ impl FieldParser for Parser {
 //        println!("field name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
 //        println!("field desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
 //        println!("{:?}", attrs);
-        FieldInfo::new(acc_flags, name_index, desc_index, attrs_count, attrs)
+        FieldInfo { acc_flags, name_index, desc_index, attrs_count, attrs }
     }
 }
 
@@ -361,7 +361,7 @@ impl MethodParser for Parser {
 //        println!("method desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
 //        println!("attrs: {:?}", attrs);
 
-        MethodInfo::new(acc_flags, name_index, desc_index, attrs_count, attrs)
+        MethodInfo { acc_flags, name_index, desc_index, attrs_count, attrs }
     }
 }
 
@@ -461,7 +461,7 @@ impl AttrTypeParser for Parser {
             let end_pc = self.get_u2();
             let handler_pc = self.get_u2();
             let catch_type = self.get_u2();
-            let exception = attr_info::CodeException::new(start_pc, end_pc, handler_pc, catch_type);
+            let exception = attr_info::CodeException {start_pc, end_pc, handler_pc, catch_type};
             exceptions.push(exception);
         }
         let attrs_n = self.get_u2();
@@ -469,7 +469,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..attrs_n {
             attrs.push(self.get_attr_type(cp));
         }
-        AttrType::Code(attr_info::Code::new(
+        AttrType::Code(attr_info::Code {
             length,
             max_stack,
             max_locals,
@@ -479,7 +479,7 @@ impl AttrTypeParser for Parser {
             exceptions,
             attrs_n,
             attrs,
-        ))
+        })
     }
 
     fn get_attr_exceptions(&mut self) -> AttrType {
@@ -505,12 +505,12 @@ impl AttrTypeParser for Parser {
             let outer_class_info_index = self.get_u2();
             let inner_name_index = self.get_u2();
             let inner_class_access_flags = self.get_u2();
-            classes.push(attr_info::InnerClass::new(
+            classes.push(attr_info::InnerClass {
                 inner_class_info_index,
                 outer_class_info_index,
                 inner_name_index,
                 inner_class_access_flags,
-            ));
+            });
         }
         AttrType::InnerClasses {
             length,
@@ -560,7 +560,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..tables_n {
             let start_pc = self.get_u2();
             let number = self.get_u2();
-            tables.push(attr_info::LineNumber::new(start_pc, number));
+            tables.push(attr_info::LineNumber {start_pc, number});
         }
         AttrType::LineNumberTable {
             length,
@@ -678,11 +678,11 @@ impl AttrTypeParser for Parser {
             for _ in 0..methods_n {
                 arguments.push(self.get_u2());
             }
-            methods.push(attr_info::BootstrapMethod::new(
+            methods.push(attr_info::BootstrapMethod {
                 method_ref,
                 arguments_n,
                 arguments,
-            ));
+            });
         }
 
         AttrType::BootstrapMethods {
@@ -699,7 +699,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..parameters_n {
             let name_index = self.get_u2();
             let acc_flags = self.get_u2();
-            parameters.push(attr_info::MethodParameter::new(name_index, acc_flags));
+            parameters.push(attr_info::MethodParameter { name_index, acc_flags });
         }
 
         AttrType::MethodParameters {
@@ -726,9 +726,9 @@ impl AttrTypeParserUtils for Parser {
         for _ in 0..pairs_n {
             let name_index = self.get_u2();
             let value = self.get_attr_util_get_element_val();
-            pairs.push(attr_info::ElementValuePair::new(name_index, value));
+            pairs.push(attr_info::ElementValuePair { name_index, value });
         }
-        attr_info::AnnotationEntry::new(type_index, pairs_n, pairs)
+        attr_info::AnnotationEntry { type_index, pairs_n, pairs }
     }
 
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable {
@@ -737,7 +737,7 @@ impl AttrTypeParserUtils for Parser {
         let name_index = self.get_u2();
         let signature_index = self.get_u2();
         let index = self.get_u2();
-        attr_info::LocalVariable::new(start_pc, length, name_index, signature_index, index)
+        attr_info::LocalVariable {start_pc, length, name_index, signature_index, index}
     }
 
     fn get_attr_util_get_element_val(&mut self) -> attr_info::ElementValueType {
@@ -789,8 +789,8 @@ impl AttrTypeParserUtils for Parser {
                 attr_info::ElementValueType::Class {tag, index}
             }
             attr_info::ElementValueTag::Annotation => {
-                let annotation = self.get_attr_util_get_annotation();
-                let v = attr_info::AnnotationElementValue::new(annotation);
+                let value = self.get_attr_util_get_annotation();
+                let v = attr_info::AnnotationElementValue { value };
                 attr_info::ElementValueType::Annotation(v)
             }
             attr_info::ElementValueTag::Array => {
