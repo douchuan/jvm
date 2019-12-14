@@ -1,11 +1,6 @@
 use crate::classfile::{
-    access_flags::*,
-    attr_info::Code,
-    constant_pool, consts,
-    AttrType,
-    FieldInfo,
+    access_flags::*, attr_info::Code, constant_pool, consts, types::*, AttrType, FieldInfo,
     MethodInfo,
-    types::*,
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
 use crate::runtime::{class_loader, execution};
@@ -14,12 +9,11 @@ use crate::util;
 #[derive(Debug, Clone)]
 pub struct MethodId {
     pub offset: usize,
-    pub method: Method
+    pub method: Method,
 }
 
 #[derive(Debug, Clone)]
 pub struct Method {
-
     name: String,
     desc: String,
     id: String,
@@ -29,16 +23,15 @@ pub struct Method {
 }
 
 impl Method {
-
     pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: &ClassObject) -> Self {
         let name = constant_pool::get_utf8(mi.name_index, cp).unwrap();
         let name = String::from_utf8_lossy(name).to_string();
-        let desc= constant_pool::get_utf8(mi.desc_index, cp).unwrap();
-        let desc= String::from_utf8_lossy(desc).to_string();
+        let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
+        let desc = String::from_utf8_lossy(desc).to_string();
         let v = vec![desc.as_str(), name.as_str()];
         let id = util::make_id(v);
         let acc_flags = mi.acc_flags;
-        let code= mi.get_code().clone();
+        let code = mi.get_code().clone();
 
         Self {
             name,

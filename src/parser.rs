@@ -338,10 +338,16 @@ impl FieldParser for Parser {
         let desc_index = self.get_u2();
         let attrs_count = self.get_attrs_count();
         let attrs = self.get_attrs(attrs_count, cp);
-//        println!("field name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
-//        println!("field desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
-//        println!("{:?}", attrs);
-        FieldInfo { acc_flags, name_index, desc_index, attrs_count, attrs }
+        //        println!("field name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
+        //        println!("field desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
+        //        println!("{:?}", attrs);
+        FieldInfo {
+            acc_flags,
+            name_index,
+            desc_index,
+            attrs_count,
+            attrs,
+        }
     }
 }
 
@@ -357,11 +363,17 @@ impl MethodParser for Parser {
         let attrs_count = self.get_attrs_count();
         let attrs = self.get_attrs(attrs_count, cp);
 
-//        println!("method name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
-//        println!("method desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
-//        println!("attrs: {:?}", attrs);
+        //        println!("method name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
+        //        println!("method desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
+        //        println!("attrs: {:?}", attrs);
 
-        MethodInfo { acc_flags, name_index, desc_index, attrs_count, attrs }
+        MethodInfo {
+            acc_flags,
+            name_index,
+            desc_index,
+            attrs_count,
+            attrs,
+        }
     }
 }
 
@@ -461,7 +473,12 @@ impl AttrTypeParser for Parser {
             let end_pc = self.get_u2();
             let handler_pc = self.get_u2();
             let catch_type = self.get_u2();
-            let exception = attr_info::CodeException {start_pc, end_pc, handler_pc, catch_type};
+            let exception = attr_info::CodeException {
+                start_pc,
+                end_pc,
+                handler_pc,
+                catch_type,
+            };
             exceptions.push(exception);
         }
         let attrs_n = self.get_u2();
@@ -560,7 +577,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..tables_n {
             let start_pc = self.get_u2();
             let number = self.get_u2();
-            tables.push(attr_info::LineNumber {start_pc, number});
+            tables.push(attr_info::LineNumber { start_pc, number });
         }
         AttrType::LineNumberTable {
             length,
@@ -699,7 +716,10 @@ impl AttrTypeParser for Parser {
         for _ in 0..parameters_n {
             let name_index = self.get_u2();
             let acc_flags = self.get_u2();
-            parameters.push(attr_info::MethodParameter { name_index, acc_flags });
+            parameters.push(attr_info::MethodParameter {
+                name_index,
+                acc_flags,
+            });
         }
 
         AttrType::MethodParameters {
@@ -728,7 +748,11 @@ impl AttrTypeParserUtils for Parser {
             let value = self.get_attr_util_get_element_val();
             pairs.push(attr_info::ElementValuePair { name_index, value });
         }
-        attr_info::AnnotationEntry { type_index, pairs_n, pairs }
+        attr_info::AnnotationEntry {
+            type_index,
+            pairs_n,
+            pairs,
+        }
     }
 
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable {
@@ -737,7 +761,13 @@ impl AttrTypeParserUtils for Parser {
         let name_index = self.get_u2();
         let signature_index = self.get_u2();
         let index = self.get_u2();
-        attr_info::LocalVariable {start_pc, length, name_index, signature_index, index}
+        attr_info::LocalVariable {
+            start_pc,
+            length,
+            name_index,
+            signature_index,
+            index,
+        }
     }
 
     fn get_attr_util_get_element_val(&mut self) -> attr_info::ElementValueType {
@@ -745,48 +775,52 @@ impl AttrTypeParserUtils for Parser {
         match attr_info::ElementValueTag::from(tag) {
             attr_info::ElementValueTag::Byte => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Byte {tag, val_index}
+                attr_info::ElementValueType::Byte { tag, val_index }
             }
             attr_info::ElementValueTag::Char => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Char {tag, val_index}
+                attr_info::ElementValueType::Char { tag, val_index }
             }
             attr_info::ElementValueTag::Double => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Double {tag, val_index}
+                attr_info::ElementValueType::Double { tag, val_index }
             }
             attr_info::ElementValueTag::Float => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Float {tag, val_index}
+                attr_info::ElementValueType::Float { tag, val_index }
             }
             attr_info::ElementValueTag::Int => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Int {tag, val_index}
+                attr_info::ElementValueType::Int { tag, val_index }
             }
             attr_info::ElementValueTag::Long => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Long {tag, val_index}
+                attr_info::ElementValueType::Long { tag, val_index }
             }
             attr_info::ElementValueTag::Short => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Short {tag, val_index}
+                attr_info::ElementValueType::Short { tag, val_index }
             }
             attr_info::ElementValueTag::Boolean => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Boolean {tag, val_index}
+                attr_info::ElementValueType::Boolean { tag, val_index }
             }
             attr_info::ElementValueTag::String => {
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::String {tag, val_index}
+                attr_info::ElementValueType::String { tag, val_index }
             }
             attr_info::ElementValueTag::Enum => {
                 let type_index = self.get_u2();
                 let val_index = self.get_u2();
-                attr_info::ElementValueType::Enum {tag, type_index, val_index}
+                attr_info::ElementValueType::Enum {
+                    tag,
+                    type_index,
+                    val_index,
+                }
             }
             attr_info::ElementValueTag::Class => {
                 let index = self.get_u2();
-                attr_info::ElementValueType::Class {tag, index}
+                attr_info::ElementValueType::Class { tag, index }
             }
             attr_info::ElementValueTag::Annotation => {
                 let value = self.get_attr_util_get_annotation();
@@ -799,7 +833,7 @@ impl AttrTypeParserUtils for Parser {
                 for _ in 0..n {
                     values.push(self.get_attr_util_get_element_val());
                 }
-                attr_info::ElementValueType::Array {n, values}
+                attr_info::ElementValueType::Array { n, values }
             }
             attr_info::ElementValueTag::Unknown => attr_info::ElementValueType::Unknown,
         }

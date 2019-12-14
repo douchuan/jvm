@@ -1,25 +1,18 @@
-use crate::classfile::{
-    access_flags::*,
-    attr_info::AttrType,
-    constant_pool, consts,
-    types::*,
-};
-use crate::oop::{
-    ClassRef, ClassFileRef, Field, FieldId, Method, MethodId, Oop, ValueType
-};
+use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
+use crate::oop::{ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, Oop, ValueType};
 use crate::runtime::class_loader::{self, ClassLoader};
 use crate::util;
 
 use std::collections::HashMap;
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Type {
     InstanceClass,
     ObjectArray,
     PrimeArray,
 }
 
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum State {
     Allocated,
     Loaded,
@@ -29,8 +22,8 @@ pub enum State {
     IniErr,
 }
 
+#[derive(Debug, Clone)]
 pub struct ClassObject {
-
     pub name: String,
 
     pub typ: Type,
@@ -49,8 +42,6 @@ pub struct ClassObject {
 
     pub signature: Option<String>,
 
-    //arrays only
-    dimension: usize,
     //valid when dimension == 1
     elm_type: Option<ValueType>,
     //valid when dimension > 1
@@ -74,7 +65,6 @@ pub struct ClassObject {
 
 //open api
 impl ClassObject {
-
     pub fn get_class_state(&self) -> State {
         self.state
     }
@@ -154,7 +144,7 @@ impl ClassObject {
     pub fn is_array(&self) -> bool {
         match self.typ {
             Type::PrimeArray | Type::ObjectArray => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -174,21 +164,20 @@ impl ClassObject {
     pub fn is_prime_array(&self) -> bool {
         match self.typ {
             Type::PrimeArray => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_object_array(&self) -> bool {
         match self.typ {
             Type::ObjectArray => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
 //open api new
 impl ClassObject {
-
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = &class_file.cp;
         let name = constant_pool::get_class_name2(class_file.this_class, cp).unwrap();
@@ -202,7 +191,6 @@ impl ClassObject {
             class_loader,
             class_file,
             signature: None,
-            dimension: 0,
             elm_type: None,
             down_type: None,
             n_static_fields: 0,
@@ -232,7 +220,6 @@ impl ClassObject {
 
 //inner api for link
 impl ClassObject {
-
     fn link_super_class(&mut self) {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
@@ -264,11 +251,17 @@ impl ClassObject {
             let field = Field::new(cp, it, self);
             let id = field.get_id();
             if field.is_static() {
-                let fid = FieldId{offset: n_static, field};
+                let fid = FieldId {
+                    offset: n_static,
+                    field,
+                };
                 self.static_fields.insert(id, fid);
                 n_static += 1;
             } else {
-                let fid = FieldId{offset: n_inst, field};
+                let fid = FieldId {
+                    offset: n_inst,
+                    field,
+                };
                 self.inst_fields.insert(id, fid);
                 n_inst += 1;
             }
@@ -284,18 +277,19 @@ impl ClassObject {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
 
-        class_file.interfaces.iter().for_each(|it| {
-            match class_loader::require_class2(*it, cp) {
+        class_file
+            .interfaces
+            .iter()
+            .for_each(|it| match class_loader::require_class2(*it, cp) {
                 Some(class) => {
                     let name = class.lock().unwrap().name.clone();
                     self.interfaces.insert(name, class);
-                },
+                }
                 None => {
                     let name = constant_pool::get_class_name2(*it, cp);
                     error!("link interface failed {:?}", name);
                 }
-            }
-        });
+            });
     }
 
     fn link_methods(&mut self) {
@@ -325,14 +319,20 @@ impl ClassObject {
 
         class_file.attrs.iter().for_each(|a| {
             match a {
-                AttrType::Signature { length, signature_index } => {
+                AttrType::Signature {
+                    length,
+                    signature_index,
+                } => {
                     if let Some(s) = constant_pool::get_utf8(*signature_index, cp) {
                         self.signature = Some(String::from_utf8_lossy(s).to_string());
                     }
                 }
-                AttrType::SourceFile {length, source_file_index} =>  {
+                AttrType::SourceFile {
+                    length,
+                    source_file_index,
+                } => {
                     if let Some(s) = constant_pool::get_utf8(*source_file_index, cp) {
-                        self.source_file= Some(String::from_utf8_lossy(s).to_string());
+                        self.source_file = Some(String::from_utf8_lossy(s).to_string());
                     }
                 }
                 //todo: ATTRIBUTE_InnerClasses, ATTRIBUTE_EnclosingMethod, ATTRIBUTE_BootstrapMethods

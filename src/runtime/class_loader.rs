@@ -1,11 +1,11 @@
 use crate::classfile::{constant_pool, types::*};
-use crate::runtime::{self, class_path_manager, system_dictionary};
 use crate::oop::{self, ClassObject, ClassRef, ValueType};
 use crate::parser as class_parser;
+use crate::runtime::{self, class_path_manager, system_dictionary};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum ClassLoader {
     Base,
     Bootstrap,

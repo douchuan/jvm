@@ -90,7 +90,7 @@ pub enum AttrType {
         parameters_n: U1,
         parameters: Vec<MethodParameter>,
     },
-    Unknown
+    Unknown,
 }
 
 pub enum AttrTag {
@@ -152,7 +152,7 @@ impl From<&[u8]> for AttrTag {
             _ => {
                 warn!("Unknown attr {}", String::from_utf8_lossy(raw));
                 AttrTag::Unknown
-            },
+            }
         }
     }
 }
@@ -265,19 +265,56 @@ impl From<u8> for ElementValueTag {
 
 #[derive(Debug, Clone)]
 pub enum ElementValueType {
-    Byte {tag: U1, val_index: U2},
-    Char {tag: U1, val_index: U2},
-    Double {tag: U1, val_index: U2},
-    Float {tag: U1, val_index: U2},
-    Int {tag: U1, val_index: U2},
-    Long {tag: U1, val_index: U2},
-    Short {tag: U1, val_index: U2},
-    Boolean {tag: U1, val_index: U2},
-    String {tag: U1, val_index: U2},
-    Enum {tag: U1, type_index: U2, val_index: U2},
-    Class {tag: U1, index: U2},
+    Byte {
+        tag: U1,
+        val_index: U2,
+    },
+    Char {
+        tag: U1,
+        val_index: U2,
+    },
+    Double {
+        tag: U1,
+        val_index: U2,
+    },
+    Float {
+        tag: U1,
+        val_index: U2,
+    },
+    Int {
+        tag: U1,
+        val_index: U2,
+    },
+    Long {
+        tag: U1,
+        val_index: U2,
+    },
+    Short {
+        tag: U1,
+        val_index: U2,
+    },
+    Boolean {
+        tag: U1,
+        val_index: U2,
+    },
+    String {
+        tag: U1,
+        val_index: U2,
+    },
+    Enum {
+        tag: U1,
+        type_index: U2,
+        val_index: U2,
+    },
+    Class {
+        tag: U1,
+        index: U2,
+    },
     Annotation(AnnotationElementValue),
-    Array {n: U2, values: Vec<ElementValueType>},
+    Array {
+        n: U2,
+        values: Vec<ElementValueType>,
+    },
     Unknown,
 }
 

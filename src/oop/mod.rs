@@ -52,6 +52,8 @@ pub enum Oop {
     Float(f32),
     Double(f64),
     Str(String),
+    TypeArray(Box<ArrayOopDesc>),
+    ObjectArray(Box<ArrayOopDesc>),
     Null,
 }
 
@@ -88,3 +90,36 @@ impl ValueType {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ArrayOopDesc {
+    class: ClassRef,
+    elements: Vec<Oop>,
+}
+
+impl ArrayOopDesc {
+
+    pub fn new(class: ClassRef, len: usize) -> Self {
+        Self {
+            class,
+            elements: Vec::with_capacity(len)
+        }
+    }
+
+    pub fn get_dimension(&self) -> usize {
+        self.class.lock().unwrap().get_dimension().unwrap()
+    }
+
+    pub fn get_length(&self) -> usize {
+        self.elements.len()
+    }
+
+    pub fn get_elm_at(&self, index: usize) -> Option<&Oop> {
+        self.elements.get(index)
+    }
+
+    pub fn set_elm_at(&mut self, index: usize, elm: Oop) {
+        self.elements[index] = elm;
+    }
+}
+
