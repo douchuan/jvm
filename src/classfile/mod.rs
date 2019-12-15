@@ -16,12 +16,6 @@ use crate::classfile::checker::Checker;
 pub use crate::classfile::field_info::FieldInfo;
 pub use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
-use crate::runtime;
-
-pub fn init() {
-    runtime::system_dictionary::init();
-    runtime::class_path_manager::init();
-}
 
 #[derive(Debug)]
 pub struct ClassFile {
@@ -69,13 +63,4 @@ impl Checker for ClassFile {
             Ok(())
         }
     }
-}
-
-//todo: impl me
-fn is_valid_field_name() -> bool {
-    true
-}
-
-fn is_valid_class_name() -> bool {
-    true
 }

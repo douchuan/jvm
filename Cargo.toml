@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 bytes = "0.4.12"
 chrono = "0.4.9"
+clap = "2.33.0"
 env_logger = "0.6.1"
 lazy_static = "1.4.0"
 log = "0.4.0"

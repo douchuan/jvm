@@ -1,9 +1,12 @@
 extern crate bytes;
+extern crate clap;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+
+use clap::{Arg, App};
 
 #[macro_use]
 mod oop;
@@ -18,17 +21,48 @@ todo:
     Oop String => Oop Object, rust实现java-lang-string
   1. runtime bytecode object 相关部分
   2. JNI
+  3. rutime::execution::instance_of
+  4. oop::class
+    new_object_ary/new_prime_ary/new_wrapped_ary
 
   x. verify class file
+  x. java to execute a jar by -jar
 */
 
-fn main() {
-    env_logger::init();
-    classfile::init();
+fn init() {
+    runtime::sys_dic_init();
+    runtime::cp_path_init();
+}
 
-    //    parser::parse("test/Sample.class");
-    //    parser::parse("test/Student.class");
-    //    parser::parse("test/IPlayer.class");
+fn main() {
+    let matches = App::new("")
+        .arg(Arg::with_name("cp")
+            .long("cp")
+            .help("class search path of directories and zip/jar files")
+            .takes_value(true))
+        .arg(Arg::with_name("classpath")
+            .long("classpath")
+            .help("class search path of directories and zip/jar files")
+            .takes_value(true))
+        .arg(Arg::with_name("MAIN_CLASS")
+            .help("to execute a class")
+            .required(true)
+            .index(1))
+        .arg(Arg::with_name("ARGS")
+            .multiple(true)
+            .help("[args...]"))
+        .get_matches();
+
+    env_logger::init();
+    init();
+
+    let main_class = matches.value_of("MAIN_CLASS").unwrap();
+    let args= matches.values_of("ARGS");
+    println!("main class: {}, args: {:?}", main_class, args);
+
+    let main = runtime::require_class(None, main_class).unwrap();
+    let main_method = main.lock().unwrap().get_static_method("([Ljava/lang/String;)V", "main").unwrap();
+    /*
     let path = "test/Test.class";
     match parser::parse(path) {
         Ok(c) => match c.check_format() {
@@ -37,6 +71,7 @@ fn main() {
         },
         _ => error!("class file parse failed"),
     }
+    */
 }
 
 #[cfg(test)]

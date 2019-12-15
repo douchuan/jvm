@@ -28,8 +28,7 @@ impl Field {
         let desc = constant_pool::get_utf8(fi.desc_index, cp).unwrap();
         let value_type = desc.first().unwrap().into();
         let desc = String::from_utf8_lossy(desc).to_string();
-        let v = vec![class.name.as_str(), desc.as_str(), name.as_str()];
-        let id = util::make_id(v);
+        let id = vec![class.name.as_str(), desc.as_str(), name.as_str()].join(":");
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;

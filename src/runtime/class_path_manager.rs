@@ -14,7 +14,7 @@ pub fn init() {
     lazy_static::initialize(&CPM);
 }
 
-pub fn search_class(name: &str) -> Result<ClassPathResult, io::Error> {
+pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
     util::sync_call_ctx(&CPM, |cpm| cpm.search_class(name))
 }
 

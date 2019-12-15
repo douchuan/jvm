@@ -1,6 +1,6 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, Oop, ValueType};
-use crate::runtime::class_loader::{self, ClassLoader};
+use crate::runtime::{self, ClassLoader};
 use crate::util;
 
 use std::collections::HashMap;
@@ -174,6 +174,11 @@ impl ClassObject {
             _ => false,
         }
     }
+
+    pub fn get_static_method(&self, desc: &str, name: &str) -> Option<&MethodId> {
+        let id = vec![desc, name].join(":");
+        self.all_methods.get(&id)
+    }
 }
 
 //open api new
@@ -233,7 +238,7 @@ impl ClassObject {
         } else {
             let name = constant_pool::get_class_name(class_file.super_class, cp).unwrap();
             let name = std::str::from_utf8(name).unwrap();
-            let super_class = class_loader::require_class(self.class_loader, name).unwrap();
+            let super_class = runtime::require_class(self.class_loader, name).unwrap();
             util::sync_call_ctx(&super_class, |c| {
                 assert!(!c.is_final(), "should not final");
             });
@@ -280,7 +285,7 @@ impl ClassObject {
         class_file
             .interfaces
             .iter()
-            .for_each(|it| match class_loader::require_class2(*it, cp) {
+            .for_each(|it| match runtime::require_class2(*it, cp) {
                 Some(class) => {
                     let name = class.lock().unwrap().name.clone();
                     self.interfaces.insert(name, class);

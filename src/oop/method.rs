@@ -3,7 +3,7 @@ use crate::classfile::{
     MethodInfo,
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
-use crate::runtime::{class_loader, execution};
+use crate::runtime;
 use crate::util;
 
 #[derive(Debug, Clone)]
@@ -28,8 +28,7 @@ impl Method {
         let name = String::from_utf8_lossy(name).to_string();
         let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
         let desc = String::from_utf8_lossy(desc).to_string();
-        let v = vec![desc.as_str(), name.as_str()];
-        let id = util::make_id(v);
+        let id = vec![desc.as_str(), name.as_str()].join(":");
         let acc_flags = mi.acc_flags;
         let code = mi.get_code().clone();
 
@@ -56,8 +55,8 @@ impl Method {
                     return Some(e.handler_pc);
                 }
 
-                if let Some(class) = class_loader::require_class2(e.catch_type, cp) {
-                    if execution::instance_of(ex.clone(), class) {
+                if let Some(class) = runtime::require_class2(e.catch_type, cp) {
+                    if runtime::instance_of(ex.clone(), class) {
                         return Some(e.handler_pc);
                     }
                 }

@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::classfile::{types::*, ClassFile};
-use crate::runtime::class_loader;
+use crate::runtime::ClassLoader;
 
 pub mod class;
 pub mod field;
@@ -77,7 +77,7 @@ impl From<&u8> for ValueType {
 }
 
 impl ValueType {
-    pub fn parse_wrap(class_loader: Option<class_loader::ClassLoader>, desc: &str) -> Self {
+    pub fn parse_wrap(class_loader: Option<ClassLoader>, desc: &str) -> Self {
         match desc.as_bytes().first().unwrap() {
             b'B' | b'Z' | b'C' | b'S' | b'I' => ValueType::INT,
             b'J' => ValueType::LONG,

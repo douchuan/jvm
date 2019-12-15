@@ -1,7 +1,7 @@
 use crate::classfile::{constant_pool, types::*};
 use crate::oop::{self, ClassObject, ClassRef, ValueType};
 use crate::parser as class_parser;
-use crate::runtime::{self, class_path_manager, system_dictionary};
+use crate::runtime::{self, ClassPathResult};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
@@ -30,7 +30,7 @@ impl ClassLoader {
             match self {
                 ClassLoader::Base => (),
                 ClassLoader::Bootstrap => {
-                    let it = system_dictionary::find(name);
+                    let it = runtime::sys_dic_find(name);
                     if it.is_some() {
                         return it;
                     }
@@ -44,7 +44,7 @@ impl ClassLoader {
                     ClassLoader::Base => (),
 
                     ClassLoader::Bootstrap => {
-                        system_dictionary::put(name, class.clone());
+                        runtime::sys_dic_put(name, class.clone());
                         util::sync_call_ctx(&class, |it| {
                             it.set_class_state(oop::class::State::Loaded);
                             it.link_class();
@@ -103,8 +103,8 @@ impl ClassLoader {
     }
 
     fn load_class_from_path(&self, name: &str) -> Option<ClassRef> {
-        match class_path_manager::search_class(name) {
-            Ok(class_path_manager::ClassPathResult(_, _, buf)) => {
+        match runtime::find_class_in_classpath(name) {
+            Ok(ClassPathResult(_, _, buf)) => {
                 match class_parser::parse_buf(&buf) {
                     Ok(cf) => {
                         let cfr = Arc::new(cf);
