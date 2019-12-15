@@ -27,11 +27,11 @@ todo:
 
   x. verify class file
   x. java to execute a jar by -jar
+  x. try to opt by Ref with Lifetime
 */
 
 fn init() {
-    runtime::sys_dic_init();
-    runtime::cp_path_init();
+   runtime::init();
 }
 
 fn main() {
