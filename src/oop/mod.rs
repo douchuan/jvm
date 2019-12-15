@@ -52,8 +52,8 @@ pub enum Oop {
     Float(f32),
     Double(f64),
     Str(String),
-    TypeArray(Box<ArrayOopDesc>),
-    ObjectArray(Box<ArrayOopDesc>),
+    TypeArray(ArrayOopDesc),
+    ObjectArray(ArrayOopDesc),
     Null,
 }
 

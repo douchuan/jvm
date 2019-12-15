@@ -34,8 +34,8 @@ impl Parser {
         let acc_flags = self.get_acc_flags();
         let this_class = self.get_this_class();
         let super_class = self.get_super_class();
-        let interface_count = self.get_interface_count();
-        let interfaces = self.get_interfaces(interface_count);
+        let interfaces_count = self.get_interface_count();
+        let interfaces = self.get_interfaces(interfaces_count);
         let fields_count = self.get_fields_count();
         let fields = self.get_fields(fields_count, &cp);
         let methods_count = self.get_methods_count();
@@ -43,7 +43,7 @@ impl Parser {
         let attrs_count = self.get_attrs_count();
         let attrs = self.get_attrs(attrs_count, &cp);
 
-        ClassFile::new(
+        ClassFile {
             magic,
             version,
             cp_count,
@@ -51,7 +51,7 @@ impl Parser {
             acc_flags,
             this_class,
             super_class,
-            interface_count,
+            interfaces_count,
             interfaces,
             fields_count,
             fields,
@@ -59,7 +59,7 @@ impl Parser {
             methods,
             attrs_count,
             attrs,
-        )
+        }
     }
 
     pub fn get_u4(&mut self) -> U4 {
@@ -101,7 +101,7 @@ impl ClassFileParser for Parser {
     fn get_version(&mut self) -> Version {
         let minor = self.get_u2();
         let major = self.get_u2();
-        Version::new(minor, major)
+        Version { minor, major }
     }
 
     fn get_cp_count(&mut self) -> U2 {
