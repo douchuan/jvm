@@ -1,30 +1,29 @@
 use bytes::{BigEndian, Bytes};
 
 use crate::classfile::constant_pool::ConstantType;
-use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::runtime::Stack;
-use crate::runtime::Local;
+use crate::oop::{ClassRef, Method};
+use crate::runtime::{Stack, Local};
 
-pub struct Frame<'cls> {
+pub struct Frame {
     local: Local,
     stack: Stack,
     pid: usize,
-    class: &'cls ClassFile,
-    code: &'cls Vec<U1>,
+    class: ClassRef,
+
+    //todo: opt me by Reference Lifetimes
+    code: Vec<U1>,
 }
 
-impl<'cls> Frame<'cls> {
-    pub fn new(class: &'cls ClassFile, m: &'cls MethodInfo) -> Self {
-        let code = m.get_code();
-
+impl Frame {
+    pub fn new(class: ClassRef, m: Method) -> Self {
         Self {
-            local: Local::new(code.max_locals as usize),
-            stack: Stack::new(code.max_stack as usize),
+            local: Local::new(m.code.max_locals as usize),
+            stack: Stack::new(m.code.max_stack as usize),
             pid: 0,
             class,
-            code: &code.code,
+            code: m.code.code.clone(),
         }
     }
 
@@ -53,13 +52,15 @@ impl<'cls> Frame<'cls> {
     }
 
     fn load_constant(&mut self, pos: usize) {
-        match &self.class.cp[pos] {
+        let cp = &self.class.lock().unwrap().class_file.cp;
+
+        match &cp[pos] {
             ConstantType::Integer { v } => self.stack.push2(*v),
             ConstantType::Float { v } => self.stack.push2(*v),
             ConstantType::Long { v } => self.stack.push3(*v),
             ConstantType::Double { v } => self.stack.push3(*v),
             ConstantType::String { string_index } => {
-                if let ConstantType::Utf8 { length, bytes } = &self.class.cp[*string_index as usize]
+                if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize]
                 {
                     //todo: try to optimize, avoid copy bytes, just push string_index, can work?
                     self.stack.push(Bytes::from(bytes.as_slice()));
@@ -76,7 +77,7 @@ impl<'cls> Frame<'cls> {
     }
 }
 
-impl<'cls> Frame<'cls> {
+impl Frame {
     pub fn nop(&mut self) {}
 
     pub fn aconst_null(&mut self) {

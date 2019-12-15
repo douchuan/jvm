@@ -7,6 +7,7 @@ extern crate log;
 extern crate env_logger;
 
 use clap::{Arg, App};
+use crate::runtime::JavaMainThread;
 
 #[macro_use]
 mod oop;
@@ -17,6 +18,7 @@ mod util;
 
 /*
 todo:
+
   0. oop impl Oop，结合 runtime Slot，建立Ref(Oop)
     Oop String => Oop Object, rust实现java-lang-string
   1. runtime bytecode object 相关部分
@@ -24,17 +26,21 @@ todo:
   3. rutime::execution::instance_of
   4. oop::class
     new_object_ary/new_prime_ary/new_wrapped_ary
+  5. impl InstOopDesc
+  6. impl runtime::thread::JavaThread run
 
   x. verify class file
   x. java to execute a jar by -jar
   x. try to opt by Ref with Lifetime
 */
 
-fn init() {
+fn init_vm() {
    runtime::init();
 }
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("")
         .arg(Arg::with_name("cp")
             .long("cp")
@@ -53,15 +59,15 @@ fn main() {
             .help("[args...]"))
         .get_matches();
 
-    env_logger::init();
-    init();
-
-    let main_class = matches.value_of("MAIN_CLASS").unwrap();
-    let args= matches.values_of("ARGS");
+    let main_class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
+    let args= matches.values_of_lossy("ARGS");
     println!("main class: {}, args: {:?}", main_class, args);
 
-    let main = runtime::require_class(None, main_class).unwrap();
-    let main_method = main.lock().unwrap().get_static_method("([Ljava/lang/String;)V", "main").unwrap();
+    init_vm();
+
+    let thread = JavaMainThread {main_class, args};
+    thread.run();
+
     /*
     let path = "test/Test.class";
     match parser::parse(path) {

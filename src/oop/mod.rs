@@ -52,8 +52,9 @@ pub enum Oop {
     Float(f32),
     Double(f64),
     Str(String),
+    Inst(InstOopDesc),
     TypeArray(ArrayOopDesc),
-    ObjectArray(ArrayOopDesc),
+    ObjArray(ArrayOopDesc),
     Null,
 }
 
@@ -89,6 +90,11 @@ impl ValueType {
             _ => unreachable!(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct InstOopDesc {
+
 }
 
 #[derive(Debug, Clone)]

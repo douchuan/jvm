@@ -4,7 +4,7 @@ use crate::classfile::{
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
 use crate::runtime;
-use crate::util;
+use crate::util::{self, PATH_DELIMITER};
 
 #[derive(Debug, Clone)]
 pub struct MethodId {
@@ -19,7 +19,7 @@ pub struct Method {
     id: String,
     acc_flags: U2,
 
-    code: Code,
+    pub code: Code,
 }
 
 impl Method {
@@ -28,7 +28,7 @@ impl Method {
         let name = String::from_utf8_lossy(name).to_string();
         let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
         let desc = String::from_utf8_lossy(desc).to_string();
-        let id = vec![desc.as_str(), name.as_str()].join(":");
+        let id = vec![desc.as_str(), name.as_str()].join(PATH_DELIMITER);
         let acc_flags = mi.acc_flags;
         let code = mi.get_code().clone();
 

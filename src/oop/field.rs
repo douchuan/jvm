@@ -1,6 +1,6 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
 use crate::oop::{ClassObject, ClassRef, Oop, ValueType};
-use crate::util;
+use crate::util::{self, PATH_DELIMITER};
 
 #[derive(Debug, Clone)]
 pub struct FieldId {
@@ -28,7 +28,7 @@ impl Field {
         let desc = constant_pool::get_utf8(fi.desc_index, cp).unwrap();
         let value_type = desc.first().unwrap().into();
         let desc = String::from_utf8_lossy(desc).to_string();
-        let id = vec![class.name.as_str(), desc.as_str(), name.as_str()].join(":");
+        let id = vec![class.name.as_str(), desc.as_str(), name.as_str()].join(PATH_DELIMITER);
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;
