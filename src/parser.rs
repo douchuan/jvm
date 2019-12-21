@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -254,40 +254,26 @@ impl ConstantPoolParser for Parser {
     }
 
     fn get_constant_integer(&mut self) -> ConstantType {
-        let v = [self.get_u1(), self.get_u1(), self.get_u1(), self.get_u1()];
+        let mut v = [0; 4];
+        let _ = self.buf.read_exact(&mut v);
         ConstantType::Integer { v }
     }
 
     fn get_constant_float(&mut self) -> ConstantType {
-        let v = [self.get_u1(), self.get_u1(), self.get_u1(), self.get_u1()];
+        let mut v = [0; 4];
+        let _ = self.buf.read_exact(&mut v);
         ConstantType::Float { v }
     }
 
     fn get_constant_long(&mut self) -> ConstantType {
-        let v = [
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-        ];
+        let mut v = [0; 8];
+        let _ = self.buf.read_exact(&mut v);
         ConstantType::Long { v }
     }
 
     fn get_constant_double(&mut self) -> ConstantType {
-        let v = [
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-            self.get_u1(),
-        ];
+        let mut v = [0; 8];
+        let _ = self.buf.read_exact(&mut v);
         ConstantType::Double { v }
     }
 
@@ -301,9 +287,7 @@ impl ConstantPoolParser for Parser {
     fn get_constant_utf8(&mut self) -> ConstantType {
         let length = self.get_u2();
         let mut bytes = Vec::with_capacity(length as usize);
-        for _ in 0..length {
-            bytes.push(self.get_u1())
-        }
+        let _ = self.buf.read_exact(bytes.as_mut_slice());
         ConstantType::Utf8 { length, bytes }
     }
 
@@ -688,25 +672,25 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_bootstrap_methods(&mut self) -> AttrType {
         let length = self.get_u4();
-        let methods_n = self.get_u2();
+        let n = self.get_u2();
         let mut methods = Vec::new();
-        for _ in 0..methods_n {
+        for _ in 0..n {
             let method_ref: U2 = self.get_u2();
-            let arguments_n: U2 = self.get_u2();
-            let mut arguments = Vec::new();
-            for _ in 0..methods_n {
-                arguments.push(self.get_u2());
+            let n_arg: U2 = self.get_u2();
+            let mut args= Vec::new();
+            for _ in 0..n_arg {
+                args.push(self.get_u2());
             }
             methods.push(attr_info::BootstrapMethod {
                 method_ref,
-                arguments_n,
-                arguments,
+                n_arg,
+                args,
             });
         }
 
         AttrType::BootstrapMethods {
             length,
-            methods_n,
+            n,
             methods,
         }
     }

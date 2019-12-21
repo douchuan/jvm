@@ -83,7 +83,7 @@ pub enum AttrType {
     },
     BootstrapMethods {
         length: U4,
-        methods_n: U2,
+        n: U2,
         methods: Vec<BootstrapMethod>,
     },
     MethodParameters {
@@ -340,8 +340,8 @@ pub struct AnnotationEntry {
 #[derive(Debug, Clone)]
 pub struct BootstrapMethod {
     pub method_ref: U2,
-    pub arguments_n: U2,
-    pub arguments: Vec<U2>,
+    pub n_arg: U2,
+    pub args: Vec<U2>,
 }
 
 #[derive(Debug)]
