@@ -60,8 +60,7 @@ impl Frame {
             ConstantType::String { string_index } => {
                 if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize]
                 {
-                    //todo: try to optimize, avoid copy bytes, just push string_index, can work?
-                    self.stack.push(Bytes::from(bytes.as_slice()));
+                    self.stack.push_const_utf8(bytes.clone());
                 } else {
                     unreachable!()
                 }

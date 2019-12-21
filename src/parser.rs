@@ -288,6 +288,7 @@ impl ConstantPoolParser for Parser {
         let length = self.get_u2();
         let mut bytes = Vec::with_capacity(length as usize);
         let _ = self.buf.read_exact(bytes.as_mut_slice());
+        let bytes = Arc::new(bytes);
         ConstantType::Utf8 { length, bytes }
     }
 
@@ -397,7 +398,7 @@ impl AttrTypeParser for Parser {
         let name_index = self.get_u2();
         let tag = match cp.get(name_index as usize) {
             Some(v) => match v {
-                ConstantType::Utf8 { length: _, bytes } => AttrTag::from(bytes.as_ref()),
+                ConstantType::Utf8 { length: _, bytes } => AttrTag::from(bytes.as_slice()),
                 ConstantType::NOP => AttrTag::Invalid,
                 _ => AttrTag::Unknown,
             },

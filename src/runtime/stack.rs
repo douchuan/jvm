@@ -1,11 +1,10 @@
-
 use bytes::{BigEndian, Bytes};
-
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::runtime::Slot;
+use std::sync::Arc;
 
 pub struct Stack {
     inner: Vec<Slot>,
@@ -88,6 +87,10 @@ impl Stack {
 
     pub fn push_const5(&mut self) {
         self.inner.push(Slot::Const5);
+    }
+
+    pub fn push_const_utf8(&mut self, v: Arc<Vec<u8>>) {
+        self.inner.push(Slot::Utf8(v));
     }
 
     pub fn pop_int(&mut self) -> i32 {

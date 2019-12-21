@@ -1,9 +1,9 @@
-use std::fmt;
-
 use crate::classfile::checker::{self, Checker};
 use crate::classfile::consts::{METHOD_NAME_CLINIT, METHOD_NAME_INIT};
 use crate::classfile::signature::{MethodSignature, Type as SigType};
 use crate::classfile::types::{CheckResult, ConstantPool};
+use std::fmt;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum ConstantType {
@@ -44,7 +44,7 @@ pub enum ConstantType {
     },
     Utf8 {
         length: u16,
-        bytes: Vec<u8>,
+        bytes: Arc<Vec<u8>>,
     },
     MethodHandle {
         ref_kind: u8,
