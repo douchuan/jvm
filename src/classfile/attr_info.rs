@@ -1,4 +1,5 @@
 use crate::classfile::types::*;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum AttrType {
@@ -163,7 +164,7 @@ pub struct Code {
     pub max_stack: U2,
     pub max_locals: U2,
     pub code_n: U4,
-    pub code: Vec<U1>,
+    pub code: Arc<Vec<U1>>,
     pub exceptions_n: U2,
     pub exceptions: Vec<CodeException>,
     pub attrs_n: U2,

@@ -137,6 +137,8 @@ impl ClassObject {
 
             self.init_static_fields();
 
+            //todo: JavaCall "<clinit>" "()V"
+
             self.state = State::FullyIni;
         }
     }

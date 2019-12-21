@@ -20,14 +20,16 @@ mod util;
 todo:
 
   0. oop impl Oop，结合 runtime Slot，建立Ref(Oop)
-    Oop String => Oop Object, rust实现java-lang-string
-  1. runtime bytecode object 相关部分
+    Oop String => Oop Object, 实现java-lang-string
+  1. runtime byte code object 相关部分
   2. JNI
-  3. rutime::execution::instance_of
+  3. runtime::execution::instance_of
   4. oop::class
     new_object_ary/new_prime_ary/new_wrapped_ary
   5. impl InstOopDesc
   6. impl runtime::thread::JavaThread run
+  7. oop class init_class, java call "<clinit>"
+     impl JavaCall::with_args(thread, clinit, {})
 
   x. verify class file
   x. java to execute a jar by -jar

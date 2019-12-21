@@ -1,5 +1,6 @@
 use std::io::Cursor;
 use std::path::Path;
+use std::sync::Arc;
 
 use bytes::Buf;
 
@@ -466,6 +467,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..code_n {
             code.push(self.get_u1());
         }
+        let code = Arc::new(code);
         let exceptions_n = self.get_u2();
         let mut exceptions = Vec::new();
         for _ in 0..exceptions_n {

@@ -1,19 +1,17 @@
 use bytes::{BigEndian, Bytes};
-
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{ClassRef, Method};
 use crate::runtime::{Stack, Local};
+use std::sync::Arc;
 
 pub struct Frame {
     local: Local,
     stack: Stack,
     pid: usize,
     class: ClassRef,
-
-    //todo: opt me by Reference Lifetimes
-    code: Vec<U1>,
+    code: Arc<Vec<U1>>,
 }
 
 impl Frame {
