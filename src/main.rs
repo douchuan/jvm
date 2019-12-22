@@ -17,7 +17,7 @@ mod runtime;
 mod util;
 
 /*
-todo:
+todo list
 
   0. oop impl Oop，结合 runtime Slot，建立Ref(Oop)
     Oop String => Oop Object, 实现java-lang-string
@@ -92,4 +92,24 @@ mod tests {
             _ => assert!(false),
         }
     }
+
+    #[test]
+    fn t_arc() {
+        use std::sync::Arc;
+        struct TestArc {
+            bytes: Arc<Vec<u8>>
+        }
+
+        let mut ref_bytes = None;
+        {
+            let bytes = Arc::new(vec![1, 2, 3, 4]);
+            let t = TestArc { bytes };
+            ref_bytes = Some(t.bytes.clone());
+            assert_eq!(2, Arc::strong_count(&t.bytes));
+        }
+        assert!(ref_bytes.is_some());
+        assert_eq!(ref_bytes, Some(Arc::new(vec![1, 2, 3, 4])));
+        assert_eq!(1, Arc::strong_count(&ref_bytes.unwrap()));
+    }
+
 }

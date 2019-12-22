@@ -11,19 +11,24 @@ pub enum ClassLoader {
     Bootstrap,
 }
 
-pub fn require_class(class_loader: Option<ClassLoader>, name: &str) -> Option<ClassRef> {
+pub fn require_class(class_loader: Option<ClassLoader>, name: BytesRef) -> Option<ClassRef> {
     let class_loader = class_loader.unwrap_or(ClassLoader::Bootstrap);
-    class_loader.load_class(name)
+    class_loader.load_class(name.as_slice())
 }
 
 pub fn require_class2(index: U2, cp: &ConstantPool) -> Option<ClassRef> {
     let class = constant_pool::get_class_name(index, cp)?;
-    let class = String::from_utf8_lossy(class);
-    require_class(None, class.as_ref())
+    require_class(None, class)
 }
 
+pub fn require_class3(class_loader: Option<ClassLoader>, name: &[u8]) -> Option<ClassRef> {
+    let class_loader = class_loader.unwrap_or(ClassLoader::Bootstrap);
+    class_loader.load_class(name)
+}
+
+
 impl ClassLoader {
-    fn load_class(&self, name: &str) -> Option<ClassRef> {
+    fn load_class(&self, name: &[u8]) -> Option<ClassRef> {
         if is_array(name) {
             self.load_array_class(name)
         } else {
@@ -59,11 +64,11 @@ impl ClassLoader {
         }
     }
 
-    fn load_array_class(&self, name: &str) -> Option<ClassRef> {
+    fn load_array_class(&self, name: &[u8]) -> Option<ClassRef> {
         match calc_dimension(name) {
             Some(1) => {
                 // dimension == 1
-                match name.as_bytes().first() {
+                match name.first() {
                     Some(b'L') => {
                         //[Ljava/lang/Object;
                         let elm = &name[2..name.len() - 1];
@@ -102,8 +107,9 @@ impl ClassLoader {
         }
     }
 
-    fn load_class_from_path(&self, name: &str) -> Option<ClassRef> {
-        match runtime::find_class_in_classpath(name) {
+    fn load_class_from_path(&self, name: &[u8]) -> Option<ClassRef> {
+        let name = String::from_utf8_lossy(name);
+        match runtime::find_class_in_classpath(&name) {
             Ok(ClassPathResult(_, _, buf)) => {
                 match class_parser::parse_buf(&buf) {
                     Ok(cf) => {
@@ -121,16 +127,16 @@ impl ClassLoader {
     }
 }
 
-fn calc_dimension(name: &str) -> Option<usize> {
+fn calc_dimension(name: &[u8]) -> Option<usize> {
     if is_array(name) {
-        name.find(|c| c != '[')
+        name.iter().position(|&c| c != b'[')
     } else {
         None
     }
 }
 
-fn is_array(name: &str) -> bool {
-    name.bytes().nth(0) == Some(b'[')
+fn is_array(name: &[u8]) -> bool {
+    name.starts_with(&[b'['])
 }
 
 #[cfg(test)]
@@ -138,16 +144,16 @@ mod tests {
     #[test]
     fn t_basic() {
         use super::calc_dimension;
-        assert_eq!(calc_dimension(""), None);
-        assert_eq!(calc_dimension("Ljava/lang/Object;"), None);
-        assert_eq!(calc_dimension("Z"), None);
-        assert_eq!(calc_dimension("[B"), Some(1));
-        assert_eq!(calc_dimension("[[B"), Some(2));
-        assert_eq!(calc_dimension("[[[B"), Some(3));
-        assert_eq!(calc_dimension("[[[[B"), Some(4));
-        assert_eq!(calc_dimension("[[[[[B"), Some(5));
-        assert_eq!(calc_dimension("[Ljava/lang/Object;"), Some(1));
-        assert_eq!(calc_dimension("[[Ljava/lang/Object;"), Some(2));
+        assert_eq!(calc_dimension("".as_bytes()), None);
+        assert_eq!(calc_dimension("Ljava/lang/Object;".as_bytes()), None);
+        assert_eq!(calc_dimension("Z".as_bytes()), None);
+        assert_eq!(calc_dimension("[B".as_bytes()), Some(1));
+        assert_eq!(calc_dimension("[[B".as_bytes()), Some(2));
+        assert_eq!(calc_dimension("[[[B".as_bytes()), Some(3));
+        assert_eq!(calc_dimension("[[[[B".as_bytes()), Some(4));
+        assert_eq!(calc_dimension("[[[[[B".as_bytes()), Some(5));
+        assert_eq!(calc_dimension("[Ljava/lang/Object;".as_bytes()), Some(1));
+        assert_eq!(calc_dimension("[[Ljava/lang/Object;".as_bytes()), Some(2));
 
         let name = "[Ljava/lang/Object;";
         assert_eq!("java/lang/Object", &name[2..name.len() - 1]);

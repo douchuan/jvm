@@ -14,8 +14,8 @@ pub struct MethodId {
 
 #[derive(Debug, Clone)]
 pub struct Method {
-    name: String,
-    desc: String,
+    name: BytesRef,
+    desc: BytesRef,
     id: String,
     acc_flags: U2,
 
@@ -25,10 +25,10 @@ pub struct Method {
 impl Method {
     pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: &ClassObject) -> Self {
         let name = constant_pool::get_utf8(mi.name_index, cp).unwrap();
-        let name = String::from_utf8_lossy(name).to_string();
         let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
-        let desc = String::from_utf8_lossy(desc).to_string();
-        let id = vec![desc.as_str(), name.as_str()].join(PATH_DELIMITER);
+        let p1 = String::from_utf8_lossy(desc.as_slice());
+        let p2 = String::from_utf8_lossy(name.as_slice());
+        let id = vec![p1, p2].join(PATH_DELIMITER);
         let acc_flags = mi.acc_flags;
         let code = mi.get_code().clone();
 

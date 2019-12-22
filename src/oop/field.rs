@@ -10,8 +10,8 @@ pub struct FieldId {
 
 #[derive(Debug, Clone)]
 pub struct Field {
-    name: String,
-    desc: String,
+    name: BytesRef,
+    desc: BytesRef,
     id: String,
 
     acc_flags: U2,
@@ -24,11 +24,12 @@ pub struct Field {
 impl Field {
     pub fn new(cp: &ConstantPool, fi: &FieldInfo, class: &ClassObject) -> Self {
         let name = constant_pool::get_utf8(fi.name_index, cp).unwrap();
-        let name = String::from_utf8_lossy(name).to_string();
         let desc = constant_pool::get_utf8(fi.desc_index, cp).unwrap();
         let value_type = desc.first().unwrap().into();
-        let desc = String::from_utf8_lossy(desc).to_string();
-        let id = vec![class.name.as_str(), desc.as_str(), name.as_str()].join(PATH_DELIMITER);
+        let p1 = String::from_utf8_lossy(class.name.as_slice());
+        let p2 = String::from_utf8_lossy(desc.as_slice());
+        let p3 = String::from_utf8_lossy(name.as_slice());
+        let id = vec![p1, p2, p3].join(PATH_DELIMITER);
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;
@@ -61,7 +62,6 @@ impl Field {
                     }
                     Some(constant_pool::ConstantType::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(*string_index, cp) {
-                            let v = String::from_utf8_lossy(v).to_string();
                             attr_constant_value = Some(Oop::Str(v));
                         }
                     }

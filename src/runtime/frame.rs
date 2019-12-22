@@ -187,7 +187,8 @@ impl Frame {
 
     pub fn aload(&mut self) {
         let pos = self.read_u1();
-        //
+        //todo: impl
+        unimplemented!()
     }
 
     pub fn iload_0(&mut self) {

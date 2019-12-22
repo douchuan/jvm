@@ -15,4 +15,4 @@ pub const MAX_METHOD_PARAMS_NUM: u16 = 255;
 pub const MAX_CONST_STR_LEN: u16 = 65535;
 pub const MAX_ARRAY_DIMENSIONS: u16 = 255;
 
-pub const JAVA_LANG_OBJECT: &str = "java/lang/Object";
+pub const JAVA_LANG_OBJECT: &[u8] = b"java/lang/Object";

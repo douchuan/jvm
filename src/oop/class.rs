@@ -24,7 +24,7 @@ pub enum State {
 
 #[derive(Debug, Clone)]
 pub struct ClassObject {
-    pub name: String,
+    pub name: BytesRef,
 
     pub typ: Type,
 
@@ -40,7 +40,7 @@ pub struct ClassObject {
 
     pub class_file: ClassFileRef,
 
-    pub signature: Option<String>,
+    pub signature: Option<BytesRef>,
 
     //valid when dimension == 1
     elm_type: Option<ValueType>,
@@ -58,9 +58,9 @@ pub struct ClassObject {
 
     static_filed_values: Vec<Oop>,
 
-    interfaces: HashMap<String, ClassRef>,
+    interfaces: HashMap<BytesRef, ClassRef>,
 
-    pub source_file: Option<String>,
+    pub source_file: Option<BytesRef>,
 }
 
 //open api
@@ -73,8 +73,8 @@ impl ClassObject {
         self.state = s;
     }
 
-    pub fn get_name(&self) -> &str {
-        self.name.as_str()
+    pub fn get_name(&self) -> BytesRef {
+        self.name.clone()
     }
 
     pub fn get_class_type(&self) -> Type {
@@ -187,7 +187,7 @@ impl ClassObject {
 impl ClassObject {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = &class_file.cp;
-        let name = constant_pool::get_class_name2(class_file.this_class, cp).unwrap();
+        let name = constant_pool::get_class_name(class_file.this_class, cp).unwrap();
 
         Self {
             name,
@@ -232,14 +232,13 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         if class_file.super_class == 0 {
-            if self.name != consts::JAVA_LANG_OBJECT {
+            if self.name.as_slice() != consts::JAVA_LANG_OBJECT {
                 self.set_class_state(State::IniErr);
-                assert!(false, format!("should be {}", consts::JAVA_LANG_OBJECT));
+                assert!(false, format!("should be {:?}", consts::JAVA_LANG_OBJECT));
             }
             self.super_class = None;
         } else {
             let name = constant_pool::get_class_name(class_file.super_class, cp).unwrap();
-            let name = std::str::from_utf8(name).unwrap();
             let super_class = runtime::require_class(self.class_loader, name).unwrap();
             util::sync_call_ctx(&super_class, |c| {
                 assert!(!c.is_final(), "should not final");
@@ -293,7 +292,7 @@ impl ClassObject {
                     self.interfaces.insert(name, class);
                 }
                 None => {
-                    let name = constant_pool::get_class_name2(*it, cp);
+                    let name = constant_pool::get_class_name(*it, cp);
                     error!("link interface failed {:?}", name);
                 }
             });
@@ -331,7 +330,7 @@ impl ClassObject {
                     signature_index,
                 } => {
                     if let Some(s) = constant_pool::get_utf8(*signature_index, cp) {
-                        self.signature = Some(String::from_utf8_lossy(s).to_string());
+                        self.signature = Some(s);
                     }
                 }
                 AttrType::SourceFile {
@@ -339,7 +338,7 @@ impl ClassObject {
                     source_file_index,
                 } => {
                     if let Some(s) = constant_pool::get_utf8(*source_file_index, cp) {
-                        self.source_file = Some(String::from_utf8_lossy(s).to_string());
+                        self.source_file = Some(s);
                     }
                 }
                 //todo: ATTRIBUTE_InnerClasses, ATTRIBUTE_EnclosingMethod, ATTRIBUTE_BootstrapMethods

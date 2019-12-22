@@ -51,7 +51,7 @@ pub enum Oop {
     Long(i64),
     Float(f32),
     Double(f64),
-    Str(String),
+    Str(BytesRef),
     Inst(InstOopDesc),
     TypeArray(ArrayOopDesc),
     ObjArray(ArrayOopDesc),

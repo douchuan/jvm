@@ -10,7 +10,7 @@ mod stack;
 mod sys_dic;
 mod thread;
 
-pub use class_loader::{require_class, require_class2, ClassLoader};
+pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 pub use cp_manager::{find_class as find_class_in_classpath, ClassPathResult, ClassSource};
 pub use execution::instance_of;
 pub use frame::Frame;

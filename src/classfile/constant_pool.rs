@@ -1,7 +1,7 @@
 use crate::classfile::checker::{self, Checker};
 use crate::classfile::consts::{METHOD_NAME_CLINIT, METHOD_NAME_INIT};
 use crate::classfile::signature::{MethodSignature, Type as SigType};
-use crate::classfile::types::{CheckResult, ConstantPool};
+use crate::classfile::types::{CheckResult, ConstantPool, BytesRef};
 use std::fmt;
 use std::sync::Arc;
 
@@ -60,13 +60,14 @@ pub enum ConstantType {
     Unknown,
 }
 
-pub fn get_class_name(class_index: u16, cp: &ConstantPool) -> Option<&[u8]> {
+pub fn get_class_name(class_index: u16, cp: &ConstantPool) -> Option<BytesRef> {
     match cp.get(class_index as usize) {
         Some(ConstantType::Class { name_index }) => get_utf8(*name_index, cp),
         _ => None,
     }
 }
 
+/*
 pub fn get_class_name2(class_index: u16, cp: &ConstantPool) -> Option<String> {
     match cp.get(class_index as usize) {
         Some(ConstantType::Class { name_index }) => match get_utf8(*name_index, cp) {
@@ -76,11 +77,12 @@ pub fn get_class_name2(class_index: u16, cp: &ConstantPool) -> Option<String> {
         _ => None,
     }
 }
+*/
 
 pub fn get_name_and_type(
     name_and_type_index: u16,
     cp: &ConstantPool,
-) -> (Option<&[u8]>, Option<&[u8]>) {
+) -> (Option<BytesRef>, Option<BytesRef>) {
     match cp.get(name_and_type_index as usize) {
         Some(ConstantType::NameAndType {
             name_index,
@@ -90,9 +92,9 @@ pub fn get_name_and_type(
     }
 }
 
-pub fn get_utf8(name_index: u16, cp: &ConstantPool) -> Option<&[u8]> {
+pub fn get_utf8(name_index: u16, cp: &ConstantPool) -> Option<BytesRef> {
     match cp.get(name_index as usize) {
-        Some(ConstantType::Utf8 { length: _, bytes }) => Some(bytes.as_slice()),
+        Some(ConstantType::Utf8 { length: _, bytes }) => Some(bytes.clone()),
         _ => None,
     }
 }
@@ -145,8 +147,8 @@ impl Checker for ConstantType {
                 match get_name_and_type(*name_and_type_index, cp) {
                     (Some(name), Some(desc)) => {
                         if name.starts_with(b"<") {
-                            if name == METHOD_NAME_INIT {
-                                let sig = MethodSignature::new(desc);
+                            if name.as_slice() == METHOD_NAME_INIT {
+                                let sig = MethodSignature::new(desc.as_slice());
                                 if sig.retype == SigType::Void {
                                     Ok(())
                                 } else {
@@ -254,7 +256,7 @@ impl Checker for ConstantType {
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
                             (Some(name), Some(desc)) => {
-                                if name == METHOD_NAME_INIT || name == METHOD_NAME_CLINIT {
+                                if name.as_slice() == METHOD_NAME_INIT || name.as_slice() == METHOD_NAME_CLINIT {
                                     Err(checker::Err::InvalidCpMethodHandleRefIdx)
                                 } else {
                                     Ok(())
@@ -267,7 +269,7 @@ impl Checker for ConstantType {
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
                             (Some(name), Some(desc)) => {
-                                if name == METHOD_NAME_INIT || name == METHOD_NAME_CLINIT {
+                                if name.as_slice() == METHOD_NAME_INIT || name.as_slice() == METHOD_NAME_CLINIT {
                                     Err(checker::Err::InvalidCpMethodHandleRefIdx)
                                 } else {
                                     Ok(())
@@ -282,7 +284,7 @@ impl Checker for ConstantType {
                             class_index: _,
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
-                            (Some(name), Some(desc)) if name == METHOD_NAME_INIT => Ok(()),
+                            (Some(name), Some(desc)) if name.as_slice() == METHOD_NAME_INIT => Ok(()),
                             _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
                         },
                         _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
