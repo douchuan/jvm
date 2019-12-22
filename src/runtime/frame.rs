@@ -186,8 +186,8 @@ impl Frame {
 
     pub fn aload(&mut self) {
         let pos = self.read_u1();
-        //todo: impl
-        unimplemented!()
+        let v = self.local.get_ref(pos);
+        self.stack.push_ref(v);
     }
 
     pub fn iload_0(&mut self) {
@@ -211,8 +211,8 @@ impl Frame {
     }
 
     pub fn aload_0(&mut self) {
-        //todo: impl
-        unimplemented!()
+        let v = self.local.get_ref(0);
+        self.stack.push_ref(v);
     }
 
     pub fn iload_1(&mut self) {
@@ -236,8 +236,8 @@ impl Frame {
     }
 
     pub fn aload_1(&mut self) {
-        //todo: impl
-        unimplemented!()
+        let v = self.local.get_ref(1);
+        self.stack.push_ref(v);
     }
 
     pub fn iload_2(&mut self) {
@@ -261,8 +261,8 @@ impl Frame {
     }
 
     pub fn aload_2(&mut self) {
-        //todo: impl
-        unimplemented!()
+        let v = self.local.get_ref(2);
+        self.stack.push_ref(v);
     }
 
     pub fn iload_3(&mut self) {
@@ -286,8 +286,8 @@ impl Frame {
     }
 
     pub fn aload_3(&mut self) {
-        //todo: impl
-        unimplemented!()
+        let v = self.local.get_ref(3);
+        self.stack.push_ref(v);
     }
 
     pub fn wide(&mut self) {

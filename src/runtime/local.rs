@@ -1,3 +1,4 @@
+use crate::oop::Oop;
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 
@@ -65,6 +66,14 @@ impl Local {
             panic!("Illegal type");
         }
     }
+
+   pub fn get_ref(&self, pos: usize) -> Oop {
+       if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
+            v.clone()
+       } else {
+           panic!("Illegal type");
+       }
+   }
 }
 
 impl Local {

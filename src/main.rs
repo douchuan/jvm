@@ -30,6 +30,7 @@ todo list
   6. impl runtime::thread::JavaThread run
   7. oop class init_class, java call "<clinit>"
      impl JavaCall::with_args(thread, clinit, {})
+  8. impl byte code, aload...
 
   x. verify class file
   x. java to execute a jar by -jar

@@ -2,6 +2,7 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
+use crate::oop::Oop;
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
@@ -87,6 +88,10 @@ impl Stack {
 
     pub fn push_const_utf8(&mut self, v: Arc<Vec<u8>>) {
         self.inner.push(Slot::Utf8(v));
+    }
+
+    pub fn push_ref(&mut self, v: Oop) {
+        self.inner.push(Slot::Ref(v));
     }
 
     pub fn pop_int(&mut self) -> i32 {
