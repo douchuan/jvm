@@ -3,8 +3,8 @@ use crate::oop::{ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, Oop, 
 use crate::runtime::{self, ClassLoader};
 use crate::util;
 
-use std::collections::HashMap;
 use crate::util::PATH_DELIMITER;
+use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Type {
@@ -179,7 +179,7 @@ impl ClassObject {
     }
 
     pub fn get_static_method(&self, desc: &str, name: &str) -> Option<&MethodId> {
-       self.get_static_method2(desc.as_bytes(), name.as_bytes())
+        self.get_static_method2(desc.as_bytes(), name.as_bytes())
     }
 
     pub fn get_static_method2(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {

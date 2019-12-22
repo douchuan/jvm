@@ -93,9 +93,7 @@ impl ValueType {
 }
 
 #[derive(Debug, Clone)]
-pub struct InstOopDesc {
-
-}
+pub struct InstOopDesc {}
 
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
@@ -104,11 +102,10 @@ pub struct ArrayOopDesc {
 }
 
 impl ArrayOopDesc {
-
     pub fn new(class: ClassRef, len: usize) -> Self {
         Self {
             class,
-            elements: Vec::with_capacity(len)
+            elements: Vec::with_capacity(len),
         }
     }
 
@@ -128,4 +125,3 @@ impl ArrayOopDesc {
         self.elements[index] = elm;
     }
 }
-

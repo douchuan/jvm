@@ -1,5 +1,5 @@
-use bytes::Bytes;
 use crate::classfile::types::BytesRef;
+use bytes::Bytes;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -220,7 +220,10 @@ mod tests {
                 Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;")))
             ]
         );
-        assert_eq!(sig.retype, Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))));
+        assert_eq!(
+            sig.retype,
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))
+        );
     }
 
     #[test]

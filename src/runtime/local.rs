@@ -1,5 +1,5 @@
-use bytes::{BigEndian, Bytes};
 use crate::runtime::Slot;
+use bytes::{BigEndian, Bytes};
 
 pub struct Local {
     locals: Vec<Slot>,
@@ -19,10 +19,7 @@ impl Local {
 
     pub fn set_long(&mut self, pos: usize, l: i64) {
         let v = l.to_be_bytes();
-        self.set_primitive(
-            pos,
-            vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]],
-        );
+        self.set_primitive(pos, vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
     }
 
     pub fn set_float(&mut self, pos: usize, f: f32) {
@@ -32,10 +29,7 @@ impl Local {
 
     pub fn set_double(&mut self, pos: usize, d: f64) {
         let v = d.to_bits().to_be_bytes();
-        self.set_primitive(
-            pos,
-            vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]],
-        );
+        self.set_primitive(pos, vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
     }
 
     pub fn get_int(&self, pos: usize) -> i32 {

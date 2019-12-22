@@ -1,7 +1,7 @@
 use crate::classfile::checker::{self, Checker};
 use crate::classfile::consts::{METHOD_NAME_CLINIT, METHOD_NAME_INIT};
 use crate::classfile::signature::{MethodSignature, Type as SigType};
-use crate::classfile::types::{CheckResult, ConstantPool, BytesRef};
+use crate::classfile::types::{BytesRef, CheckResult, ConstantPool};
 use std::fmt;
 use std::sync::Arc;
 
@@ -256,7 +256,9 @@ impl Checker for ConstantType {
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
                             (Some(name), Some(desc)) => {
-                                if name.as_slice() == METHOD_NAME_INIT || name.as_slice() == METHOD_NAME_CLINIT {
+                                if name.as_slice() == METHOD_NAME_INIT
+                                    || name.as_slice() == METHOD_NAME_CLINIT
+                                {
                                     Err(checker::Err::InvalidCpMethodHandleRefIdx)
                                 } else {
                                     Ok(())
@@ -269,7 +271,9 @@ impl Checker for ConstantType {
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
                             (Some(name), Some(desc)) => {
-                                if name.as_slice() == METHOD_NAME_INIT || name.as_slice() == METHOD_NAME_CLINIT {
+                                if name.as_slice() == METHOD_NAME_INIT
+                                    || name.as_slice() == METHOD_NAME_CLINIT
+                                {
                                     Err(checker::Err::InvalidCpMethodHandleRefIdx)
                                 } else {
                                     Ok(())
@@ -284,7 +288,9 @@ impl Checker for ConstantType {
                             class_index: _,
                             name_and_type_index,
                         }) => match get_name_and_type(*name_and_type_index, cp) {
-                            (Some(name), Some(desc)) if name.as_slice() == METHOD_NAME_INIT => Ok(()),
+                            (Some(name), Some(desc)) if name.as_slice() == METHOD_NAME_INIT => {
+                                Ok(())
+                            }
                             _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
                         },
                         _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),

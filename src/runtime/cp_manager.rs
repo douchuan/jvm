@@ -96,10 +96,7 @@ impl ClassPathManager {
                             let mut v = Vec::with_capacity(zf.size() as usize);
                             zf.read_to_end(&mut v);
 
-                            return Ok(ClassPathResult(
-                                it.1.clone(),
-                                it.0,
-                                v));
+                            return Ok(ClassPathResult(it.1.clone(), it.0, v));
                         }
 
                         _ => (),

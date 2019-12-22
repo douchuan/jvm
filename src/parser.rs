@@ -678,7 +678,7 @@ impl AttrTypeParser for Parser {
         for _ in 0..n {
             let method_ref: U2 = self.get_u2();
             let n_arg: U2 = self.get_u2();
-            let mut args= Vec::new();
+            let mut args = Vec::new();
             for _ in 0..n_arg {
                 args.push(self.get_u2());
             }
@@ -689,11 +689,7 @@ impl AttrTypeParser for Parser {
             });
         }
 
-        AttrType::BootstrapMethods {
-            length,
-            n,
-            methods,
-        }
+        AttrType::BootstrapMethods { length, n, methods }
     }
 
     fn get_attr_method_parameters(&mut self) -> AttrType {

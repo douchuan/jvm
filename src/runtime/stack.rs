@@ -1,9 +1,9 @@
-use bytes::{BigEndian, Bytes};
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::runtime::Slot;
+use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 
 pub struct Stack {
@@ -163,4 +163,3 @@ impl Stack {
         self.push_primitive(v);
     }
 }
-

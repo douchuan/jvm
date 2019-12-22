@@ -6,8 +6,8 @@ extern crate lazy_static;
 extern crate log;
 extern crate env_logger;
 
-use clap::{Arg, App};
 use crate::runtime::JavaMainThread;
+use clap::{App, Arg};
 
 #[macro_use]
 mod oop;
@@ -36,37 +36,41 @@ todo list
 */
 
 fn init_vm() {
-   runtime::init();
+    runtime::init();
 }
 
 fn main() {
     env_logger::init();
 
     let matches = App::new("")
-        .arg(Arg::with_name("cp")
-            .long("cp")
-            .help("class search path of directories and zip/jar files")
-            .takes_value(true))
-        .arg(Arg::with_name("classpath")
-            .long("classpath")
-            .help("class search path of directories and zip/jar files")
-            .takes_value(true))
-        .arg(Arg::with_name("MAIN_CLASS")
-            .help("to execute a class")
-            .required(true)
-            .index(1))
-        .arg(Arg::with_name("ARGS")
-            .multiple(true)
-            .help("[args...]"))
+        .arg(
+            Arg::with_name("cp")
+                .long("cp")
+                .help("class search path of directories and zip/jar files")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("classpath")
+                .long("classpath")
+                .help("class search path of directories and zip/jar files")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("MAIN_CLASS")
+                .help("to execute a class")
+                .required(true)
+                .index(1),
+        )
+        .arg(Arg::with_name("ARGS").multiple(true).help("[args...]"))
         .get_matches();
 
     let main_class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
-    let args= matches.values_of_lossy("ARGS");
+    let args = matches.values_of_lossy("ARGS");
     println!("main class: {}, args: {:?}", main_class, args);
 
     init_vm();
 
-    let thread = JavaMainThread {main_class, args};
+    let thread = JavaMainThread { main_class, args };
     thread.run();
 
     /*
@@ -102,7 +106,7 @@ mod tests {
     fn t_arc() {
         use std::sync::Arc;
         struct TestArc {
-            bytes: Arc<Vec<u8>>
+            bytes: Arc<Vec<u8>>,
         }
 
         let mut ref_bytes = None;

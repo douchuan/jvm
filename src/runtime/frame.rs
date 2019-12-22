@@ -1,9 +1,9 @@
-use bytes::{BigEndian, Bytes};
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{ClassRef, Method};
-use crate::runtime::{Stack, Local};
+use crate::runtime::{Local, Stack};
+use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 
 pub struct Frame {
@@ -58,8 +58,7 @@ impl Frame {
             ConstantType::Long { v } => self.stack.push_long2(*v),
             ConstantType::Double { v } => self.stack.push_double2(*v),
             ConstantType::String { string_index } => {
-                if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize]
-                {
+                if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize] {
                     self.stack.push_const_utf8(bytes.clone());
                 } else {
                     unreachable!()
