@@ -12,20 +12,18 @@ pub enum ClassLoader {
 }
 
 pub fn require_class(class_loader: Option<ClassLoader>, name: BytesRef) -> Option<ClassRef> {
-    let class_loader = class_loader.unwrap_or(ClassLoader::Bootstrap);
-    class_loader.load_class(name.as_slice())
+    require_class3(class_loader, name.as_slice())
 }
 
 pub fn require_class2(index: U2, cp: &ConstantPool) -> Option<ClassRef> {
     let class = constant_pool::get_class_name(index, cp)?;
-    require_class(None, class)
+    require_class3(None, class.as_slice())
 }
 
 pub fn require_class3(class_loader: Option<ClassLoader>, name: &[u8]) -> Option<ClassRef> {
     let class_loader = class_loader.unwrap_or(ClassLoader::Bootstrap);
     class_loader.load_class(name)
 }
-
 
 impl ClassLoader {
     fn load_class(&self, name: &[u8]) -> Option<ClassRef> {

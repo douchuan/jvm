@@ -1,4 +1,6 @@
 use bytes::Bytes;
+use crate::classfile::types::BytesRef;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
@@ -8,10 +10,10 @@ pub enum Type {
     Float,
     Int,
     Long,
-    Object(Bytes),
+    Object(BytesRef),
     Short,
     Boolean,
-    Array(Bytes, Box<Type>), //Array("[[[", Box<Type>)
+    Array(BytesRef, Arc<Type>), //Array("[[[", Box<Type>)
     Void,
 }
 
@@ -93,11 +95,11 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         let pos = buf.iter().rposition(|v| *v == b'[').unwrap();
                         let (left, right) = buf.split_at(pos + 1);
                         types.push(Type::Array(
-                            Bytes::from(left),
-                            Box::new(Type::Object(Bytes::from(right))),
+                            Arc::new(Vec::from(left)),
+                            Arc::new(Type::Object(Arc::new(Vec::from(right)))),
                         ));
                     } else {
-                        types.push(Type::Object(Bytes::from(&buf[..])));
+                        types.push(Type::Object(Arc::new(Vec::from(&buf[..]))));
                     }
 
                     buf.clear();
@@ -124,7 +126,7 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         _ => unreachable!("unknown type v={}", v),
                     };
 
-                    types.push(Type::Array(Bytes::from(&buf[..]), Box::new(t)));
+                    types.push(Type::Array(Arc::new(Vec::from(&buf[..])), Arc::new(t)));
 
                     buf.clear();
                     state = State::One;
@@ -149,8 +151,8 @@ mod tests {
         let args = "([[Ljava/lang/String;)V";
         let ts = vec![
             Type::Array(
-                "[[".into(),
-                Box::new(Type::Object("Ljava/lang/String;".into())),
+                Arc::new(Vec::from("[[")),
+                Arc::new(Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))),
             ),
             Type::Void,
         ];
@@ -166,8 +168,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object("Ljava/lang/Integer;".into()),
-            Type::Object("Ljava/lang/String;".into()),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
         ];
         assert_eq!(parse(args.as_bytes()), ts);
     }
@@ -184,8 +186,8 @@ mod tests {
         assert_eq!(
             sig.args,
             vec![Type::Array(
-                "[[".into(),
-                Box::new(Type::Object("Ljava/lang/String;".into()))
+                Arc::new(Vec::from("[[")),
+                Arc::new(Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))))
             )]
         );
         assert_eq!(sig.retype, Type::Void);
@@ -200,8 +202,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object("Ljava/lang/Integer;".into()),
-            Type::Object("Ljava/lang/String;".into()),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
         ];
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
@@ -215,10 +217,10 @@ mod tests {
                 Type::Long,
                 Type::Short,
                 Type::Boolean,
-                Type::Object("Ljava/lang/Integer;".into())
+                Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;")))
             ]
         );
-        assert_eq!(sig.retype, Type::Object("Ljava/lang/String;".into()));
+        assert_eq!(sig.retype, Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))));
     }
 
     #[test]
@@ -238,20 +240,20 @@ mod tests {
         setup_test!("J".as_bytes(), Type::Long);
         setup_test!(
             "Ljava/lang/Object;".as_bytes(),
-            Type::Object("Ljava/lang/Object;".into())
+            Type::Object(Arc::new(Vec::from("Ljava/lang/Object;")))
         );
         setup_test!("S".as_bytes(), Type::Short);
         setup_test!("Z".as_bytes(), Type::Boolean);
         setup_test!(
             "[Ljava/lang/Object;".as_bytes(),
             Type::Array(
-                "[".into(),
-                Box::new(Type::Object("Ljava/lang/Object;".into()))
+                Arc::new(Vec::from("[")),
+                Arc::new(Type::Object(Arc::new(Vec::from("Ljava/lang/Object;"))))
             )
         );
         setup_test!(
             "[[[D".as_bytes(),
-            Type::Array("[[[".into(), Box::new(Type::Double))
+            Type::Array(Arc::new(Vec::from("[[[")), Arc::new(Type::Double))
         );
     }
 }
