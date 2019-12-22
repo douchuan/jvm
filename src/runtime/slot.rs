@@ -1,4 +1,4 @@
-use bytes::{BigEndian, Bytes};
+use crate::oop::Oop;
 use std::sync::Arc;
 
 pub enum Slot {
@@ -9,8 +9,8 @@ pub enum Slot {
     Const3,
     Const4,
     Const5,
-    Primitive(Bytes),
+    Primitive(Vec<u8>),
     Utf8(Arc<Vec<u8>>),
-    Ref,
+    Ref(Oop),
     Null,
 }

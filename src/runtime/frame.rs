@@ -53,10 +53,10 @@ impl Frame {
         let cp = &self.class.lock().unwrap().class_file.cp;
 
         match &cp[pos] {
-            ConstantType::Integer { v } => self.stack.push2(*v),
-            ConstantType::Float { v } => self.stack.push2(*v),
-            ConstantType::Long { v } => self.stack.push3(*v),
-            ConstantType::Double { v } => self.stack.push3(*v),
+            ConstantType::Integer { v } => self.stack.push_int2(*v),
+            ConstantType::Float { v } => self.stack.push_float2(*v),
+            ConstantType::Long { v } => self.stack.push_long2(*v),
+            ConstantType::Double { v } => self.stack.push_double2(*v),
             ConstantType::String { string_index } => {
                 if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize]
                 {

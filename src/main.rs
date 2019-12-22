@@ -33,7 +33,6 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
-  x. try to opt by Ref with Lifetime
 */
 
 fn init_vm() {

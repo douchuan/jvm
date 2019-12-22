@@ -14,32 +14,28 @@ impl Local {
 
     pub fn set_int(&mut self, pos: usize, i: i32) {
         let v = i.to_be_bytes();
-        self.set(pos, Bytes::from(vec![v[0], v[1], v[2], v[3]]));
+        self.set_primitive(pos, vec![v[0], v[1], v[2], v[3]]);
     }
 
     pub fn set_long(&mut self, pos: usize, l: i64) {
         let v = l.to_be_bytes();
-        self.set(
+        self.set_primitive(
             pos,
-            Bytes::from(vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]),
+            vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]],
         );
     }
 
     pub fn set_float(&mut self, pos: usize, f: f32) {
         let v = f.to_bits().to_be_bytes();
-        self.set(pos, Bytes::from(vec![v[0], v[1], v[2], v[3]]));
+        self.set_primitive(pos, vec![v[0], v[1], v[2], v[3]]);
     }
 
     pub fn set_double(&mut self, pos: usize, d: f64) {
         let v = d.to_bits().to_be_bytes();
-        self.set(
+        self.set_primitive(
             pos,
-            Bytes::from(vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]),
+            vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]],
         );
-    }
-
-    pub fn set(&mut self, pos: usize, buf: Bytes) {
-        self.locals[pos] = Slot::Primitive(buf);
     }
 
     pub fn get_int(&self, pos: usize) -> i32 {
@@ -74,5 +70,11 @@ impl Local {
         } else {
             panic!("Illegal type");
         }
+    }
+}
+
+impl Local {
+    fn set_primitive(&mut self, pos: usize, buf: Vec<u8>) {
+        self.locals[pos] = Slot::Primitive(buf);
     }
 }

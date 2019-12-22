@@ -19,42 +19,38 @@ impl Stack {
 
     pub fn push_int(&mut self, i: i32) {
         let v = i.to_be_bytes();
-        self.push(Bytes::from(vec![v[0], v[1], v[2], v[3]]));
+        self.push_primitive2(v);
+    }
+
+    pub fn push_int2(&mut self, v: [u8; 4]) {
+        self.push_primitive2(v)
     }
 
     pub fn push_float(&mut self, f: f32) {
         let v = f.to_bits().to_be_bytes();
-        self.push(Bytes::from(vec![v[0], v[1], v[2], v[3]]));
+        self.push_primitive2(v);
+    }
+
+    pub fn push_float2(&mut self, v: [u8; 4]) {
+        self.push_primitive2(v);
     }
 
     pub fn push_double(&mut self, d: f64) {
         let v = d.to_bits().to_be_bytes();
-        self.push(Bytes::from(vec![
-            v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
-        ]));
+        self.push_primitive3(v);
+    }
+
+    pub fn push_double2(&mut self, v: [u8; 8]) {
+        self.push_primitive3(v);
     }
 
     pub fn push_long(&mut self, l: i64) {
         let v = l.to_be_bytes();
-        self.push(Bytes::from(vec![
-            v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
-        ]));
+        self.push_primitive3(v);
     }
 
-    pub fn push(&mut self, b: Bytes) {
-        self.inner.push(Slot::Primitive(b));
-    }
-
-    pub fn push2(&mut self, v: [u8; 4]) {
-        let v = vec![v[0], v[1], v[2], v[3]];
-        let v = Bytes::from(v);
-        self.push(v)
-    }
-
-    pub fn push3(&mut self, v: [u8; 8]) {
-        let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
-        let v = Bytes::from(v);
-        self.push(v);
+    pub fn push_long2(&mut self, v: [u8; 8]) {
+        self.push_primitive3(v);
     }
 
     pub fn push_null(&mut self) {
@@ -147,8 +143,24 @@ impl Stack {
         let _ = self.inner.pop();
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.inner.clear();
+    }
+}
+
+impl Stack {
+    fn push_primitive(&mut self, b: Vec<u8>) {
+        self.inner.push(Slot::Primitive(b));
+    }
+
+    fn push_primitive2(&mut self, v: [u8; 4]) {
+        let v = vec![v[0], v[1], v[2], v[3]];
+        self.push_primitive(v);
+    }
+
+    fn push_primitive3(&mut self, v: [u8; 8]) {
+        let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
+        self.push_primitive(v);
     }
 }
 
