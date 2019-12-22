@@ -109,7 +109,7 @@ impl ClassLoader {
         let name = String::from_utf8_lossy(name);
         match runtime::find_class_in_classpath(&name) {
             Ok(ClassPathResult(_, _, buf)) => {
-                match class_parser::parse_buf(&buf) {
+                match class_parser::parse_buf(buf) {
                     Ok(cf) => {
                         let cfr = Arc::new(cf);
                         let class = ClassObject::new_class(cfr, Some(*self));

@@ -25,7 +25,7 @@ pub enum ClassSource {
 }
 
 #[derive(Debug)]
-pub struct ClassPathResult(pub String, pub ClassSource, pub Box<Bytes>);
+pub struct ClassPathResult(pub String, pub ClassSource, pub Vec<u8>);
 
 struct ClassPathEntry(ClassSource, String);
 
@@ -76,7 +76,7 @@ impl ClassPathManager {
                             let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
                             f.read_to_end(&mut v);
 
-                            return Ok(ClassPathResult(p, it.0, Box::new(Bytes::from(v))));
+                            return Ok(ClassPathResult(p, it.0, v));
                         }
 
                         _ => (),
@@ -99,8 +99,7 @@ impl ClassPathManager {
                             return Ok(ClassPathResult(
                                 it.1.clone(),
                                 it.0,
-                                Box::new(Bytes::from(v)),
-                            ));
+                                v));
                         }
 
                         _ => (),

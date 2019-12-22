@@ -91,6 +91,12 @@ mod tests {
             1..=5 => assert!(true),
             _ => assert!(false),
         }
+
+        let s1: &[u8] = b"12345";
+        let s2: &[u8] = b"67890";
+        let s3: &[u8] = b"abcde";
+        let sep: &[u8] = b":";
+        assert_eq!(vec![s1, s2, s3].join(sep), b"12345:67890:abcde");
     }
 
     #[test]
@@ -111,5 +117,4 @@ mod tests {
         assert_eq!(ref_bytes, Some(Arc::new(vec![1, 2, 3, 4])));
         assert_eq!(1, Arc::strong_count(&ref_bytes.unwrap()));
     }
-
 }

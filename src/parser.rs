@@ -829,11 +829,10 @@ impl AttrTypeParserUtils for Parser {
 
 pub fn parse<P: AsRef<Path>>(path: P) -> std::io::Result<ClassFile> {
     let buf = util::read(path);
-    let mut parser = Parser::new(buf);
-    Ok(parser.parse())
+    parse_buf(buf)
 }
 
-pub fn parse_buf(buf: &[u8]) -> std::io::Result<ClassFile> {
-    let mut parser = Parser::new(Vec::from(buf));
+pub fn parse_buf(buf: Vec<u8>) -> std::io::Result<ClassFile> {
+    let mut parser = Parser::new(buf);
     Ok(parser.parse())
 }
