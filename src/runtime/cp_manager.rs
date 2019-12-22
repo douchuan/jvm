@@ -55,23 +55,22 @@ impl ClassPathManager {
     }
 
     pub fn add_class_paths(&mut self, path: &str) {
-        path.split(util::PATH_DELIMITER).for_each(|p| {
+        path.split(util::PATH_DELIMITER_STR).for_each(|p| {
             self.add_class_path(p);
         });
     }
 
     pub fn search_class(&self, name: &str) -> Result<ClassPathResult, io::Error> {
-        let name = name.replace("/", util::PATH_SEP);
-        let name = name.replace(".", util::PATH_SEP);
+        let name = name.replace("/", util::PATH_SEP_STR);
+        let name = name.replace(".", util::PATH_SEP_STR);
 
         for it in self.runtime_class_path.iter() {
             match it.0 {
                 ClassSource::DIR => {
                     let mut p = String::from(&it.1);
-                    p.push_str(util::PATH_SEP);
+                    p.push_str(util::PATH_SEP_STR);
                     p.push_str(&name);
                     p.push_str(".class");
-
                     match File::open(&p) {
                         Ok(mut f) => {
                             let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);

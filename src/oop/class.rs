@@ -4,6 +4,7 @@ use crate::runtime::{self, ClassLoader};
 use crate::util;
 
 use std::collections::HashMap;
+use crate::util::PATH_DELIMITER;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Type {
@@ -50,11 +51,11 @@ pub struct ClassObject {
     n_static_fields: usize,
     n_inst_fields: usize,
 
-    all_methods: HashMap<String, MethodId>,
-    v_table: HashMap<String, MethodId>,
+    all_methods: HashMap<BytesRef, MethodId>,
+    v_table: HashMap<BytesRef, MethodId>,
 
-    static_fields: HashMap<String, FieldId>,
-    inst_fields: HashMap<String, FieldId>,
+    static_fields: HashMap<BytesRef, FieldId>,
+    inst_fields: HashMap<BytesRef, FieldId>,
 
     static_filed_values: Vec<Oop>,
 
@@ -178,7 +179,11 @@ impl ClassObject {
     }
 
     pub fn get_static_method(&self, desc: &str, name: &str) -> Option<&MethodId> {
-        let id = vec![desc, name].join(":");
+       self.get_static_method2(desc.as_bytes(), name.as_bytes())
+    }
+
+    pub fn get_static_method2(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {
+        let id = vec![desc, name].join(PATH_DELIMITER);
         self.all_methods.get(&id)
     }
 }

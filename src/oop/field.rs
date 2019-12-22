@@ -1,6 +1,7 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
 use crate::oop::{ClassObject, ClassRef, Oop, ValueType};
 use crate::util::{self, PATH_DELIMITER};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct FieldId {
@@ -12,7 +13,7 @@ pub struct FieldId {
 pub struct Field {
     name: BytesRef,
     desc: BytesRef,
-    id: String,
+    id: BytesRef,
 
     acc_flags: U2,
 
@@ -26,10 +27,8 @@ impl Field {
         let name = constant_pool::get_utf8(fi.name_index, cp).unwrap();
         let desc = constant_pool::get_utf8(fi.desc_index, cp).unwrap();
         let value_type = desc.first().unwrap().into();
-        let p1 = String::from_utf8_lossy(class.name.as_slice());
-        let p2 = String::from_utf8_lossy(desc.as_slice());
-        let p3 = String::from_utf8_lossy(name.as_slice());
-        let id = vec![p1, p2, p3].join(PATH_DELIMITER);
+        let id = vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
+        let id = Arc::new(Vec::from(id));
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;
@@ -80,7 +79,7 @@ impl Field {
         }
     }
 
-    pub fn get_id(&self) -> String {
+    pub fn get_id(&self) -> BytesRef {
         self.id.clone()
     }
 

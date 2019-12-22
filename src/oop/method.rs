@@ -5,6 +5,7 @@ use crate::classfile::{
 use crate::oop::{ClassObject, ClassRef, ValueType};
 use crate::runtime;
 use crate::util::{self, PATH_DELIMITER};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MethodId {
@@ -16,7 +17,7 @@ pub struct MethodId {
 pub struct Method {
     name: BytesRef,
     desc: BytesRef,
-    id: String,
+    id: BytesRef,
     acc_flags: U2,
 
     pub code: Code,
@@ -26,9 +27,8 @@ impl Method {
     pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: &ClassObject) -> Self {
         let name = constant_pool::get_utf8(mi.name_index, cp).unwrap();
         let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
-        let p1 = String::from_utf8_lossy(desc.as_slice());
-        let p2 = String::from_utf8_lossy(name.as_slice());
-        let id = vec![p1, p2].join(PATH_DELIMITER);
+        let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
+        let id = Arc::new(Vec::from(id));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code().clone();
 
@@ -41,7 +41,7 @@ impl Method {
         }
     }
 
-    pub fn get_id(&self) -> String {
+    pub fn get_id(&self) -> BytesRef {
         self.id.clone()
     }
 
