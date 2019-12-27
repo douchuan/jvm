@@ -67,13 +67,13 @@ impl Local {
         }
     }
 
-   pub fn get_ref(&self, pos: usize) -> Oop {
-       if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
+    pub fn get_ref(&self, pos: usize) -> Oop {
+        if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
             v.clone()
-       } else {
-           panic!("Illegal type");
-       }
-   }
+        } else {
+            panic!("Illegal type");
+        }
+    }
 }
 
 impl Local {

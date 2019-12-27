@@ -14,6 +14,7 @@ pub struct Frame {
     code: Arc<Vec<U1>>,
 }
 
+//new & helper methods
 impl Frame {
     pub fn new(class: ClassRef, m: Method) -> Self {
         Self {
@@ -73,6 +74,7 @@ impl Frame {
     }
 }
 
+//byte code impl
 impl Frame {
     pub fn nop(&mut self) {}
 
@@ -290,7 +292,527 @@ impl Frame {
         self.stack.push_ref(v);
     }
 
+    pub fn iaload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn saload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn caload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn baload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn laload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn faload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn daload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn aaload(&mut self) {
+        //todo: impl
+    }
+
+    pub fn istore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lstore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fstore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dstore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn astore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn istore_0(&mut self) {
+        //todo: impl
+    }
+    pub fn istore_1(&mut self) {
+        //todo: impl
+    }
+    pub fn istore_2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn istore_3(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lstore_0(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lstore_1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lstore_2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lstore_3(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fstore_0(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fstore_1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fstore_2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fstore_3(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dstore_0(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dstore_1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dstore_2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dstore_3(&mut self) {
+        //todo: impl
+    }
+
+    pub fn astore_0(&mut self) {
+        //todo: impl
+    }
+
+    pub fn astore_1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn astore_2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn astore_3(&mut self) {
+        //todo: impl
+    }
+
+    pub fn bastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn castore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn sastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn iastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn aastore(&mut self) {
+        //todo: impl
+    }
+
+    pub fn pop(&mut self) {
+        //todo: impl
+    }
+
+    pub fn pop2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup_x1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup_x2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup2_x1(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dup2_x2(&mut self) {
+        //todo: impl
+    }
+
+    pub fn swap(&mut self) {
+        //todo: impl
+    }
+
+    pub fn iadd(&mut self) {
+        //todo: impl
+    }
+
+    pub fn ladd(&mut self) {
+        //todo: impl
+    }
+
+    pub fn fadd(&mut self) {
+        //todo: impl
+    }
+
+    pub fn dadd(&mut self) {
+        //todo: impl
+    }
+
+    pub fn isub(&mut self) {
+        //todo: impl
+    }
+
+    pub fn lsub(&mut self) {
+        //todo: impl
+    }
+    pub fn fsub(&mut self) {
+        //todo: impl
+    }
+    pub fn dsub(&mut self) {
+        //todo: impl
+    }
+    pub fn imul(&mut self) {
+        //todo: impl
+    }
+    pub fn lmul(&mut self) {
+        //todo: impl
+    }
+    pub fn fmul(&mut self) {
+        //todo: impl
+    }
+    pub fn dmul(&mut self) {
+        //todo: impl
+    }
+    pub fn idiv(&mut self) {
+        //todo: impl
+    }
+    pub fn ldiv(&mut self) {
+        //todo: impl
+    }
+    pub fn fdiv(&mut self) {
+        //todo: impl
+    }
+    pub fn ddiv(&mut self) {
+        //todo: impl
+    }
+    pub fn irem(&mut self) {
+        //todo: impl
+    }
+    pub fn lrem(&mut self) {
+        //todo: impl
+    }
+    pub fn frem(&mut self) {
+        //todo: impl
+    }
+    pub fn drem(&mut self) {
+        //todo: impl
+    }
+    pub fn ineg(&mut self) {
+        //todo: impl
+    }
+    pub fn lneg(&mut self) {
+        //todo: impl
+    }
+    pub fn fneg(&mut self) {
+        //todo: impl
+    }
+    pub fn dneg(&mut self) {
+        //todo: impl
+    }
+    pub fn ishl(&mut self) {
+        //todo: impl
+    }
+    pub fn lshl(&mut self) {
+        //todo: impl
+    }
+    pub fn ishr(&mut self) {
+        //todo: impl
+    }
+    pub fn lshr(&mut self) {
+        //todo: impl
+    }
+    pub fn iushr(&mut self) {
+        //todo: impl
+    }
+    pub fn lushr(&mut self) {
+        //todo: impl
+    }
+    pub fn iand(&mut self) {
+        //todo: impl
+    }
+    pub fn land(&mut self) {
+        //todo: impl
+    }
+    pub fn ior(&mut self) {
+        //todo: impl
+    }
+    pub fn lor(&mut self) {
+        //todo: impl
+    }
+    pub fn ixor(&mut self) {
+        //todo: impl
+    }
+    pub fn lxor(&mut self) {
+        //todo: impl
+    }
+    pub fn iinc(&mut self) {
+        //todo: impl
+    }
+    pub fn i2l(&mut self) {
+        //todo: impl
+    }
+    pub fn i2f(&mut self) {
+        //todo: impl
+    }
+    pub fn i2d(&mut self) {
+        //todo: impl
+    }
+    pub fn l2i(&mut self) {
+        //todo: impl
+    }
+    pub fn l2f(&mut self) {
+        //todo: impl
+    }
+    pub fn l2d(&mut self) {
+        //todo: impl
+    }
+    pub fn f2i(&mut self) {
+        //todo: impl
+    }
+    pub fn f2l(&mut self) {
+        //todo: impl
+    }
+    pub fn f2d(&mut self) {
+        //todo: impl
+    }
+    pub fn d2i(&mut self) {
+        //todo: impl
+    }
+    pub fn d2l(&mut self) {
+        //todo: impl
+    }
+    pub fn d2f(&mut self) {
+        //todo: impl
+    }
+    pub fn i2b(&mut self) {
+        //todo: impl
+    }
+    pub fn i2c(&mut self) {
+        //todo: impl
+    }
+    pub fn i2s(&mut self) {
+        //todo: impl
+    }
+    pub fn lcmp(&mut self) {
+        //todo: impl
+    }
+    pub fn fcmpl(&mut self) {
+        //todo: impl
+    }
+    pub fn fcmpg(&mut self) {
+        //todo: impl
+    }
+    pub fn dcmpl(&mut self) {
+        //todo: impl
+    }
+    pub fn dcmpg(&mut self) {
+        //todo: impl
+    }
+    pub fn ifeq(&mut self) {
+        //todo: impl
+    }
+    pub fn ifne(&mut self) {
+        //todo: impl
+    }
+    pub fn iflt(&mut self) {
+        //todo: impl
+    }
+    pub fn ifge(&mut self) {
+        //todo: impl
+    }
+    pub fn ifgt(&mut self) {
+        //todo: impl
+    }
+    pub fn ifle(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmpeq(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmpne(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmplt(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmpge(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmpgt(&mut self) {
+        //todo: impl
+    }
+    pub fn if_icmple(&mut self) {
+        //todo: impl
+    }
+    pub fn if_acmpeq(&mut self) {
+        //todo: impl
+    }
+    pub fn if_acmpne(&mut self) {
+        //todo: impl
+    }
+    pub fn goto(&mut self) {
+        //todo: impl
+    }
+    pub fn jsr(&mut self) {
+        //todo: impl
+    }
+    pub fn ret(&mut self) {
+        //todo: impl
+    }
+    pub fn table_switch(&mut self) {
+        //todo: impl
+    }
+    pub fn lookup_switch(&mut self) {
+        //todo: impl
+    }
+    pub fn ireturn(&mut self) {
+        //todo: impl
+    }
+    pub fn lreturn(&mut self) {
+        //todo: impl
+    }
+    pub fn freturn(&mut self) {
+        //todo: impl
+    }
+    pub fn dreturn(&mut self) {
+        //todo: impl
+    }
+    pub fn areturn(&mut self) {
+        //todo: impl
+    }
+    pub fn return_(&mut self) {
+        //todo: impl
+    }
+    pub fn get_static(&mut self) {
+        //todo: impl
+    }
+    pub fn put_static(&mut self) {
+        //todo: impl
+    }
+    pub fn get_field(&mut self) {
+        //todo: impl
+    }
+    pub fn put_field(&mut self) {
+        //todo: impl
+    }
+    pub fn invoke_virtual(&mut self) {
+        //todo: impl
+    }
+    pub fn invoke_static(&mut self) {
+        //todo: impl
+    }
+    pub fn invoke_interface(&mut self) {
+        //todo: impl
+    }
+    pub fn invoke_dynamic(&mut self) {
+        //todo: impl
+    }
+    pub fn new_(&mut self) {
+        //todo: impl
+    }
+    pub fn new_array(&mut self) {
+        //todo: impl
+    }
+    pub fn anew_array(&mut self) {
+        //todo: impl
+    }
+    pub fn array_length(&mut self) {
+        //todo: impl
+    }
+    pub fn athrow(&mut self) {
+        //todo: impl
+    }
+    pub fn check_cast(&mut self) {
+        //todo: impl
+    }
+    pub fn instance_of(&mut self) {
+        //todo: impl
+    }
+    pub fn monitor_enter(&mut self) {
+        //todo: impl
+    }
+    pub fn monitor_exit(&mut self) {
+        //todo: impl
+    }
     pub fn wide(&mut self) {
+        //todo: impl
         panic!("Use of deprecated instruction wide, please check your Java compiler")
+    }
+    pub fn multi_anew_array(&mut self) {
+        //todo: impl
+    }
+    pub fn if_null(&mut self) {
+        //todo: impl
+    }
+
+    pub fn if_non_null(&mut self) {
+        //todo: impl
+    }
+    pub fn goto_w(&mut self) {
+        //todo: impl
+    }
+    pub fn jsr_w(&mut self) {
+        //todo: impl
+    }
+    pub fn other_wise(&mut self) {
+        //todo: impl
     }
 }

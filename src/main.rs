@@ -32,6 +32,7 @@ todo list
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code, aload...
 
+  x. throw exception, aload...
   x. verify class file
   x. java to execute a jar by -jar
 */
