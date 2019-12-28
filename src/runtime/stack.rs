@@ -90,7 +90,7 @@ impl Stack {
         self.inner.push(Slot::Utf8(v));
     }
 
-    pub fn push_ref(&mut self, v: Oop) {
+    pub fn push_ref(&mut self, v: Option<Arc<Oop>>) {
         self.inner.push(Slot::Ref(v));
     }
 
@@ -141,6 +141,14 @@ impl Stack {
                 i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]])
             }
             _ => panic!("Illegal type"),
+        }
+    }
+
+    pub fn pop_ref(&mut self) -> Option<Arc<Oop>> {
+        if let Slot::Ref(v) = self.inner.pop().unwrap() {
+            return v;
+        } else {
+            panic!("Illegal type")
         }
     }
 

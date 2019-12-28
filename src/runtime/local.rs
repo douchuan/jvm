@@ -1,6 +1,7 @@
 use crate::oop::Oop;
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
+use std::sync::Arc;
 
 pub struct Local {
     locals: Vec<Slot>,
@@ -31,6 +32,10 @@ impl Local {
     pub fn set_double(&mut self, pos: usize, d: f64) {
         let v = d.to_bits().to_be_bytes();
         self.set_primitive3(pos, v);
+    }
+
+    pub fn set_ref(&mut self, pos: usize, v: Option<Arc<Oop>>) {
+        self.locals[pos] = Slot::Ref(v);
     }
 
     pub fn get_int(&self, pos: usize) -> i32 {
@@ -67,7 +72,7 @@ impl Local {
         }
     }
 
-    pub fn get_ref(&self, pos: usize) -> Oop {
+    pub fn get_ref(&self, pos: usize) -> Option<Arc<Oop>> {
         if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
             v.clone()
         } else {

@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub struct Frame {
     local: Local,
     stack: Stack,
-    pid: usize,
+    pc: i32,
     class: ClassRef,
     code: Arc<Vec<U1>>,
 }
@@ -20,15 +20,15 @@ impl Frame {
         Self {
             local: Local::new(m.code.max_locals as usize),
             stack: Stack::new(m.code.max_stack as usize),
-            pid: 0,
+            pc: 0,
             class,
             code: m.code.code.clone(),
         }
     }
 
     fn read_i1(&mut self) -> i32 {
-        let v = self.code[self.pid];
-        self.pid += 1;
+        let v = self.code[self.pc as usize];
+        self.pc += 1;
         v as i32
     }
 
@@ -41,8 +41,8 @@ impl Frame {
     }
 
     fn read_u1(&mut self) -> usize {
-        let v = self.code[self.pid];
-        self.pid += 1;
+        let v = self.code[self.pc as usize];
+        self.pc += 1;
         v as usize
     }
 
@@ -325,101 +325,134 @@ impl Frame {
     }
 
     pub fn istore(&mut self) {
-        //todo: impl
+        let pos = self.read_u1();
+        let v = self.stack.pop_int();
+        self.local.set_int(pos, v);
     }
 
     pub fn lstore(&mut self) {
-        //todo: impl
+        let pos = self.read_u1();
+        let v = self.stack.pop_long();
+        self.local.set_long(pos, v);
     }
 
     pub fn fstore(&mut self) {
-        //todo: impl
+        let pos = self.read_u1();
+        let v = self.stack.pop_float();
+        self.local.set_float(pos, v);
     }
 
     pub fn dstore(&mut self) {
-        //todo: impl
+        let pos = self.read_u1();
+        let v = self.stack.pop_double();
+        self.local.set_double(pos, v);
     }
 
     pub fn astore(&mut self) {
         //todo: impl
+        let pos = self.read_u1();
+        let v = self.stack.pop_ref();
+        self.local.set_ref(pos, v);
     }
 
     pub fn istore_0(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.local.set_int(0, v);
     }
+
     pub fn istore_1(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.local.set_int(1, v);
     }
+
     pub fn istore_2(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.local.set_int(2, v);
     }
 
     pub fn istore_3(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.local.set_int(3, v);
     }
 
     pub fn lstore_0(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.local.set_long(0, v);
     }
 
     pub fn lstore_1(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.local.set_long(1, v);
     }
 
     pub fn lstore_2(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.local.set_long(2, v);
     }
 
     pub fn lstore_3(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.local.set_long(3, v);
     }
 
     pub fn fstore_0(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        self.local.set_float(0, v);
     }
 
     pub fn fstore_1(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        self.local.set_float(1, v);
     }
 
     pub fn fstore_2(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        self.local.set_float(2, v);
     }
 
     pub fn fstore_3(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        self.local.set_float(3, v);
     }
 
     pub fn dstore_0(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        self.local.set_double(0, v);
     }
 
     pub fn dstore_1(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        self.local.set_double(1, v);
     }
 
     pub fn dstore_2(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        self.local.set_double(2, v);
     }
 
     pub fn dstore_3(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        self.local.set_double(3, v);
     }
 
     pub fn astore_0(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.local.set_ref(0, v);
     }
 
     pub fn astore_1(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.local.set_ref(1, v);
     }
 
     pub fn astore_2(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.local.set_ref(2, v);
     }
 
     pub fn astore_3(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.local.set_ref(3, v);
     }
 
     pub fn bastore(&mut self) {
@@ -455,271 +488,706 @@ impl Frame {
     }
 
     pub fn pop(&mut self) {
-        //todo: impl
+        self.stack.drop_top();
     }
 
     pub fn pop2(&mut self) {
-        //todo: impl
+        self.stack.drop_top();
+        self.stack.drop_top();
     }
 
     pub fn dup(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.stack.push_ref(v.clone());
+        self.stack.push_ref(v);
     }
 
     pub fn dup_x1(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        self.stack.push_ref(v1.clone());
+        self.stack.push_ref(v2);
+        self.stack.push_ref(v1);
     }
 
     pub fn dup_x2(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        let v3 = self.stack.pop_ref();
+        self.stack.push_ref(v1.clone());
+        self.stack.push_ref(v3);
+        self.stack.push_ref(v2);
+        self.stack.push_ref(v1);
     }
 
     pub fn dup2(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        self.stack.push_ref(v2.clone());
+        self.stack.push_ref(v1.clone());
+        self.stack.push_ref(v2);
+        self.stack.push_ref(v1);
     }
 
     pub fn dup2_x1(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        let v3 = self.stack.pop_ref();
+        self.stack.push_ref(v2.clone());
+        self.stack.push_ref(v1.clone());
+        self.stack.push_ref(v3);
+        self.stack.push_ref(v2);
+        self.stack.push_ref(v1);
     }
 
     pub fn dup2_x2(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        let v3 = self.stack.pop_ref();
+        let v4 = self.stack.pop_ref();
+        self.stack.push_ref(v2.clone());
+        self.stack.push_ref(v1.clone());
+        self.stack.push_ref(v4);
+        self.stack.push_ref(v3);
+        self.stack.push_ref(v2);
+        self.stack.push_ref(v1);
     }
 
     pub fn swap(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_ref();
+        let v2 = self.stack.pop_ref();
+        self.stack.push_ref(v1);
+        self.stack.push_ref(v2);
     }
 
     pub fn iadd(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 + v2);
     }
 
     pub fn ladd(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 + v2);
     }
 
     pub fn fadd(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_float();
+        let v1 = self.stack.pop_float();
+        self.stack.push_float(v1 + v2);
     }
 
     pub fn dadd(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_double();
+        let v1 = self.stack.pop_double();
+        self.stack.push_double(v1 + v2);
     }
 
     pub fn isub(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 - v2);
     }
 
     pub fn lsub(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 - v2);
     }
+
     pub fn fsub(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_float();
+        let v1 = self.stack.pop_float();
+        self.stack.push_float(v1 - v2);
     }
+
     pub fn dsub(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_double();
+        let v1 = self.stack.pop_double();
+        self.stack.push_double(v1 - v2);
     }
+
     pub fn imul(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 * v2);
     }
+
     pub fn lmul(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 * v2);
     }
+
     pub fn fmul(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_float();
+        let v1 = self.stack.pop_float();
+        self.stack.push_float(v1 * v2);
     }
+
     pub fn dmul(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_double();
+        let v1 = self.stack.pop_double();
+        self.stack.push_double(v1 * v2);
     }
+
     pub fn idiv(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v2 == 0 {
+            //todo: handle exception
+        }
+        self.stack.push_int(v1 / v2);
     }
+
     pub fn ldiv(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        if v2 == 0 {
+            //todo: handle exception
+        }
+        self.stack.push_long(v1 / v2);
     }
+
     pub fn fdiv(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_float();
+        let v1 = self.stack.pop_float();
+        if v2 == 0.0 {
+            //todo: handle exception
+        }
+        self.stack.push_float(v1 / v2);
     }
+
     pub fn ddiv(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_double();
+        let v1 = self.stack.pop_double();
+        if v2 == 0.0 {
+            //todo: handle exception
+        }
+        self.stack.push_double(v1 / v2);
+
     }
+
     pub fn irem(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v2 == 0 {
+            //todo: handle exception
+        }
+        self.stack.push_int(v1 - (v1 / v2) * v2);
     }
+
     pub fn lrem(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        if v2 == 0 {
+            //todo: handle exception
+        }
+        self.stack.push_long(v1 - (v1 / v2) * v2);
     }
+
     pub fn frem(&mut self) {
-        //todo: impl
+        panic!("Use of deprecated instruction frem, please check your Java compiler");
     }
+
     pub fn drem(&mut self) {
-        //todo: impl
+        panic!("Use of deprecated instruction drem, please check your Java compiler");
     }
+
     pub fn ineg(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.stack.push_int(-v);
     }
+
     pub fn lneg(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.stack.push_long(-v);
     }
+
     pub fn fneg(&mut self) {
-        //todo: impl
+        panic!("Use of deprecated instruction fneg, please check your Java compiler");
     }
+
     pub fn dneg(&mut self) {
-        //todo: impl
+        panic!("Use of deprecated instruction dneg, please check your Java compiler");
     }
+
     pub fn ishl(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        let s = v2 & 0x1F;
+        self.stack.push_int(v1 << s);
     }
+
     pub fn lshl(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_long();
+        let s = (v2 & 0x3F) as i64;
+        self.stack.push_long(v1 << s);
     }
+
     pub fn ishr(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        let s = v2 & 0x1F;
+        self.stack.push_int(v1 >> s);
     }
+
     pub fn lshr(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_long();
+        let s = (v2 & 0x3F) as i64;
+        self.stack.push_long(v1 >> s);
     }
+
     pub fn iushr(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        let s = v2 & 0x1F;
+        if v1 >= 0 {
+            self.stack.push_int(v1 >> s);
+        } else {
+            self.stack.push_int((v1 >> s) + (2 << !s));
+        }
     }
+
     pub fn lushr(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_long();
+        let s = (v2 & 0x3F) as i64;
+        if v1 >= 0 {
+            self.stack.push_long(v1 >> s);
+        } else {
+            self.stack.push_long((v1 >> s) + (2 << !s));
+        }
     }
+
     pub fn iand(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 & v2);
     }
+
     pub fn land(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 & v2);
     }
+
     pub fn ior(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 | v2);
     }
+
     pub fn lor(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 | v2);
     }
+
     pub fn ixor(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        self.stack.push_int(v1 ^ v2);
     }
+
     pub fn lxor(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_long();
+        let v1 = self.stack.pop_long();
+        self.stack.push_long(v1 ^ v2);
     }
+
     pub fn iinc(&mut self) {
-        //todo: impl
+        let pos = self.read_u1();
+        let factor = self.read_i1();
+
+        let v = self.local.get_int(pos);
+        let v = v + factor;
+        self.local.set_int(pos, v);
     }
+
     pub fn i2l(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.stack.push_long(v as i64);
     }
+
     pub fn i2f(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.stack.push_float(v as f32);
     }
+
     pub fn i2d(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        self.stack.push_double(v as f64);
     }
+
     pub fn l2i(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.stack.push_int(v as i32);
     }
+
     pub fn l2f(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.stack.push_float(v as f32);
     }
+
     pub fn l2d(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        self.stack.push_double(v as f64);
     }
+
     pub fn f2i(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        if v.is_nan() {
+           self.stack.push_int(0);
+        } else if v.is_infinite() {
+            if v.is_sign_positive() {
+                self.stack.push_int(std::i32::MAX);
+            } else {
+                self.stack.push_int(std::i32::MIN);
+            }
+        } else {
+            self.stack.push_int(v as i32);
+        }
     }
+
     pub fn f2l(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        if v.is_nan() {
+            self.stack.push_long(0);
+        } else if v.is_infinite() {
+            if v.is_sign_positive() {
+                self.stack.push_long(std::i64::MAX);
+            } else {
+                self.stack.push_long(std::i64::MIN);
+            }
+        } else {
+            self.stack.push_long(v as i64);
+        }
     }
+
     pub fn f2d(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        self.stack.push_double(v as f64);
     }
+
     pub fn d2i(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        if v.is_nan() {
+            self.stack.push_int(0);
+        } else if v.is_infinite() {
+            if v.is_sign_positive() {
+                self.stack.push_int(std::i32::MAX);
+            } else {
+                self.stack.push_int(std::i32::MIN);
+            }
+        } else {
+            self.stack.push_int(v as i32);
+        }
     }
+
     pub fn d2l(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        if v.is_nan() {
+            self.stack.push_long(0);
+        } else if v.is_infinite() {
+            if v.is_sign_positive() {
+                self.stack.push_long(std::i64::MAX);
+            } else {
+                self.stack.push_long(std::i64::MIN);
+            }
+        } else {
+            self.stack.push_long(v as i64);
+        }
     }
+
     pub fn d2f(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        self.stack.push_float(v as f32);
     }
+
     pub fn i2b(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        let v = v as i8;
+        self.stack.push_int(v as i32);
     }
+
     pub fn i2c(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        let v = v as u16;
+        self.stack.push_int(v as i32);
     }
+
     pub fn i2s(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        let v = v as i16;
+        self.stack.push_int(v as i32);
     }
+
     pub fn lcmp(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_long();
+        let v2 = self.stack.pop_long();
+        if v1 > v2 {
+            self.stack.push_int(-1);
+        } else if v1 < v2 {
+            self.stack.push_int(1);
+        } else {
+            self.stack.push_int(0);
+        }
     }
+
     pub fn fcmpl(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_float();
+        let v2 = self.stack.pop_float();
+        if v1.is_nan() || v2.is_nan() {
+            self.stack.push_int(-1);
+        } else if v1 > v2 {
+            self.stack.push_int(-1);
+        } else if v1 < v2 {
+            self.stack.push_int(1);
+        } else {
+            self.stack.push_int(0);
+        }
     }
+
     pub fn fcmpg(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_float();
+        let v2 = self.stack.pop_float();
+        if v1.is_nan() || v2.is_nan() {
+            self.stack.push_int(1);
+        } else if v1 > v2 {
+            self.stack.push_int(-1);
+        } else if v1 < v2 {
+            self.stack.push_int(1);
+        } else {
+            self.stack.push_int(0);
+        }
     }
+
     pub fn dcmpl(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_double();
+        let v2 = self.stack.pop_double();
+        if v1.is_nan() || v2.is_nan() {
+            self.stack.push_int(-1);
+        } else if v1 > v2 {
+            self.stack.push_int(-1);
+        } else if v1 < v2 {
+            self.stack.push_int(1);
+        } else {
+            self.stack.push_int(0);
+        }
     }
+
     pub fn dcmpg(&mut self) {
-        //todo: impl
+        let v1 = self.stack.pop_double();
+        let v2 = self.stack.pop_double();
+        if v1.is_nan() || v2.is_nan() {
+            self.stack.push_int(1);
+        } else if v1 > v2 {
+            self.stack.push_int(-1);
+        } else if v1 < v2 {
+            self.stack.push_int(1);
+        } else {
+            self.stack.push_int(0);
+        }
     }
+
     pub fn ifeq(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v == 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn ifne(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v != 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn iflt(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v < 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn ifge(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v >= 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn ifgt(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v > 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn ifle(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        if v <= 0 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmpeq(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 == v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmpne(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 != v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmplt(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 < v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmpge(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 >= v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmpgt(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 > v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_icmple(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_int();
+        let v1 = self.stack.pop_int();
+        if v1 <= v2 {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_acmpeq(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_ref();
+        let v1 = self.stack.pop_ref();
+        let eq = match (v1, v2) {
+            (Some(v1), Some(v2)) => Arc::ptr_eq(&v1, &v2),
+            (None, None) => true,
+            _ => false,
+        };
+
+        if eq {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn if_acmpne(&mut self) {
-        //todo: impl
+        let v2 = self.stack.pop_ref();
+        let v1 = self.stack.pop_ref();
+        let eq = match (v1, v2) {
+            (Some(v1), Some(v2)) => Arc::ptr_eq(&v1, &v2),
+            (None, None) => true,
+            _ => false,
+        };
+
+        if !eq {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn goto(&mut self) {
-        //todo: impl
+        let branch = self.read_i2();
+        self.pc += branch;
+        self.pc += -1;
     }
+
     pub fn jsr(&mut self) {
-        //todo: impl
+        self.pc += 2;
+        panic!("Use of deprecated instruction jsr, please check your Java compiler");
     }
+
     pub fn ret(&mut self) {
-        //todo: impl
+        self.pc += 1;
+        panic!("Use of deprecated instruction ret, please check your Java compiler");
     }
+
     pub fn table_switch(&mut self) {
         //todo: impl
     }
+
     pub fn lookup_switch(&mut self) {
         //todo: impl
     }
@@ -800,19 +1268,39 @@ impl Frame {
         //todo: impl
     }
     pub fn if_null(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        if v.is_none() {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
 
     pub fn if_non_null(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        if v.is_some() {
+            let branch = self.read_i2();
+            self.pc += branch;
+            self.pc += -1;
+        } else {
+            self.pc += 2;
+        }
     }
+
     pub fn goto_w(&mut self) {
-        //todo: impl
+        self.pc += 4;
+        panic!("Use of deprecated instruction goto_w, please check your Java compiler")
     }
+
     pub fn jsr_w(&mut self) {
-        //todo: impl
+        self.pc += 4;
+        panic!("Use of deprecated instruction jsr_w, please check your Java compiler")
     }
+
     pub fn other_wise(&mut self) {
-        //todo: impl
+        let pc = self.pc - 1;
+        panic!("Use of undefined bytecode: {} at {}", self.code[pc as usize], pc);
     }
 }
