@@ -58,7 +58,7 @@ pub enum Oop {
     Array(ArrayOopDesc),
 
     //used by oop::field::Filed::get_constant_value
-    Null
+    Null,
 }
 
 impl From<&u8> for ValueType {

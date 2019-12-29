@@ -1,13 +1,13 @@
-use crate::classfile::consts;
 use crate::classfile::constant_pool::ConstantType;
+use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{Oop, ClassRef, Method};
-use crate::runtime::{Local, Stack, JavaThread};
+use crate::oop::{ClassRef, Method, Oop};
+use crate::runtime::{JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
-use std::sync::Arc;
-use std::ops::Deref;
 use std::borrow::BorrowMut;
+use std::ops::Deref;
+use std::sync::Arc;
 
 pub struct Frame {
     thread: Arc<JavaThread>,
@@ -302,33 +302,31 @@ impl Frame {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match rf {
-            Some(rf) => {
-                match rf.deref() {
-                    Oop::Array(ary) => {
-                        let len = ary.get_length();
-                        if (pos < 0) || (pos as usize >= ary.get_length()) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                           JavaThread::throw_ext_with_msg(thread,
+            Some(rf) => match rf.deref() {
+                Oop::Array(ary) => {
+                    let len = ary.get_length();
+                    if (pos < 0) || (pos as usize >= ary.get_length()) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        JavaThread::throw_ext_with_msg(
+                            thread,
                             consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                          false,
-                                                          msg);
-                        } else {
-                            let v = ary.get_elm_at(pos as usize);
-                            match v {
-                                Some(v) => {
-                                    match v.deref() {
-                                        Oop::Int(v) => {
-                                            self.stack.push_int(*v);
-                                        }
-                                        _ => unreachable!(),
-                                    }
+                            false,
+                            msg,
+                        );
+                    } else {
+                        let v = ary.get_elm_at(pos as usize);
+                        match v {
+                            Some(v) => match v.deref() {
+                                Oop::Int(v) => {
+                                    self.stack.push_int(*v);
                                 }
                                 _ => unreachable!(),
-                            }
+                            },
+                            _ => unreachable!(),
                         }
                     }
-                    _ => unreachable!(),
                 }
+                _ => unreachable!(),
             },
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
@@ -351,33 +349,31 @@ impl Frame {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match rf {
-            Some(rf) => {
-                match rf.deref() {
-                    Oop::Array(ary) => {
-                        let len = ary.get_length();
-                        if (pos < 0) || (pos as usize >= ary.get_length()) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
-                        } else {
-                            let v = ary.get_elm_at(pos as usize);
-                            match v {
-                                Some(v) => {
-                                    match v.deref() {
-                                        Oop::Long(v) => {
-                                            self.stack.push_long(*v);
-                                        }
-                                        _ => unreachable!(),
-                                    }
+            Some(rf) => match rf.deref() {
+                Oop::Array(ary) => {
+                    let len = ary.get_length();
+                    if (pos < 0) || (pos as usize >= ary.get_length()) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        JavaThread::throw_ext_with_msg(
+                            thread,
+                            consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                            false,
+                            msg,
+                        );
+                    } else {
+                        let v = ary.get_elm_at(pos as usize);
+                        match v {
+                            Some(v) => match v.deref() {
+                                Oop::Long(v) => {
+                                    self.stack.push_long(*v);
                                 }
                                 _ => unreachable!(),
-                            }
+                            },
+                            _ => unreachable!(),
                         }
                     }
-                    _ => unreachable!(),
                 }
+                _ => unreachable!(),
             },
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
@@ -388,33 +384,31 @@ impl Frame {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match rf {
-            Some(rf) => {
-                match rf.deref() {
-                    Oop::Array(ary) => {
-                        let len = ary.get_length();
-                        if (pos < 0) || (pos as usize >= ary.get_length()) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
-                        } else {
-                            let v = ary.get_elm_at(pos as usize);
-                            match v {
-                                Some(v) => {
-                                    match v.deref() {
-                                        Oop::Float(v) => {
-                                            self.stack.push_float(*v);
-                                        }
-                                        _ => unreachable!(),
-                                    }
+            Some(rf) => match rf.deref() {
+                Oop::Array(ary) => {
+                    let len = ary.get_length();
+                    if (pos < 0) || (pos as usize >= ary.get_length()) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        JavaThread::throw_ext_with_msg(
+                            thread,
+                            consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                            false,
+                            msg,
+                        );
+                    } else {
+                        let v = ary.get_elm_at(pos as usize);
+                        match v {
+                            Some(v) => match v.deref() {
+                                Oop::Float(v) => {
+                                    self.stack.push_float(*v);
                                 }
                                 _ => unreachable!(),
-                            }
+                            },
+                            _ => unreachable!(),
                         }
                     }
-                    _ => unreachable!(),
                 }
+                _ => unreachable!(),
             },
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
@@ -425,33 +419,31 @@ impl Frame {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match rf {
-            Some(rf) => {
-                match rf.deref() {
-                    Oop::Array(ary) => {
-                        let len = ary.get_length();
-                        if (pos < 0) || (pos as usize >= ary.get_length()) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
-                        } else {
-                            let v = ary.get_elm_at(pos as usize);
-                            match v {
-                                Some(v) => {
-                                    match v.deref() {
-                                        Oop::Double(v) => {
-                                            self.stack.push_double(*v);
-                                        }
-                                        _ => unreachable!(),
-                                    }
+            Some(rf) => match rf.deref() {
+                Oop::Array(ary) => {
+                    let len = ary.get_length();
+                    if (pos < 0) || (pos as usize >= ary.get_length()) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        JavaThread::throw_ext_with_msg(
+                            thread,
+                            consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                            false,
+                            msg,
+                        );
+                    } else {
+                        let v = ary.get_elm_at(pos as usize);
+                        match v {
+                            Some(v) => match v.deref() {
+                                Oop::Double(v) => {
+                                    self.stack.push_double(*v);
                                 }
                                 _ => unreachable!(),
-                            }
+                            },
+                            _ => unreachable!(),
                         }
                     }
-                    _ => unreachable!(),
                 }
+                _ => unreachable!(),
             },
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
@@ -462,23 +454,23 @@ impl Frame {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match rf {
-            Some(rf) => {
-                match rf.deref() {
-                    Oop::Array(ary) => {
-                        let len = ary.get_length();
-                        if (pos < 0) || (pos as usize >= ary.get_length()) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
-                        } else {
-                            let v = ary.get_elm_at(pos as usize);
-                            self.stack.push_ref(v);
-                        }
+            Some(rf) => match rf.deref() {
+                Oop::Array(ary) => {
+                    let len = ary.get_length();
+                    if (pos < 0) || (pos as usize >= ary.get_length()) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        JavaThread::throw_ext_with_msg(
+                            thread,
+                            consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                            false,
+                            msg,
+                        );
+                    } else {
+                        let v = ary.get_elm_at(pos as usize);
+                        self.stack.push_ref(v);
                     }
-                    _ => unreachable!(),
                 }
+                _ => unreachable!(),
             },
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
@@ -640,17 +632,19 @@ impl Frame {
                         let len = ary.get_length();
                         if (pos < 0) || (pos as usize >= ary.get_length()) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
+                            JavaThread::throw_ext_with_msg(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                false,
+                                msg,
+                            );
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Int(v)));
                         }
                     }
                     _ => unreachable!(),
                 }
-            },
+            }
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
     }
@@ -669,17 +663,19 @@ impl Frame {
                         let len = ary.get_length();
                         if (pos < 0) || (pos as usize >= ary.get_length()) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
+                            JavaThread::throw_ext_with_msg(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                false,
+                                msg,
+                            );
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Long(v)));
                         }
                     }
                     _ => unreachable!(),
                 }
-            },
+            }
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
     }
@@ -698,17 +694,19 @@ impl Frame {
                         let len = ary.get_length();
                         if (pos < 0) || (pos as usize >= ary.get_length()) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
+                            JavaThread::throw_ext_with_msg(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                false,
+                                msg,
+                            );
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Float(v)));
                         }
                     }
                     _ => unreachable!(),
                 }
-            },
+            }
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
     }
@@ -727,17 +725,19 @@ impl Frame {
                         let len = ary.get_length();
                         if (pos < 0) || (pos as usize >= ary.get_length()) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
+                            JavaThread::throw_ext_with_msg(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                false,
+                                msg,
+                            );
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Double(v)));
                         }
                     }
                     _ => unreachable!(),
                 }
-            },
+            }
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
     }
@@ -756,21 +756,23 @@ impl Frame {
                         let len = ary.get_length();
                         if (pos < 0) || (pos as usize >= ary.get_length()) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            JavaThread::throw_ext_with_msg(thread,
-                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                                           false,
-                                                           msg);
+                            JavaThread::throw_ext_with_msg(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                false,
+                                msg,
+                            );
                         } else {
                             let v = match v {
                                 Some(v) => v,
-                                None => Arc::new(Oop::Null)
+                                None => Arc::new(Oop::Null),
                             };
                             ary.set_elm_at(pos as usize, v);
                         }
                     }
                     _ => unreachable!(),
                 }
-            },
+            }
             None => JavaThread::throw_ext(thread, consts::J_NPE, false),
         }
     }
@@ -925,7 +927,12 @@ impl Frame {
         let v1 = self.stack.pop_int();
         if v2 == 0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
             self.stack.push_int(v1 / v2);
         }
@@ -936,7 +943,12 @@ impl Frame {
         let v1 = self.stack.pop_long();
         if v2 == 0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
             self.stack.push_long(v1 / v2);
         }
@@ -947,9 +959,13 @@ impl Frame {
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
-
             self.stack.push_float(v1 / v2);
         }
     }
@@ -959,9 +975,13 @@ impl Frame {
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
-
             self.stack.push_double(v1 / v2);
         }
     }
@@ -971,9 +991,13 @@ impl Frame {
         let v1 = self.stack.pop_int();
         if v2 == 0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
-
             self.stack.push_int(v1 - (v1 / v2) * v2);
         }
     }
@@ -983,9 +1007,13 @@ impl Frame {
         let v1 = self.stack.pop_long();
         if v2 == 0 {
             let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+            JavaThread::throw_ext_with_msg2(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                false,
+                b"divide by zero",
+            );
         } else {
-
             self.stack.push_long(v1 - (v1 / v2) * v2);
         }
     }
