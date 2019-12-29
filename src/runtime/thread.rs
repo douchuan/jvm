@@ -45,6 +45,10 @@ impl JavaThread {
     pub fn throw_ext_with_msg(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: String) {
         //todo: impl
     }
+
+    pub fn throw_ext_with_msg2(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: &[u8]) {
+        //todo: impl
+    }
 }
 
 impl JavaMainThread {

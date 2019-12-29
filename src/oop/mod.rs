@@ -56,6 +56,8 @@ pub enum Oop {
 
     //todo: optimise me, create a TypeArray
     Array(ArrayOopDesc),
+
+    //used by oop::field::Filed::get_constant_value
     Null
 }
 

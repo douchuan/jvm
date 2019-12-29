@@ -40,3 +40,4 @@ pub const J_NPE: &[u8] = b"java/lang/NullPointerException";
 pub const J_IOEXCEPTION: &[u8] = b"java/io/IOException";
 pub const J_ARRAY_INDEX_OUT_OF_BOUNDS: &[u8] = b"java/lang/ArrayIndexOutOfBoundsException";
 pub const J_CLASS_NOT_FOUND: &[u8] = b"java/lang/ClassNotFoundException";
+pub const J_ARITHMETIC_EX: &[u8] = b"java/lang/ArithmeticException";

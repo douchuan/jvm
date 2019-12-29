@@ -7,6 +7,7 @@ use crate::runtime::{Local, Stack, JavaThread};
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 use std::ops::Deref;
+use std::borrow::BorrowMut;
 
 pub struct Frame {
     thread: Arc<JavaThread>,
@@ -614,35 +615,164 @@ impl Frame {
     }
 
     pub fn bastore(&mut self) {
-        //todo: impl
+        self.iastore();
     }
 
     pub fn castore(&mut self) {
-        //todo: impl
+        self.iastore();
     }
 
     pub fn sastore(&mut self) {
-        //todo: impl
+        self.iastore();
     }
 
     pub fn iastore(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let v = self.stack.pop_int();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(mut rf) => {
+                let rf = Arc::get_mut(&mut rf).unwrap();
+
+                match rf {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            ary.set_elm_at(pos as usize, Arc::new(Oop::Int(v)));
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn lastore(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let v = self.stack.pop_long();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(mut rf) => {
+                let rf = Arc::get_mut(&mut rf).unwrap();
+
+                match rf {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            ary.set_elm_at(pos as usize, Arc::new(Oop::Long(v)));
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn fastore(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let v = self.stack.pop_float();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(mut rf) => {
+                let rf = Arc::get_mut(&mut rf).unwrap();
+
+                match rf {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            ary.set_elm_at(pos as usize, Arc::new(Oop::Float(v)));
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn dastore(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let v = self.stack.pop_double();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(mut rf) => {
+                let rf = Arc::get_mut(&mut rf).unwrap();
+
+                match rf {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            ary.set_elm_at(pos as usize, Arc::new(Oop::Double(v)));
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn aastore(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let v = self.stack.pop_ref();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(mut rf) => {
+                let rf = Arc::get_mut(&mut rf).unwrap();
+
+                match rf {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            let v = match v {
+                                Some(v) => v,
+                                None => Arc::new(Oop::Null)
+                            };
+                            ary.set_elm_at(pos as usize, v);
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn pop(&mut self) {
@@ -794,54 +924,70 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+            self.stack.push_int(v1 / v2);
         }
-        self.stack.push_int(v1 / v2);
     }
 
     pub fn ldiv(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+            self.stack.push_long(v1 / v2);
         }
-        self.stack.push_long(v1 / v2);
     }
 
     pub fn fdiv(&mut self) {
         let v2 = self.stack.pop_float();
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+
+            self.stack.push_float(v1 / v2);
         }
-        self.stack.push_float(v1 / v2);
     }
 
     pub fn ddiv(&mut self) {
         let v2 = self.stack.pop_double();
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+
+            self.stack.push_double(v1 / v2);
         }
-        self.stack.push_double(v1 / v2);
     }
 
     pub fn irem(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+
+            self.stack.push_int(v1 - (v1 / v2) * v2);
         }
-        self.stack.push_int(v1 - (v1 / v2) * v2);
     }
 
     pub fn lrem(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            //todo: handle exception
+            let thread = self.thread.clone();
+            JavaThread::throw_ext_with_msg2(thread, consts::J_ARITHMETIC_EX, false, b"divide by zero");
+        } else {
+
+            self.stack.push_long(v1 - (v1 / v2) * v2);
         }
-        self.stack.push_long(v1 - (v1 / v2) * v2);
     }
 
     pub fn frem(&mut self) {
