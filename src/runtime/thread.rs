@@ -34,7 +34,15 @@ impl JavaThread {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(this: Arc<JavaThread>) {
+        //todo: impl
+    }
+
+    pub fn throw_ext(this: Arc<JavaThread>, ext: &[u8], rethrow: bool) {
+        //todo: impl
+    }
+
+    pub fn throw_ext_with_msg(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: String) {
         //todo: impl
     }
 }
@@ -58,7 +66,7 @@ impl JavaMainThread {
             )
         });
 
-        let mut jt = JavaThread::new(main_method, args);
-        jt.run();
+        let mut jt = Arc::new(JavaThread::new(main_method, args));
+        JavaThread::run(jt);
     }
 }

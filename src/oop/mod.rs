@@ -53,9 +53,10 @@ pub enum Oop {
     Double(f64),
     Str(BytesRef),
     Inst(InstOopDesc),
-    TypeArray(ArrayOopDesc),
-    ObjArray(ArrayOopDesc),
-    Null,
+
+    //todo: optimise me, create a TypeArray
+    Array(ArrayOopDesc),
+    Null
 }
 
 impl From<&u8> for ValueType {
@@ -98,7 +99,7 @@ pub struct InstOopDesc {}
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
     class: ClassRef,
-    elements: Vec<Oop>,
+    elements: Vec<Arc<Oop>>,
 }
 
 impl ArrayOopDesc {
@@ -117,11 +118,11 @@ impl ArrayOopDesc {
         self.elements.len()
     }
 
-    pub fn get_elm_at(&self, index: usize) -> Option<&Oop> {
-        self.elements.get(index)
+    pub fn get_elm_at(&self, index: usize) -> Option<Arc<Oop>> {
+        self.elements.get(index).cloned()
     }
 
-    pub fn set_elm_at(&mut self, index: usize, elm: Oop) {
+    pub fn set_elm_at(&mut self, index: usize, elm: Arc<Oop>) {
         self.elements[index] = elm;
     }
 }

@@ -1,12 +1,15 @@
+use crate::classfile::consts;
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{ClassRef, Method};
-use crate::runtime::{Local, Stack};
+use crate::oop::{Oop, ClassRef, Method};
+use crate::runtime::{Local, Stack, JavaThread};
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
+use std::ops::Deref;
 
 pub struct Frame {
+    thread: Arc<JavaThread>,
     local: Local,
     stack: Stack,
     pc: i32,
@@ -16,8 +19,9 @@ pub struct Frame {
 
 //new & helper methods
 impl Frame {
-    pub fn new(class: ClassRef, m: Method) -> Self {
+    pub fn new(thread: Arc<JavaThread>, class: ClassRef, m: Method) -> Self {
         Self {
+            thread,
             local: Local::new(m.code.max_locals as usize),
             stack: Stack::new(m.code.max_stack as usize),
             pc: 0,
@@ -293,35 +297,190 @@ impl Frame {
     }
 
     pub fn iaload(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                match rf.deref() {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                           JavaThread::throw_ext_with_msg(thread,
+                            consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                          false,
+                                                          msg);
+                        } else {
+                            let v = ary.get_elm_at(pos as usize);
+                            match v {
+                                Some(v) => {
+                                    match v.deref() {
+                                        Oop::Int(v) => {
+                                            self.stack.push_int(*v);
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn saload(&mut self) {
-        //todo: impl
+        self.iaload();
     }
 
     pub fn caload(&mut self) {
-        //todo: impl
+        self.iaload();
     }
 
     pub fn baload(&mut self) {
-        //todo: impl
+        self.iaload();
     }
 
     pub fn laload(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                match rf.deref() {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            let v = ary.get_elm_at(pos as usize);
+                            match v {
+                                Some(v) => {
+                                    match v.deref() {
+                                        Oop::Long(v) => {
+                                            self.stack.push_long(*v);
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn faload(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                match rf.deref() {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            let v = ary.get_elm_at(pos as usize);
+                            match v {
+                                Some(v) => {
+                                    match v.deref() {
+                                        Oop::Float(v) => {
+                                            self.stack.push_float(*v);
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn daload(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                match rf.deref() {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            let v = ary.get_elm_at(pos as usize);
+                            match v {
+                                Some(v) => {
+                                    match v.deref() {
+                                        Oop::Double(v) => {
+                                            self.stack.push_double(*v);
+                                        }
+                                        _ => unreachable!(),
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn aaload(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let pos = self.stack.pop_int();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                match rf.deref() {
+                    Oop::Array(ary) => {
+                        let len = ary.get_length();
+                        if (pos < 0) || (pos as usize >= ary.get_length()) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            JavaThread::throw_ext_with_msg(thread,
+                                                           consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                                           false,
+                                                           msg);
+                        } else {
+                            let v = ary.get_elm_at(pos as usize);
+                            self.stack.push_ref(v);
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            },
+            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+        }
     }
 
     pub fn istore(&mut self) {
@@ -349,7 +508,6 @@ impl Frame {
     }
 
     pub fn astore(&mut self) {
-        //todo: impl
         let pos = self.read_u1();
         let v = self.stack.pop_ref();
         self.local.set_ref(pos, v);
@@ -666,7 +824,6 @@ impl Frame {
             //todo: handle exception
         }
         self.stack.push_double(v1 / v2);
-
     }
 
     pub fn irem(&mut self) {
@@ -841,7 +998,7 @@ impl Frame {
     pub fn f2i(&mut self) {
         let v = self.stack.pop_float();
         if v.is_nan() {
-           self.stack.push_int(0);
+            self.stack.push_int(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
                 self.stack.push_int(std::i32::MAX);
@@ -1301,6 +1458,9 @@ impl Frame {
 
     pub fn other_wise(&mut self) {
         let pc = self.pc - 1;
-        panic!("Use of undefined bytecode: {} at {}", self.code[pc as usize], pc);
+        panic!(
+            "Use of undefined bytecode: {} at {}",
+            self.code[pc as usize], pc
+        );
     }
 }

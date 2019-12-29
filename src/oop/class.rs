@@ -237,9 +237,9 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         if class_file.super_class == 0 {
-            if self.name.as_slice() != consts::JAVA_LANG_OBJECT {
+            if self.name.as_slice() != consts::J_OBJECT {
                 self.set_class_state(State::IniErr);
-                assert!(false, format!("should be {:?}", consts::JAVA_LANG_OBJECT));
+                assert!(false, format!("should be {:?}", consts::J_OBJECT));
             }
             self.super_class = None;
         } else {
