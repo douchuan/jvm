@@ -1584,24 +1584,41 @@ impl Frame {
     pub fn lookup_switch(&mut self) {
         //todo: impl
     }
+
     pub fn ireturn(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_int();
+        let v = Arc::new(Oop::Int(v));
+        self.set_return(v);
     }
+
     pub fn lreturn(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_long();
+        let v = Arc::new(Oop::Long(v));
+        self.set_return(v);
     }
+
     pub fn freturn(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_float();
+        let v = Arc::new(Oop::Float(v));
+        self.set_return(v);
     }
+
     pub fn dreturn(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_double();
+        let v = Arc::new(Oop::Double(v));
+        self.set_return(v);
     }
+
     pub fn areturn(&mut self) {
-        //todo: impl
+        let v = self.stack.pop_ref();
+        self.set_return(v.unwrap());
     }
+
     pub fn return_(&mut self) {
-        //todo: impl
+        //todo: self.return_v = None ??
+        self.set_return(Arc::new(Oop::Null));
     }
+
     pub fn get_static(&mut self) {
         //todo: impl
     }

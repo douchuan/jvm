@@ -33,6 +33,10 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
+  x. think about
+    stack.pop_ref, not use return type Option
+      1. Option<Oop>
+      2. Oop, 对于Null， 用Oop::NULL
 */
 
 fn init_vm() {
