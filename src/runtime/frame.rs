@@ -16,6 +16,7 @@ pub struct Frame {
     pc: i32,
     class: ClassRef,
     code: Arc<Vec<U1>>,
+    return_v: Option<Arc<Oop>>,
 }
 
 //new & helper methods
@@ -28,6 +29,7 @@ impl Frame {
             pc: 0,
             class,
             code: m.code.code.clone(),
+            return_v: None,
         }
     }
 
@@ -76,6 +78,20 @@ impl Frame {
             }
             _ => unreachable!(),
         }
+    }
+
+    fn handle_exception(&mut self) {
+        self.stack.clear();
+        self.stack.push_ref(self.thread.exception.clone());
+        self.athrow();
+    }
+
+    fn goto_abs(&mut self, pc: i32) {
+        self.pc = pc;
+    }
+
+    fn set_return(&mut self, v: Arc<Oop>) {
+        self.return_v = Some(v);
     }
 }
 
@@ -313,6 +329,7 @@ impl Frame {
                             false,
                             msg,
                         );
+                        self.handle_exception();
                     } else {
                         let v = ary.get_elm_at(pos as usize);
                         match v {
@@ -328,7 +345,10 @@ impl Frame {
                 }
                 _ => unreachable!(),
             },
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -360,6 +380,7 @@ impl Frame {
                             false,
                             msg,
                         );
+                        self.handle_exception();
                     } else {
                         let v = ary.get_elm_at(pos as usize);
                         match v {
@@ -375,7 +396,10 @@ impl Frame {
                 }
                 _ => unreachable!(),
             },
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -395,6 +419,7 @@ impl Frame {
                             false,
                             msg,
                         );
+                        self.handle_exception();
                     } else {
                         let v = ary.get_elm_at(pos as usize);
                         match v {
@@ -410,7 +435,10 @@ impl Frame {
                 }
                 _ => unreachable!(),
             },
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -430,6 +458,7 @@ impl Frame {
                             false,
                             msg,
                         );
+                        self.handle_exception();
                     } else {
                         let v = ary.get_elm_at(pos as usize);
                         match v {
@@ -445,7 +474,10 @@ impl Frame {
                 }
                 _ => unreachable!(),
             },
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -465,6 +497,7 @@ impl Frame {
                             false,
                             msg,
                         );
+                        self.handle_exception();
                     } else {
                         let v = ary.get_elm_at(pos as usize);
                         self.stack.push_ref(v);
@@ -472,7 +505,10 @@ impl Frame {
                 }
                 _ => unreachable!(),
             },
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -638,6 +674,7 @@ impl Frame {
                                 false,
                                 msg,
                             );
+                            self.handle_exception();
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Int(v)));
                         }
@@ -645,7 +682,10 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -669,6 +709,7 @@ impl Frame {
                                 false,
                                 msg,
                             );
+                            self.handle_exception();
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Long(v)));
                         }
@@ -676,7 +717,10 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -700,6 +744,7 @@ impl Frame {
                                 false,
                                 msg,
                             );
+                            self.handle_exception();
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Float(v)));
                         }
@@ -707,7 +752,10 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -731,6 +779,7 @@ impl Frame {
                                 false,
                                 msg,
                             );
+                            self.handle_exception();
                         } else {
                             ary.set_elm_at(pos as usize, Arc::new(Oop::Double(v)));
                         }
@@ -738,7 +787,10 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -762,6 +814,7 @@ impl Frame {
                                 false,
                                 msg,
                             );
+                            self.handle_exception();
                         } else {
                             let v = match v {
                                 Some(v) => v,
@@ -773,7 +826,10 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
-            None => JavaThread::throw_ext(thread, consts::J_NPE, false),
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
         }
     }
 
@@ -933,6 +989,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_int(v1 / v2);
         }
@@ -949,6 +1006,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_long(v1 / v2);
         }
@@ -965,6 +1023,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_float(v1 / v2);
         }
@@ -981,6 +1040,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_double(v1 / v2);
         }
@@ -997,6 +1057,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_int(v1 - (v1 / v2) * v2);
         }
@@ -1013,6 +1074,7 @@ impl Frame {
                 false,
                 b"divide by zero",
             );
+            self.handle_exception();
         } else {
             self.stack.push_long(v1 - (v1 / v2) * v2);
         }
@@ -1576,9 +1638,30 @@ impl Frame {
     pub fn array_length(&mut self) {
         //todo: impl
     }
+
     pub fn athrow(&mut self) {
-        //todo: impl
+        let thread = self.thread.clone();
+        let rf = self.stack.pop_ref();
+        match rf {
+            Some(rf) => {
+                let handler = JavaThread::try_handle_exception(thread, rf.clone());
+                if handler > 0 {
+                    trace!("athrow: exception handler found at offset: {}", handler);
+                    self.stack.clear();
+                    self.stack.push_ref(Some(rf));
+                    self.goto_abs(handler);
+                } else {
+                    trace!("athrow: exception handler not found, rethrowing it to caller");
+                    self.set_return(rf);
+                }
+            }
+            None => {
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
+        }
     }
+
     pub fn check_cast(&mut self) {
         //todo: impl
     }

@@ -8,8 +8,8 @@ pub struct JavaThread {
     pc: u32,
     in_safe_point: bool,
 
-    java_thread_obj: Option<InstOopDesc>,
-    exception: Option<InstOopDesc>,
+    java_thread_obj: Option<Arc<Oop>>,
+    pub exception: Option<Arc<Oop>>,
 
     method: Method,
 }
@@ -48,6 +48,11 @@ impl JavaThread {
 
     pub fn throw_ext_with_msg2(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: &[u8]) {
         //todo: impl
+    }
+
+    pub fn try_handle_exception(this: Arc<JavaThread>, ex: Arc<Oop>) -> i32 {
+        //todo: impl
+        unimplemented!()
     }
 }
 

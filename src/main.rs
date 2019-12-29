@@ -19,8 +19,6 @@ mod util;
 /*
 todo list
 
-  0. oop impl Oop，结合 runtime Slot，建立Ref(Oop)
-    Oop String => Oop Object, 实现java-lang-string
   1. runtime byte code object 相关部分
   2. JNI
   3. runtime::execution::instance_of
@@ -31,8 +29,8 @@ todo list
   7. oop class init_class, java call "<clinit>"
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code instruction
+    table_switch, lookup_switch...
 
-  x. throw exception, aload...
   x. verify class file
   x. java to execute a jar by -jar
 */
