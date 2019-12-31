@@ -1,7 +1,7 @@
 use crate::oop::{InstOopDesc, Method, MethodId, Oop};
 use crate::runtime::{self, Frame};
-use std::sync::Arc;
 use std::borrow::BorrowMut;
+use std::sync::Arc;
 
 pub struct JavaThread {
     frames: Vec<Frame>,

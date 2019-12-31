@@ -1561,36 +1561,46 @@ impl Frame {
     pub fn get_static(&mut self) {
         //todo: impl
     }
+
     pub fn put_static(&mut self) {
         //todo: impl
     }
     pub fn get_field(&mut self) {
         //todo: impl
     }
+
     pub fn put_field(&mut self) {
         //todo: impl
     }
+
     pub fn invoke_virtual(&mut self) {
         //todo: impl
     }
+
     pub fn invoke_static(&mut self) {
         //todo: impl
     }
+
     pub fn invoke_interface(&mut self) {
         //todo: impl
     }
+
     pub fn invoke_dynamic(&mut self) {
         //todo: impl
     }
+
     pub fn new_(&mut self) {
         //todo: impl
     }
+
     pub fn new_array(&mut self) {
         //todo: impl
     }
+
     pub fn anew_array(&mut self) {
         //todo: impl
     }
+
     pub fn array_length(&mut self) {
         //todo: impl
     }
@@ -1621,22 +1631,27 @@ impl Frame {
     pub fn check_cast(&mut self) {
         //todo: impl
     }
+
     pub fn instance_of(&mut self) {
         //todo: impl
     }
+
     pub fn monitor_enter(&mut self) {
         //todo: impl
     }
+
     pub fn monitor_exit(&mut self) {
         //todo: impl
     }
+
     pub fn wide(&mut self) {
-        //todo: impl
         panic!("Use of deprecated instruction wide, please check your Java compiler")
     }
+
     pub fn multi_anew_array(&mut self) {
         //todo: impl
     }
+
     pub fn if_null(&mut self) {
         let v = self.stack.pop_ref();
         match v.deref() {
@@ -1644,7 +1659,7 @@ impl Frame {
                 let branch = self.read_i2();
                 self.pc += branch;
                 self.pc += -1;
-            },
+            }
             _ => self.pc += 2,
         }
     }

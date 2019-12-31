@@ -176,4 +176,3 @@ impl Stack {
         self.push_primitive(v);
     }
 }
-
