@@ -2,7 +2,7 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::Oop;
+use crate::oop::{consts, Oop};
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
@@ -55,7 +55,7 @@ impl Stack {
     }
 
     pub fn push_null(&mut self) {
-        self.inner.push(Slot::Null);
+        self.inner.push(Slot::Ref(consts::get_null()));
     }
 
     pub fn push_const_m1(&mut self) {
@@ -90,7 +90,7 @@ impl Stack {
         self.inner.push(Slot::Utf8(v));
     }
 
-    pub fn push_ref(&mut self, v: Option<Arc<Oop>>) {
+    pub fn push_ref(&mut self, v: Arc<Oop>) {
         self.inner.push(Slot::Ref(v));
     }
 
@@ -144,7 +144,7 @@ impl Stack {
         }
     }
 
-    pub fn pop_ref(&mut self) -> Option<Arc<Oop>> {
+    pub fn pop_ref(&mut self) -> Arc<Oop> {
         if let Slot::Ref(v) = self.inner.pop().unwrap() {
             return v;
         } else {
@@ -176,3 +176,4 @@ impl Stack {
         self.push_primitive(v);
     }
 }
+

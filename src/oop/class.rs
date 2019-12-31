@@ -1,10 +1,9 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, Oop, ValueType};
 use crate::runtime::{self, ClassLoader};
-use crate::util;
-
-use crate::util::PATH_DELIMITER;
+use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Type {
@@ -57,7 +56,7 @@ pub struct ClassObject {
     static_fields: HashMap<BytesRef, FieldId>,
     inst_fields: HashMap<BytesRef, FieldId>,
 
-    static_filed_values: Vec<Oop>,
+    static_filed_values: Vec<Arc<Oop>>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 

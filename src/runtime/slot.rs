@@ -11,6 +11,5 @@ pub enum Slot {
     Const5,
     Primitive(Vec<u8>),
     Utf8(Arc<Vec<u8>>),
-    Ref(Option<Arc<Oop>>),
-    Null,
+    Ref(Arc<Oop>),
 }

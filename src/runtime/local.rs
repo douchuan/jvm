@@ -34,7 +34,7 @@ impl Local {
         self.set_primitive3(pos, v);
     }
 
-    pub fn set_ref(&mut self, pos: usize, v: Option<Arc<Oop>>) {
+    pub fn set_ref(&mut self, pos: usize, v: Arc<Oop>) {
         self.locals[pos] = Slot::Ref(v);
     }
 
@@ -72,7 +72,7 @@ impl Local {
         }
     }
 
-    pub fn get_ref(&self, pos: usize) -> Option<Arc<Oop>> {
+    pub fn get_ref(&self, pos: usize) -> Arc<Oop> {
         if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
             v.clone()
         } else {

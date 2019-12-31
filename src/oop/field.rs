@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
-use crate::oop::{ClassObject, ClassRef, Oop, ValueType};
+use crate::oop::{consts as oop_consts, ClassObject, ClassRef, Oop, ValueType};
 use crate::util::{self, PATH_DELIMITER};
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ pub struct Field {
 
     pub value_type: ValueType,
 
-    pub attr_constant_value: Option<Oop>,
+    pub attr_constant_value: Option<Arc<Oop>>,
 }
 
 impl Field {
@@ -42,26 +42,26 @@ impl Field {
                     Some(constant_pool::ConstantType::Long { v }) => {
                         let v =
                             i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                        attr_constant_value = Some(Oop::Long(v));
+                        attr_constant_value = Some(Arc::new(Oop::Long(v)));
                     }
                     Some(constant_pool::ConstantType::Float { v }) => {
                         let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = f32::from_bits(v);
-                        attr_constant_value = Some(Oop::Float(v));
+                        attr_constant_value = Some(Arc::new(Oop::Float(v)));
                     }
                     Some(constant_pool::ConstantType::Double { v }) => {
                         let v =
                             u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = f64::from_bits(v);
-                        attr_constant_value = Some(Oop::Double(v));
+                        attr_constant_value = Some(Arc::new(Oop::Double(v)));
                     }
                     Some(constant_pool::ConstantType::Integer { v }) => {
                         let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                        attr_constant_value = Some(Oop::Int(v));
+                        attr_constant_value = Some(Arc::new(Oop::Int(v)));
                     }
                     Some(constant_pool::ConstantType::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(*string_index, cp) {
-                            attr_constant_value = Some(Oop::Str(v));
+                            attr_constant_value = Some(Arc::new(Oop::Str(v)));
                         }
                     }
                     _ => unreachable!(),
@@ -107,22 +107,22 @@ impl Field {
         (self.acc_flags & ACC_VOLATILE) == ACC_VOLATILE
     }
 
-    pub fn get_constant_value(&self) -> Oop {
+    pub fn get_constant_value(&self) -> Arc<Oop> {
         match self.value_type {
             ValueType::BYTE
             | ValueType::BOOLEAN
             | ValueType::CHAR
             | ValueType::SHORT
-            | ValueType::INT => Oop::Int(0),
-            ValueType::LONG => Oop::Long(0),
-            ValueType::FLOAT => Oop::Float(0.0),
-            ValueType::DOUBLE => Oop::Double(0.0),
-            ValueType::OBJECT | ValueType::ARRAY => Oop::Null,
+            | ValueType::INT => oop_consts::get_int0(),
+            ValueType::LONG => oop_consts::get_long0(),
+            ValueType::FLOAT => oop_consts::get_float0(),
+            ValueType::DOUBLE => oop_consts::get_double0(),
+            ValueType::OBJECT | ValueType::ARRAY => oop_consts::get_null(),
             _ => unreachable!(),
         }
     }
 
-    pub fn get_attr_constant_value(&self) -> Option<Oop> {
+    pub fn get_attr_constant_value(&self) -> Option<Arc<Oop>> {
         self.attr_constant_value.clone()
     }
 }

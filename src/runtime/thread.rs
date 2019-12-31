@@ -1,6 +1,7 @@
 use crate::oop::{InstOopDesc, Method, MethodId, Oop};
 use crate::runtime::{self, Frame};
 use std::sync::Arc;
+use std::borrow::BorrowMut;
 
 pub struct JavaThread {
     frames: Vec<Frame>,
@@ -38,21 +39,26 @@ impl JavaThread {
         //todo: impl
     }
 
-    pub fn throw_ext(this: Arc<JavaThread>, ext: &[u8], rethrow: bool) {
+    pub fn throw_ext(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool) {
         //todo: impl
     }
 
-    pub fn throw_ext_with_msg(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: String) {
+    pub fn throw_ext_with_msg(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: String) {
         //todo: impl
     }
 
-    pub fn throw_ext_with_msg2(this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: &[u8]) {
+    pub fn throw_ext_with_msg2(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: &[u8]) {
         //todo: impl
     }
 
-    pub fn try_handle_exception(this: Arc<JavaThread>, ex: Arc<Oop>) -> i32 {
+    pub fn try_handle_exception(mut this: Arc<JavaThread>, ex: Arc<Oop>) -> i32 {
         //todo: impl
         unimplemented!()
+    }
+
+    pub fn clear_ext(mut this: Arc<JavaThread>) {
+        let this = Arc::get_mut(&mut this).unwrap();
+        this.exception = None;
     }
 }
 

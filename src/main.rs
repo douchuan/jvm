@@ -40,6 +40,7 @@ todo list
 */
 
 fn init_vm() {
+    oop::init();
     runtime::init();
 }
 
@@ -123,5 +124,13 @@ mod tests {
         assert!(ref_bytes.is_some());
         assert_eq!(ref_bytes, Some(Arc::new(vec![1, 2, 3, 4])));
         assert_eq!(1, Arc::strong_count(&ref_bytes.unwrap()));
+
+        use crate::oop::Oop;
+        use crate::runtime::Slot;
+        let null1 = Arc::new(Oop::Null);
+        let null2 = Arc::new(Oop::Null);
+        assert!(!Arc::ptr_eq(&null1, &null2));
+        let null11 = null1.clone();
+        assert!(Arc::ptr_eq(&null1, &null1));
     }
 }

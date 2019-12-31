@@ -6,6 +6,7 @@ use crate::classfile::{types::*, ClassFile};
 use crate::runtime::ClassLoader;
 
 pub mod class;
+pub mod consts;
 pub mod field;
 pub mod method;
 
@@ -120,11 +121,15 @@ impl ArrayOopDesc {
         self.elements.len()
     }
 
-    pub fn get_elm_at(&self, index: usize) -> Option<Arc<Oop>> {
-        self.elements.get(index).cloned()
+    pub fn get_elm_at(&self, index: usize) -> Arc<Oop> {
+        self.elements[index].clone()
     }
 
     pub fn set_elm_at(&mut self, index: usize, elm: Arc<Oop>) {
         self.elements[index] = elm;
     }
+}
+
+pub fn init() {
+    consts::init();
 }
