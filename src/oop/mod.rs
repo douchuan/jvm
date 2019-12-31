@@ -65,8 +65,8 @@ pub enum Oop {
 #[derive(Debug)]
 pub struct OopDesc {
     pub v: Oop,
-    pub cond: Condvar,
-    pub monitor: Mutex<usize>,
+    cond: Condvar,
+    monitor: Mutex<usize>,
 }
 
 impl OopDesc {
@@ -108,6 +108,18 @@ impl OopDesc {
             cond: Condvar::new(),
             monitor: Mutex::new(0),
         })
+    }
+}
+
+impl OopDesc {
+    pub fn monitor_enter(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v += 1;
+    }
+
+    pub fn monitor_exit(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v -= 1;
     }
 }
 

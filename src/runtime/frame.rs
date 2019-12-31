@@ -1651,11 +1651,33 @@ impl Frame {
     }
 
     pub fn monitor_enter(&mut self) {
-        //todo: impl
+        let mut rf = self.stack.pop_ref();
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match rff.v {
+            Oop::Null => {
+                let thread = self.thread.clone();
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
+            _ => {
+                rff.monitor_enter();
+            }
+        }
     }
 
     pub fn monitor_exit(&mut self) {
-        //todo: impl
+        let mut rf = self.stack.pop_ref();
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match rff.v {
+            Oop::Null => {
+                let thread = self.thread.clone();
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
+            _ => {
+                rff.monitor_exit();
+            }
+        }
     }
 
     pub fn wide(&mut self) {
