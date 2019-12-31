@@ -320,7 +320,6 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.deref();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -368,7 +367,6 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rff = rf.deref();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -404,7 +402,6 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rff = rf.deref();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -440,7 +437,6 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rff = rf.deref();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -476,7 +472,6 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rff = rf.deref();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1615,14 +1610,25 @@ impl Frame {
     }
 
     pub fn array_length(&mut self) {
-        //todo: impl
+        let rf = self.stack.pop_ref();
+        match &rf.v {
+            Oop::Array(ary) => {
+                let len = ary.get_length();
+                self.stack.push_int(len as i32);
+            }
+            Oop::Null => {
+                let thread = self.thread.clone();
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn athrow(&mut self) {
         let thread = self.thread.clone();
         let rf = self.stack.pop_ref();
-        let rff = rf.deref();
-        match rff.v {
+        match rf.v {
             Oop::Null => {
                 JavaThread::throw_ext(thread, consts::J_NPE, false);
                 self.handle_exception();
