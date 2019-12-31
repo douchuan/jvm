@@ -1,16 +1,16 @@
-use crate::oop::{InstOopDesc, Method, MethodId, Oop};
+use crate::oop::{InstOopDesc, Method, MethodId, OopDesc};
 use crate::runtime::{self, Frame};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 pub struct JavaThread {
     frames: Vec<Frame>,
-    args: Option<Vec<Oop>>,
+    args: Option<Vec<Arc<OopDesc>>>,
     pc: u32,
     in_safe_point: bool,
 
-    java_thread_obj: Option<Arc<Oop>>,
-    pub exception: Option<Arc<Oop>>,
+    java_thread_obj: Option<Arc<OopDesc>>,
+    pub exception: Option<Arc<OopDesc>>,
 
     method: Method,
 }
@@ -21,7 +21,7 @@ pub struct JavaMainThread {
 }
 
 impl JavaThread {
-    pub fn new(method: &MethodId, args: Option<Vec<Oop>>) -> Self {
+    pub fn new(method: &MethodId, args: Option<Vec<Arc<OopDesc>>>) -> Self {
         Self {
             frames: Vec::new(),
             args,
@@ -51,7 +51,7 @@ impl JavaThread {
         //todo: impl
     }
 
-    pub fn try_handle_exception(mut this: Arc<JavaThread>, ex: Arc<Oop>) -> i32 {
+    pub fn try_handle_exception(mut this: Arc<JavaThread>, ex: Arc<OopDesc>) -> i32 {
         //todo: impl
         unimplemented!()
     }
@@ -74,8 +74,8 @@ impl JavaMainThread {
             Some(
                 args.iter()
                     .map(|it| {
-                        let r = Arc::new(Vec::from(it.as_bytes()));
-                        Oop::Str(r)
+                        let v = Arc::new(Vec::from(it.as_bytes()));
+                        OopDesc::new_str(v)
                     })
                     .collect(),
             )

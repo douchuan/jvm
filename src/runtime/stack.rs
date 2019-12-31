@@ -2,7 +2,7 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{consts, Oop};
+use crate::oop::{consts, OopDesc};
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
@@ -90,7 +90,7 @@ impl Stack {
         self.inner.push(Slot::Utf8(v));
     }
 
-    pub fn push_ref(&mut self, v: Arc<Oop>) {
+    pub fn push_ref(&mut self, v: Arc<OopDesc>) {
         self.inner.push(Slot::Ref(v));
     }
 
@@ -144,7 +144,7 @@ impl Stack {
         }
     }
 
-    pub fn pop_ref(&mut self) -> Arc<Oop> {
+    pub fn pop_ref(&mut self) -> Arc<OopDesc> {
         if let Slot::Ref(v) = self.inner.pop().unwrap() {
             return v;
         } else {

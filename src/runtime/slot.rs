@@ -1,4 +1,4 @@
-use crate::oop::Oop;
+use crate::oop::OopDesc;
 use std::sync::Arc;
 
 pub enum Slot {
@@ -11,5 +11,5 @@ pub enum Slot {
     Const5,
     Primitive(Vec<u8>),
     Utf8(Arc<Vec<u8>>),
-    Ref(Arc<Oop>),
+    Ref(Arc<OopDesc>),
 }

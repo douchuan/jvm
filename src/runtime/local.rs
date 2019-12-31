@@ -1,4 +1,4 @@
-use crate::oop::Oop;
+use crate::oop::OopDesc;
 use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
@@ -34,7 +34,7 @@ impl Local {
         self.set_primitive3(pos, v);
     }
 
-    pub fn set_ref(&mut self, pos: usize, v: Arc<Oop>) {
+    pub fn set_ref(&mut self, pos: usize, v: Arc<OopDesc>) {
         self.locals[pos] = Slot::Ref(v);
     }
 
@@ -72,7 +72,7 @@ impl Local {
         }
     }
 
-    pub fn get_ref(&self, pos: usize) -> Arc<Oop> {
+    pub fn get_ref(&self, pos: usize) -> Arc<OopDesc> {
         if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
             v.clone()
         } else {

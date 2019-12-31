@@ -2,7 +2,7 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{consts as oop_consts, ClassRef, Method, Oop};
+use crate::oop::{consts as oop_consts, ClassRef, Method, Oop, OopDesc};
 use crate::runtime::{JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
@@ -16,7 +16,7 @@ pub struct Frame {
     pc: i32,
     class: ClassRef,
     code: Arc<Vec<U1>>,
-    return_v: Option<Arc<Oop>>,
+    return_v: Option<Arc<OopDesc>>,
 }
 
 //new & helper methods
@@ -93,7 +93,7 @@ impl Frame {
         self.pc = pc;
     }
 
-    fn set_return(&mut self, v: Arc<Oop>) {
+    fn set_return(&mut self, v: Arc<OopDesc>) {
         self.return_v = Some(v);
     }
 }
@@ -320,7 +320,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rf = rf.deref();
+        match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -334,7 +335,8 @@ impl Frame {
                     self.handle_exception();
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    match v.deref() {
+                    let v = v.deref();
+                    match &v.v {
                         Oop::Int(v) => {
                             self.stack.push_int(*v);
                         }
@@ -366,7 +368,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rff = rf.deref();
+        match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -380,7 +383,8 @@ impl Frame {
                     self.handle_exception();
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    match v.deref() {
+                    let v = v.deref();
+                    match &v.v {
                         Oop::Long(v) => {
                             self.stack.push_long(*v);
                         }
@@ -400,7 +404,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rff = rf.deref();
+        match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -414,7 +419,8 @@ impl Frame {
                     self.handle_exception();
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    match v.deref() {
+                    let v = v.deref();
+                    match &v.v {
                         Oop::Float(v) => {
                             self.stack.push_float(*v);
                         }
@@ -434,7 +440,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rff = rf.deref();
+        match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -448,7 +455,8 @@ impl Frame {
                     self.handle_exception();
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    match v.deref() {
+                    let v = v.deref();
+                    match &v.v {
                         Oop::Double(v) => {
                             self.stack.push_double(*v);
                         }
@@ -468,7 +476,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rff = rf.deref();
+        match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -640,8 +649,8 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rf = Arc::get_mut(&mut rf).unwrap();
-        match rf {
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -654,7 +663,8 @@ impl Frame {
                     );
                     self.handle_exception();
                 } else {
-                    ary.set_elm_at(pos as usize, Arc::new(Oop::Int(v)));
+                    let v = OopDesc::new_int(v);
+                    ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
@@ -670,8 +680,8 @@ impl Frame {
         let v = self.stack.pop_long();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rf = Arc::get_mut(&mut rf).unwrap();
-        match rf {
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -684,7 +694,8 @@ impl Frame {
                     );
                     self.handle_exception();
                 } else {
-                    ary.set_elm_at(pos as usize, Arc::new(Oop::Long(v)));
+                    let v = OopDesc::new_long(v);
+                    ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
@@ -700,8 +711,8 @@ impl Frame {
         let v = self.stack.pop_float();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rf = Arc::get_mut(&mut rf).unwrap();
-        match rf {
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -714,7 +725,8 @@ impl Frame {
                     );
                     self.handle_exception();
                 } else {
-                    ary.set_elm_at(pos as usize, Arc::new(Oop::Float(v)));
+                    let v = OopDesc::new_float(v);
+                    ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
@@ -730,8 +742,8 @@ impl Frame {
         let v = self.stack.pop_double();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rf = Arc::get_mut(&mut rf).unwrap();
-        match rf {
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -744,7 +756,8 @@ impl Frame {
                     );
                     self.handle_exception();
                 } else {
-                    ary.set_elm_at(pos as usize, Arc::new(Oop::Double(v)));
+                    let v = OopDesc::new_double(v);
+                    ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
@@ -759,8 +772,8 @@ impl Frame {
         let thread = self.thread.clone();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rf = Arc::get_mut(&mut rf).unwrap();
-        match rf {
+        let rff = Arc::get_mut(&mut rf).unwrap();
+        match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
@@ -1527,25 +1540,25 @@ impl Frame {
 
     pub fn ireturn(&mut self) {
         let v = self.stack.pop_int();
-        let v = Arc::new(Oop::Int(v));
+        let v = OopDesc::new_int(v);
         self.set_return(v);
     }
 
     pub fn lreturn(&mut self) {
         let v = self.stack.pop_long();
-        let v = Arc::new(Oop::Long(v));
+        let v = OopDesc::new_long(v);
         self.set_return(v);
     }
 
     pub fn freturn(&mut self) {
         let v = self.stack.pop_float();
-        let v = Arc::new(Oop::Float(v));
+        let v = OopDesc::new_float(v);
         self.set_return(v);
     }
 
     pub fn dreturn(&mut self) {
         let v = self.stack.pop_double();
-        let v = Arc::new(Oop::Double(v));
+        let v = OopDesc::new_double(v);
         self.set_return(v);
     }
 
@@ -1608,7 +1621,8 @@ impl Frame {
     pub fn athrow(&mut self) {
         let thread = self.thread.clone();
         let rf = self.stack.pop_ref();
-        match rf.deref() {
+        let rff = rf.deref();
+        match rff.v {
             Oop::Null => {
                 JavaThread::throw_ext(thread, consts::J_NPE, false);
                 self.handle_exception();
@@ -1654,7 +1668,8 @@ impl Frame {
 
     pub fn if_null(&mut self) {
         let v = self.stack.pop_ref();
-        match v.deref() {
+        let v = v.deref();
+        match v.v {
             Oop::Null => {
                 let branch = self.read_i2();
                 self.pc += branch;
@@ -1666,7 +1681,8 @@ impl Frame {
 
     pub fn if_non_null(&mut self) {
         let v = self.stack.pop_ref();
-        match v.deref() {
+        let v = v.deref();
+        match v.v {
             Oop::Null => self.pc += 2,
             _ => {
                 let branch = self.read_i2();

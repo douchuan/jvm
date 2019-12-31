@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
 use crate::classfile::{types::*, ClassFile};
 use crate::runtime::ClassLoader;
@@ -62,6 +62,55 @@ pub enum Oop {
     Null,
 }
 
+#[derive(Debug)]
+pub struct OopDesc {
+    pub v: Oop,
+    pub cond: Condvar,
+    pub monitor: Mutex<usize>,
+}
+
+impl OopDesc {
+    pub fn new_int(v: i32) -> Arc<Self> {
+        Self::new(Oop::Int(v))
+    }
+
+    pub fn new_long(v: i64) -> Arc<Self> {
+        Self::new(Oop::Long(v))
+    }
+
+    pub fn new_float(v: f32) -> Arc<Self> {
+        Self::new(Oop::Float(v))
+    }
+
+    pub fn new_double(v: f64) -> Arc<Self> {
+        Self::new(Oop::Double(v))
+    }
+
+    pub fn new_str(v: BytesRef) -> Arc<Self> {
+        Self::new(Oop::Str(v))
+    }
+
+    pub fn new_inst(v: InstOopDesc) -> Arc<Self> {
+        Self::new(Oop::Inst(v))
+    }
+
+    pub fn new_ary(v: ArrayOopDesc) -> Arc<Self> {
+        Self::new(Oop::Array(v))
+    }
+
+    pub fn new_null() -> Arc<Self> {
+        Self::new(Oop::Null)
+    }
+
+    fn new(v: Oop) -> Arc<Self> {
+        Arc::new(Self {
+            v,
+            cond: Condvar::new(),
+            monitor: Mutex::new(0),
+        })
+    }
+}
+
 impl From<&u8> for ValueType {
     fn from(v: &u8) -> Self {
         match v {
@@ -102,7 +151,7 @@ pub struct InstOopDesc {}
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
     class: ClassRef,
-    elements: Vec<Arc<Oop>>,
+    elements: Vec<Arc<OopDesc>>,
 }
 
 impl ArrayOopDesc {
@@ -121,11 +170,11 @@ impl ArrayOopDesc {
         self.elements.len()
     }
 
-    pub fn get_elm_at(&self, index: usize) -> Arc<Oop> {
+    pub fn get_elm_at(&self, index: usize) -> Arc<OopDesc> {
         self.elements[index].clone()
     }
 
-    pub fn set_elm_at(&mut self, index: usize, elm: Arc<Oop>) {
+    pub fn set_elm_at(&mut self, index: usize, elm: Arc<OopDesc>) {
         self.elements[index] = elm;
     }
 }
