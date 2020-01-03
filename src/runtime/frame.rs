@@ -2,12 +2,13 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{consts as oop_consts, ClassRef, Method, Oop, OopDesc};
-use crate::runtime::{JavaThread, Local, Stack};
+use crate::oop::{self, consts as oop_consts, ClassRef, Method, Oop, OopDesc, ValueType};
+use crate::runtime::{self, JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::ops::Deref;
 use std::sync::Arc;
+use std::hint::unreachable_unchecked;
 
 pub struct Frame {
     thread: Arc<JavaThread>,
@@ -95,6 +96,18 @@ impl Frame {
 
     fn set_return(&mut self, v: Arc<OopDesc>) {
         self.return_v = Some(v);
+    }
+
+    fn get_field_value(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
+        let thread = self.thread.clone();
+        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
+        let class = self.class.lock().unwrap();
+        if is_static {
+            class.get_static_field_value(idx as usize, thread)
+        } else {
+            //todo: impl me
+            unimplemented!()
+        }
     }
 }
 
@@ -1567,12 +1580,46 @@ impl Frame {
     }
 
     pub fn get_static(&mut self) {
-        //todo: impl
+        let cp_idx = self.read_i2();
+        let (v, value_type) = self.get_field_value(oop_consts::get_null(), cp_idx);
+        if self.thread.is_exception_occurred() {
+            self.handle_exception();
+        }
+
+        match value_type {
+            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
+            ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
+                match v.v {
+                    Oop::Int(v) => self.stack.push_int(v),
+                    _ => unreachable!(),
+                }
+            }
+            ValueType::FLOAT => {
+                match v.v {
+                    Oop::Float(v) => self.stack.push_float(v),
+                    _ => unreachable!(),
+                }
+            }
+            ValueType::DOUBLE => {
+                match v.v {
+                    Oop::Double(v) => self.stack.push_double(v),
+                    _ => unreachable!(),
+                }
+            }
+            ValueType::LONG => {
+                match v.v {
+                   Oop::Long(v) => self.stack.push_long(v),
+                    _ => unreachable!(),
+                }
+            }
+            _ => unreachable!(),
+        }
     }
 
     pub fn put_static(&mut self) {
-        //todo: impl
+
     }
+
     pub fn get_field(&mut self) {
         //todo: impl
     }
@@ -1598,7 +1645,34 @@ impl Frame {
     }
 
     pub fn new_(&mut self) {
-        //todo: impl
+        let class = {
+            let constant_idx = self.read_i2();
+            let class = self.class.lock().unwrap();
+            let cp = &class.class_file.cp;
+            match runtime::require_class2(constant_idx as u16, cp) {
+                Some(class) => {
+                    {
+                        let mut class = class.lock().unwrap();
+                        if class.typ != oop::ClassType::InstanceClass {
+                            unreachable!()
+                        }
+
+                        class.init_class(self.thread.clone());
+                    }
+
+                    class
+                }
+                None => panic!("Cannot get class info from constant pool"),
+            }
+        };
+
+        if self.thread.is_exception_occurred() {
+            self.handle_exception();
+        } else {
+            let v = oop::InstOopDesc::new(class);
+            let v = oop::OopDesc::new_inst(v);
+            self.stack.push_ref(v);
+        }
     }
 
     pub fn new_array(&mut self) {

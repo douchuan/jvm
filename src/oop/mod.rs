@@ -10,7 +10,7 @@ pub mod consts;
 pub mod field;
 pub mod method;
 
-pub use self::class::ClassObject;
+pub use self::class::{ClassObject, Type as ClassType};
 pub use self::field::{Field, FieldId};
 pub use self::method::{Method, MethodId};
 
@@ -158,12 +158,22 @@ impl ValueType {
 }
 
 #[derive(Debug, Clone)]
-pub struct InstOopDesc {}
+pub struct InstOopDesc {
+    class: ClassRef
+}
 
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
     class: ClassRef,
     elements: Vec<Arc<OopDesc>>,
+}
+
+impl InstOopDesc {
+    pub fn new(class: ClassRef) -> Self {
+        Self {
+            class
+        }
+    }
 }
 
 impl ArrayOopDesc {

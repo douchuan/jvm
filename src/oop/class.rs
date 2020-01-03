@@ -1,11 +1,11 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
-use crate::oop::{ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, OopDesc, ValueType};
-use crate::runtime::{self, ClassLoader};
+use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, OopDesc, ValueType};
+use crate::runtime::{self, ClassLoader, JavaThread, require_class2};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Type {
     InstanceClass,
     ObjectArray,
@@ -53,8 +53,8 @@ pub struct ClassObject {
     all_methods: HashMap<BytesRef, MethodId>,
     v_table: HashMap<BytesRef, MethodId>,
 
-    static_fields: HashMap<BytesRef, FieldId>,
-    inst_fields: HashMap<BytesRef, FieldId>,
+    pub static_fields: HashMap<BytesRef, FieldId>,
+    pub inst_fields: HashMap<BytesRef, FieldId>,
 
     static_filed_values: Vec<Arc<OopDesc>>,
 
@@ -127,12 +127,12 @@ impl ClassObject {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self) {
+    pub fn init_class(&mut self, thread: Arc<JavaThread>) {
         if self.state == State::Linked {
             self.state = State::BeingIni;
 
             if let Some(super_class) = self.super_class.as_ref() {
-                super_class.lock().unwrap().init_class();
+                super_class.lock().unwrap().init_class(thread);
             }
 
             self.init_static_fields();
@@ -184,6 +184,12 @@ impl ClassObject {
     pub fn get_static_method2(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {
         let id = vec![desc, name].join(PATH_DELIMITER);
         self.all_methods.get(&id)
+    }
+
+    pub fn get_static_field_value(&self, idx: usize, thread: Arc<JavaThread>) -> (Arc<OopDesc>, ValueType) {
+        let cp = &self.class_file.cp;
+        let (offset, value_type) = field::get_offset(thread, cp, idx);
+        (self.static_filed_values[offset].clone(), value_type)
     }
 }
 

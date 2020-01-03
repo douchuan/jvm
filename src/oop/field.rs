@@ -1,7 +1,45 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
 use crate::oop::{consts as oop_consts, ClassObject, ClassRef, Oop, OopDesc, ValueType};
+use crate::runtime::{require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::sync::Arc;
+use std::ops::Deref;
+
+pub fn get_offset(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -> (usize, ValueType) {
+    let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp_idx as u16, cp);
+
+    //load Field's Class, then init it
+    let class = require_class2(class_index, cp).unwrap();
+    let id = {
+        let mut class = class.lock().unwrap();
+        class.init_class(thread);
+
+        let (name, typ) = constant_pool::get_name_and_type(name_and_type_index, cp);
+        let name = name.unwrap();
+        let typ = typ.unwrap();
+
+        vec![class.name.deref().as_slice(), typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER)
+    };
+
+    let do_get_offset= move || {
+        let mut cur = class;
+        loop {
+            {
+                let cur_class = cur.lock().unwrap();
+                match cur_class.static_fields.get(&id) {
+                    Some(field_id) => return (field_id.offset, field_id.field.value_type.clone()),
+                    None => (),
+                }
+            }
+
+            //setup super class
+            let super_class = cur.lock().unwrap().super_class.clone();
+            cur = super_class.unwrap().clone();
+        }
+    };
+
+    do_get_offset()
+}
 
 #[derive(Debug, Clone)]
 pub struct FieldId {

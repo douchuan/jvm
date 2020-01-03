@@ -60,6 +60,10 @@ impl JavaThread {
         let this = Arc::get_mut(&mut this).unwrap();
         this.exception = None;
     }
+
+    pub fn is_exception_occurred(&self) -> bool {
+        self.exception.is_some()
+    }
 }
 
 impl JavaMainThread {
