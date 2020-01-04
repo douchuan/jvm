@@ -53,10 +53,10 @@ pub struct ClassObject {
     all_methods: HashMap<BytesRef, MethodId>,
     v_table: HashMap<BytesRef, MethodId>,
 
-    pub static_fields: HashMap<BytesRef, FieldId>,
-    pub inst_fields: HashMap<BytesRef, FieldId>,
+    pub static_fields: HashMap<BytesRef, Arc<FieldId>>,
+    pub inst_fields: HashMap<BytesRef, Arc<FieldId>>,
 
-    static_filed_values: Vec<Arc<OopDesc>>,
+    pub static_filed_values: Vec<Arc<OopDesc>>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
@@ -185,12 +185,6 @@ impl ClassObject {
         let id = vec![desc, name].join(PATH_DELIMITER);
         self.all_methods.get(&id)
     }
-
-    pub fn get_static_field_value(&self, idx: usize, thread: Arc<JavaThread>) -> (Arc<OopDesc>, ValueType) {
-        let cp = &self.class_file.cp;
-        let (offset, value_type) = field::get_offset(thread, cp, idx);
-        (self.static_filed_values[offset].clone(), value_type)
-    }
 }
 
 //open api new
@@ -271,14 +265,14 @@ impl ClassObject {
                     offset: n_static,
                     field,
                 };
-                self.static_fields.insert(id, fid);
+                self.static_fields.insert(id, Arc::new(fid));
                 n_static += 1;
             } else {
                 let fid = FieldId {
                     offset: n_inst,
                     field,
                 };
-                self.inst_fields.insert(id, fid);
+                self.inst_fields.insert(id, Arc::new(fid));
                 n_inst += 1;
             }
         });

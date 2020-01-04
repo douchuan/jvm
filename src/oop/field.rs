@@ -5,7 +5,7 @@ use crate::util::{self, PATH_DELIMITER};
 use std::sync::Arc;
 use std::ops::Deref;
 
-pub fn get_offset(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -> (usize, ValueType) {
+pub fn get_field_id(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -> Arc<FieldId> {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp_idx as u16, cp);
 
     //load Field's Class, then init it
@@ -27,7 +27,7 @@ pub fn get_offset(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -> 
             {
                 let cur_class = cur.lock().unwrap();
                 match cur_class.static_fields.get(&id) {
-                    Some(field_id) => return (field_id.offset, field_id.field.value_type.clone()),
+                    Some(field_id) => return field_id.clone(),
                     None => (),
                 }
             }

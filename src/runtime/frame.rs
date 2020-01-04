@@ -2,7 +2,7 @@ use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, ClassRef, Method, Oop, OopDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, field, ClassRef, Method, Oop, OopDesc, ValueType};
 use crate::runtime::{self, JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
@@ -98,15 +98,57 @@ impl Frame {
         self.return_v = Some(v);
     }
 
-    fn get_field_value(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
+    fn get_field_helper(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
         let thread = self.thread.clone();
-        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
         let class = self.class.lock().unwrap();
+        let cp = &class.class_file.cp;
+        let fid = field::get_field_id(thread, cp, idx as usize);
+        let value_type = fid.field.value_type.clone();
+
+        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
         if is_static {
-            class.get_static_field_value(idx as usize, thread)
+            let v = class.static_filed_values[fid.offset].clone();
+            (v, value_type)
         } else {
             //todo: impl me
             unimplemented!()
+        }
+    }
+
+    fn put_field_helper(&mut self, idx: i32, is_static: bool) {
+        let thread = self.thread.clone();
+        let mut class = self.class.lock().unwrap();
+        let cp = &class.class_file.cp;
+        let fid = field::get_field_id(thread, cp, idx as usize);
+        let value_type = fid.field.value_type.clone();
+
+        if is_static {
+            match value_type {
+                ValueType::ARRAY | ValueType::OBJECT => {
+                    let v = self.stack.pop_ref();
+                    class.static_filed_values[fid.offset] = v;
+                }
+                ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
+                    let v = self.stack.pop_int();
+                    class.static_filed_values[fid.offset] = OopDesc::new_int(v);
+                }
+                ValueType::FLOAT => {
+                    let v = self.stack.pop_float();
+                    class.static_filed_values[fid.offset] = OopDesc::new_float(v);
+                }
+                ValueType::DOUBLE => {
+                    let v = self.stack.pop_double();
+                    class.static_filed_values[fid.offset] = OopDesc::new_double(v);
+                }
+                ValueType::LONG => {
+                    let v = self.stack.pop_long();
+                    class.static_filed_values[fid.offset] = OopDesc::new_long(v);
+                }
+
+                _ => unreachable!(),
+            }
+        } else {
+            //todo: impl
         }
     }
 }
@@ -1581,7 +1623,7 @@ impl Frame {
 
     pub fn get_static(&mut self) {
         let cp_idx = self.read_i2();
-        let (v, value_type) = self.get_field_value(oop_consts::get_null(), cp_idx);
+        let (v, value_type) = self.get_field_helper(oop_consts::get_null(), cp_idx);
         if self.thread.is_exception_occurred() {
             self.handle_exception();
         }
@@ -1617,7 +1659,11 @@ impl Frame {
     }
 
     pub fn put_static(&mut self) {
-
+        let cp_idx = self.read_i2();
+        self.put_field_helper(cp_idx, true);
+        if self.thread.is_exception_occurred() {
+            self.handle_exception();
+        }
     }
 
     pub fn get_field(&mut self) {
