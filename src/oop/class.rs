@@ -53,8 +53,8 @@ pub struct ClassObject {
     all_methods: HashMap<BytesRef, MethodId>,
     v_table: HashMap<BytesRef, MethodId>,
 
-    static_fields: HashMap<BytesRef, Arc<FieldId>>,
-    inst_fields: HashMap<BytesRef, Arc<FieldId>>,
+    static_fields: HashMap<BytesRef, FieldIdRef>,
+    inst_fields: HashMap<BytesRef, FieldIdRef>,
 
     static_filed_values: Vec<Arc<OopDesc>>,
 
@@ -177,16 +177,12 @@ impl ClassObject {
         }
     }
 
-    pub fn get_static_method(&self, desc: &str, name: &str) -> Option<&MethodId> {
-        self.get_static_method2(desc.as_bytes(), name.as_bytes())
-    }
-
-    pub fn get_static_method2(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {
+    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {
         let id = vec![desc, name].join(PATH_DELIMITER);
         self.all_methods.get(&id)
     }
 
-    pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> Arc<FieldId> {
+    pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
         if is_static {
             match self.static_fields.get(&id) {
                 Some(fid) => return fid.clone(),

@@ -71,7 +71,7 @@ impl JavaMainThread {
         let main = runtime::require_class3(None, self.main_class.as_bytes()).unwrap();
         let main = main.lock().unwrap();
         let main_method = main
-            .get_static_method("([Ljava/lang/String;)V", "main")
+            .get_static_method(b"([Ljava/lang/String;)V", b"main")
             .unwrap();
 
         let mut args = self.args.as_ref().and_then(|args| {
