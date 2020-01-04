@@ -5,8 +5,10 @@ use crate::util::{self, PATH_DELIMITER};
 use std::sync::Arc;
 use std::ops::Deref;
 
-pub fn get_field_id(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -> Arc<FieldId> {
-    let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp_idx as u16, cp);
+pub type FieldIdRef = Arc<FieldId>;
+
+pub fn get_field_ref(thread: Arc<JavaThread>, cp: &ConstantPool, idx: usize, is_static: bool) -> (ClassRef, FieldIdRef) {
+    let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
 
     //load Field's Class, then init it
     let class = require_class2(class_index, cp).unwrap();
@@ -14,31 +16,19 @@ pub fn get_field_id(thread: Arc<JavaThread>, cp: &ConstantPool, cp_idx: usize) -
         let mut class = class.lock().unwrap();
         class.init_class(thread);
 
-        let (name, typ) = constant_pool::get_name_and_type(name_and_type_index, cp);
+        let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        vec![class.name.deref().as_slice(), typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER)
+        Arc::new(vec![class.name.deref().as_slice(), typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER))
     };
 
-    let do_get_offset= move || {
-        let mut cur = class;
-        loop {
-            {
-                let cur_class = cur.lock().unwrap();
-                match cur_class.static_fields.get(&id) {
-                    Some(field_id) => return field_id.clone(),
-                    None => (),
-                }
-            }
-
-            //setup super class
-            let super_class = cur.lock().unwrap().super_class.clone();
-            cur = super_class.unwrap().clone();
-        }
+    let fid = {
+        let class = class.lock().unwrap();
+        class.get_field_id(id, is_static)
     };
 
-    do_get_offset()
+    (class, fid)
 }
 
 #[derive(Debug, Clone)]
@@ -62,8 +52,8 @@ pub struct Field {
 
 impl Field {
     pub fn new(cp: &ConstantPool, fi: &FieldInfo, class: &ClassObject) -> Self {
-        let name = constant_pool::get_utf8(fi.name_index, cp).unwrap();
-        let desc = constant_pool::get_utf8(fi.desc_index, cp).unwrap();
+        let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
+        let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
         let id = vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         let id = Arc::new(Vec::from(id));
@@ -102,7 +92,7 @@ impl Field {
                         attr_constant_value = Some(v);
                     }
                     Some(constant_pool::ConstantType::String { string_index }) => {
-                        if let Some(v) = constant_pool::get_utf8(*string_index, cp) {
+                        if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
                             let v = OopDesc::new_str(v);
                             attr_constant_value = Some(v);
                         }

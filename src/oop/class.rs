@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
-use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, Method, MethodId, OopDesc, ValueType};
+use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method, MethodId, OopDesc, ValueType};
 use crate::runtime::{self, ClassLoader, JavaThread, require_class2};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
@@ -53,10 +53,10 @@ pub struct ClassObject {
     all_methods: HashMap<BytesRef, MethodId>,
     v_table: HashMap<BytesRef, MethodId>,
 
-    pub static_fields: HashMap<BytesRef, Arc<FieldId>>,
-    pub inst_fields: HashMap<BytesRef, Arc<FieldId>>,
+    static_fields: HashMap<BytesRef, Arc<FieldId>>,
+    inst_fields: HashMap<BytesRef, Arc<FieldId>>,
 
-    pub static_filed_values: Vec<Arc<OopDesc>>,
+    static_filed_values: Vec<Arc<OopDesc>>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
@@ -185,13 +185,50 @@ impl ClassObject {
         let id = vec![desc, name].join(PATH_DELIMITER);
         self.all_methods.get(&id)
     }
+
+    pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> Arc<FieldId> {
+        if is_static {
+            match self.static_fields.get(&id) {
+                Some(fid) => return fid.clone(),
+                None => (),
+            }
+        } else {
+            match self.inst_fields.get(&id) {
+                Some(fid) => return fid.clone(),
+                None => (),
+            }
+        }
+
+        let super_class = self.super_class.clone();
+        super_class.unwrap().lock().unwrap().get_field_id(id, is_static)
+    }
+
+    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Arc<OopDesc>) {
+        let id = field_id.field.get_id();
+        if self.static_fields.contains_key(&id) {
+            self.static_filed_values[field_id.offset] = v;
+        } else {
+            let super_class = self.super_class.clone();
+            super_class.unwrap().lock().unwrap().put_static_field_value(field_id, v);
+        }
+    }
+
+    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> Arc<OopDesc> {
+        let id = field_id.field.get_id();
+        if self.static_fields.contains_key(&id) {
+            self.static_filed_values[field_id.offset].clone()
+        } else {
+            let super_class = self.super_class.clone();
+            super_class.unwrap().lock().unwrap().get_static_field_value(field_id)
+        }
+    }
 }
 
 //open api new
 impl ClassObject {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = &class_file.cp;
-        let name = constant_pool::get_class_name(class_file.this_class, cp).unwrap();
+        let name = constant_pool::get_class_name(cp, class_file.this_class as usize).unwrap();
 
         Self {
             name,
@@ -242,7 +279,7 @@ impl ClassObject {
             }
             self.super_class = None;
         } else {
-            let name = constant_pool::get_class_name(class_file.super_class, cp).unwrap();
+            let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
             let super_class = runtime::require_class(self.class_loader, name).unwrap();
             util::sync_call_ctx(&super_class, |c| {
                 assert!(!c.is_final(), "should not final");
@@ -296,7 +333,7 @@ impl ClassObject {
                     self.interfaces.insert(name, class);
                 }
                 None => {
-                    let name = constant_pool::get_class_name(*it, cp);
+                    let name = constant_pool::get_class_name(cp, *it as usize);
                     error!("link interface failed {:?}", name);
                 }
             });
@@ -333,7 +370,7 @@ impl ClassObject {
                     length,
                     signature_index,
                 } => {
-                    if let Some(s) = constant_pool::get_utf8(*signature_index, cp) {
+                    if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
                         self.signature = Some(s);
                     }
                 }
@@ -341,7 +378,7 @@ impl ClassObject {
                     length,
                     source_file_index,
                 } => {
-                    if let Some(s) = constant_pool::get_utf8(*source_file_index, cp) {
+                    if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {
                         self.source_file = Some(s);
                     }
                 }

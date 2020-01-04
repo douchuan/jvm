@@ -25,8 +25,8 @@ pub struct Method {
 
 impl Method {
     pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: &ClassObject) -> Self {
-        let name = constant_pool::get_utf8(mi.name_index, cp).unwrap();
-        let desc = constant_pool::get_utf8(mi.desc_index, cp).unwrap();
+        let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
+        let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         let id = Arc::new(Vec::from(id));
         let acc_flags = mi.acc_flags;

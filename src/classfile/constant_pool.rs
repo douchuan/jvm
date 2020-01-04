@@ -60,35 +60,35 @@ pub enum ConstantType {
     Unknown,
 }
 
-pub fn get_class_name(class_index: u16, cp: &ConstantPool) -> Option<BytesRef> {
-    match cp.get(class_index as usize) {
-        Some(ConstantType::Class { name_index }) => get_utf8(*name_index, cp),
+pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
+    match cp.get(idx) {
+        Some(ConstantType::Class { name_index }) => get_utf8(cp, *name_index as usize),
         _ => None,
     }
 }
 
-pub fn get_field_ref(index: u16, cp: &ConstantPool) -> (u16, u16) {
-    match cp.get(index as usize) {
+pub fn get_field_ref(cp: &ConstantPool, idx: usize) -> (u16, u16) {
+    match cp.get(idx) {
         Some(ConstantType::FieldRef {class_index, name_and_type_index}) => (*class_index, *name_and_type_index),
         _ => unreachable!(),
     }
 }
 
 pub fn get_name_and_type(
-    name_and_type_index: u16,
     cp: &ConstantPool,
+    idx: usize
 ) -> (Option<BytesRef>, Option<BytesRef>) {
-    match cp.get(name_and_type_index as usize) {
+    match cp.get(idx) {
         Some(ConstantType::NameAndType {
             name_index,
             desc_index,
-        }) => (get_utf8(*name_index, cp), get_utf8(*desc_index, cp)),
+        }) => (get_utf8( cp, *name_index as usize), get_utf8(cp, *desc_index as usize)),
         _ => (None, None),
     }
 }
 
-pub fn get_utf8(name_index: u16, cp: &ConstantPool) -> Option<BytesRef> {
-    match cp.get(name_index as usize) {
+pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
+    match cp.get(idx) {
         Some(ConstantType::Utf8 { length: _, bytes }) => Some(bytes.clone()),
         _ => None,
     }
@@ -139,7 +139,7 @@ impl Checker for ConstantType {
                     _ => return Err(checker::Err::InvalidCpMethodRefClsIdx),
                 }
 
-                match get_name_and_type(*name_and_type_index, cp) {
+                match get_name_and_type(cp, *name_and_type_index as usize) {
                     (Some(name), Some(desc)) => {
                         if name.starts_with(b"<") {
                             if name.as_slice() == METHOD_NAME_INIT {
@@ -249,7 +249,7 @@ impl Checker for ConstantType {
                         Some(ConstantType::MethodRef {
                             class_index: _,
                             name_and_type_index,
-                        }) => match get_name_and_type(*name_and_type_index, cp) {
+                        }) => match get_name_and_type(cp, *name_and_type_index as usize) {
                             (Some(name), Some(desc)) => {
                                 if name.as_slice() == METHOD_NAME_INIT
                                     || name.as_slice() == METHOD_NAME_CLINIT
@@ -264,7 +264,7 @@ impl Checker for ConstantType {
                         Some(ConstantType::InterfaceMethodRef {
                             class_index: _,
                             name_and_type_index,
-                        }) => match get_name_and_type(*name_and_type_index, cp) {
+                        }) => match get_name_and_type(cp, *name_and_type_index as usize) {
                             (Some(name), Some(desc)) => {
                                 if name.as_slice() == METHOD_NAME_INIT
                                     || name.as_slice() == METHOD_NAME_CLINIT
@@ -282,7 +282,7 @@ impl Checker for ConstantType {
                         Some(ConstantType::MethodRef {
                             class_index: _,
                             name_and_type_index,
-                        }) => match get_name_and_type(*name_and_type_index, cp) {
+                        }) => match get_name_and_type(cp, *name_and_type_index as usize) {
                             (Some(name), Some(desc)) if name.as_slice() == METHOD_NAME_INIT => {
                                 Ok(())
                             }

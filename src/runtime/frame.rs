@@ -99,15 +99,17 @@ impl Frame {
     }
 
     fn get_field_helper(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
+        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
+
         let thread = self.thread.clone();
         let class = self.class.lock().unwrap();
         let cp = &class.class_file.cp;
-        let fid = field::get_field_id(thread, cp, idx as usize);
-        let value_type = fid.field.value_type.clone();
+        let (field_class, field_id) = field::get_field_ref(thread, cp, idx as usize, is_static);
+        let value_type = field_id.field.value_type.clone();
 
-        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
         if is_static {
-            let v = class.static_filed_values[fid.offset].clone();
+            let class = field_class.lock().unwrap();
+            let v = class.get_static_field_value(field_id);
             (v, value_type)
         } else {
             //todo: impl me
@@ -117,38 +119,50 @@ impl Frame {
 
     fn put_field_helper(&mut self, idx: i32, is_static: bool) {
         let thread = self.thread.clone();
-        let mut class = self.class.lock().unwrap();
-        let cp = &class.class_file.cp;
-        let fid = field::get_field_id(thread, cp, idx as usize);
-        let value_type = fid.field.value_type.clone();
+
+        let (field_class, field_id) = {
+            let mut class = self.class.lock().unwrap();
+            let cp = &class.class_file.cp;
+            field::get_field_ref(thread, cp, idx as usize, is_static)
+        };
+
+        let value_type = field_id.field.value_type.clone();
+
+        let v = match value_type {
+            ValueType::ARRAY | ValueType::OBJECT => {
+                self.stack.pop_ref()
+            }
+            ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
+                let v = self.stack.pop_int();
+                OopDesc::new_int(v)
+            }
+            ValueType::FLOAT => {
+                let v = self.stack.pop_float();
+                OopDesc::new_float(v)
+            }
+            ValueType::DOUBLE => {
+                let v = self.stack.pop_double();
+                OopDesc::new_double(v)
+            }
+            ValueType::LONG => {
+                let v = self.stack.pop_long();
+                OopDesc::new_long(v)
+            }
+            _ => unreachable!(),
+        };
 
         if is_static {
-            match value_type {
-                ValueType::ARRAY | ValueType::OBJECT => {
-                    let v = self.stack.pop_ref();
-                    class.static_filed_values[fid.offset] = v;
-                }
-                ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
-                    let v = self.stack.pop_int();
-                    class.static_filed_values[fid.offset] = OopDesc::new_int(v);
-                }
-                ValueType::FLOAT => {
-                    let v = self.stack.pop_float();
-                    class.static_filed_values[fid.offset] = OopDesc::new_float(v);
-                }
-                ValueType::DOUBLE => {
-                    let v = self.stack.pop_double();
-                    class.static_filed_values[fid.offset] = OopDesc::new_double(v);
-                }
-                ValueType::LONG => {
-                    let v = self.stack.pop_long();
-                    class.static_filed_values[fid.offset] = OopDesc::new_long(v);
-                }
-
-                _ => unreachable!(),
-            }
+            let mut class = field_class.lock().unwrap();
+            class.put_static_field_value(field_id, v);
         } else {
-            //todo: impl
+            let receiver = self.stack.pop_ref();
+            if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
+                let thread = self.thread.clone();
+                JavaThread::throw_ext(thread, consts::J_NPE, false);
+                self.handle_exception();
+            } else {
+                //todo: impl, receiver, fid, v
+            }
         }
     }
 }
@@ -1667,11 +1681,23 @@ impl Frame {
     }
 
     pub fn get_field(&mut self) {
-        //todo: impl
+        let cp_idx = self.read_i2();
+        let rf = self.stack.pop_ref();
+        if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
+            let thread = self.thread.clone();
+            JavaThread::throw_ext(thread, consts::J_NPE, false);
+            self.handle_exception();
+        } else {
+            self.get_field_helper(rf, cp_idx);
+            if self.thread.is_exception_occurred() {
+                self.handle_exception();
+            }
+        }
     }
 
     pub fn put_field(&mut self) {
-        //todo: impl
+        let cp_idx = self.read_i2();
+        self.put_field_helper(cp_idx, false);
     }
 
     pub fn invoke_virtual(&mut self) {

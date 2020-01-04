@@ -16,7 +16,7 @@ pub fn require_class(class_loader: Option<ClassLoader>, name: BytesRef) -> Optio
 }
 
 pub fn require_class2(index: U2, cp: &ConstantPool) -> Option<ClassRef> {
-    let class = constant_pool::get_class_name(index, cp)?;
+    let class = constant_pool::get_class_name(cp, index as usize)?;
     require_class3(None, class.as_slice())
 }
 

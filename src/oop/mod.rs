@@ -11,7 +11,7 @@ pub mod field;
 pub mod method;
 
 pub use self::class::{ClassObject, Type as ClassType};
-pub use self::field::{Field, FieldId};
+pub use self::field::{Field, FieldId, FieldIdRef};
 pub use self::method::{Method, MethodId};
 
 macro_rules! def_ref {
