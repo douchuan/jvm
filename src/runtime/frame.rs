@@ -6,9 +6,9 @@ use crate::oop::{self, consts as oop_consts, field, ClassRef, Method, Oop, OopDe
 use crate::runtime::{self, JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
+use std::hint::unreachable_unchecked;
 use std::ops::Deref;
 use std::sync::Arc;
-use std::hint::unreachable_unchecked;
 
 pub struct Frame {
     thread: Arc<JavaThread>,
@@ -131,10 +131,12 @@ impl Frame {
         let value_type = field_id.field.value_type.clone();
 
         let v = match value_type {
-            ValueType::ARRAY | ValueType::OBJECT => {
-                self.stack.pop_ref()
-            }
-            ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
+            ValueType::ARRAY | ValueType::OBJECT => self.stack.pop_ref(),
+            ValueType::INT
+            | ValueType::SHORT
+            | ValueType::CHAR
+            | ValueType::BOOLEAN
+            | ValueType::BYTE => {
                 let v = self.stack.pop_int();
                 OopDesc::new_int(v)
             }
@@ -1646,30 +1648,26 @@ impl Frame {
 
         match value_type {
             ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
-            ValueType::INT | ValueType::SHORT | ValueType::CHAR | ValueType::BOOLEAN | ValueType::BYTE => {
-                match v.v {
-                    Oop::Int(v) => self.stack.push_int(v),
-                    _ => unreachable!(),
-                }
-            }
-            ValueType::FLOAT => {
-                match v.v {
-                    Oop::Float(v) => self.stack.push_float(v),
-                    _ => unreachable!(),
-                }
-            }
-            ValueType::DOUBLE => {
-                match v.v {
-                    Oop::Double(v) => self.stack.push_double(v),
-                    _ => unreachable!(),
-                }
-            }
-            ValueType::LONG => {
-                match v.v {
-                   Oop::Long(v) => self.stack.push_long(v),
-                    _ => unreachable!(),
-                }
-            }
+            ValueType::INT
+            | ValueType::SHORT
+            | ValueType::CHAR
+            | ValueType::BOOLEAN
+            | ValueType::BYTE => match v.v {
+                Oop::Int(v) => self.stack.push_int(v),
+                _ => unreachable!(),
+            },
+            ValueType::FLOAT => match v.v {
+                Oop::Float(v) => self.stack.push_float(v),
+                _ => unreachable!(),
+            },
+            ValueType::DOUBLE => match v.v {
+                Oop::Double(v) => self.stack.push_double(v),
+                _ => unreachable!(),
+            },
+            ValueType::LONG => match v.v {
+                Oop::Long(v) => self.stack.push_long(v),
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         }
     }

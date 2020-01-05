@@ -2,12 +2,17 @@ use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types:
 use crate::oop::{consts as oop_consts, ClassObject, ClassRef, Oop, OopDesc, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
-use std::sync::Arc;
 use std::ops::Deref;
+use std::sync::Arc;
 
 pub type FieldIdRef = Arc<FieldId>;
 
-pub fn get_field_ref(thread: Arc<JavaThread>, cp: &ConstantPool, idx: usize, is_static: bool) -> (ClassRef, FieldIdRef) {
+pub fn get_field_ref(
+    thread: Arc<JavaThread>,
+    cp: &ConstantPool,
+    idx: usize,
+    is_static: bool,
+) -> (ClassRef, FieldIdRef) {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
 
     //load Field's Class, then init it
@@ -20,7 +25,14 @@ pub fn get_field_ref(thread: Arc<JavaThread>, cp: &ConstantPool, idx: usize, is_
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        Arc::new(vec![class.name.deref().as_slice(), typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER))
+        Arc::new(
+            vec![
+                class.name.deref().as_slice(),
+                typ.deref().as_slice(),
+                name.deref().as_slice(),
+            ]
+            .join(PATH_DELIMITER),
+        )
     };
 
     let fid = {

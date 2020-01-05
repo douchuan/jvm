@@ -1,10 +1,13 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
-use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method, MethodId, Oop, OopDesc, ValueType};
-use crate::runtime::{self, ClassLoader, JavaThread, require_class2};
+use crate::oop::{
+    consts as oop_consts, field, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method,
+    MethodId, Oop, OopDesc, ValueType,
+};
+use crate::runtime::{self, require_class2, ClassLoader, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::ops::Deref;
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Type {
@@ -196,21 +199,25 @@ impl ClassObject {
         }
 
         let super_class = self.super_class.clone();
-        super_class.unwrap().lock().unwrap().get_field_id(id, is_static)
+        super_class
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_field_id(id, is_static)
     }
 
     pub fn put_field_value(&self, mut receiver: Arc<OopDesc>, fid: FieldIdRef, v: Arc<OopDesc>) {
         let rff = Arc::get_mut(&mut receiver).unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset] = v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
     pub fn get_field_value(&self, receiver: Arc<OopDesc>, fid: FieldIdRef) -> Arc<OopDesc> {
         match &receiver.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -220,7 +227,11 @@ impl ClassObject {
             self.static_filed_values[field_id.offset] = v;
         } else {
             let super_class = self.super_class.clone();
-            super_class.unwrap().lock().unwrap().put_static_field_value(field_id, v);
+            super_class
+                .unwrap()
+                .lock()
+                .unwrap()
+                .put_static_field_value(field_id, v);
         }
     }
 
@@ -230,7 +241,11 @@ impl ClassObject {
             self.static_filed_values[field_id.offset].clone()
         } else {
             let super_class = self.super_class.clone();
-            super_class.unwrap().lock().unwrap().get_static_field_value(field_id)
+            super_class
+                .unwrap()
+                .lock()
+                .unwrap()
+                .get_static_field_value(field_id)
         }
     }
 }

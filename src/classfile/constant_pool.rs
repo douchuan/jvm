@@ -69,20 +69,23 @@ pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
 
 pub fn get_field_ref(cp: &ConstantPool, idx: usize) -> (u16, u16) {
     match cp.get(idx) {
-        Some(ConstantType::FieldRef {class_index, name_and_type_index}) => (*class_index, *name_and_type_index),
+        Some(ConstantType::FieldRef {
+            class_index,
+            name_and_type_index,
+        }) => (*class_index, *name_and_type_index),
         _ => unreachable!(),
     }
 }
 
-pub fn get_name_and_type(
-    cp: &ConstantPool,
-    idx: usize
-) -> (Option<BytesRef>, Option<BytesRef>) {
+pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Option<BytesRef>) {
     match cp.get(idx) {
         Some(ConstantType::NameAndType {
             name_index,
             desc_index,
-        }) => (get_utf8( cp, *name_index as usize), get_utf8(cp, *desc_index as usize)),
+        }) => (
+            get_utf8(cp, *name_index as usize),
+            get_utf8(cp, *desc_index as usize),
+        ),
         _ => (None, None),
     }
 }
