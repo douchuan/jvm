@@ -1,9 +1,10 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
-use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method, MethodId, OopDesc, ValueType};
+use crate::oop::{field, consts as oop_consts, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method, MethodId, Oop, OopDesc, ValueType};
 use crate::runtime::{self, ClassLoader, JavaThread, require_class2};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::ops::Deref;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Type {
@@ -47,8 +48,7 @@ pub struct ClassObject {
     //valid when dimension > 1
     down_type: Option<ClassRef>,
 
-    n_static_fields: usize,
-    n_inst_fields: usize,
+    pub n_inst_fields: usize,
 
     all_methods: HashMap<BytesRef, MethodId>,
     v_table: HashMap<BytesRef, MethodId>,
@@ -199,6 +199,21 @@ impl ClassObject {
         super_class.unwrap().lock().unwrap().get_field_id(id, is_static)
     }
 
+    pub fn put_field_value(&self, mut receiver: Arc<OopDesc>, fid: FieldIdRef, v: Arc<OopDesc>) {
+        let rff = Arc::get_mut(&mut receiver).unwrap();
+        match &mut rff.v {
+            Oop::Inst(inst) => inst.filed_values[fid.offset] = v,
+            _ => unreachable!()
+        }
+    }
+
+    pub fn get_field_value(&self, receiver: Arc<OopDesc>, fid: FieldIdRef) -> Arc<OopDesc> {
+        match &receiver.v {
+            Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
+            _ => unreachable!()
+        }
+    }
+
     pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Arc<OopDesc>) {
         let id = field_id.field.get_id();
         if self.static_fields.contains_key(&id) {
@@ -237,7 +252,6 @@ impl ClassObject {
             signature: None,
             elm_type: None,
             down_type: None,
-            n_static_fields: 0,
             n_inst_fields: 0,
             all_methods: HashMap::new(),
             v_table: HashMap::new(),
@@ -310,7 +324,6 @@ impl ClassObject {
             }
         });
 
-        self.n_static_fields = n_static;
         self.n_inst_fields = n_inst;
 
         self.static_filed_values.reserve(n_static);

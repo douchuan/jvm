@@ -100,21 +100,23 @@ impl Frame {
 
     fn get_field_helper(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
         let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
-
         let thread = self.thread.clone();
-        let class = self.class.lock().unwrap();
-        let cp = &class.class_file.cp;
-        let (field_class, field_id) = field::get_field_ref(thread, cp, idx as usize, is_static);
-        let value_type = field_id.field.value_type.clone();
 
-        if is_static {
-            let class = field_class.lock().unwrap();
-            let v = class.get_static_field_value(field_id);
-            (v, value_type)
+        let (field_class, field_id) = {
+            let mut class = self.class.lock().unwrap();
+            let cp = &class.class_file.cp;
+            field::get_field_ref(thread, cp, idx as usize, is_static)
+        };
+
+        let value_type = field_id.field.value_type.clone();
+        let class = field_class.lock().unwrap();
+        let v = if is_static {
+            class.get_static_field_value(field_id)
         } else {
-            //todo: impl me
-            unimplemented!()
-        }
+            class.get_field_value(receiver, field_id)
+        };
+
+        (v, value_type)
     }
 
     fn put_field_helper(&mut self, idx: i32, is_static: bool) {
@@ -151,8 +153,8 @@ impl Frame {
             _ => unreachable!(),
         };
 
+        let mut class = field_class.lock().unwrap();
         if is_static {
-            let mut class = field_class.lock().unwrap();
             class.put_static_field_value(field_id, v);
         } else {
             let receiver = self.stack.pop_ref();
@@ -161,7 +163,7 @@ impl Frame {
                 JavaThread::throw_ext(thread, consts::J_NPE, false);
                 self.handle_exception();
             } else {
-                //todo: impl, receiver, fid, v
+                class.put_field_value(receiver, field_id, v);
             }
         }
     }

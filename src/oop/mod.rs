@@ -159,7 +159,8 @@ impl ValueType {
 
 #[derive(Debug, Clone)]
 pub struct InstOopDesc {
-    class: ClassRef
+    class: ClassRef,
+    filed_values: Vec<Arc<OopDesc>>
 }
 
 #[derive(Debug, Clone)]
@@ -170,10 +171,16 @@ pub struct ArrayOopDesc {
 
 impl InstOopDesc {
     pub fn new(class: ClassRef) -> Self {
+        let n = {
+          class.lock().unwrap().n_inst_fields
+        };
+
         Self {
-            class
+            class,
+            filed_values: Vec::with_capacity(n),
         }
     }
+
 }
 
 impl ArrayOopDesc {
