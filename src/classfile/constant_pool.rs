@@ -1,5 +1,8 @@
 use crate::classfile::checker::{self, Checker};
-use crate::classfile::consts::{METHOD_NAME_CLINIT, METHOD_NAME_INIT};
+use crate::classfile::consts::{
+    CONSTANT_INTERFACE_METHOD_REF_TAG, CONSTANT_METHOD_REF_TAG, METHOD_NAME_CLINIT,
+    METHOD_NAME_INIT,
+};
 use crate::classfile::signature::{MethodSignature, Type as SigType};
 use crate::classfile::types::{BytesRef, CheckResult, ConstantPool};
 use std::fmt;
@@ -73,6 +76,24 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize) -> (u16, u16) {
             class_index,
             name_and_type_index,
         }) => (*class_index, *name_and_type_index),
+        _ => unreachable!(),
+    }
+}
+
+pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
+    match cp.get(idx) {
+        Some(ConstantType::MethodRef {
+            class_index,
+            name_and_type_index,
+        }) => (CONSTANT_METHOD_REF_TAG, *class_index, *name_and_type_index),
+        Some(ConstantType::InterfaceMethodRef {
+            class_index,
+            name_and_type_index,
+        }) => (
+            CONSTANT_INTERFACE_METHOD_REF_TAG,
+            *class_index,
+            *name_and_type_index,
+        ),
         _ => unreachable!(),
     }
 }

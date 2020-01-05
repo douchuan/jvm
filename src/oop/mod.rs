@@ -12,7 +12,7 @@ pub mod method;
 
 pub use self::class::{ClassObject, Type as ClassType};
 pub use self::field::{Field, FieldId, FieldIdRef};
-pub use self::method::{Method, MethodId};
+pub use self::method::{Method, MethodId, MethodIdRef};
 
 macro_rules! def_ref {
     ($name:ident, $t:ty) => {

@@ -3,9 +3,46 @@ use crate::classfile::{
     MethodInfo,
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
-use crate::runtime;
+use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
+use std::ops::Deref;
 use std::sync::Arc;
+
+pub type MethodIdRef = Arc<MethodId>;
+
+pub fn get_method_ref(
+    thread: Arc<JavaThread>,
+    cp: &ConstantPool,
+    idx: usize,
+) -> (ClassRef, MethodIdRef) {
+    let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
+
+    //load Method's Class, then init it
+    let class = require_class2(class_index, cp).unwrap();
+    let id = {
+        let mut class = class.lock().unwrap();
+        class.init_class(thread);
+
+        let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
+        let name = name.unwrap();
+        let typ = typ.unwrap();
+
+        Arc::new(vec![typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER))
+    };
+
+    let mid = {
+        let class = class.lock().unwrap();
+        if tag == consts::CONSTANT_METHOD_REF_TAG {
+            // invokespecial, invokestatic and invokevirtual
+            class.get_this_class_method(id)
+        } else {
+            // invokeinterface
+            class.get_virtual_method(id)
+        }
+    };
+
+    (class, mid)
+}
 
 #[derive(Debug, Clone)]
 pub struct MethodId {

@@ -41,3 +41,6 @@ pub const J_IOEXCEPTION: &[u8] = b"java/io/IOException";
 pub const J_ARRAY_INDEX_OUT_OF_BOUNDS: &[u8] = b"java/lang/ArrayIndexOutOfBoundsException";
 pub const J_CLASS_NOT_FOUND: &[u8] = b"java/lang/ClassNotFoundException";
 pub const J_ARITHMETIC_EX: &[u8] = b"java/lang/ArithmeticException";
+
+pub const CONSTANT_METHOD_REF_TAG: u8 = 10;
+pub const CONSTANT_INTERFACE_METHOD_REF_TAG: u8 = 11;

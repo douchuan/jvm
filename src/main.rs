@@ -65,13 +65,13 @@ fn main() {
         .arg(Arg::with_name("ARGS").multiple(true).help("[args...]"))
         .get_matches();
 
-    let main_class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
+    let class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
     let args = matches.values_of_lossy("ARGS");
-    println!("main class: {}, args: {:?}", main_class, args);
+    println!("main class: {}, args: {:?}", class, args);
 
     init_vm();
 
-    let thread = JavaMainThread { main_class, args };
+    let thread = JavaMainThread { class, args };
     thread.run();
 
     /*

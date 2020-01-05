@@ -1,7 +1,7 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
     consts as oop_consts, field, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method,
-    MethodId, Oop, OopDesc, ValueType,
+    MethodId, MethodIdRef, Oop, OopDesc, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
@@ -53,8 +53,8 @@ pub struct ClassObject {
 
     pub n_inst_fields: usize,
 
-    all_methods: HashMap<BytesRef, MethodId>,
-    v_table: HashMap<BytesRef, MethodId>,
+    all_methods: HashMap<BytesRef, MethodIdRef>,
+    v_table: HashMap<BytesRef, MethodIdRef>,
 
     static_fields: HashMap<BytesRef, FieldIdRef>,
     inst_fields: HashMap<BytesRef, FieldIdRef>,
@@ -167,22 +167,40 @@ impl ClassObject {
     }
 
     pub fn is_prime_array(&self) -> bool {
-        match self.typ {
-            Type::PrimeArray => true,
-            _ => false,
-        }
+        self.typ == Type::PrimeArray
     }
 
     pub fn is_object_array(&self) -> bool {
-        match self.typ {
-            Type::ObjectArray => true,
-            _ => false,
-        }
+        self.typ == Type::ObjectArray
     }
 
-    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Option<&MethodId> {
-        let id = vec![desc, name].join(PATH_DELIMITER);
-        self.all_methods.get(&id)
+    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> MethodIdRef {
+        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        self.get_this_class_method(id)
+    }
+
+    pub fn get_this_class_method(&self, id: BytesRef) -> MethodIdRef {
+        match self.all_methods.get(&id) {
+            Some(m) => return m.clone(),
+            None => (),
+        }
+
+        let super_class = self.super_class.clone();
+        super_class
+            .unwrap()
+            .lock()
+            .unwrap()
+            .get_this_class_method(id)
+    }
+
+    pub fn get_virtual_method(&self, id: BytesRef) -> MethodIdRef {
+        match self.v_table.get(&id) {
+            Some(m) => return m.clone(),
+            None => (),
+        }
+
+        let super_class = self.super_class.clone();
+        super_class.unwrap().lock().unwrap().get_virtual_method(id)
     }
 
     pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
@@ -370,7 +388,7 @@ impl ClassObject {
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
             let method = Method::new(cp, it, self);
             let id = method.get_id();
-            let method_id = MethodId { offset: i, method };
+            let method_id = Arc::new(MethodId { offset: i, method });
 
             self.all_methods.insert(id.clone(), method_id.clone());
 

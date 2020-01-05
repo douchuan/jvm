@@ -1,4 +1,4 @@
-use crate::oop::{InstOopDesc, Method, MethodId, OopDesc};
+use crate::oop::{InstOopDesc, Method, MethodIdRef, OopDesc};
 use crate::runtime::{self, Frame};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
@@ -12,16 +12,16 @@ pub struct JavaThread {
     java_thread_obj: Option<Arc<OopDesc>>,
     pub exception: Option<Arc<OopDesc>>,
 
-    method: Method,
+    method: MethodIdRef,
 }
 
 pub struct JavaMainThread {
-    pub main_class: String,
+    pub class: String,
     pub args: Option<Vec<String>>,
 }
 
 impl JavaThread {
-    pub fn new(method: &MethodId, args: Option<Vec<Arc<OopDesc>>>) -> Self {
+    pub fn new(method: MethodIdRef, args: Option<Vec<Arc<OopDesc>>>) -> Self {
         Self {
             frames: Vec::new(),
             args,
@@ -31,7 +31,7 @@ impl JavaThread {
             java_thread_obj: None,
             exception: None,
 
-            method: method.method.clone(),
+            method,
         }
     }
 
@@ -68,11 +68,9 @@ impl JavaThread {
 
 impl JavaMainThread {
     pub fn run(&self) {
-        let main = runtime::require_class3(None, self.main_class.as_bytes()).unwrap();
-        let main = main.lock().unwrap();
-        let main_method = main
-            .get_static_method(b"([Ljava/lang/String;)V", b"main")
-            .unwrap();
+        let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
+        let class = class.lock().unwrap();
+        let method = class.get_static_method(b"([Ljava/lang/String;)V", b"main");
 
         let mut args = self.args.as_ref().and_then(|args| {
             Some(
@@ -85,7 +83,7 @@ impl JavaMainThread {
             )
         });
 
-        let mut jt = Arc::new(JavaThread::new(main_method, args));
+        let mut jt = Arc::new(JavaThread::new(method, args));
         JavaThread::run(jt);
     }
 }

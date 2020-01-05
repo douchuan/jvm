@@ -1704,6 +1704,10 @@ impl Frame {
         //todo: impl
     }
 
+    pub fn invoke_special(&mut self) {
+        //todo: impl
+    }
+
     pub fn invoke_static(&mut self) {
         //todo: impl
     }

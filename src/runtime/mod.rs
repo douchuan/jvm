@@ -1,15 +1,18 @@
 #![allow(unused)]
 
+mod consts;
 mod class_loader;
 mod cp_manager;
 mod execution;
 mod frame;
+mod java_call;
 mod local;
 mod slot;
 mod stack;
 mod sys_dic;
 mod thread;
 
+pub use consts::THREAD_MAX_STACK_FRAMES;
 pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 pub use cp_manager::{find_class as find_class_in_classpath, ClassPathResult, ClassSource};
 pub use execution::instance_of;
