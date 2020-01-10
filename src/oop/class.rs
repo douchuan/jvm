@@ -3,11 +3,11 @@ use crate::oop::{
     consts as oop_consts, field, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method,
     MethodId, MethodIdRef, Oop, OopDesc, ValueType,
 };
-use crate::runtime::{self, require_class2, ClassLoader, JavaThread};
+use crate::runtime::{self, require_class2, ClassLoader, JavaThreadRef};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Type {
@@ -26,7 +26,7 @@ pub enum State {
     IniErr,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ClassObject {
     pub name: BytesRef,
 
@@ -64,6 +64,8 @@ pub struct ClassObject {
     interfaces: HashMap<BytesRef, ClassRef>,
 
     pub source_file: Option<BytesRef>,
+
+    monitor: Mutex<usize>,
 }
 
 //open api
@@ -130,7 +132,7 @@ impl ClassObject {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self, thread: Arc<JavaThread>) {
+    pub fn init_class(&mut self, thread: JavaThreadRef) {
         if self.state == State::Linked {
             self.state = State::BeingIni;
 
@@ -293,6 +295,7 @@ impl ClassObject {
             static_filed_values: vec![],
             interfaces: HashMap::new(),
             source_file: None,
+            monitor: Mutex::new(0),
         }
     }
 
@@ -306,6 +309,16 @@ impl ClassObject {
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
         unimplemented!()
+    }
+
+    pub fn monitor_enter(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v += 1;
+    }
+
+    pub fn monitor_exit(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v -= 1;
     }
 }
 

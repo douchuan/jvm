@@ -3,7 +3,7 @@ use crate::classfile::{
     MethodInfo,
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
-use crate::runtime::{self, require_class2, JavaThread};
+use crate::runtime::{self, require_class2, JavaThreadRef};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use std::sync::Arc;
 pub type MethodIdRef = Arc<MethodId>;
 
 pub fn get_method_ref(
-    thread: Arc<JavaThread>,
+    thread: JavaThreadRef,
     cp: &ConstantPool,
     idx: usize,
 ) -> (ClassRef, MethodIdRef) {
@@ -53,7 +53,7 @@ pub struct MethodId {
 #[derive(Debug, Clone)]
 pub struct Method {
     name: BytesRef,
-    desc: BytesRef,
+    pub desc: BytesRef,
     id: BytesRef,
     acc_flags: U2,
 
@@ -121,5 +121,9 @@ impl Method {
 
     pub fn is_static(&self) -> bool {
         (self.acc_flags & ACC_STATIC) == ACC_STATIC
+    }
+
+    pub fn is_synchronized(&self) -> bool {
+        (self.acc_flags & ACC_SYNCHRONIZED) == ACC_SYNCHRONIZED
     }
 }

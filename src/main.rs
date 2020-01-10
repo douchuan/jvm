@@ -6,7 +6,6 @@ extern crate lazy_static;
 extern crate log;
 extern crate env_logger;
 
-use crate::runtime::JavaMainThread;
 use clap::{App, Arg};
 
 #[macro_use]
@@ -15,6 +14,8 @@ mod classfile;
 mod parser;
 mod runtime;
 mod util;
+
+use crate::runtime::thread::JavaMainThread;
 
 /*
 todo list
@@ -30,6 +31,11 @@ todo list
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code instruction
     table_switch, lookup_switch...
+  9. impl java_call
+    ref java_call.cpp/h, executionInvoke.cpp, javaMethodCall.cpp
+      1. collect method args type,
+      2. collect this, if call normal
+
 
   x. verify class file
   x. java to execute a jar by -jar

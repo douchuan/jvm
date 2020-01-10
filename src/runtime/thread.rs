@@ -3,6 +3,8 @@ use crate::runtime::{self, Frame};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
+pub type JavaThreadRef = Arc<JavaThread>;
+
 pub struct JavaThread {
     frames: Vec<Frame>,
     args: Option<Vec<Arc<OopDesc>>>,

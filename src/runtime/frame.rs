@@ -3,7 +3,8 @@ use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{self, consts as oop_consts, field, ClassRef, Method, Oop, OopDesc, ValueType};
-use crate::runtime::{self, JavaThread, Local, Stack};
+use crate::runtime::thread::JavaThread;
+use crate::runtime::{self, JavaThreadRef, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::hint::unreachable_unchecked;
@@ -11,7 +12,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 pub struct Frame {
-    thread: Arc<JavaThread>,
+    thread: JavaThreadRef,
     local: Local,
     stack: Stack,
     pc: i32,
@@ -22,7 +23,7 @@ pub struct Frame {
 
 //new & helper methods
 impl Frame {
-    pub fn new(thread: Arc<JavaThread>, class: ClassRef, m: Method) -> Self {
+    pub fn new(thread: JavaThreadRef, class: ClassRef, m: Method) -> Self {
         Self {
             thread,
             local: Local::new(m.code.max_locals as usize),
