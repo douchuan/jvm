@@ -7,7 +7,6 @@ use std::sync::Arc;
 struct JavaCall {
     jt: JavaThreadRef,
     method: MethodIdRef,
-    method_class: ClassRef,
     args: Vec<Arc<OopDesc>>,
     has_this: bool,
 }
@@ -17,7 +16,6 @@ impl JavaCall {
         jt: JavaThreadRef,
         stack: &mut Stack,
         method: MethodIdRef,
-        method_class: ClassRef,
     ) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(method.method.desc.as_slice());
         let mut args = build_method_args(stack, sig);
@@ -40,7 +38,6 @@ impl JavaCall {
         Ok(Self {
             jt,
             method,
-            method_class,
             args,
             has_this,
         })
@@ -59,7 +56,7 @@ impl JavaCall {
     fn prepare_sync(&mut self) {
         if self.method.method.is_synchronized() {
             if self.method.method.is_static() {
-                let mut class = self.method_class.lock().unwrap();
+                let mut class = self.method.method.class.lock().unwrap();
                 class.monitor_enter();
             } else {
                 let mut v = self.args.first_mut().unwrap();
@@ -72,7 +69,7 @@ impl JavaCall {
     fn fin_sync(&mut self) {
         if self.method.method.is_synchronized() {
             if self.method.method.is_static() {
-                let mut class = self.method_class.lock().unwrap();
+                let mut class = self.method.method.class.lock().unwrap();
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first_mut().unwrap();

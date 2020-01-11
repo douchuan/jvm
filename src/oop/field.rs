@@ -12,7 +12,7 @@ pub fn get_field_ref(
     cp: &ConstantPool,
     idx: usize,
     is_static: bool,
-) -> (ClassRef, FieldIdRef) {
+) -> FieldIdRef {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
 
     //load Field's Class, then init it
@@ -35,12 +35,8 @@ pub fn get_field_ref(
         )
     };
 
-    let fid = {
-        let class = class.lock().unwrap();
-        class.get_field_id(id, is_static)
-    };
-
-    (class, fid)
+    let class = class.lock().unwrap();
+    class.get_field_id(id, is_static)
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +47,7 @@ pub struct FieldId {
 
 #[derive(Debug, Clone)]
 pub struct Field {
+    pub class: ClassRef,
     name: BytesRef,
     desc: BytesRef,
     id: BytesRef,
@@ -63,11 +60,14 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(cp: &ConstantPool, fi: &FieldInfo, class: &ClassObject) -> Self {
+    pub fn new(cp: &ConstantPool, fi: &FieldInfo, class: ClassRef) -> Self {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
-        let id = vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
+        let id = {
+            let class = class.lock().unwrap();
+            vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER)
+        };
         let id = Arc::new(Vec::from(id));
         let acc_flags = fi.acc_flags;
 
@@ -115,6 +115,7 @@ impl Field {
         });
 
         Self {
+            class,
             name,
             desc,
             id,

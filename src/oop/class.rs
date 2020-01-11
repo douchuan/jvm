@@ -118,14 +118,14 @@ impl ClassObject {
         (self.acc_flags & ACC_INTERFACE) == ACC_INTERFACE
     }
 
-    pub fn link_class(&mut self) {
+    pub fn link_class(&mut self, self_ref: ClassRef) {
         //todo: java mirror
         //        java::lang::Class::createMirror(this, _javaLoader);
 
         self.link_super_class();
-        self.link_fields();
+        self.link_fields(self_ref.clone());
         self.link_interfaces();
-        self.link_methods();
+        self.link_methods(self_ref);
         self.link_constant_pool();
         self.link_attributes();
 
@@ -268,6 +268,16 @@ impl ClassObject {
                 .get_static_field_value(field_id)
         }
     }
+
+    pub fn monitor_enter(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v += 1;
+    }
+
+    pub fn monitor_exit(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v -= 1;
+    }
 }
 
 //open api new
@@ -310,16 +320,6 @@ impl ClassObject {
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
         unimplemented!()
     }
-
-    pub fn monitor_enter(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v += 1;
-    }
-
-    pub fn monitor_exit(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v -= 1;
-    }
 }
 
 //inner api for link
@@ -344,14 +344,14 @@ impl ClassObject {
         }
     }
 
-    fn link_fields(&mut self) {
+    fn link_fields(&mut self, self_ref: ClassRef) {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
 
         let mut n_static = 0;
         let mut n_inst = 0;
         class_file.fields.iter().for_each(|it| {
-            let field = Field::new(cp, it, self);
+            let field = Field::new(cp, it, self_ref.clone());
             let id = field.get_id();
             if field.is_static() {
                 let fid = FieldId {
@@ -394,12 +394,12 @@ impl ClassObject {
             });
     }
 
-    fn link_methods(&mut self) {
+    fn link_methods(&mut self, this_ref: ClassRef) {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let method = Method::new(cp, it, self);
+            let method = Method::new(cp, it, this_ref.clone());
             let id = method.get_id();
             let method_id = Arc::new(MethodId { offset: i, method });
 

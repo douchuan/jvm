@@ -48,9 +48,10 @@ impl ClassLoader {
 
                     ClassLoader::Bootstrap => {
                         runtime::sys_dic_put(name, class.clone());
-                        util::sync_call_ctx(&class, |it| {
+                        let this_ref = class.clone();
+                        util::sync_call_ctx(&class, move |it| {
                             it.set_class_state(oop::class::State::Loaded);
-                            it.link_class();
+                            it.link_class(this_ref);
                         });
                     }
                 },

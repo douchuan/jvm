@@ -14,7 +14,7 @@ pub fn get_method_ref(
     thread: JavaThreadRef,
     cp: &ConstantPool,
     idx: usize,
-) -> (ClassRef, MethodIdRef) {
+) -> MethodIdRef {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
     //load Method's Class, then init it
@@ -30,18 +30,14 @@ pub fn get_method_ref(
         Arc::new(vec![typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER))
     };
 
-    let mid = {
-        let class = class.lock().unwrap();
-        if tag == consts::CONSTANT_METHOD_REF_TAG {
-            // invokespecial, invokestatic and invokevirtual
-            class.get_this_class_method(id)
-        } else {
-            // invokeinterface
-            class.get_virtual_method(id)
-        }
-    };
-
-    (class, mid)
+    let class = class.lock().unwrap();
+    if tag == consts::CONSTANT_METHOD_REF_TAG {
+        // invokespecial, invokestatic and invokevirtual
+        class.get_this_class_method(id)
+    } else {
+        // invokeinterface
+        class.get_virtual_method(id)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +48,7 @@ pub struct MethodId {
 
 #[derive(Debug, Clone)]
 pub struct Method {
+    pub class: ClassRef,
     name: BytesRef,
     pub desc: BytesRef,
     id: BytesRef,
@@ -61,7 +58,7 @@ pub struct Method {
 }
 
 impl Method {
-    pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: &ClassObject) -> Self {
+    pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: ClassRef) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
@@ -70,6 +67,7 @@ impl Method {
         let code = mi.get_code().clone();
 
         Self {
+            class,
             name,
             desc,
             id,

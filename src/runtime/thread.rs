@@ -7,14 +7,10 @@ pub type JavaThreadRef = Arc<JavaThread>;
 
 pub struct JavaThread {
     frames: Vec<Frame>,
-    args: Option<Vec<Arc<OopDesc>>>,
-    pc: u32,
     in_safe_point: bool,
 
     java_thread_obj: Option<Arc<OopDesc>>,
     pub exception: Option<Arc<OopDesc>>,
-
-    method: MethodIdRef,
 }
 
 pub struct JavaMainThread {
@@ -23,17 +19,13 @@ pub struct JavaMainThread {
 }
 
 impl JavaThread {
-    pub fn new(method: MethodIdRef, args: Option<Vec<Arc<OopDesc>>>) -> Self {
+    pub fn new() -> Self {
         Self {
             frames: Vec::new(),
-            args,
-            pc: 0,
             in_safe_point: false,
 
             java_thread_obj: None,
             exception: None,
-
-            method,
         }
     }
 
@@ -74,6 +66,7 @@ impl JavaMainThread {
         let class = class.lock().unwrap();
         let method = class.get_static_method(b"([Ljava/lang/String;)V", b"main");
 
+        /*
         let mut args = self.args.as_ref().and_then(|args| {
             Some(
                 args.iter()
@@ -84,8 +77,9 @@ impl JavaMainThread {
                     .collect(),
             )
         });
+        */
 
-        let mut jt = Arc::new(JavaThread::new(method, args));
-        JavaThread::run(jt);
+//        let mut jt = Arc::new(JavaThread::new(method, args));
+//        JavaThread::run(jt);
     }
 }
