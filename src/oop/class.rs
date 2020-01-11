@@ -1,7 +1,7 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
-    consts as oop_consts, field, ClassFileRef, ClassRef, Field, FieldId, FieldIdRef, Method,
-    MethodId, MethodIdRef, Oop, OopDesc, ValueType,
+    consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef,
+    MethodIdRef, Oop, OopDesc, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaThreadRef};
 use crate::util::{self, PATH_DELIMITER};
@@ -351,17 +351,17 @@ impl ClassObject {
         let mut n_static = 0;
         let mut n_inst = 0;
         class_file.fields.iter().for_each(|it| {
-            let field = Field::new(cp, it, self_ref.clone());
+            let field = field::Field::new(cp, it, self_ref.clone());
             let id = field.get_id();
             if field.is_static() {
-                let fid = FieldId {
+                let fid = field::FieldId {
                     offset: n_static,
                     field,
                 };
                 self.static_fields.insert(id, Arc::new(fid));
                 n_static += 1;
             } else {
-                let fid = FieldId {
+                let fid = field::FieldId {
                     offset: n_inst,
                     field,
                 };
@@ -399,9 +399,9 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let method = Method::new(cp, it, this_ref.clone());
+            let method = method::Method::new(cp, it, this_ref.clone());
             let id = method.get_id();
-            let method_id = Arc::new(MethodId { offset: i, method });
+            let method_id = Arc::new(method::MethodId { offset: i, method });
 
             self.all_methods.insert(id.clone(), method_id.clone());
 

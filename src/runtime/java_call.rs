@@ -5,41 +5,42 @@ use crate::runtime::{thread, JavaThreadRef, Stack};
 use std::sync::Arc;
 
 struct JavaCall {
-    jt: JavaThreadRef,
-    method: MethodIdRef,
+    jtr: JavaThreadRef,
+    mir: MethodIdRef,
     args: Vec<Arc<OopDesc>>,
-    has_this: bool,
 }
 
 impl JavaCall {
     pub fn new(
-        jt: JavaThreadRef,
+        jtr: JavaThreadRef,
         stack: &mut Stack,
-        method: MethodIdRef,
+        mir: MethodIdRef,
     ) -> Result<JavaCall, ()> {
-        let sig = MethodSignature::new(method.method.desc.as_slice());
+        let sig = MethodSignature::new(mir.method.desc.as_slice());
         let mut args = build_method_args(stack, sig);
 
         //insert 'this' value
-        let has_this = !method.method.is_static();
+        let has_this = !mir.method.is_static();
         if has_this {
             let v = stack.pop_ref();
+
+            //check NPE
             match &v.v {
                 Oop::Null => {
-                    thread::JavaThread::throw_ext(jt, consts::J_NPE, false);
+                    thread::JavaThread::throw_ext(jtr, consts::J_NPE, false);
                     //todo: caller should call handle_exception
                     return Err(());
                 }
                 _ => (),
             }
+
             args.insert(0, v);
         }
 
         Ok(Self {
-            jt,
-            method,
+            jtr,
+            mir,
             args,
-            has_this,
         })
     }
 
@@ -54,9 +55,9 @@ impl JavaCall {
 
 impl JavaCall {
     fn prepare_sync(&mut self) {
-        if self.method.method.is_synchronized() {
-            if self.method.method.is_static() {
-                let mut class = self.method.method.class.lock().unwrap();
+        if self.mir.method.is_synchronized() {
+            if self.mir.method.is_static() {
+                let mut class = self.mir.method.class.lock().unwrap();
                 class.monitor_enter();
             } else {
                 let mut v = self.args.first_mut().unwrap();
@@ -67,9 +68,9 @@ impl JavaCall {
     }
 
     fn fin_sync(&mut self) {
-        if self.method.method.is_synchronized() {
-            if self.method.method.is_static() {
-                let mut class = self.method.method.class.lock().unwrap();
+        if self.mir.method.is_synchronized() {
+            if self.mir.method.is_static() {
+                let mut class = self.mir.method.class.lock().unwrap();
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first_mut().unwrap();

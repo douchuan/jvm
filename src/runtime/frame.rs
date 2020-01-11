@@ -1,19 +1,18 @@
+use bytes::{BigEndian, Bytes};
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::consts;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, field, ClassRef, Method, Oop, OopDesc, ValueType, MethodIdRef};
+use crate::oop::{self, consts as oop_consts, field, ClassRef, Oop, OopDesc, ValueType, MethodIdRef};
 use crate::runtime::thread::JavaThread;
 use crate::runtime::{self, JavaThreadRef, Local, Stack};
-use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
-use std::hint::unreachable_unchecked;
 use std::ops::Deref;
 use std::sync::Arc;
 
 pub struct Frame {
     thread: JavaThreadRef,
-    method: MethodIdRef,
+    mir: MethodIdRef,
     local: Local,
     stack: Stack,
     pc: i32,
@@ -24,13 +23,13 @@ pub struct Frame {
 
 //new & helper methods
 impl Frame {
-    pub fn new(thread: JavaThreadRef, class: ClassRef, method: MethodIdRef) -> Self {
-        let local = Local::new(method.method.code.max_locals as usize);
-        let stack = Stack::new(method.method.code.max_stack as usize);
-        let code = method.method.code.code.clone();
+    pub fn new(thread: JavaThreadRef, class: ClassRef, mir: MethodIdRef) -> Self {
+        let local = Local::new(mir.method.code.max_locals as usize);
+        let stack = Stack::new(mir.method.code.max_stack as usize);
+        let code = mir.method.code.code.clone();
         Self {
             thread,
-            method,
+            mir,
             local,
             stack,
             pc: 0,
@@ -108,18 +107,18 @@ impl Frame {
         let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
         let thread = self.thread.clone();
 
-        let field_id = {
+        let fir = {
             let mut class = self.class.lock().unwrap();
             let cp = &class.class_file.cp;
             field::get_field_ref(thread, cp, idx as usize, is_static)
         };
 
-        let value_type = field_id.field.value_type.clone();
-        let class = field_id.field.class.lock().unwrap();
+        let value_type = fir.field.value_type.clone();
+        let class = fir.field.class.lock().unwrap();
         let v = if is_static {
-            class.get_static_field_value(field_id.clone())
+            class.get_static_field_value(fir.clone())
         } else {
-            class.get_field_value(receiver, field_id.clone())
+            class.get_field_value(receiver, fir.clone())
         };
 
         (v, value_type)
@@ -128,13 +127,13 @@ impl Frame {
     fn put_field_helper(&mut self, idx: i32, is_static: bool) {
         let thread = self.thread.clone();
 
-        let field_id = {
+        let fir = {
             let mut class = self.class.lock().unwrap();
             let cp = &class.class_file.cp;
             field::get_field_ref(thread, cp, idx as usize, is_static)
         };
 
-        let value_type = field_id.field.value_type.clone();
+        let value_type = fir.field.value_type.clone();
 
         let v = match value_type {
             ValueType::ARRAY | ValueType::OBJECT => self.stack.pop_ref(),
@@ -161,9 +160,9 @@ impl Frame {
             _ => unreachable!(),
         };
 
-        let mut class = field_id.field.class.lock().unwrap();
+        let mut class = fir.field.class.lock().unwrap();
         if is_static {
-            class.put_static_field_value(field_id.clone(), v);
+            class.put_static_field_value(fir.clone(), v);
         } else {
             let receiver = self.stack.pop_ref();
             if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
@@ -171,7 +170,7 @@ impl Frame {
                 JavaThread::throw_ext(thread, consts::J_NPE, false);
                 self.handle_exception();
             } else {
-                class.put_field_value(receiver, field_id.clone(), v);
+                class.put_field_value(receiver, fir.clone(), v);
             }
         }
     }

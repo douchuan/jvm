@@ -1,4 +1,4 @@
-use crate::oop::{InstOopDesc, Method, MethodIdRef, OopDesc};
+use crate::oop::{InstOopDesc, MethodIdRef, OopDesc};
 use crate::runtime::{self, Frame};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
