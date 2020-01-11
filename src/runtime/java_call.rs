@@ -1,8 +1,9 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc};
-use crate::runtime::{thread, JavaThreadRef, Stack};
+use crate::runtime::{self, thread, JavaThreadRef, Stack, Frame};
 use std::sync::Arc;
+use std::borrow::BorrowMut;
 
 struct JavaCall {
     jtr: JavaThreadRef,
@@ -44,12 +45,27 @@ impl JavaCall {
         })
     }
 
-    pub fn invoke_java(&mut self) {
+    pub fn invoke_java(&mut self) -> Option<Arc<OopDesc>> {
+        let mut r = None;
+
         self.prepare_sync();
 
-        //todo: prepare frame
+        if self.prepare_frame().is_ok() {
+
+            //exec interp
+            let frame= {
+                let jt = Arc::get_mut(&mut self.jtr).unwrap();
+                jt.frames.last_mut().unwrap()
+            };
+
+            frame.exec_interp();
+
+            r = frame.return_v.clone();
+        }
 
         self.fin_sync();
+
+        r
     }
 }
 
@@ -79,6 +95,50 @@ impl JavaCall {
             }
         }
     }
+
+    fn prepare_frame(&mut self) -> Result<(), ()> {
+        if self.jtr.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
+            thread::JavaThread::throw_ext(self.jtr.clone(), consts::J_SOE, false);
+            return Err(());
+        }
+
+        let mut frame = Frame::new(self.jtr.clone(), self.mir.clone());
+
+        //JVM spec, 2.6.1
+        let locals = &mut frame.local;
+        let mut slot_pos: usize = 0;
+        self.args.iter().for_each(|v| {
+            let step = match &v.v {
+                Oop::Int(v) => {
+                    locals.set_int(slot_pos, *v);
+                    1
+                },
+                Oop::Float(v) => {
+                    locals.set_float(slot_pos, *v);
+                    1
+                },
+                Oop::Double(v) => {
+                    locals.set_double(slot_pos, *v);
+                    2
+                },
+                Oop::Long((v)) => {
+                    locals.set_long(slot_pos, *v);
+                    2
+                },
+                _ => {
+                    locals.set_ref(slot_pos, v.clone());
+                    1
+                },
+            };
+
+            slot_pos += step;
+        });
+
+        let jt = Arc::get_mut(&mut self.jtr).unwrap();
+        jt.frames.push(frame);
+
+        return Ok(());
+    }
 }
 
 fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<Arc<OopDesc>> {
@@ -101,8 +161,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<Arc<OopDesc
                 let v = stack.pop_double();
                 OopDesc::new_double(v)
             }
-            ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
-            _ => unreachable!(),
+            _ => stack.pop_ref(),
         })
         .collect()
 }

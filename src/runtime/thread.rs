@@ -6,7 +6,7 @@ use std::sync::Arc;
 pub type JavaThreadRef = Arc<JavaThread>;
 
 pub struct JavaThread {
-    frames: Vec<Frame>,
+    pub frames: Vec<Frame>,
     in_safe_point: bool,
 
     java_thread_obj: Option<Arc<OopDesc>>,

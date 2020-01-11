@@ -12,32 +12,44 @@ use std::sync::Arc;
 
 pub struct Frame {
     thread: JavaThreadRef,
-    mir: MethodIdRef,
-    local: Local,
-    stack: Stack,
-    pc: i32,
     class: ClassRef,
+    mir: MethodIdRef,
     code: Arc<Vec<U1>>,
-    return_v: Option<Arc<OopDesc>>,
+
+    pub local: Local,
+    stack: Stack,
+    pub pc: i32,
+    pub return_v: Option<Arc<OopDesc>>,
 }
 
-//new & helper methods
+//new
 impl Frame {
-    pub fn new(thread: JavaThreadRef, class: ClassRef, mir: MethodIdRef) -> Self {
+    pub fn new(thread: JavaThreadRef, mir: MethodIdRef) -> Self {
+        let class = mir.method.class.clone();
         let local = Local::new(mir.method.code.max_locals as usize);
         let stack = Stack::new(mir.method.code.max_stack as usize);
         let code = mir.method.code.code.clone();
         Self {
             thread,
+            class,
             mir,
+            code,
             local,
             stack,
             pc: 0,
-            class,
-            code,
             return_v: None,
         }
     }
+}
+
+impl Frame {
+    pub fn exec_interp(&mut self) {
+
+    }
+}
+
+//helper methods
+impl Frame {
 
     fn read_i1(&mut self) -> i32 {
         let v = self.code[self.pc as usize];
