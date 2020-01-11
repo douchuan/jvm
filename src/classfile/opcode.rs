@@ -6,7 +6,7 @@ pub enum OpCode {
     //Constants
     nop = 0,
     aconst_null,
-    iconst_ml,
+    iconst_m1,
     iconst_0,
     iconst_1,
     iconst_2,
@@ -22,6 +22,7 @@ pub enum OpCode {
     dconst_1,
     bipush,
     sipush,
+    ldc,
     ldc_w,
     ldc2_w,
     //Loads
@@ -225,7 +226,7 @@ impl From<u8> for OpCode {
         let codes = vec![
             OpCode::nop,
             OpCode::aconst_null,
-            OpCode::iconst_ml,
+            OpCode::iconst_m1,
             OpCode::iconst_0,
             OpCode::iconst_1,
             OpCode::iconst_2,
@@ -241,6 +242,7 @@ impl From<u8> for OpCode {
             OpCode::dconst_1,
             OpCode::bipush,
             OpCode::sipush,
+            OpCode::ldc,
             OpCode::ldc_w,
             OpCode::ldc2_w,
             OpCode::iload,
