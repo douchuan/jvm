@@ -31,7 +31,7 @@ impl Parser {
         let magic = self.get_magic();
         let version = self.get_version();
         let cp_count = self.get_cp_count();
-        let cp = self.get_cp(cp_count - 1);
+        let cp = self.get_cp(cp_count);
         let acc_flags = self.get_acc_flags();
         let this_class = self.get_this_class();
         let super_class = self.get_super_class();
@@ -114,7 +114,8 @@ impl ClassFileParser for Parser {
 
         v.push(ConstantType::NOP);
 
-        for _ in 0..n {
+        let mut i = 1;
+        while i < n {
             let tag = self.get_u1();
             let tag = ConstantTag::from(tag);
             let vv = match tag {
@@ -125,8 +126,14 @@ impl ClassFileParser for Parser {
                 ConstantTag::String => self.get_constant_string(),
                 ConstantTag::Integer => self.get_constant_integer(),
                 ConstantTag::Float => self.get_constant_float(),
-                ConstantTag::Long => self.get_constant_long(),
-                ConstantTag::Double => self.get_constant_double(),
+                ConstantTag::Long => {
+                    i += 1;
+                    self.get_constant_long()
+                },
+                ConstantTag::Double => {
+                    i += 1;
+                    self.get_constant_double()
+                },
                 ConstantTag::NameAndType => self.get_constant_name_and_type(),
                 ConstantTag::Utf8 => self.get_constant_utf8(),
                 ConstantTag::MethodHandle => self.get_constant_method_handle(),
@@ -134,6 +141,8 @@ impl ClassFileParser for Parser {
                 ConstantTag::InvokeDynamic => self.get_constant_invoke_dynamic(),
                 ConstantTag::Unknown => ConstantType::Unknown,
             };
+
+            i += 1;
 
             v.push(vv);
         }
@@ -287,7 +296,8 @@ impl ConstantPoolParser for Parser {
     fn get_constant_utf8(&mut self) -> ConstantType {
         let length = self.get_u2();
         let mut bytes = Vec::with_capacity(length as usize);
-        let _ = self.buf.read_exact(bytes.as_mut_slice());
+        unsafe { bytes.set_len(length as usize) }
+        let _ = self.buf.read_exact(&mut bytes);
         let bytes = Arc::new(bytes);
         ConstantType::Utf8 { length, bytes }
     }

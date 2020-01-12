@@ -18,6 +18,14 @@ pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
     util::sync_call_ctx(&CPM, |cpm| cpm.search_class(name))
 }
 
+pub fn add_path(path: &str) {
+    util::sync_call_ctx(&CPM, |cpm| cpm.add_class_path(path));
+}
+
+pub fn add_paths(path: &str) {
+    util::sync_call_ctx(&CPM, |cpm| cpm.add_class_paths(path));
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum ClassSource {
     DIR,
@@ -64,6 +72,7 @@ impl ClassPathManager {
         let name = name.replace("/", util::PATH_SEP_STR);
         let name = name.replace(".", util::PATH_SEP_STR);
 
+        debug!("search_class name={}", name);
         for it in self.runtime_class_path.iter() {
             match it.0 {
                 ClassSource::DIR => {

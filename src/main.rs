@@ -31,14 +31,11 @@ todo list
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code instruction
     table_switch, lookup_switch...
-  9. impl java_call
-    ref java_call.cpp/h, executionInvoke.cpp, javaMethodCall.cpp
-      1. collect method args type,
-      2. collect this, if call normal
-
+  9. rt.jar, search_class "java/lang/Object"
 
   x. verify class file
   x. java to execute a jar by -jar
+  x. RUST_LOG=trace cargo run -- --cp . test/Main1
 */
 
 fn init_vm() {
@@ -48,6 +45,7 @@ fn init_vm() {
 
 fn main() {
     env_logger::init();
+    init_vm();
 
     let matches = App::new("")
         .arg(
@@ -71,11 +69,20 @@ fn main() {
         .arg(Arg::with_name("ARGS").multiple(true).help("[args...]"))
         .get_matches();
 
+    //todo: add '.' auto
+    let cp = matches.value_of("cp");
+    if let Some(cp) = cp {
+        runtime::add_class_paths(cp);
+    }
+
+    let classpath = matches.value_of("classpath");
+    if let Some(classpath) = classpath {
+        runtime::add_class_path(classpath);
+    }
+
     let class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
     let args = matches.values_of_lossy("ARGS");
     println!("main class: {}, args: {:?}", class, args);
-
-    init_vm();
 
     let thread = JavaMainThread { class, args };
     thread.run();

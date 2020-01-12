@@ -51,7 +51,30 @@ impl Frame {
                 Some(&op_code) => {
                     let op_code = OpCode::from(op_code);
                     match op_code {
-                        OpCode::ireturn | OpCode::lreturn | OpCode::freturn | OpCode::dreturn | OpCode::areturn | OpCode::return_ => break,
+                        OpCode::ireturn => {
+                            self.ireturn();
+                            break;
+                        }
+                        OpCode::lreturn => {
+                            self.lreturn();
+                            break;
+                        }
+                        OpCode::freturn => {
+                            self.freturn();
+                            break;
+                        }
+                        OpCode::dreturn => {
+                            self.dreturn();
+                            break;
+                        }
+                        OpCode::areturn => {
+                            self.areturn();
+                            break;
+                        }
+                        OpCode::return_ => {
+                            self.return_();
+                            break;
+                        },
                         OpCode::nop => self.nop(),
                         OpCode::aconst_null => self.aconst_null(),
                         OpCode::iconst_m1 => self.iconst_m1(),
@@ -65,6 +88,7 @@ impl Frame {
                         OpCode::lconst_1 => self.lconst_1(),
                         OpCode::fconst_0 => self.fconst_0(),
                         OpCode::fconst_1 => self.fconst_1(),
+                        OpCode::fconst_2 => self.fconst_2(),
                         OpCode::dconst_0 => self.dconst_0(),
                         OpCode::dconst_1 => self.dconst_1(),
                         OpCode::bipush => self.bipush(),
@@ -253,8 +277,6 @@ impl Frame {
                 None => break,
             }
         }
-
-        //todo: process return value
     }
 }
 

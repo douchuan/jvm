@@ -5,10 +5,10 @@ use crate::runtime::{self, thread, JavaThreadRef, Stack, Frame};
 use std::sync::Arc;
 use std::borrow::BorrowMut;
 
-struct JavaCall {
-    jtr: JavaThreadRef,
-    mir: MethodIdRef,
-    args: Vec<Arc<OopDesc>>,
+pub struct JavaCall {
+    pub jtr: JavaThreadRef,
+    pub mir: MethodIdRef,
+    pub args: Vec<Arc<OopDesc>>,
 }
 
 impl JavaCall {
@@ -60,7 +60,11 @@ impl JavaCall {
 
             frame.exec_interp();
 
-            r = frame.return_v.clone();
+            let frame= {
+                let jt = Arc::get_mut(&mut self.jtr).unwrap();
+                jt.frames.pop().unwrap()
+            };
+            r = frame.return_v;
         }
 
         self.fin_sync();

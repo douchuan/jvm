@@ -165,8 +165,8 @@ pub struct InstOopDesc {
 
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
-    class: ClassRef,
-    elements: Vec<Arc<OopDesc>>,
+    pub class: ClassRef,
+    pub elements: Vec<Arc<OopDesc>>,
 }
 
 impl InstOopDesc {
