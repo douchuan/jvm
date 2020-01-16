@@ -13,6 +13,7 @@ use crate::classfile::{
     ClassFile, Version,
 };
 use crate::util;
+use crate::classfile::attr_info::LineNumber;
 
 struct Parser {
     buf: Cursor<Vec<U1>>,
@@ -63,16 +64,53 @@ impl Parser {
         }
     }
 
-    pub fn get_u4(&mut self) -> U4 {
+    fn get_u4(&mut self) -> U4 {
         self.buf.get_u32_be()
     }
 
-    pub fn get_u2(&mut self) -> U2 {
+    fn get_u2(&mut self) -> U2 {
         self.buf.get_u16_be()
     }
 
-    pub fn get_u1(&mut self) -> U1 {
+    fn get_u1(&mut self) -> U1 {
         self.buf.get_u8()
+    }
+
+    fn get_u1s(&mut self, len: usize) -> Vec<U1> {
+        let mut bytes = Vec::with_capacity(len);
+        unsafe { bytes.set_len(len) }
+        let _ = self.buf.read_exact(&mut bytes);
+        bytes
+    }
+
+    fn get_code_exceptions(&mut self, len: usize) -> Vec<attr_info::CodeException> {
+        let mut exceptions = Vec::new();
+
+        for _ in 0..len {
+            let start_pc = self.get_u2();
+            let end_pc = self.get_u2();
+            let handler_pc = self.get_u2();
+            let catch_type = self.get_u2();
+            let exception = attr_info::CodeException {
+                start_pc,
+                end_pc,
+                handler_pc,
+                catch_type,
+            };
+            exceptions.push(exception);
+        }
+
+        exceptions
+    }
+
+    fn get_line_nums(&mut self, len: usize) -> Vec<LineNumber> {
+        let mut tables = Vec::new();
+        for _ in 0..len {
+            let start_pc = self.get_u2();
+            let number = self.get_u2();
+            tables.push(attr_info::LineNumber { start_pc, number });
+        }
+        tables
     }
 }
 
@@ -295,9 +333,7 @@ impl ConstantPoolParser for Parser {
 
     fn get_constant_utf8(&mut self) -> ConstantType {
         let length = self.get_u2();
-        let mut bytes = Vec::with_capacity(length as usize);
-        unsafe { bytes.set_len(length as usize) }
-        let _ = self.buf.read_exact(&mut bytes);
+        let bytes = self.get_u1s(length as usize);
         let bytes = Arc::new(bytes);
         ConstantType::Utf8 { length, bytes }
     }
@@ -361,7 +397,7 @@ impl MethodParser for Parser {
 
         //        println!("method name = {}", String::from_utf8_lossy(get_utf8(name_index, cp).unwrap()));
         //        println!("method desc = {}", String::from_utf8_lossy(get_utf8(desc_index, cp).unwrap()));
-        //        println!("attrs: {:?}", attrs);
+//                println!("attrs: {:?}", attrs);
 
         MethodInfo {
             acc_flags,
@@ -409,12 +445,12 @@ impl AttrTypeParser for Parser {
         let tag = match cp.get(name_index as usize) {
             Some(v) => match v {
                 ConstantType::Utf8 { length: _, bytes } => AttrTag::from(bytes.as_slice()),
-                ConstantType::NOP => AttrTag::Invalid,
                 _ => AttrTag::Unknown,
             },
-            _ => AttrTag::Unknown,
+            _ => unreachable!(),
         };
 
+//        let tag = AttrTag::Unknown;
         match tag {
             AttrTag::Invalid => AttrType::Invalid,
             AttrTag::ConstantValue => self.get_attr_constant_value(),
@@ -446,9 +482,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_constant_value(&mut self) -> AttrType {
         let length = self.get_u4();
+        assert_eq!(length, 2);
         let constant_value_index = self.get_u2();
         AttrType::ConstantValue {
-            length,
             constant_value_index,
         }
     }
@@ -457,37 +493,22 @@ impl AttrTypeParser for Parser {
         let length = self.get_u4();
         let max_stack = self.get_u2();
         let max_locals = self.get_u2();
-        let code_n = self.get_u4();
-        let mut code = Vec::new();
-        for _ in 0..code_n {
-            code.push(self.get_u1());
-        }
+        let code_len = self.get_u4();
+        let code = self.get_u1s(code_len as usize);
         let code = Arc::new(code);
         let exceptions_n = self.get_u2();
-        let mut exceptions = Vec::new();
-        for _ in 0..exceptions_n {
-            let start_pc = self.get_u2();
-            let end_pc = self.get_u2();
-            let handler_pc = self.get_u2();
-            let catch_type = self.get_u2();
-            let exception = attr_info::CodeException {
-                start_pc,
-                end_pc,
-                handler_pc,
-                catch_type,
-            };
-            exceptions.push(exception);
-        }
+        let exceptions = self.get_code_exceptions(exceptions_n as usize);
         let attrs_n = self.get_u2();
         let mut attrs = Vec::new();
         for _ in 0..attrs_n {
             attrs.push(self.get_attr_type(cp));
         }
+
         AttrType::Code(attr_info::Code {
             length,
             max_stack,
             max_locals,
-            code_n,
+            code_len,
             code,
             exceptions_n,
             exceptions,
@@ -497,21 +518,20 @@ impl AttrTypeParser for Parser {
     }
 
     fn get_attr_exceptions(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let exceptions_n = self.get_u2();
         let mut exceptions = Vec::new();
         for _ in 0..exceptions_n {
             exceptions.push(self.get_u2());
         }
         AttrType::Exceptions {
-            length,
             exceptions_n,
             exceptions,
         }
     }
 
     fn get_attr_inner_classes(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let classes_n = self.get_u2();
         let mut classes = Vec::new();
         for _ in 0..classes_n {
@@ -527,7 +547,6 @@ impl AttrTypeParser for Parser {
             });
         }
         AttrType::InnerClasses {
-            length,
             classes_n,
             classes,
         }
@@ -535,10 +554,10 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_enclosing_method(&mut self) -> AttrType {
         let length = self.get_u4();
+        assert_eq!(length, 4);
         let class_index = self.get_u2();
         let method_index = self.get_u2();
         AttrType::EnclosingMethod {
-            length,
             class_index,
             method_index,
         }
@@ -546,66 +565,59 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_synthetic(&mut self) -> AttrType {
         let length = self.get_u4();
-        AttrType::Synthetic { length }
+        assert_eq!(length, 0);
+        AttrType::Synthetic
     }
 
     fn get_attr_signature(&mut self) -> AttrType {
         let length = self.get_u4();
+        assert_eq!(length, 2);
         let signature_index = self.get_u2();
         AttrType::Signature {
-            length,
             signature_index,
         }
     }
 
     fn get_attr_source_file(&mut self) -> AttrType {
         let length = self.get_u4();
+        assert_eq!(length, 2);
         let source_file_index = self.get_u2();
         AttrType::SourceFile {
-            length,
             source_file_index,
         }
     }
 
     fn get_attr_line_num_table(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let tables_n = self.get_u2();
-        let mut tables = Vec::new();
-        for _ in 0..tables_n {
-            let start_pc = self.get_u2();
-            let number = self.get_u2();
-            tables.push(attr_info::LineNumber { start_pc, number });
-        }
+        let tables = self.get_line_nums(tables_n  as usize);
         AttrType::LineNumberTable {
-            length,
             tables_n,
             tables,
         }
     }
 
     fn get_attr_local_var_table(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let tables_n = self.get_u2();
         let mut tables = Vec::new();
         for _ in 0..tables_n {
             tables.push(self.get_attr_util_get_local_var());
         }
         AttrType::LocalVariableTable {
-            length,
             tables_n,
             tables,
         }
     }
 
     fn get_attr_local_var_type_table(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let tables_n = self.get_u2();
         let mut tables = Vec::new();
         for _ in 0..tables_n {
             tables.push(self.get_attr_util_get_local_var());
         }
         AttrType::LocalVariableTypeTable {
-            length,
             tables_n,
             tables,
         }
@@ -613,76 +625,72 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_deprecated(&mut self) -> AttrType {
         let length = self.get_u4();
-        AttrType::Deprecated { length }
+        assert_eq!(length, 0);
+        AttrType::Deprecated
     }
 
     fn get_attr_rt_vis_annotations(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::new();
         for _ in 0..annotations_n {
             annotations.push(self.get_attr_util_get_annotation());
         }
         AttrType::RuntimeVisibleAnnotations {
-            length,
             annotations_n,
             annotations,
         }
     }
 
     fn get_attr_rt_in_vis_annotations(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::new();
         for _ in 0..annotations_n {
             annotations.push(self.get_attr_util_get_annotation());
         }
         AttrType::RuntimeInvisibleAnnotations {
-            length,
             annotations_n,
             annotations,
         }
     }
 
     fn get_attr_rt_vis_parameter_annotations(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::new();
         for _ in 0..annotations_n {
             annotations.push(self.get_attr_util_get_annotation());
         }
         AttrType::RuntimeVisibleParameterAnnotations {
-            length,
             annotations_n,
             annotations,
         }
     }
 
     fn get_attr_rt_in_vis_parameter_annotations(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::new();
         for _ in 0..annotations_n {
             annotations.push(self.get_attr_util_get_annotation());
         }
         AttrType::RuntimeInvisibleParameterAnnotations {
-            length,
             annotations_n,
             annotations,
         }
     }
 
     fn get_attr_annotation_default(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let default_value = self.get_attr_util_get_element_val();
         AttrType::AnnotationDefault {
-            length,
             default_value,
         }
     }
 
     fn get_attr_bootstrap_methods(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let n = self.get_u2();
         let mut methods = Vec::new();
         for _ in 0..n {
@@ -699,11 +707,11 @@ impl AttrTypeParser for Parser {
             });
         }
 
-        AttrType::BootstrapMethods { length, n, methods }
+        AttrType::BootstrapMethods { n, methods }
     }
 
     fn get_attr_method_parameters(&mut self) -> AttrType {
-        let length = self.get_u4();
+        let _length = self.get_u4();
         let parameters_n = self.get_u1();
         let mut parameters = Vec::new();
         for _ in 0..parameters_n {
@@ -716,7 +724,6 @@ impl AttrTypeParser for Parser {
         }
 
         AttrType::MethodParameters {
-            length,
             parameters_n,
             parameters,
         }
@@ -724,9 +731,8 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_unknown(&mut self) -> AttrType {
         let len = self.get_u4();
-        for _ in 0..len {
-            let _ = self.get_u1();
-        }
+        let _v = self.get_u1s(len as usize);
+        info!("get_attr_unknown len={}, _v.len = {}", len, _v.len());
         AttrType::Unknown
     }
 }

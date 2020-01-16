@@ -11,14 +11,14 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
-    pub fn get_code(&self) -> &attr_info::Code {
+    pub fn get_code(&self) -> Option<attr_info::Code> {
         for it in self.attrs.iter() {
             match it {
-                attr_info::AttrType::Code(code) => return code,
+                attr_info::AttrType::Code(code) => return Some(code.clone()),
                 _ => (),
             }
         }
 
-        unreachable!()
+        None
     }
 }

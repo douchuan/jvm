@@ -5,89 +5,69 @@ use std::sync::Arc;
 pub enum AttrType {
     Invalid,
     ConstantValue {
-        length: U4,
         constant_value_index: U2,
     },
     Code(Code),
     //    StackMapTable,
     Exceptions {
-        length: U4,
         exceptions_n: U2,
         exceptions: Vec<U2>,
     },
     InnerClasses {
-        length: U4,
         classes_n: U2,
         classes: Vec<InnerClass>,
     },
     EnclosingMethod {
-        length: U4,
         class_index: U2,
         method_index: U2,
     },
-    Synthetic {
-        length: U4,
-    },
+    Synthetic,
     Signature {
-        length: U4,
         signature_index: U2,
     },
     SourceFile {
-        length: U4,
         source_file_index: U2,
     },
     //    SourceDebugExtension(SourceDebugExtension),
     LineNumberTable {
-        length: U4,
         tables_n: U2,
         tables: Vec<LineNumber>,
     },
     LocalVariableTable {
-        length: U4,
         tables_n: U2,
         tables: Vec<LocalVariable>,
     },
     LocalVariableTypeTable {
-        length: U4,
         tables_n: U2,
         tables: Vec<LocalVariable>,
     },
-    Deprecated {
-        length: U4,
-    },
+    Deprecated,
     RuntimeVisibleAnnotations {
-        length: U4,
         annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleAnnotations {
-        length: U4,
         annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeVisibleParameterAnnotations {
-        length: U4,
         annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleParameterAnnotations {
-        length: U4,
         annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     //    RuntimeVisibleTypeAnnotations,
     //    RuntimeInvisibleTypeAnnotations,
     AnnotationDefault {
-        length: U4,
         default_value: ElementValueType,
     },
     BootstrapMethods {
-        length: U4,
         n: U2,
         methods: Vec<BootstrapMethod>,
     },
     MethodParameters {
-        length: U4,
         parameters_n: U1,
         parameters: Vec<MethodParameter>,
     },
@@ -163,12 +143,13 @@ pub struct Code {
     pub length: U4,
     pub max_stack: U2,
     pub max_locals: U2,
-    pub code_n: U4,
+    pub code_len: U4,
     pub code: Arc<Vec<U1>>,
     pub exceptions_n: U2,
     pub exceptions: Vec<CodeException>,
     pub attrs_n: U2,
-    pub attrs: Vec<AttrType>,
+//    pub attrs: Vec<AttributeInfo>,
+    pub attrs: Vec<AttrType>
 }
 
 #[derive(Debug, Clone)]
@@ -187,6 +168,13 @@ impl CodeException {
     pub fn is_finally(&self) -> bool {
         self.catch_type == 0
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct AttributeInfo {
+    pub name_index: U2,
+    pub length: U4,
+    pub info: Vec<U1>
 }
 
 pub enum NestedClassAccessPropertyFlag {

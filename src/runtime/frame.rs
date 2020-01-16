@@ -27,19 +27,35 @@ pub struct Frame {
 impl Frame {
     pub fn new(thread: JavaThreadRef, mir: MethodIdRef) -> Self {
         let class = mir.method.class.clone();
-        let local = Local::new(mir.method.code.max_locals as usize);
-        let stack = Stack::new(mir.method.code.max_stack as usize);
-        let code = mir.method.code.code.clone();
-        Self {
-            thread,
-            class,
-            mir,
-            code,
-            local,
-            stack,
-            pc: 0,
-            return_v: None,
+        match &mir.method.code {
+            Some(code) => {
+                let local = Local::new(code.max_locals as usize);
+                let stack = Stack::new(code.max_stack as usize);
+                let code = code.code.clone();
+                Self {
+                    thread,
+                    class,
+                    mir,
+                    code,
+                    local,
+                    stack,
+                    pc: 0,
+                    return_v: None,
+                }
+            }
+
+            None => Self {
+                thread,
+                class,
+                mir,
+                code: Arc::new(vec![]),
+                local: Local::new(0),
+                stack: Stack::new(0),
+                pc: 0,
+                return_v: None,
+            }
         }
+
     }
 }
 

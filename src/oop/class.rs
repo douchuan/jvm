@@ -412,7 +412,8 @@ impl ClassObject {
     }
 
     fn link_constant_pool(&mut self) {
-        unimplemented!()
+        //todo: impl
+//        unimplemented!()
     }
 
     fn link_attributes(&mut self) {
@@ -422,7 +423,6 @@ impl ClassObject {
         class_file.attrs.iter().for_each(|a| {
             match a {
                 AttrType::Signature {
-                    length,
                     signature_index,
                 } => {
                     if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
@@ -430,7 +430,6 @@ impl ClassObject {
                     }
                 }
                 AttrType::SourceFile {
-                    length,
                     source_file_index,
                 } => {
                     if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {

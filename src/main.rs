@@ -31,7 +31,9 @@ todo list
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code instruction
     table_switch, lookup_switch...
-  9. rt.jar, search_class "java/lang/Object"
+  9. oop/class.rs, link_constant_pool
+  10. impl attr_info StackMapTable, SourceDebugExtension
+  11. rm attr_info attr_length
 
   x. verify class file
   x. java to execute a jar by -jar

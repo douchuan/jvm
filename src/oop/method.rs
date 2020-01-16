@@ -54,7 +54,7 @@ pub struct Method {
     id: BytesRef,
     acc_flags: U2,
 
-    pub code: Code,
+    pub code: Option<Code>,
 }
 
 impl Method {
@@ -63,8 +63,9 @@ impl Method {
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         let id = Arc::new(Vec::from(id));
+        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
-        let code = mi.get_code().clone();
+        let code = mi.get_code();
 
         Self {
             class,
@@ -84,18 +85,24 @@ impl Method {
         let class_file = class.class_file.clone();
         let cp = &class_file.cp;
 
-        for e in self.code.exceptions.iter() {
-            if e.contains(pc) {
-                if e.is_finally() {
-                    return Some(e.handler_pc);
-                }
+        match &self.code {
+            Some(code) => {
+                for e in code.exceptions.iter() {
+                    if e.contains(pc) {
+                        if e.is_finally() {
+                            return Some(e.handler_pc);
+                        }
 
-                if let Some(class) = runtime::require_class2(e.catch_type, cp) {
-                    if runtime::instance_of(ex.clone(), class) {
-                        return Some(e.handler_pc);
+                        if let Some(class) = runtime::require_class2(e.catch_type, cp) {
+                            if runtime::instance_of(ex.clone(), class) {
+                                return Some(e.handler_pc);
+                            }
+                        }
                     }
                 }
             }
+
+            _ => (),
         }
 
         None
