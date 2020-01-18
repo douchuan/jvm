@@ -26,7 +26,9 @@ pub enum AttrType {
     SourceFile {
         source_file_index: U2,
     },
-    //    SourceDebugExtension(SourceDebugExtension),
+    SourceDebugExtension {
+        debug_extension: Arc<Vec<U1>>
+    },
     LineNumberTable {
         tables: Vec<LineNumber>,
     },
@@ -49,8 +51,8 @@ pub enum AttrType {
     RuntimeInvisibleParameterAnnotations {
         annotations: Vec<AnnotationEntry>,
     },
-    //    RuntimeVisibleTypeAnnotations,
-    //    RuntimeInvisibleTypeAnnotations,
+//        RuntimeVisibleTypeAnnotations,
+//        RuntimeInvisibleTypeAnnotations,
     AnnotationDefault {
         default_value: ElementValueType,
     },
@@ -75,7 +77,7 @@ pub enum AttrTag {
     Synthetic,
     Signature,
     SourceFile,
-    //    SourceDebugExtension,
+    SourceDebugExtension,
     LineNumberTable,
     LocalVariableTable,
     LocalVariableTypeTable,
@@ -104,20 +106,20 @@ impl From<&[u8]> for AttrTag {
             b"Synthetic" => AttrTag::Synthetic,
             b"Signature" => AttrTag::Signature,
             b"SourceFile" => AttrTag::SourceFile,
-            //            b"SourceDebugExtension" => AttrTag::SourceDebugExtension,
+            b"SourceDebugExtension" => AttrTag::SourceDebugExtension,
             b"LineNumberTable" => AttrTag::LineNumberTable,
             b"LocalVariableTable" => AttrTag::LocalVariableTable,
             b"LocalVariableTypeTable" => AttrTag::LocalVariableTypeTable,
             b"Deprecated" => AttrTag::Deprecated,
-//            b"RuntimeVisibleAnnotations" => AttrTag::RuntimeVisibleAnnotations,
-//            b"RuntimeInvisibleAnnotations" => AttrTag::RuntimeInvisibleAnnotations,
-//            b"RuntimeVisibleParameterAnnotations" => AttrTag::RuntimeVisibleParameterAnnotations,
-//            b"RuntimeInvisibleParameterAnnotations" => {
-//                AttrTag::RuntimeInvisibleParameterAnnotations
-//            }
-            //            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
-            //            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
-//            b"AnnotationDefault" => AttrTag::AnnotationDefault,
+            b"RuntimeVisibleAnnotations" => AttrTag::RuntimeVisibleAnnotations,
+            b"RuntimeInvisibleAnnotations" => AttrTag::RuntimeInvisibleAnnotations,
+            b"RuntimeVisibleParameterAnnotations" => AttrTag::RuntimeVisibleParameterAnnotations,
+            b"RuntimeInvisibleParameterAnnotations" => {
+                AttrTag::RuntimeInvisibleParameterAnnotations
+            }
+//            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
+//            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
+            b"AnnotationDefault" => AttrTag::AnnotationDefault,
             b"BootstrapMethods" => AttrTag::BootstrapMethods,
             b"MethodParameters" => AttrTag::MethodParameters,
             _ => {
@@ -327,3 +329,4 @@ pub struct MethodParameter {
     pub name_index: U2,
     pub acc_flags: U2,
 }
+

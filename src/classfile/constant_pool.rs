@@ -61,6 +61,7 @@ pub enum ConstantType {
         name_and_type_index: u16,
     },
     Unknown,
+    Unusable,
 }
 
 pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
@@ -338,6 +339,7 @@ impl Checker for ConstantType {
                 }
             }
             ConstantType::Unknown => Ok(()),
+            ConstantType::Unusable => Ok(()),
         }
     }
 }

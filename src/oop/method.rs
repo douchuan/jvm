@@ -63,7 +63,7 @@ impl Method {
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         let id = Arc::new(Vec::from(id));
-        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
+//        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
 

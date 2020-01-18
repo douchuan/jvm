@@ -168,14 +168,8 @@ impl ClassFileParser for Parser {
                 ConstantTag::String => self.get_constant_string(),
                 ConstantTag::Integer => self.get_constant_integer(),
                 ConstantTag::Float => self.get_constant_float(),
-                ConstantTag::Long => {
-                    i += 1;
-                    self.get_constant_long()
-                },
-                ConstantTag::Double => {
-                    i += 1;
-                    self.get_constant_double()
-                },
+                ConstantTag::Long => self.get_constant_long(),
+                ConstantTag::Double => self.get_constant_double(),
                 ConstantTag::NameAndType => self.get_constant_name_and_type(),
                 ConstantTag::Utf8 => self.get_constant_utf8(),
                 ConstantTag::MethodHandle => self.get_constant_method_handle(),
@@ -185,11 +179,14 @@ impl ClassFileParser for Parser {
             };
 
             i += 1;
-
             v.push(vv);
 
+            //spec 4.4.5
             match ct {
-                ConstantTag::Long | ConstantTag::Double => v.push(ConstantType::NOP),
+                ConstantTag::Long | ConstantTag::Double => {
+                    i += 1;
+                    v.push(ConstantType::Unusable);
+                },
                 _ => (),
             }
         }
@@ -424,6 +421,7 @@ trait AttrTypeParser {
     fn get_attr_synthetic(&mut self) -> AttrType;
     fn get_attr_signature(&mut self) -> AttrType;
     fn get_attr_source_file(&mut self) -> AttrType;
+    fn get_attr_source_debug_ext(&mut self) -> AttrType;
     fn get_attr_line_num_table(&mut self) -> AttrType;
     fn get_attr_local_var_table(&mut self) -> AttrType;
     fn get_attr_local_var_type_table(&mut self) -> AttrType;
@@ -469,6 +467,7 @@ impl AttrTypeParser for Parser {
             AttrTag::Synthetic => self.get_attr_synthetic(),
             AttrTag::Signature => self.get_attr_signature(),
             AttrTag::SourceFile => self.get_attr_source_file(),
+            AttrTag::SourceDebugExtension => self.get_attr_source_debug_ext(),
             AttrTag::LineNumberTable => self.get_attr_line_num_table(),
             AttrTag::LocalVariableTable => self.get_attr_local_var_table(),
             AttrTag::LocalVariableTypeTable => self.get_attr_local_var_type_table(),
@@ -600,6 +599,14 @@ impl AttrTypeParser for Parser {
         AttrType::SourceFile {
             source_file_index,
         }
+    }
+
+    fn get_attr_source_debug_ext(&mut self) -> AttrType {
+        let length = self.get_u4();
+        let debug_extension = self.get_u1s(length as usize);
+        let debug_extension = Arc::new(debug_extension);
+        AttrType::SourceDebugExtension { debug_extension }
+
     }
 
     fn get_attr_line_num_table(&mut self) -> AttrType {
@@ -738,7 +745,6 @@ impl AttrTypeParser for Parser {
     fn get_attr_unknown(&mut self) -> AttrType {
         let len = self.get_u4();
         let _v = self.get_u1s(len as usize);
-        info!("get_attr_unknown len={}, _v.len = {}", len, _v.len());
         AttrType::Unknown
     }
 }
