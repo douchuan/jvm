@@ -10,11 +10,9 @@ pub enum AttrType {
     Code(Code),
     //    StackMapTable,
     Exceptions {
-        exceptions_n: U2,
         exceptions: Vec<U2>,
     },
     InnerClasses {
-        classes_n: U2,
         classes: Vec<InnerClass>,
     },
     EnclosingMethod {
@@ -30,32 +28,25 @@ pub enum AttrType {
     },
     //    SourceDebugExtension(SourceDebugExtension),
     LineNumberTable {
-        tables_n: U2,
         tables: Vec<LineNumber>,
     },
     LocalVariableTable {
-        tables_n: U2,
         tables: Vec<LocalVariable>,
     },
     LocalVariableTypeTable {
-        tables_n: U2,
         tables: Vec<LocalVariable>,
     },
     Deprecated,
     RuntimeVisibleAnnotations {
-        annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleAnnotations {
-        annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeVisibleParameterAnnotations {
-        annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleParameterAnnotations {
-        annotations_n: U2,
         annotations: Vec<AnnotationEntry>,
     },
     //    RuntimeVisibleTypeAnnotations,
@@ -68,7 +59,6 @@ pub enum AttrType {
         methods: Vec<BootstrapMethod>,
     },
     MethodParameters {
-        parameters_n: U1,
         parameters: Vec<MethodParameter>,
     },
     Unknown,
@@ -119,15 +109,15 @@ impl From<&[u8]> for AttrTag {
             b"LocalVariableTable" => AttrTag::LocalVariableTable,
             b"LocalVariableTypeTable" => AttrTag::LocalVariableTypeTable,
             b"Deprecated" => AttrTag::Deprecated,
-            b"RuntimeVisibleAnnotations" => AttrTag::RuntimeVisibleAnnotations,
-            b"RuntimeInvisibleAnnotations" => AttrTag::RuntimeInvisibleAnnotations,
-            b"RuntimeVisibleParameterAnnotations" => AttrTag::RuntimeVisibleParameterAnnotations,
-            b"RuntimeInvisibleParameterAnnotations" => {
-                AttrTag::RuntimeInvisibleParameterAnnotations
-            }
+//            b"RuntimeVisibleAnnotations" => AttrTag::RuntimeVisibleAnnotations,
+//            b"RuntimeInvisibleAnnotations" => AttrTag::RuntimeInvisibleAnnotations,
+//            b"RuntimeVisibleParameterAnnotations" => AttrTag::RuntimeVisibleParameterAnnotations,
+//            b"RuntimeInvisibleParameterAnnotations" => {
+//                AttrTag::RuntimeInvisibleParameterAnnotations
+//            }
             //            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
             //            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
-            b"AnnotationDefault" => AttrTag::AnnotationDefault,
+//            b"AnnotationDefault" => AttrTag::AnnotationDefault,
             b"BootstrapMethods" => AttrTag::BootstrapMethods,
             b"MethodParameters" => AttrTag::MethodParameters,
             _ => {
@@ -140,15 +130,10 @@ impl From<&[u8]> for AttrTag {
 
 #[derive(Debug, Clone)]
 pub struct Code {
-    pub length: U4,
     pub max_stack: U2,
     pub max_locals: U2,
-    pub code_len: U4,
     pub code: Arc<Vec<U1>>,
-    pub exceptions_n: U2,
     pub exceptions: Vec<CodeException>,
-    pub attrs_n: U2,
-//    pub attrs: Vec<AttributeInfo>,
     pub attrs: Vec<AttrType>
 }
 
@@ -321,14 +306,12 @@ pub struct ElementValuePair {
 #[derive(Debug, Clone)]
 pub struct AnnotationEntry {
     pub type_index: U2,
-    pub pairs_n: U2,
     pub pairs: Vec<ElementValuePair>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BootstrapMethod {
     pub method_ref: U2,
-    pub n_arg: U2,
     pub args: Vec<U2>,
 }
 

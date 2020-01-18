@@ -68,6 +68,7 @@ impl Field {
             let class = class.lock().unwrap();
             vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER)
         };
+//        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let id = Arc::new(Vec::from(id));
         let acc_flags = fi.acc_flags;
 

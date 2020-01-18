@@ -6,6 +6,5 @@ pub struct FieldInfo {
     pub acc_flags: U2,
     pub name_index: U2,
     pub desc_index: U2,
-    pub attrs_count: U2,
     pub attrs: Vec<AttrType>,
 }

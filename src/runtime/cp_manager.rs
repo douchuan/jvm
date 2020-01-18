@@ -103,8 +103,8 @@ impl ClassPathManager {
                     match zf {
                         Ok(mut zf) => {
                             let mut v = Vec::with_capacity(zf.size() as usize);
-                            zf.read_to_end(&mut v);
-
+                            let r = zf.read_to_end(&mut v);
+                            assert!(r.is_ok());
                             return Ok(ClassPathResult(it.1.clone(), it.0, v));
                         }
 
