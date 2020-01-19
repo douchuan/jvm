@@ -330,3 +330,31 @@ pub struct MethodParameter {
     pub acc_flags: U2,
 }
 
+#[derive(Debug, Clone)]
+pub enum VerificationTypeInfo {
+    Top,
+    Integer,
+    Float,
+    Long,
+    Double,
+    Null,
+    UninitializedThis,
+    Object { cpool_index: U2 },
+    Uninitialized { offset: U2 }
+}
+
+#[derive(Debug, Clone)]
+pub enum StackMapFrame {
+    Same,
+    SameLocals1StackItem { stack: Vec<VerificationTypeInfo> },
+    SameLocals1StackItemExtended { offset_delta: U2, stack: Vec<VerificationTypeInfo> },
+    Chop { offset_delta: U2 },
+    SameExtended { offset_delta: U2 },
+    Append { offset_delta: U2, locals: Vec<VerificationTypeInfo> },
+    Full {
+        offset_delta: U2,
+        locals: Vec<VerificationTypeInfo>,
+        stack: Vec<VerificationTypeInfo>
+    }
+}
+

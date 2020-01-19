@@ -606,7 +606,6 @@ impl AttrTypeParser for Parser {
         let debug_extension = self.get_u1s(length as usize);
         let debug_extension = Arc::new(debug_extension);
         AttrType::SourceDebugExtension { debug_extension }
-
     }
 
     fn get_attr_line_num_table(&mut self) -> AttrType {
