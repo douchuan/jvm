@@ -8,7 +8,9 @@ pub enum AttrType {
         constant_value_index: U2,
     },
     Code(Code),
-    //    StackMapTable,
+    StackMapTable {
+        entries: Vec<StackMapFrame>,
+    },
     Exceptions {
         exceptions: Vec<U2>,
     },
@@ -70,7 +72,7 @@ pub enum AttrTag {
     Invalid,
     ConstantValue,
     Code,
-    //    StackMapTable,
+    StackMapTable,
     Exceptions,
     InnerClasses,
     EnclosingMethod,
@@ -99,7 +101,7 @@ impl From<&[u8]> for AttrTag {
         match raw {
             b"ConstantValue" => AttrTag::ConstantValue,
             b"Code" => AttrTag::Code,
-            //            b"StackMapTable" => AttributeTag::StackMapTable,
+            b"StackMapTable" => AttrTag::StackMapTable,
             b"Exceptions" => AttrTag::Exceptions,
             b"InnerClasses" => AttrTag::InnerClasses,
             b"EnclosingMethod" => AttrTag::EnclosingMethod,
@@ -345,13 +347,16 @@ pub enum VerificationTypeInfo {
 
 #[derive(Debug, Clone)]
 pub enum StackMapFrame {
-    Same,
+    Same {
+        offset_delta: U2,
+    },
     SameLocals1StackItem {
-        stack: Vec<VerificationTypeInfo>,
+        offset_delta: U2,
+        stack: [VerificationTypeInfo; 1],
     },
     SameLocals1StackItemExtended {
         offset_delta: U2,
-        stack: Vec<VerificationTypeInfo>,
+        stack: [VerificationTypeInfo; 1],
     },
     Chop {
         offset_delta: U2,
@@ -368,4 +373,5 @@ pub enum StackMapFrame {
         locals: Vec<VerificationTypeInfo>,
         stack: Vec<VerificationTypeInfo>,
     },
+    Reserved,
 }

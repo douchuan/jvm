@@ -1,9 +1,3 @@
-use std::io::{Cursor, Read};
-use std::path::Path;
-use std::sync::Arc;
-
-use bytes::Buf;
-
 use crate::classfile::attr_info::LineNumber;
 use crate::classfile::{
     attr_info::{self, AttrTag, AttrType},
@@ -14,6 +8,10 @@ use crate::classfile::{
     ClassFile, Version,
 };
 use crate::util;
+use bytes::Buf;
+use std::io::{Cursor, Read};
+use std::path::Path;
+use std::sync::Arc;
 
 struct Parser {
     buf: Cursor<Vec<U1>>,
@@ -116,6 +114,35 @@ impl Parser {
         }
         tables
     }
+
+    fn get_verification_type_info(&mut self, n: usize) -> Vec<attr_info::VerificationTypeInfo> {
+        let mut r = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let v = match self.get_u1() {
+                0 => attr_info::VerificationTypeInfo::Top,
+                1 => attr_info::VerificationTypeInfo::Integer,
+                2 => attr_info::VerificationTypeInfo::Float,
+                5 => attr_info::VerificationTypeInfo::Null,
+                6 => attr_info::VerificationTypeInfo::UninitializedThis,
+                7 => {
+                    let cpool_index = self.get_u2();
+                    attr_info::VerificationTypeInfo::Object { cpool_index }
+                }
+                8 => {
+                    let offset = self.get_u2();
+                    attr_info::VerificationTypeInfo::Uninitialized { offset }
+                }
+                4 => attr_info::VerificationTypeInfo::Long,
+                3 => attr_info::VerificationTypeInfo::Double,
+                _ => unreachable!(),
+            };
+
+            r.push(v);
+        }
+
+        r
+    }
 }
 
 trait ClassFileParser {
@@ -154,7 +181,7 @@ impl ClassFileParser for Parser {
     fn get_cp(&mut self, n: U2) -> ConstantPool {
         let mut v = Vec::new();
 
-        v.push(ConstantType::NOP);
+        v.push(ConstantType::Nop);
 
         let mut i = 1;
         while i < n {
@@ -185,7 +212,7 @@ impl ClassFileParser for Parser {
             match ct {
                 ConstantTag::Long | ConstantTag::Double => {
                     i += 1;
-                    v.push(ConstantType::Unusable);
+                    v.push(ConstantType::Nop);
                 }
                 _ => (),
             }
@@ -415,6 +442,7 @@ trait AttrTypeParser {
     fn get_attr_type(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_constant_value(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_code(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_stack_map_table(&mut self) -> AttrType;
     fn get_attr_exceptions(&mut self) -> AttrType;
     fn get_attr_inner_classes(&mut self) -> AttrType;
     fn get_attr_enclosing_method(&mut self) -> AttrType;
@@ -448,7 +476,7 @@ impl AttrTypeParser for Parser {
         let tag = match cp.get(name_index as usize) {
             Some(v) => match v {
                 ConstantType::Utf8 { length: _, bytes } => {
-                    //                    trace!("get_attr_type {}", String::from_utf8_lossy(bytes.as_slice()));
+                    //                                        trace!("get_attr_type {}", String::from_utf8_lossy(bytes.as_slice()));
                     AttrTag::from(bytes.as_slice())
                 }
                 _ => unreachable!(),
@@ -456,11 +484,11 @@ impl AttrTypeParser for Parser {
             _ => unreachable!(),
         };
 
-        //        let tag = AttrTag::Unknown;
         match tag {
             AttrTag::Invalid => AttrType::Invalid,
             AttrTag::ConstantValue => self.get_attr_constant_value(cp),
             AttrTag::Code => self.get_attr_code(cp),
+            AttrTag::StackMapTable => self.get_attr_stack_map_table(),
             AttrTag::Exceptions => self.get_attr_exceptions(),
             AttrTag::InnerClasses => self.get_attr_inner_classes(),
             AttrTag::EnclosingMethod => self.get_attr_enclosing_method(),
@@ -529,6 +557,72 @@ impl AttrTypeParser for Parser {
             exceptions,
             attrs,
         })
+    }
+
+    fn get_attr_stack_map_table(&mut self) -> AttrType {
+        let _length = self.get_u4();
+        let n = self.get_u2();
+        let mut entries = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            let frame_type = self.get_u1();
+            let v = match frame_type {
+                0..=63 => attr_info::StackMapFrame::Same {
+                    offset_delta: frame_type as U2,
+                },
+                64..=127 => {
+                    let offset_delta = (frame_type - 64) as U2;
+                    let mut v = self.get_verification_type_info(1);
+                    let stack = [v.remove(0)];
+                    attr_info::StackMapFrame::SameLocals1StackItem {
+                        offset_delta,
+                        stack,
+                    }
+                }
+                128..=246 => attr_info::StackMapFrame::Reserved,
+                247 => {
+                    let offset_delta = self.get_u2();
+                    let mut v = self.get_verification_type_info(1);
+                    let stack = [v.remove(0)];
+                    attr_info::StackMapFrame::SameLocals1StackItem {
+                        offset_delta,
+                        stack,
+                    }
+                }
+                248..=250 => {
+                    let offset_delta = self.get_u2();
+                    attr_info::StackMapFrame::Chop { offset_delta }
+                }
+                251 => {
+                    let offset_delta = self.get_u2();
+                    attr_info::StackMapFrame::SameExtended { offset_delta }
+                }
+                252..=254 => {
+                    let offset_delta = self.get_u2();
+                    let n = frame_type - 251;
+                    let locals = self.get_verification_type_info(n as usize);
+                    attr_info::StackMapFrame::Append {
+                        offset_delta,
+                        locals,
+                    }
+                }
+                255 => {
+                    let offset_delta = self.get_u2();
+                    let n = self.get_u2();
+                    let locals = self.get_verification_type_info(n as usize);
+                    let n = self.get_u2();
+                    let stack = self.get_verification_type_info(n as usize);
+                    attr_info::StackMapFrame::Full {
+                        offset_delta,
+                        locals,
+                        stack,
+                    }
+                }
+            };
+
+            entries.push(v);
+        }
+
+        AttrType::StackMapTable { entries }
     }
 
     fn get_attr_exceptions(&mut self) -> AttrType {

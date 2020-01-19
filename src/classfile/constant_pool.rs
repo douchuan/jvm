@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum ConstantType {
-    NOP,
+    Nop,
     Class {
         name_index: u16,
     },
@@ -61,7 +61,6 @@ pub enum ConstantType {
         name_and_type_index: u16,
     },
     Unknown,
-    Unusable,
 }
 
 pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
@@ -122,7 +121,7 @@ pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
 impl Checker for ConstantType {
     fn check(&self, cp: &ConstantPool) -> CheckResult {
         match self {
-            ConstantType::NOP => Ok(()),
+            ConstantType::Nop => Ok(()),
             ConstantType::Class { name_index } => match cp.get(*name_index as usize) {
                 Some(ConstantType::Utf8 {
                     length: _,
@@ -339,7 +338,6 @@ impl Checker for ConstantType {
                 }
             }
             ConstantType::Unknown => Ok(()),
-            ConstantType::Unusable => Ok(()),
         }
     }
 }
