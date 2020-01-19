@@ -1,12 +1,14 @@
-use bytes::{BigEndian, Bytes};
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::consts;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, field, ClassRef, Oop, OopDesc, ValueType, MethodIdRef};
+use crate::oop::{
+    self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, ValueType,
+};
 use crate::runtime::thread::JavaThread;
 use crate::runtime::{self, JavaThreadRef, Local, Stack};
+use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -53,9 +55,8 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
-            }
+            },
         }
-
     }
 }
 
@@ -90,7 +91,7 @@ impl Frame {
                         OpCode::return_ => {
                             self.return_();
                             break;
-                        },
+                        }
                         OpCode::nop => self.nop(),
                         OpCode::aconst_null => self.aconst_null(),
                         OpCode::iconst_m1 => self.iconst_m1(),
@@ -298,7 +299,6 @@ impl Frame {
 
 //helper methods
 impl Frame {
-
     fn read_i1(&mut self) -> i32 {
         let v = self.code[self.pc as usize];
         self.pc += 1;

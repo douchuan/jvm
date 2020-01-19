@@ -27,7 +27,7 @@ pub enum AttrType {
         source_file_index: U2,
     },
     SourceDebugExtension {
-        debug_extension: Arc<Vec<U1>>
+        debug_extension: Arc<Vec<U1>>,
     },
     LineNumberTable {
         tables: Vec<LineNumber>,
@@ -51,8 +51,8 @@ pub enum AttrType {
     RuntimeInvisibleParameterAnnotations {
         annotations: Vec<AnnotationEntry>,
     },
-//        RuntimeVisibleTypeAnnotations,
-//        RuntimeInvisibleTypeAnnotations,
+    //        RuntimeVisibleTypeAnnotations,
+    //        RuntimeInvisibleTypeAnnotations,
     AnnotationDefault {
         default_value: ElementValueType,
     },
@@ -117,8 +117,8 @@ impl From<&[u8]> for AttrTag {
             b"RuntimeInvisibleParameterAnnotations" => {
                 AttrTag::RuntimeInvisibleParameterAnnotations
             }
-//            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
-//            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
+            //            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
+            //            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
             b"AnnotationDefault" => AttrTag::AnnotationDefault,
             b"BootstrapMethods" => AttrTag::BootstrapMethods,
             b"MethodParameters" => AttrTag::MethodParameters,
@@ -136,7 +136,7 @@ pub struct Code {
     pub max_locals: U2,
     pub code: Arc<Vec<U1>>,
     pub exceptions: Vec<CodeException>,
-    pub attrs: Vec<AttrType>
+    pub attrs: Vec<AttrType>,
 }
 
 #[derive(Debug, Clone)]
@@ -161,7 +161,7 @@ impl CodeException {
 pub struct AttributeInfo {
     pub name_index: U2,
     pub length: U4,
-    pub info: Vec<U1>
+    pub info: Vec<U1>,
 }
 
 pub enum NestedClassAccessPropertyFlag {
@@ -340,21 +340,32 @@ pub enum VerificationTypeInfo {
     Null,
     UninitializedThis,
     Object { cpool_index: U2 },
-    Uninitialized { offset: U2 }
+    Uninitialized { offset: U2 },
 }
 
 #[derive(Debug, Clone)]
 pub enum StackMapFrame {
     Same,
-    SameLocals1StackItem { stack: Vec<VerificationTypeInfo> },
-    SameLocals1StackItemExtended { offset_delta: U2, stack: Vec<VerificationTypeInfo> },
-    Chop { offset_delta: U2 },
-    SameExtended { offset_delta: U2 },
-    Append { offset_delta: U2, locals: Vec<VerificationTypeInfo> },
+    SameLocals1StackItem {
+        stack: Vec<VerificationTypeInfo>,
+    },
+    SameLocals1StackItemExtended {
+        offset_delta: U2,
+        stack: Vec<VerificationTypeInfo>,
+    },
+    Chop {
+        offset_delta: U2,
+    },
+    SameExtended {
+        offset_delta: U2,
+    },
+    Append {
+        offset_delta: U2,
+        locals: Vec<VerificationTypeInfo>,
+    },
     Full {
         offset_delta: U2,
         locals: Vec<VerificationTypeInfo>,
-        stack: Vec<VerificationTypeInfo>
-    }
+        stack: Vec<VerificationTypeInfo>,
+    },
 }
-

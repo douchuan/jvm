@@ -1,9 +1,9 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc};
-use crate::runtime::{self, thread, JavaThreadRef, Stack, Frame};
-use std::sync::Arc;
+use crate::runtime::{self, thread, Frame, JavaThreadRef, Stack};
 use std::borrow::BorrowMut;
+use std::sync::Arc;
 
 pub struct JavaCall {
     pub jtr: JavaThreadRef,
@@ -12,11 +12,7 @@ pub struct JavaCall {
 }
 
 impl JavaCall {
-    pub fn new(
-        jtr: JavaThreadRef,
-        stack: &mut Stack,
-        mir: MethodIdRef,
-    ) -> Result<JavaCall, ()> {
+    pub fn new(jtr: JavaThreadRef, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let mut args = build_method_args(stack, sig);
 
@@ -38,11 +34,7 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-        Ok(Self {
-            jtr,
-            mir,
-            args,
-        })
+        Ok(Self { jtr, mir, args })
     }
 
     pub fn invoke_java(&mut self) -> Option<Arc<OopDesc>> {
@@ -51,16 +43,15 @@ impl JavaCall {
         self.prepare_sync();
 
         if self.prepare_frame().is_ok() {
-
             //exec interp
-            let frame= {
+            let frame = {
                 let jt = Arc::get_mut(&mut self.jtr).unwrap();
                 jt.frames.last_mut().unwrap()
             };
 
             frame.exec_interp();
 
-            let frame= {
+            let frame = {
                 let jt = Arc::get_mut(&mut self.jtr).unwrap();
                 jt.frames.pop().unwrap()
             };
@@ -116,23 +107,23 @@ impl JavaCall {
                 Oop::Int(v) => {
                     locals.set_int(slot_pos, *v);
                     1
-                },
+                }
                 Oop::Float(v) => {
                     locals.set_float(slot_pos, *v);
                     1
-                },
+                }
                 Oop::Double(v) => {
                     locals.set_double(slot_pos, *v);
                     2
-                },
+                }
                 Oop::Long((v)) => {
                     locals.set_long(slot_pos, *v);
                     2
-                },
+                }
                 _ => {
                     locals.set_ref(slot_pos, v.clone());
                     1
-                },
+                }
             };
 
             slot_pos += step;

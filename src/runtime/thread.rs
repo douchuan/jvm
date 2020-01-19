@@ -1,6 +1,6 @@
 use crate::classfile;
 use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc};
-use crate::runtime::{self, JavaCall, Frame};
+use crate::runtime::{self, Frame, JavaCall};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
@@ -69,34 +69,33 @@ impl JavaMainThread {
 
         //build main String array arg
         let args = match &self.args {
-            Some(args) => {
-                args.iter()
-                    .map(|it| {
-                        let v = Arc::new(Vec::from(it.as_bytes()));
-                        OopDesc::new_str(v)
-                    })
-                    .collect()
-            }
+            Some(args) => args
+                .iter()
+                .map(|it| {
+                    let v = Arc::new(Vec::from(it.as_bytes()));
+                    OopDesc::new_str(v)
+                })
+                .collect(),
             None => vec![consts::get_null()],
         };
 
         let string_class = runtime::require_class3(None, classfile::consts::J_STRING).unwrap();
         let ary = oop::ArrayOopDesc {
             class: string_class,
-            elements: args
+            elements: args,
         };
         let arg = OopDesc::new_ary(ary);
 
         let mut jc = JavaCall {
             jtr: Arc::new(JavaThread::new()),
             mir,
-            args: vec![arg]
+            args: vec![arg],
         };
 
         let v = jc.invoke_java();
         info!("v = {:?}", v);
 
-//        let mut jt = Arc::new(JavaThread::new(method, args));
-//        JavaThread::run(jt);
+        //        let mut jt = Arc::new(JavaThread::new(method, args));
+        //        JavaThread::run(jt);
     }
 }

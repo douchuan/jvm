@@ -11,8 +11,8 @@ pub mod field;
 pub mod method;
 
 pub use self::class::{ClassObject, Type as ClassType};
-pub use self::field::{FieldIdRef};
-pub use self::method::{MethodIdRef};
+pub use self::field::FieldIdRef;
+pub use self::method::MethodIdRef;
 
 macro_rules! def_ref {
     ($name:ident, $t:ty) => {

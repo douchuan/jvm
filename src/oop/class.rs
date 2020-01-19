@@ -1,7 +1,7 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
-    consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef,
-    MethodIdRef, Oop, OopDesc, ValueType,
+    consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
+    OopDesc, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaThreadRef};
 use crate::util::{self, PATH_DELIMITER};
@@ -413,7 +413,7 @@ impl ClassObject {
 
     fn link_constant_pool(&mut self) {
         //todo: impl
-//        unimplemented!()
+        //        unimplemented!()
     }
 
     fn link_attributes(&mut self) {
@@ -422,16 +422,12 @@ impl ClassObject {
 
         class_file.attrs.iter().for_each(|a| {
             match a {
-                AttrType::Signature {
-                    signature_index,
-                } => {
+                AttrType::Signature { signature_index } => {
                     if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
                         self.signature = Some(s);
                     }
                 }
-                AttrType::SourceFile {
-                    source_file_index,
-                } => {
+                AttrType::SourceFile { source_file_index } => {
                     if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {
                         self.source_file = Some(s);
                     }
