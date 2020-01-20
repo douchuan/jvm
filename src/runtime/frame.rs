@@ -32,6 +32,7 @@ impl Frame {
         let class = mir.method.class.clone();
         match &mir.method.code {
             Some(code) => {
+//                trace!("local size = {}, stack_size = {}", code.max_locals, code.max_stack);
                 let local = Local::new(code.max_locals as usize);
                 let stack = Stack::new(code.max_stack as usize);
                 let code = code.code.clone();
@@ -68,6 +69,7 @@ impl Frame {
             match op_code {
                 Some(&op_code) => {
                     let op_code = OpCode::from(op_code);
+                    trace!("exec_interp op_code = {:?}", op_code);
                     match op_code {
                         OpCode::ireturn => {
                             self.ireturn();

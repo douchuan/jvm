@@ -350,8 +350,10 @@ impl ClassObject {
 
         let mut n_static = 0;
         let mut n_inst = 0;
+        let class_name = self.name.clone();
+        let class_name = class_name.as_slice();
         class_file.fields.iter().for_each(|it| {
-            let field = field::Field::new(cp, it, self_ref.clone());
+            let field = field::Field::new(cp, it, class_name, self_ref.clone());
             let id = field.get_id();
             if field.is_static() {
                 let fid = field::FieldId {

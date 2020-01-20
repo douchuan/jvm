@@ -48,15 +48,19 @@ impl JavaCall {
     }
 
     pub fn invoke_java(&mut self, stack: &mut Stack) {
+        trace!("invoke_java 1");
         self.prepare_sync();
 
+        trace!("invoke_java 2");
         if self.prepare_frame().is_ok() {
+            trace!("invoke_java 3");
             //exec interp
             let frame = {
                 let jt = Arc::get_mut(&mut self.jtr).unwrap();
                 jt.frames.last_mut().unwrap()
             };
 
+            trace!("invoke_java 4");
             frame.exec_interp();
 
             let frame = {

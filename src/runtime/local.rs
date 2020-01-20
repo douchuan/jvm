@@ -9,8 +9,14 @@ pub struct Local {
 
 impl Local {
     pub fn new(size: usize) -> Self {
+        let mut locals = Vec::with_capacity(size);
+        // init locals before use, otherwise self.locals[i] = xx, cause exception
+        for _ in 0..size {
+            locals.push(Slot::Const0);
+        }
+
         Self {
-            locals: Vec::with_capacity(size),
+            locals
         }
     }
 

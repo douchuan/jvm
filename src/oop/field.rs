@@ -60,14 +60,11 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(cp: &ConstantPool, fi: &FieldInfo, class: ClassRef) -> Self {
+    pub fn new(cp: &ConstantPool, fi: &FieldInfo, class_name: &[u8], class: ClassRef) -> Self {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
-        let id = {
-            let class = class.lock().unwrap();
-            vec![class.name.as_slice(), desc.as_slice(), name.as_slice()].join(PATH_DELIMITER)
-        };
+        let id = vec![class_name, desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let id = Arc::new(Vec::from(id));
         let acc_flags = fi.acc_flags;

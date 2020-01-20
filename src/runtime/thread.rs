@@ -2,7 +2,7 @@ use crate::classfile::{self, signature};
 use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc};
 use crate::runtime::{self, Frame, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub type JavaThreadRef = Arc<JavaThread>;
 
@@ -63,11 +63,23 @@ impl JavaThread {
 
 impl JavaMainThread {
     pub fn run(&self) {
-        let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
-        let class = class.lock().unwrap();
-        let mir = class.get_static_method(b"([Ljava/lang/String;)V", b"main");
+        let mir = {
+            let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
+            let class = class.lock().unwrap();
+            class.get_static_method(b"([Ljava/lang/String;)V", b"main")
+        };
 
-        //build main String array arg
+        let jtr = Arc::new(JavaThread::new());
+        let mut stack = self.build_stack();
+        let jc = JavaCall::new(jtr, &mut stack, mir);
+        jc.unwrap().invoke(&mut stack);
+        info!("stack = {:?}", stack);
+    }
+}
+
+impl JavaMainThread {
+    fn build_stack(&self) -> Stack {
+        //args array => Vec<Arc<OopDesc>>
         let args = match &self.args {
             Some(args) => args
                 .iter()
@@ -79,6 +91,7 @@ impl JavaMainThread {
             None => vec![consts::get_null()],
         };
 
+        //build ArrayOopDesc
         let string_class = runtime::require_class3(None, classfile::consts::J_STRING).unwrap();
         let ary = oop::ArrayOopDesc {
             class: string_class,
@@ -86,15 +99,10 @@ impl JavaMainThread {
         };
         let arg = OopDesc::new_ary(ary);
 
-        let mut jc = JavaCall {
-            jtr: Arc::new(JavaThread::new()),
-            mir,
-            args: vec![arg],
-            return_type: signature::Type::Void
-        };
-
+        //push to stack
         let mut stack = Stack::new(1);
-        jc.invoke_java(&mut stack);
-        info!("stack = {:?}", stack);
+        stack.push_ref(arg);
+
+        stack
     }
 }
