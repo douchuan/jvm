@@ -127,4 +127,8 @@ impl Method {
     pub fn is_synchronized(&self) -> bool {
         (self.acc_flags & ACC_SYNCHRONIZED) == ACC_SYNCHRONIZED
     }
+
+    pub fn is_native(&self) -> bool {
+        (self.acc_flags & ACC_NATIVE) == ACC_NATIVE
+    }
 }

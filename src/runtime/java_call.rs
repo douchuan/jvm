@@ -9,11 +9,13 @@ pub struct JavaCall {
     pub jtr: JavaThreadRef,
     pub mir: MethodIdRef,
     pub args: Vec<Arc<OopDesc>>,
+    pub return_type: ArgType
 }
 
 impl JavaCall {
     pub fn new(jtr: JavaThreadRef, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
+        let return_type = sig.retype.clone();
         let mut args = build_method_args(stack, sig);
 
         //insert 'this' value
@@ -34,12 +36,18 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-        Ok(Self { jtr, mir, args })
+        Ok(Self { jtr, mir, args, return_type })
     }
 
-    pub fn invoke_java(&mut self) -> Option<Arc<OopDesc>> {
-        let mut r = None;
+    pub fn invoke(&mut self, stack: &mut Stack) {
+        if self.mir.method.is_native() {
+            unimplemented!()
+        } else {
+            self.invoke_java(stack);
+        }
+    }
 
+    pub fn invoke_java(&mut self, stack: &mut Stack) {
         self.prepare_sync();
 
         if self.prepare_frame().is_ok() {
@@ -55,12 +63,11 @@ impl JavaCall {
                 let jt = Arc::get_mut(&mut self.jtr).unwrap();
                 jt.frames.pop().unwrap()
             };
-            r = frame.return_v;
+
+            self.set_return(stack, frame.return_v);
         }
 
         self.fin_sync();
-
-        r
     }
 }
 
@@ -133,6 +140,65 @@ impl JavaCall {
         jt.frames.push(frame);
 
         return Ok(());
+    }
+
+    fn set_return(&mut self, stack: &mut Stack, v: Option<Arc<OopDesc>>) {
+        if !self.jtr.is_exception_occurred() {
+            match self.return_type {
+                ArgType::Int => {
+                    match v {
+                        Some(v) => {
+                            match v.v {
+                                Oop::Int(v) => stack.push_int(v),
+                                _ => unreachable!(),
+                            }
+                        },
+                        None => unreachable!(),
+                    }
+                }
+                ArgType::Long => {
+                    match v {
+                        Some(v) => {
+                            match v.v {
+                                Oop::Long(v) => stack.push_long(v),
+                                _ => unreachable!()
+                            }
+                        },
+                        None => unreachable!(),
+                    }
+                }
+                ArgType::Float => {
+                    match v {
+                        Some(v) => {
+                            match v.v {
+                                Oop::Float(v) => stack.push_float(v),
+                                _ => unreachable!()
+                            }
+                        },
+                        None => unreachable!()
+                    }
+                }
+                ArgType::Double => {
+                    match v {
+                        Some(v) => {
+                            match v.v {
+                                Oop::Double(v) => stack.push_double(v),
+                                _ => unreachable!()
+                            }
+                        },
+                        None => unreachable!()
+                    }
+                }
+                ArgType::Object(_) | ArgType::Array(_, _) => {
+                    match v {
+                        Some(v) => stack.push_ref(v),
+                        None => unreachable!()
+                    }
+                }
+                ArgType::Void => (),
+                _ => unreachable!()
+            }
+        }
     }
 }
 

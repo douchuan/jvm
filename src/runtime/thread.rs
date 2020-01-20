@@ -1,6 +1,6 @@
-use crate::classfile;
+use crate::classfile::{self, signature};
 use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc};
-use crate::runtime::{self, Frame, JavaCall};
+use crate::runtime::{self, Frame, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
@@ -90,12 +90,11 @@ impl JavaMainThread {
             jtr: Arc::new(JavaThread::new()),
             mir,
             args: vec![arg],
+            return_type: signature::Type::Void
         };
 
-        let v = jc.invoke_java();
-        info!("v = {:?}", v);
-
-        //        let mut jt = Arc::new(JavaThread::new(method, args));
-        //        JavaThread::run(jt);
+        let mut stack = Stack::new(1);
+        jc.invoke_java(&mut stack);
+        info!("stack = {:?}", stack);
     }
 }

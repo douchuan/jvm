@@ -7,6 +7,7 @@ use crate::runtime::Slot;
 use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Stack {
     inner: Vec<Slot>,
 }

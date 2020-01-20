@@ -462,6 +462,19 @@ impl Frame {
             }
         }
     }
+
+    fn invoke_helper(&mut self) {
+        let idx = self.read_u2();
+
+        let thread = self.thread.clone();
+        let mir = {
+            let cp = &self.class.lock().unwrap().class_file.cp;
+            oop::method::get_method_ref(thread.clone(), cp, idx)
+        };
+
+        let jc = runtime::java_call::JavaCall::new(thread, &mut self.stack, mir);
+        jc.unwrap().invoke(&mut self.stack);
+    }
 }
 
 //byte code impl
@@ -2057,23 +2070,24 @@ impl Frame {
     }
 
     pub fn invoke_virtual(&mut self) {
-        //todo: impl
+        self.invoke_helper();
     }
 
     pub fn invoke_special(&mut self) {
-        //todo: impl
+        self.invoke_helper();
     }
 
     pub fn invoke_static(&mut self) {
-        //todo: impl
+        self.invoke_helper();
     }
 
     pub fn invoke_interface(&mut self) {
-        //todo: impl
+        self.invoke_helper();
     }
 
     pub fn invoke_dynamic(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn new_(&mut self) {
