@@ -26,13 +26,11 @@ todo list
   4. oop::class
     new_object_ary/new_prime_ary/new_wrapped_ary
   5. impl InstOopDesc
-  6. impl runtime::thread::JavaThread run
   7. oop class init_class, java call "<clinit>"
      impl JavaCall::with_args(thread, clinit, {})
   8. impl byte code instruction
     table_switch, lookup_switch...
   9. oop/class.rs, link_constant_pool
-  10. impl attr_info StackMapTable...
 
   x. verify class file
   x. java to execute a jar by -jar

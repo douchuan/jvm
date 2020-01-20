@@ -365,6 +365,27 @@ impl Frame {
         self.pc = pc;
     }
 
+    fn goto_by_offset(&mut self, branch: i32) {
+        self.pc += branch;
+    }
+
+    fn goto_by_offset_with_occupied(&mut self, branch: i32, occupied: i32) {
+        self.goto_by_offset(branch);
+        self.goto_by_offset(-(occupied - 1));
+    }
+
+    fn goto_by_offset_hardcoded(&mut self, occupied: i32) {
+        let high = (self.code[self.pc as usize] << 8) as u16;
+        let low = self.code[(self.pc + 1) as usize] as u16;
+        let branch =  high | low;
+        self.goto_by_offset_with_occupied(branch as i32, occupied);
+    }
+
+    fn goto_abs_with_occupied(&mut self, pc: i32, occupied: i32) {
+        self.goto_abs(pc);
+        self.goto_by_offset(-(occupied - 1));
+    }
+
     fn set_return(&mut self, v: Arc<OopDesc>) {
         self.return_v = Some(v);
     }
@@ -1870,7 +1891,42 @@ impl Frame {
     }
 
     pub fn table_switch(&mut self) {
-        //todo: impl
+        let mut bc = (self.pc - 1) as usize;
+        let origin_bc = bc;
+        if bc % 4 != 0 {
+            bc += (4 - bc % 4);
+        } else {
+            bc += 4;
+        }
+        let mut ptr = bc;
+        let default_byte = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
+        let default_byte = u32::from_be_bytes(default_byte);
+        let low_byte= [self.code[ptr + 4], self.code[ptr + 5], self.code[ptr + 6], self.code[ptr + 7]];
+        let low_byte = u32::from_be_bytes(low_byte);
+        let high_byte= [self.code[ptr + 8], self.code[ptr + 9], self.code[ptr + 10], self.code[ptr + 11]];
+        let high_byte = u32::from_be_bytes(high_byte);
+        let num = high_byte - low_byte + 1;
+        ptr += 12;
+
+        // switch-case jump table
+        let mut jump_table = Vec::with_capacity(num as usize);
+        for pos in 0..num {
+            let pos = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
+            let pos = u32::from_be_bytes(pos);
+            let jump_pos = pos + origin_bc as u32;
+            jump_table.push(jump_pos);
+
+            ptr += 4;
+        }
+        // default
+        jump_table.push(default_byte + origin_bc as u32);
+
+        let top_value = self.stack.pop_int();
+        if (top_value > (jump_table.len() - 1 + low_byte as usize) as i32) || top_value < low_byte as i32 {
+            self.goto_abs_with_occupied(*jump_table.last().unwrap() as i32, 1);
+        } else {
+            self.goto_abs_with_occupied(jump_table[(top_value - low_byte as i32) as usize] as i32, 1);
+        }
     }
 
     pub fn lookup_switch(&mut self) {
