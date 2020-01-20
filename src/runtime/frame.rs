@@ -10,6 +10,7 @@ use crate::runtime::thread::JavaThread;
 use crate::runtime::{self, JavaThreadRef, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -1891,14 +1892,14 @@ impl Frame {
     }
 
     pub fn table_switch(&mut self) {
-        let mut bc = (self.pc - 1) as usize;
+        let mut bc = self.pc - 1;
         let origin_bc = bc;
         if bc % 4 != 0 {
             bc += (4 - bc % 4);
         } else {
             bc += 4;
         }
-        let mut ptr = bc;
+        let mut ptr = bc as usize;
         let default_byte = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
         let default_byte = u32::from_be_bytes(default_byte);
         let low_byte= [self.code[ptr + 4], self.code[ptr + 5], self.code[ptr + 6], self.code[ptr + 7]];
@@ -1914,9 +1915,8 @@ impl Frame {
             let pos = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
             let pos = u32::from_be_bytes(pos);
             let jump_pos = pos + origin_bc as u32;
-            jump_table.push(jump_pos);
-
             ptr += 4;
+            jump_table.push(jump_pos);
         }
         // default
         jump_table.push(default_byte + origin_bc as u32);
@@ -1930,7 +1930,36 @@ impl Frame {
     }
 
     pub fn lookup_switch(&mut self) {
-        //todo: impl
+        let mut bc = self.pc - 1;
+        let origin_bc = bc;
+        if bc % 4 != 0 {
+            bc += (4 - bc % 4);
+        } else {
+            bc += 4;
+        }
+        let mut ptr = bc as usize;
+
+        let default_byte = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
+        let default_byte = u32::from_be_bytes(default_byte);
+        let count = [self.code[ptr + 4], self.code[ptr + 5], self.code[ptr + 6], self.code[ptr + 7]];
+        let count = u32::from_be_bytes(count);
+        ptr += 8;
+
+        let mut jump_table: HashMap<u32, u32> = HashMap::new();
+        for i in 0..count {
+            let value = [self.code[ptr], self.code[ptr + 1], self.code[ptr + 2], self.code[ptr + 3]];
+            let value = u32::from_be_bytes(value);
+            let position = [self.code[ptr + 4], self.code[ptr + 5], self.code[ptr + 6], self.code[ptr + 7]];
+            let position = u32::from_be_bytes(position) + origin_bc as u32;
+            ptr += 8;
+            jump_table.insert(value, position);
+        }
+
+        let top_value = self.stack.pop_int();
+        match jump_table.get(&(top_value as u32)) {
+            Some(position) => self.goto_abs_with_occupied(*position as i32, 1),
+            None => self.goto_abs_with_occupied(default_byte as i32 + origin_bc, 1)
+        }
     }
 
     pub fn ireturn(&mut self) {
