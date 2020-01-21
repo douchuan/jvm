@@ -67,13 +67,13 @@ impl ClassLoader {
         match calc_dimension(name) {
             Some(1) => {
                 // dimension == 1
-                match name.first() {
+                match name.get(1) {
                     Some(b'L') => {
                         //[Ljava/lang/Object;
                         let elm = &name[2..name.len() - 1];
                         match self.load_class(elm) {
                             Some(elm) => {
-                                let class = ClassObject::new_object_ary(*self, elm);
+                                let class = ClassObject::new_object_ary(*self, elm, name);
                                 Some(new_ref!(class))
                             }
                             None => None,

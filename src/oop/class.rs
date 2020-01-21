@@ -122,29 +122,44 @@ impl ClassObject {
         //todo: java mirror
         //        java::lang::Class::createMirror(this, _javaLoader);
 
-        self.link_super_class();
-        self.link_fields(self_ref.clone());
-        self.link_interfaces();
-        self.link_methods(self_ref);
-        self.link_constant_pool();
-        self.link_attributes();
+        match self.typ {
+            Type::InstanceClass => {
+                self.link_super_class();
+                self.link_fields(self_ref.clone());
+                self.link_interfaces();
+                self.link_methods(self_ref);
+                self.link_constant_pool();
+                self.link_attributes();
+            }
+
+            Type::ObjectArray | Type::PrimeArray => {
+                let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
+                self.super_class = Some(super_class);
+            }
+        }
 
         self.set_class_state(State::Linked);
     }
 
     pub fn init_class(&mut self, thread: &mut JavaThread) {
-        if self.state == State::Linked {
-            self.state = State::BeingIni;
+        match self.typ {
+            Type::InstanceClass => {
+                if self.state == State::Linked {
+                    self.state = State::BeingIni;
 
-            if let Some(super_class) = self.super_class.as_ref() {
-                super_class.lock().unwrap().init_class(thread);
+                    if let Some(super_class) = self.super_class.as_ref() {
+                        super_class.lock().unwrap().init_class(thread);
+                    }
+
+                    self.init_static_fields();
+
+                    //todo: JavaCall "<clinit>" "()V"
+
+                    self.state = State::FullyIni;
+                }
             }
 
-            self.init_static_fields();
-
-            //todo: JavaCall "<clinit>" "()V"
-
-            self.state = State::FullyIni;
+            Type::ObjectArray | Type::PrimeArray => (), //skip for Array
         }
     }
 
@@ -309,8 +324,33 @@ impl ClassObject {
         }
     }
 
-    pub fn new_object_ary(class_loader: ClassLoader, elm: ClassRef) -> Self {
-        unimplemented!()
+    pub fn new_object_ary(class_loader: ClassLoader, elm: ClassRef, elm_name: &[u8]) -> Self {
+        let name = Arc::new(Vec::from(elm_name));
+        let class_file = {
+            let class = elm.lock().unwrap();
+            class.class_file.clone()
+        };
+        Self {
+            name,
+            typ: Type::ObjectArray,
+            state: State::Allocated,
+            acc_flags: 0, //todo: should be 0?
+            super_class: None,
+            class_loader: Some(class_loader),
+            class_file,
+            signature: None,
+            elm_type: Some(ValueType::OBJECT),
+            down_type: None,
+            n_inst_fields: 0,
+            all_methods: HashMap::new(),
+            v_table: HashMap::new(),
+            static_fields: HashMap::new(),
+            inst_fields: HashMap::new(),
+            static_filed_values: vec![],
+            interfaces: HashMap::new(),
+            source_file: None,
+            monitor: Mutex::new(0),
+        }
     }
 
     pub fn new_prime_ary(class_loader: ClassLoader, elm: ValueType) -> Self {

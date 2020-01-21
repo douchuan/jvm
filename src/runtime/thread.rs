@@ -89,7 +89,7 @@ impl JavaMainThread {
         };
 
         //build ArrayOopDesc
-        let string_class = runtime::require_class3(None, classfile::consts::J_STRING).unwrap();
+        let string_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
         let ary = oop::ArrayOopDesc {
             class: string_class,
             elements: args,
