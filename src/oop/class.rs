@@ -3,7 +3,7 @@ use crate::oop::{
     consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, ValueType,
 };
-use crate::runtime::{self, require_class2, ClassLoader, JavaThread};
+use crate::runtime::{self, require_class2, ClassLoader, JavaThread, JavaCall, Stack};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -24,6 +24,36 @@ pub enum State {
     BeingIni,
     FullyIni,
     IniErr,
+}
+
+pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
+    let need = {
+        class.lock().unwrap().state != State::FullyIni
+    };
+
+    if need {
+        let mir = {
+            let class = class.lock().unwrap();
+            class.get_this_class_method(b"()V", b"<clinit>")
+        };
+
+        {
+            match mir {
+                Ok(mir) => {
+                    let mut stack = Stack::new(0);
+                    let jc = JavaCall::new(thread, &mut stack, mir);
+                    jc.unwrap().invoke(thread, &mut stack);
+                }
+                _ => (),
+            }
+        }
+
+        {
+            let mut class = class.lock().unwrap();
+            class.state = State::FullyIni;
+        }
+    }
+
 }
 
 #[derive(Debug)]
@@ -152,10 +182,6 @@ impl ClassObject {
                     }
 
                     self.init_static_fields();
-
-                    //todo: JavaCall "<clinit>" "()V"
-
-                    self.state = State::FullyIni;
                 }
             }
 
@@ -191,33 +217,19 @@ impl ClassObject {
         self.typ == Type::ObjectArray
     }
 
-    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> MethodIdRef {
+    //todo: confirm static method
+    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
+        self.get_this_class_method(desc, name)
+    }
+
+    pub fn get_this_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
         let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
-        self.get_this_class_method(id)
+        self.get_this_class_method_inner(id)
     }
 
-    pub fn get_this_class_method(&self, id: BytesRef) -> MethodIdRef {
-        match self.all_methods.get(&id) {
-            Some(m) => return m.clone(),
-            None => (),
-        }
-
-        let super_class = self.super_class.clone();
-        super_class
-            .unwrap()
-            .lock()
-            .unwrap()
-            .get_this_class_method(id)
-    }
-
-    pub fn get_virtual_method(&self, id: BytesRef) -> MethodIdRef {
-        match self.v_table.get(&id) {
-            Some(m) => return m.clone(),
-            None => (),
-        }
-
-        let super_class = self.super_class.clone();
-        super_class.unwrap().lock().unwrap().get_virtual_method(id)
+    pub fn get_virtual_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
+        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        self.get_virtual_method_inner(id)
     }
 
     pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
@@ -365,7 +377,7 @@ impl ClassObject {
 //inner api for link
 impl ClassObject {
     fn link_super_class(&mut self) {
-        let class_file = self.class_file.clone();
+        let class_file = &self.class_file;
         let cp = &class_file.cp;
 
         if class_file.super_class == 0 {
@@ -485,7 +497,7 @@ impl ClassObject {
     }
 
     fn init_static_fields(&mut self) {
-        let class_file = self.class_file.clone();
+        let class_file = &self.class_file;
         let cp = &class_file.cp;
         let values = &mut self.static_filed_values;
         self.static_fields.iter().for_each(|(_, it)| {
@@ -498,5 +510,39 @@ impl ClassObject {
                 values[it.offset] = it.field.get_constant_value();
             }
         });
+    }
+}
+
+impl ClassObject {
+    pub fn get_this_class_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+        match self.all_methods.get(&id) {
+            Some(m) => return Ok(m.clone()),
+            None => (),
+        }
+
+        if self.super_class.is_none() {
+            return Err(());
+        } else {
+            let super_class = self.super_class.clone();
+            super_class
+                .unwrap()
+                .lock()
+                .unwrap()
+                .get_this_class_method_inner(id)
+        }
+    }
+
+    pub fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+        match self.v_table.get(&id) {
+            Some(m) => return Ok(m.clone()),
+            None => (),
+        }
+
+        if self.super_class.is_none() {
+            return Err(());
+        } else {
+            let super_class = self.super_class.clone();
+            super_class.unwrap().lock().unwrap().get_virtual_method_inner(id)
+        }
     }
 }

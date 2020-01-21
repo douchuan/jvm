@@ -20,6 +20,7 @@ impl JavaCall {
         let return_type = sig.retype.clone();
         let mut args = build_method_args(stack, sig);
 
+        trace!("is_static={}, is_native={}", mir.method.is_static(), mir.method.is_native());
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {

@@ -219,7 +219,7 @@ impl ClassFileParser for Parser {
             }
         }
 
-        v
+        Arc::new(v)
     }
 
     fn get_acc_flags(&mut self) -> U2 {

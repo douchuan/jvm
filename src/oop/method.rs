@@ -2,7 +2,7 @@ use crate::classfile::{
     access_flags::*, attr_info::Code, constant_pool, consts, types::*, AttrType, FieldInfo,
     MethodInfo,
 };
-use crate::oop::{ClassObject, ClassRef, ValueType};
+use crate::oop::{self, ClassObject, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
@@ -10,29 +10,28 @@ use std::sync::Arc;
 
 pub type MethodIdRef = Arc<MethodId>;
 
-pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) -> MethodIdRef {
+pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
     //load Method's Class, then init it
     let class = require_class2(class_index, cp).unwrap();
-    let id = {
-        let mut class = class.lock().unwrap();
-        class.init_class(thread);
-
+    let (name, typ) = {
         let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        Arc::new(vec![typ.deref().as_slice(), name.deref().as_slice()].join(PATH_DELIMITER))
+        (name, typ)
     };
+
+    oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
     if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_this_class_method(id)
+        class.get_this_class_method(typ.as_slice(), name.as_slice())
     } else {
         // invokeinterface
-        class.get_virtual_method(id)
+        class.get_virtual_method(typ.as_slice(), name.as_slice())
     }
 }
 

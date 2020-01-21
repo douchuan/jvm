@@ -66,11 +66,18 @@ impl JavaMainThread {
             class.get_static_method(b"([Ljava/lang/String;)V", b"main")
         };
 
-        let mut jt = JavaThread::new();
-        let mut stack = self.build_stack();
-        let jc = JavaCall::new(&mut jt, &mut stack, mir);
-        jc.unwrap().invoke(&mut jt, &mut stack);
-        info!("stack = {:?}", stack);
+        match mir {
+            Ok(mir) => {
+                let mut jt = JavaThread::new();
+                let mut stack = self.build_stack();
+                let jc = JavaCall::new(&mut jt, &mut stack, mir);
+                jc.unwrap().invoke(&mut jt, &mut stack);
+                info!("stack = {:?}", stack);
+            }
+            _ => unimplemented!()
+        }
+
+
     }
 }
 

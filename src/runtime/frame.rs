@@ -15,6 +15,8 @@ use std::sync::Arc;
 
 pub struct Frame {
     class: ClassRef,
+    //avoid lock class to access cp
+    cp: ConstantPool,
     mir: MethodIdRef,
     code: Arc<Vec<U1>>,
 
@@ -30,6 +32,9 @@ pub struct Frame {
 impl Frame {
     pub fn new(mir: MethodIdRef) -> Self {
         let class = mir.method.class.clone();
+        let cp = {
+            class.lock().unwrap().class_file.cp.clone()
+        };
         match &mir.method.code {
             Some(code) => {
 //                trace!("local size = {}, stack_size = {}", code.max_locals, code.max_stack);
@@ -38,6 +43,7 @@ impl Frame {
                 let code = code.code.clone();
                 Self {
                     class,
+                    cp,
                     mir,
                     code,
                     local,
@@ -50,6 +56,7 @@ impl Frame {
 
             None => Self {
                 class,
+                cp: Arc::new(Vec::new()),
                 mir,
                 code: Arc::new(vec![]),
                 local: Local::new(0),
@@ -333,16 +340,13 @@ impl Frame {
     }
 
     fn load_constant(&mut self, pos: usize) {
-        let class = self.class.lock().unwrap();
-        let cp = &class.class_file.cp;
-
-        match &cp[pos] {
+        match &self.cp[pos] {
             ConstantType::Integer { v } => self.stack.push_int2(*v),
             ConstantType::Float { v } => self.stack.push_float2(*v),
             ConstantType::Long { v } => self.stack.push_long2(*v),
             ConstantType::Double { v } => self.stack.push_double2(*v),
             ConstantType::String { string_index } => {
-                if let ConstantType::Utf8 { length, bytes } = &cp[*string_index as usize] {
+                if let ConstantType::Utf8 { length, bytes } = &self.cp[*string_index as usize] {
                     self.stack.push_const_utf8(bytes.clone());
                 } else {
                     unreachable!()
@@ -397,9 +401,7 @@ impl Frame {
         let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
 
         let fir = {
-            let mut class = self.class.lock().unwrap();
-            let cp = &class.class_file.cp;
-            field::get_field_ref(thread, cp, idx as usize, is_static)
+            field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
 
         let value_type = fir.field.value_type.clone();
@@ -415,9 +417,7 @@ impl Frame {
 
     fn put_field_helper(&mut self, thread: &mut JavaThread, idx: i32, is_static: bool) {
         let fir = {
-            let mut class = self.class.lock().unwrap();
-            let cp = &class.class_file.cp;
-            field::get_field_ref(thread, cp, idx as usize, is_static)
+            field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
 
         let value_type = fir.field.value_type.clone();
@@ -465,12 +465,18 @@ impl Frame {
         let idx = self.read_u2();
 
         let mir = {
-            let cp = &self.class.lock().unwrap().class_file.cp;
-            oop::method::get_method_ref(thread, cp, idx)
+            oop::method::get_method_ref(thread, &self.cp, idx)
         };
 
-        let jc = runtime::java_call::JavaCall::new(thread, &mut self.stack, mir);
-        jc.unwrap().invoke(thread, &mut self.stack);
+        match mir {
+            Ok(mir) => {
+                let jc = runtime::java_call::JavaCall::new(thread, &mut self.stack, mir);
+                jc.unwrap().invoke(thread, &mut self.stack);
+            }
+            Err(_) => unimplemented!()
+        }
+
+
     }
 }
 
@@ -2057,21 +2063,17 @@ impl Frame {
     pub fn new_(&mut self, thread: &mut JavaThread) {
         let class = {
             let constant_idx = self.read_i2();
-            let class = self.class.lock().unwrap();
-            let cp = &class.class_file.cp;
-            match runtime::require_class2(constant_idx as u16, cp) {
+            match runtime::require_class2(constant_idx as u16, &self.cp) {
                 Some(class) => {
                     {
                         let mut class = class.lock().unwrap();
-                        if class.typ != oop::ClassType::InstanceClass {
-                            unreachable!()
-                        }
-
                         class.init_class(thread);
                     }
 
+                    oop::class::init_class_fully(thread, class.clone());
+
                     class
-                }
+                },
                 None => panic!("Cannot get class info from constant pool"),
             }
         };

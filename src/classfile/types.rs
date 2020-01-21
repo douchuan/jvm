@@ -7,5 +7,5 @@ pub type U2 = u16;
 pub type U4 = u32;
 pub type BytesRef = Arc<Vec<U1>>;
 
-pub type ConstantPool = Vec<ConstantType>;
+pub type ConstantPool = Arc<Vec<ConstantType>>;
 pub type CheckResult = Result<(), checker::Err>;

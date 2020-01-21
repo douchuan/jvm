@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
-use crate::oop::{consts as oop_consts, ClassObject, ClassRef, Oop, OopDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, ClassObject, ClassRef, Oop, OopDesc, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
@@ -34,6 +34,8 @@ pub fn get_field_ref(
             .join(PATH_DELIMITER),
         )
     };
+
+    oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
     class.get_field_id(id, is_static)
