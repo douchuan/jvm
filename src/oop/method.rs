@@ -45,7 +45,7 @@ pub struct MethodId {
 #[derive(Debug, Clone)]
 pub struct Method {
     pub class: ClassRef,
-    name: BytesRef,
+    pub name: BytesRef,
     pub desc: BytesRef,
     id: BytesRef,
     acc_flags: U2,

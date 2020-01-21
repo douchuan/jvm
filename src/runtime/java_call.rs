@@ -13,6 +13,9 @@ pub struct JavaCall {
 
 impl JavaCall {
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
+        trace!("method name ={} desc={}",
+               String::from_utf8_lossy(mir.method.name.as_slice()),
+               String::from_utf8_lossy(mir.method.desc.as_slice()));
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         let mut args = build_method_args(stack, sig);

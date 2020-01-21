@@ -333,7 +333,8 @@ impl Frame {
     }
 
     fn load_constant(&mut self, pos: usize) {
-        let cp = &self.class.lock().unwrap().class_file.cp;
+        let class = self.class.lock().unwrap();
+        let cp = &class.class_file.cp;
 
         match &cp[pos] {
             ConstantType::Integer { v } => self.stack.push_int2(*v),
