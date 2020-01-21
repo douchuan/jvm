@@ -1,19 +1,18 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc};
-use crate::runtime::{self, thread, Frame, JavaThreadRef, Stack};
+use crate::runtime::{self, thread, Frame, JavaThread, Stack};
 use std::borrow::BorrowMut;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct JavaCall {
-    pub jtr: JavaThreadRef,
     pub mir: MethodIdRef,
     pub args: Vec<Arc<OopDesc>>,
     pub return_type: ArgType
 }
 
 impl JavaCall {
-    pub fn new(jtr: JavaThreadRef, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
+    pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         let mut args = build_method_args(stack, sig);
@@ -26,7 +25,7 @@ impl JavaCall {
             //check NPE
             match &v.v {
                 Oop::Null => {
-                    thread::JavaThread::throw_ext(jtr, consts::J_NPE, false);
+                    jt.throw_ext(consts::J_NPE, false);
                     //todo: caller should call handle_exception
                     return Err(());
                 }
@@ -36,39 +35,40 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-        Ok(Self { jtr, mir, args, return_type })
+        Ok(Self { mir, args, return_type })
     }
 
-    pub fn invoke(&mut self, stack: &mut Stack) {
+    pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
             unimplemented!()
         } else {
-            self.invoke_java(stack);
+            self.invoke_java(jt, stack);
         }
     }
 
-    pub fn invoke_java(&mut self, stack: &mut Stack) {
-        trace!("invoke_java 1");
+    pub fn invoke_java(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         self.prepare_sync();
 
-        trace!("invoke_java 2");
-        if self.prepare_frame().is_ok() {
-            trace!("invoke_java 3");
-            //exec interp
-            let frame = {
-                let jt = Arc::get_mut(&mut self.jtr).unwrap();
-                jt.frames.last_mut().unwrap()
-            };
+        match self.prepare_frame(jt) {
+            Ok(frame) => {
+                let mut frame = Arc::new(Mutex::new(frame));
+                jt.frames.push(frame.clone());
 
-            trace!("invoke_java 4");
-            frame.exec_interp();
+                //exec interp
+                {
+                    match frame.try_lock() {
+                        Ok(mut frame) => {
+                            frame.exec_interp(jt);
+                            self.set_return(jt, stack, frame.return_v.clone());
+                        }
+                        _ => error!("frame try_lock failed")
+                    }
+                }
 
-            let frame = {
-                let jt = Arc::get_mut(&mut self.jtr).unwrap();
-                jt.frames.pop().unwrap()
-            };
+                let _frame = jt.frames.pop().unwrap();
+            }
 
-            self.set_return(stack, frame.return_v);
+            _ => (),
         }
 
         self.fin_sync();
@@ -102,13 +102,13 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self) -> Result<(), ()> {
-        if self.jtr.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
-            thread::JavaThread::throw_ext(self.jtr.clone(), consts::J_SOE, false);
+    fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<Frame, ()> {
+        if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
+            thread.throw_ext(consts::J_SOE, false);
             return Err(());
         }
 
-        let mut frame = Frame::new(self.jtr.clone(), self.mir.clone());
+        let mut frame = Frame::new(self.mir.clone());
 
         //JVM spec, 2.6.1
         let locals = &mut frame.local;
@@ -140,14 +140,11 @@ impl JavaCall {
             slot_pos += step;
         });
 
-        let jt = Arc::get_mut(&mut self.jtr).unwrap();
-        jt.frames.push(frame);
-
-        return Ok(());
+        return Ok(frame);
     }
 
-    fn set_return(&mut self, stack: &mut Stack, v: Option<Arc<OopDesc>>) {
-        if !self.jtr.is_exception_occurred() {
+    fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<Arc<OopDesc>>) {
+        if !thread.is_exception_occurred() {
             match self.return_type {
                 ArgType::Int => {
                     match v {

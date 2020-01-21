@@ -4,10 +4,8 @@ use crate::runtime::{self, Frame, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
-pub type JavaThreadRef = Arc<JavaThread>;
-
 pub struct JavaThread {
-    pub frames: Vec<Frame>,
+    pub frames: Vec<Arc<Mutex<Frame>>>,
     in_safe_point: bool,
 
     java_thread_obj: Option<Arc<OopDesc>>,
@@ -30,30 +28,29 @@ impl JavaThread {
         }
     }
 
-    pub fn run(this: Arc<JavaThread>) {
+    pub fn run(&mut self) {
         //todo: impl
     }
 
-    pub fn throw_ext(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool) {
+    pub fn throw_ext(&mut self, ext: &[u8], rethrow: bool) {
         //todo: impl
     }
 
-    pub fn throw_ext_with_msg(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: String) {
+    pub fn throw_ext_with_msg(&mut self, ext: &[u8], rethrow: bool, msg: String) {
         //todo: impl
     }
 
-    pub fn throw_ext_with_msg2(mut this: Arc<JavaThread>, ext: &[u8], rethrow: bool, msg: &[u8]) {
+    pub fn throw_ext_with_msg2(&mut self, ext: &[u8], rethrow: bool, msg: &[u8]) {
         //todo: impl
     }
 
-    pub fn try_handle_exception(mut this: Arc<JavaThread>, ex: Arc<OopDesc>) -> i32 {
+    pub fn try_handle_exception(&mut self, ex: Arc<OopDesc>) -> i32 {
         //todo: impl
         unimplemented!()
     }
 
-    pub fn clear_ext(mut this: Arc<JavaThread>) {
-        let this = Arc::get_mut(&mut this).unwrap();
-        this.exception = None;
+    pub fn clear_ext(&mut self) {
+        self.exception = None;
     }
 
     pub fn is_exception_occurred(&self) -> bool {
@@ -69,10 +66,10 @@ impl JavaMainThread {
             class.get_static_method(b"([Ljava/lang/String;)V", b"main")
         };
 
-        let jtr = Arc::new(JavaThread::new());
+        let mut jt = JavaThread::new();
         let mut stack = self.build_stack();
-        let jc = JavaCall::new(jtr, &mut stack, mir);
-        jc.unwrap().invoke(&mut stack);
+        let jc = JavaCall::new(&mut jt, &mut stack, mir);
+        jc.unwrap().invoke(&mut jt, &mut stack);
         info!("stack = {:?}", stack);
     }
 }

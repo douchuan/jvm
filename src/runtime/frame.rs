@@ -6,8 +6,7 @@ use crate::classfile::ClassFile;
 use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, ValueType,
 };
-use crate::runtime::thread::JavaThread;
-use crate::runtime::{self, JavaThreadRef, Local, Stack};
+use crate::runtime::{self, JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
@@ -15,7 +14,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 pub struct Frame {
-    thread: JavaThreadRef,
     class: ClassRef,
     mir: MethodIdRef,
     code: Arc<Vec<U1>>,
@@ -24,11 +22,13 @@ pub struct Frame {
     stack: Stack,
     pub pc: i32,
     pub return_v: Option<Arc<OopDesc>>,
+
+    pub exception_thrown_here: bool,
 }
 
 //new
 impl Frame {
-    pub fn new(thread: JavaThreadRef, mir: MethodIdRef) -> Self {
+    pub fn new(mir: MethodIdRef) -> Self {
         let class = mir.method.class.clone();
         match &mir.method.code {
             Some(code) => {
@@ -37,7 +37,6 @@ impl Frame {
                 let stack = Stack::new(code.max_stack as usize);
                 let code = code.code.clone();
                 Self {
-                    thread,
                     class,
                     mir,
                     code,
@@ -45,11 +44,11 @@ impl Frame {
                     stack,
                     pc: 0,
                     return_v: None,
+                    exception_thrown_here: false,
                 }
             }
 
             None => Self {
-                thread,
                 class,
                 mir,
                 code: Arc::new(vec![]),
@@ -57,13 +56,14 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
+                exception_thrown_here: false
             },
         }
     }
 }
 
 impl Frame {
-    pub fn exec_interp(&mut self) {
+    pub fn exec_interp(&mut self, thread: &mut JavaThread) {
         loop {
             let op_code = self.read_opcode();
             match op_code {
@@ -141,14 +141,14 @@ impl Frame {
                         OpCode::aload_1 => self.aload_1(),
                         OpCode::aload_2 => self.aload_2(),
                         OpCode::aload_3 => self.aload_3(),
-                        OpCode::iaload => self.iaload(),
-                        OpCode::laload => self.laload(),
-                        OpCode::faload => self.faload(),
-                        OpCode::daload => self.daload(),
-                        OpCode::aaload => self.aaload(),
-                        OpCode::baload => self.baload(),
-                        OpCode::caload => self.caload(),
-                        OpCode::saload => self.saload(),
+                        OpCode::iaload => self.iaload(thread),
+                        OpCode::laload => self.laload(thread),
+                        OpCode::faload => self.faload(thread),
+                        OpCode::daload => self.daload(thread),
+                        OpCode::aaload => self.aaload(thread),
+                        OpCode::baload => self.baload(thread),
+                        OpCode::caload => self.caload(thread),
+                        OpCode::saload => self.saload(thread),
                         OpCode::istore => self.istore(),
                         OpCode::lstore => self.lstore(),
                         OpCode::fstore => self.fstore(),
@@ -174,14 +174,14 @@ impl Frame {
                         OpCode::astore_1 => self.astore_1(),
                         OpCode::astore_2 => self.astore_2(),
                         OpCode::astore_3 => self.astore_3(),
-                        OpCode::iastore => self.iastore(),
-                        OpCode::lastore => self.lastore(),
-                        OpCode::fastore => self.fastore(),
-                        OpCode::dastore => self.dastore(),
-                        OpCode::aastore => self.aastore(),
-                        OpCode::bastore => self.bastore(),
-                        OpCode::castore => self.castore(),
-                        OpCode::sastore => self.sastore(),
+                        OpCode::iastore => self.iastore(thread),
+                        OpCode::lastore => self.lastore(thread),
+                        OpCode::fastore => self.fastore(thread),
+                        OpCode::dastore => self.dastore(thread),
+                        OpCode::aastore => self.aastore(thread),
+                        OpCode::bastore => self.bastore(thread),
+                        OpCode::castore => self.castore(thread),
+                        OpCode::sastore => self.sastore(thread),
                         OpCode::pop => self.pop(),
                         OpCode::pop2 => self.pop2(),
                         OpCode::dup => self.dup(),
@@ -203,12 +203,12 @@ impl Frame {
                         OpCode::lmul => self.lmul(),
                         OpCode::fmul => self.fmul(),
                         OpCode::dmul => self.dmul(),
-                        OpCode::idiv => self.idiv(),
-                        OpCode::ldiv => self.ldiv(),
-                        OpCode::fdiv => self.fdiv(),
-                        OpCode::ddiv => self.ddiv(),
-                        OpCode::irem => self.irem(),
-                        OpCode::lrem => self.lrem(),
+                        OpCode::idiv => self.idiv(thread),
+                        OpCode::ldiv => self.ldiv(thread),
+                        OpCode::fdiv => self.fdiv(thread),
+                        OpCode::ddiv => self.ddiv(thread),
+                        OpCode::irem => self.irem(thread),
+                        OpCode::lrem => self.lrem(thread),
                         OpCode::frem => self.frem(),
                         OpCode::drem => self.drem(),
                         OpCode::ineg => self.ineg(),
@@ -267,24 +267,24 @@ impl Frame {
                         OpCode::ret => self.ret(),
                         OpCode::tableswitch => self.table_switch(),
                         OpCode::lookupswitch => self.lookup_switch(),
-                        OpCode::getstatic => self.get_static(),
-                        OpCode::putstatic => self.put_static(),
-                        OpCode::getfield => self.get_field(),
-                        OpCode::putfield => self.put_field(),
-                        OpCode::invokevirtual => self.invoke_virtual(),
-                        OpCode::invokespecial => self.invoke_special(),
-                        OpCode::invokestatic => self.invoke_static(),
-                        OpCode::invokeinterface => self.invoke_interface(),
+                        OpCode::getstatic => self.get_static(thread),
+                        OpCode::putstatic => self.put_static(thread),
+                        OpCode::getfield => self.get_field(thread),
+                        OpCode::putfield => self.put_field(thread),
+                        OpCode::invokevirtual => self.invoke_virtual(thread),
+                        OpCode::invokespecial => self.invoke_special(thread),
+                        OpCode::invokestatic => self.invoke_static(thread),
+                        OpCode::invokeinterface => self.invoke_interface(thread),
                         OpCode::invokedynamic => self.invoke_dynamic(),
-                        OpCode::new => self.new_(),
+                        OpCode::new => self.new_(thread),
                         OpCode::newarray => self.new_array(),
                         OpCode::anewarray => self.anew_array(),
-                        OpCode::arraylength => self.array_length(),
-                        OpCode::athrow => self.athrow(),
+                        OpCode::arraylength => self.array_length(thread),
+                        OpCode::athrow => self.athrow(thread),
                         OpCode::checkcast => self.check_cast(),
                         OpCode::instanceof => self.instance_of(),
-                        OpCode::monitorenter => self.monitor_enter(),
-                        OpCode::monitorexit => self.monitor_exit(),
+                        OpCode::monitorenter => self.monitor_enter(thread),
+                        OpCode::monitorexit => self.monitor_exit(thread),
                         OpCode::wide => self.wide(),
                         OpCode::multianewarray => self.multi_anew_array(),
                         OpCode::ifnull => self.if_null(),
@@ -355,13 +355,12 @@ impl Frame {
         }
     }
 
-    fn handle_exception(&mut self) {
+    fn handle_exception(&mut self, thread: &mut JavaThread) {
         self.stack.clear();
-        let ext = self.thread.exception.as_ref();
-        self.stack.push_ref(ext.unwrap().clone());
-        let mut thread = self.thread.clone();
-        JavaThread::clear_ext(thread);
-        self.athrow();
+        let ext = thread.exception.clone();
+        self.stack.push_ref(ext.unwrap());
+        thread.clear_ext();
+        self.athrow(thread);
     }
 
     fn goto_abs(&mut self, pc: i32) {
@@ -393,9 +392,8 @@ impl Frame {
         self.return_v = Some(v);
     }
 
-    fn get_field_helper(&self, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
+    fn get_field_helper(&self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
         let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
-        let thread = self.thread.clone();
 
         let fir = {
             let mut class = self.class.lock().unwrap();
@@ -414,9 +412,7 @@ impl Frame {
         (v, value_type)
     }
 
-    fn put_field_helper(&mut self, idx: i32, is_static: bool) {
-        let thread = self.thread.clone();
-
+    fn put_field_helper(&mut self, thread: &mut JavaThread, idx: i32, is_static: bool) {
         let fir = {
             let mut class = self.class.lock().unwrap();
             let cp = &class.class_file.cp;
@@ -456,26 +452,24 @@ impl Frame {
         } else {
             let receiver = self.stack.pop_ref();
             if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
-                let thread = self.thread.clone();
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             } else {
                 class.put_field_value(receiver, fir.clone(), v);
             }
         }
     }
 
-    fn invoke_helper(&mut self) {
+    fn invoke_helper(&mut self, thread: &mut JavaThread) {
         let idx = self.read_u2();
 
-        let thread = self.thread.clone();
         let mir = {
             let cp = &self.class.lock().unwrap().class_file.cp;
-            oop::method::get_method_ref(thread.clone(), cp, idx)
+            oop::method::get_method_ref(thread, cp, idx)
         };
 
         let jc = runtime::java_call::JavaCall::new(thread, &mut self.stack, mir);
-        jc.unwrap().invoke(&mut self.stack);
+        jc.unwrap().invoke(thread, &mut self.stack);
     }
 }
 
@@ -697,8 +691,7 @@ impl Frame {
         self.stack.push_ref(v);
     }
 
-    pub fn iaload(&mut self) {
-        let thread = self.thread.clone();
+    pub fn iaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match &rf.v {
@@ -706,13 +699,12 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.deref();
@@ -725,27 +717,26 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn saload(&mut self) {
-        self.iaload();
+    pub fn saload(&mut self, thread: &mut JavaThread) {
+        self.iaload(thread);
     }
 
-    pub fn caload(&mut self) {
-        self.iaload();
+    pub fn caload(&mut self, thread: &mut JavaThread) {
+        self.iaload(thread);
     }
 
-    pub fn baload(&mut self) {
-        self.iaload();
+    pub fn baload(&mut self, thread: &mut JavaThread) {
+        self.iaload(thread);
     }
 
-    pub fn laload(&mut self) {
-        let thread = self.thread.clone();
+    pub fn laload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match &rf.v {
@@ -753,13 +744,12 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.deref();
@@ -772,15 +762,14 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn faload(&mut self) {
-        let thread = self.thread.clone();
+    pub fn faload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match &rf.v {
@@ -788,13 +777,12 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.deref();
@@ -807,15 +795,14 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn daload(&mut self) {
-        let thread = self.thread.clone();
+    pub fn daload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match &rf.v {
@@ -823,13 +810,12 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.deref();
@@ -842,15 +828,14 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn aaload(&mut self) {
-        let thread = self.thread.clone();
+    pub fn aaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
         match &rf.v {
@@ -858,21 +843,20 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     self.stack.push_ref(v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
@@ -1008,20 +992,19 @@ impl Frame {
         self.local.set_ref(3, v);
     }
 
-    pub fn bastore(&mut self) {
-        self.iastore();
+    pub fn bastore(&mut self, thread: &mut JavaThread) {
+        self.iastore(thread);
     }
 
-    pub fn castore(&mut self) {
-        self.iastore();
+    pub fn castore(&mut self, thread: &mut JavaThread) {
+        self.iastore(thread);
     }
 
-    pub fn sastore(&mut self) {
-        self.iastore();
+    pub fn sastore(&mut self, thread: &mut JavaThread) {
+        self.iastore(thread);
     }
 
-    pub fn iastore(&mut self) {
-        let thread = self.thread.clone();
+    pub fn iastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
@@ -1031,28 +1014,26 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = OopDesc::new_int(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn lastore(&mut self) {
-        let thread = self.thread.clone();
+    pub fn lastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_long();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
@@ -1062,28 +1043,26 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = OopDesc::new_long(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn fastore(&mut self) {
-        let thread = self.thread.clone();
+    pub fn fastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_float();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
@@ -1093,28 +1072,26 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = OopDesc::new_float(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn dastore(&mut self) {
-        let thread = self.thread.clone();
+    pub fn dastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_double();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
@@ -1124,28 +1101,26 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = OopDesc::new_double(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn aastore(&mut self) {
-        let thread = self.thread.clone();
+    pub fn aastore(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
         let rff = Arc::get_mut(&mut rf).unwrap();
@@ -1154,21 +1129,20 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    JavaThread::throw_ext_with_msg(
-                        thread,
+                    thread.throw_ext_with_msg(
                         consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                         false,
                         msg,
                     );
-                    self.handle_exception();
+                    self.handle_exception(thread);
                 } else {
                     let v = self.stack.pop_ref();
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
@@ -1319,103 +1293,91 @@ impl Frame {
         self.stack.push_double(v1 * v2);
     }
 
-    pub fn idiv(&mut self) {
+    pub fn idiv(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_int(v1 / v2);
         }
     }
 
-    pub fn ldiv(&mut self) {
+    pub fn ldiv(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_long(v1 / v2);
         }
     }
 
-    pub fn fdiv(&mut self) {
+    pub fn fdiv(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_float();
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_float(v1 / v2);
         }
     }
 
-    pub fn ddiv(&mut self) {
+    pub fn ddiv(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_double();
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_double(v1 / v2);
         }
     }
 
-    pub fn irem(&mut self) {
+    pub fn irem(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_int(v1 - (v1 / v2) * v2);
         }
     }
 
-    pub fn lrem(&mut self) {
+    pub fn lrem(&mut self, thread: &mut JavaThread) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext_with_msg2(
-                thread,
+            thread.throw_ext_with_msg2(
                 consts::J_ARITHMETIC_EX,
                 false,
                 b"divide by zero",
             );
-            self.handle_exception();
+            self.handle_exception(thread);
         } else {
             self.stack.push_long(v1 - (v1 / v2) * v2);
         }
@@ -2010,11 +1972,11 @@ impl Frame {
         self.set_return(oop_consts::get_null());
     }
 
-    pub fn get_static(&mut self) {
+    pub fn get_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        let (v, value_type) = self.get_field_helper(oop_consts::get_null(), cp_idx);
-        if self.thread.is_exception_occurred() {
-            self.handle_exception();
+        let (v, value_type) = self.get_field_helper(thread, oop_consts::get_null(), cp_idx);
+        if thread.is_exception_occurred() {
+            self.handle_exception(thread);
         }
 
         match value_type {
@@ -2043,48 +2005,47 @@ impl Frame {
         }
     }
 
-    pub fn put_static(&mut self) {
+    pub fn put_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.put_field_helper(cp_idx, true);
-        if self.thread.is_exception_occurred() {
-            self.handle_exception();
+        self.put_field_helper(thread, cp_idx, true);
+        if thread.is_exception_occurred() {
+            self.handle_exception(thread);
         }
     }
 
-    pub fn get_field(&mut self) {
+    pub fn get_field(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
         if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
-            let thread = self.thread.clone();
-            JavaThread::throw_ext(thread, consts::J_NPE, false);
-            self.handle_exception();
+            thread.throw_ext(consts::J_NPE, false);
+            self.handle_exception(thread);
         } else {
-            self.get_field_helper(rf, cp_idx);
-            if self.thread.is_exception_occurred() {
-                self.handle_exception();
+            self.get_field_helper(thread, rf, cp_idx);
+            if thread.is_exception_occurred() {
+                self.handle_exception(thread);
             }
         }
     }
 
-    pub fn put_field(&mut self) {
+    pub fn put_field(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.put_field_helper(cp_idx, false);
+        self.put_field_helper(thread, cp_idx, false);
     }
 
-    pub fn invoke_virtual(&mut self) {
-        self.invoke_helper();
+    pub fn invoke_virtual(&mut self, thread: &mut JavaThread) {
+        self.invoke_helper(thread);
     }
 
-    pub fn invoke_special(&mut self) {
-        self.invoke_helper();
+    pub fn invoke_special(&mut self, thread: &mut JavaThread) {
+        self.invoke_helper(thread);
     }
 
-    pub fn invoke_static(&mut self) {
-        self.invoke_helper();
+    pub fn invoke_static(&mut self, thread: &mut JavaThread) {
+        self.invoke_helper(thread);
     }
 
-    pub fn invoke_interface(&mut self) {
-        self.invoke_helper();
+    pub fn invoke_interface(&mut self, thread: &mut JavaThread) {
+        self.invoke_helper(thread);
     }
 
     pub fn invoke_dynamic(&mut self) {
@@ -2092,7 +2053,7 @@ impl Frame {
         unimplemented!()
     }
 
-    pub fn new_(&mut self) {
+    pub fn new_(&mut self, thread: &mut JavaThread) {
         let class = {
             let constant_idx = self.read_i2();
             let class = self.class.lock().unwrap();
@@ -2105,7 +2066,7 @@ impl Frame {
                             unreachable!()
                         }
 
-                        class.init_class(self.thread.clone());
+                        class.init_class(thread);
                     }
 
                     class
@@ -2114,8 +2075,8 @@ impl Frame {
             }
         };
 
-        if self.thread.is_exception_occurred() {
-            self.handle_exception();
+        if thread.is_exception_occurred() {
+            self.handle_exception(thread);
         } else {
             let v = oop::InstOopDesc::new(class);
             let v = oop::OopDesc::new_inst(v);
@@ -2131,7 +2092,7 @@ impl Frame {
         //todo: impl
     }
 
-    pub fn array_length(&mut self) {
+    pub fn array_length(&mut self, thread: &mut JavaThread) {
         let rf = self.stack.pop_ref();
         match &rf.v {
             Oop::Array(ary) => {
@@ -2139,24 +2100,22 @@ impl Frame {
                 self.stack.push_int(len as i32);
             }
             Oop::Null => {
-                let thread = self.thread.clone();
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn athrow(&mut self) {
-        let thread = self.thread.clone();
+    pub fn athrow(&mut self, thread: &mut JavaThread) {
         let rf = self.stack.pop_ref();
         match rf.v {
             Oop::Null => {
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => {
-                let handler = JavaThread::try_handle_exception(thread, rf.clone());
+                let handler = thread.try_handle_exception(rf.clone());
                 if handler > 0 {
                     trace!("athrow: exception handler found at offset: {}", handler);
                     self.stack.clear();
@@ -2178,14 +2137,13 @@ impl Frame {
         //todo: impl
     }
 
-    pub fn monitor_enter(&mut self) {
+    pub fn monitor_enter(&mut self, thread: &mut JavaThread) {
         let mut rf = self.stack.pop_ref();
         let rff = Arc::get_mut(&mut rf).unwrap();
         match rff.v {
             Oop::Null => {
-                let thread = self.thread.clone();
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => {
                 rff.monitor_enter();
@@ -2193,14 +2151,13 @@ impl Frame {
         }
     }
 
-    pub fn monitor_exit(&mut self) {
+    pub fn monitor_exit(&mut self, thread: &mut JavaThread) {
         let mut rf = self.stack.pop_ref();
         let rff = Arc::get_mut(&mut rf).unwrap();
         match rff.v {
             Oop::Null => {
-                let thread = self.thread.clone();
-                JavaThread::throw_ext(thread, consts::J_NPE, false);
-                self.handle_exception();
+                thread.throw_ext(consts::J_NPE, false);
+                self.handle_exception(thread);
             }
             _ => {
                 rff.monitor_exit();

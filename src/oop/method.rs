@@ -3,14 +3,14 @@ use crate::classfile::{
     MethodInfo,
 };
 use crate::oop::{ClassObject, ClassRef, ValueType};
-use crate::runtime::{self, require_class2, JavaThreadRef};
+use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
 use std::sync::Arc;
 
 pub type MethodIdRef = Arc<MethodId>;
 
-pub fn get_method_ref(thread: JavaThreadRef, cp: &ConstantPool, idx: usize) -> MethodIdRef {
+pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) -> MethodIdRef {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
     //load Method's Class, then init it

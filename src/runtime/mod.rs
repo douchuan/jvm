@@ -25,7 +25,7 @@ pub use local::Local;
 pub use slot::Slot;
 pub use stack::Stack;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
-pub use thread::JavaThreadRef;
+pub use thread::JavaThread;
 
 pub fn init() {
     sys_dic::init();

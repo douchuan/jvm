@@ -3,7 +3,7 @@ use crate::oop::{
     consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, ValueType,
 };
-use crate::runtime::{self, require_class2, ClassLoader, JavaThreadRef};
+use crate::runtime::{self, require_class2, ClassLoader, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -132,7 +132,7 @@ impl ClassObject {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self, thread: JavaThreadRef) {
+    pub fn init_class(&mut self, thread: &mut JavaThread) {
         if self.state == State::Linked {
             self.state = State::BeingIni;
 
@@ -375,6 +375,10 @@ impl ClassObject {
         self.n_inst_fields = n_inst;
 
         self.static_filed_values.reserve(n_static);
+        //todo: avoid this?
+        for _ in 0..self.static_filed_values.capacity() {
+            self.static_filed_values.push(oop_consts::get_null());
+        }
     }
 
     fn link_interfaces(&mut self) {

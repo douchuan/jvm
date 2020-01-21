@@ -79,6 +79,7 @@ impl Parser {
 
     fn get_u1s(&mut self, len: usize) -> Vec<U1> {
         let mut bytes = Vec::with_capacity(len);
+        //todo: avoid this?
         unsafe { bytes.set_len(len) }
         let r = self.buf.read_exact(&mut bytes);
         assert!(r.is_ok());
