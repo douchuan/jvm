@@ -404,6 +404,8 @@ impl Frame {
             field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
 
+//        trace!("get_field_helper = {} ", String::from_utf8_lossy(fir.field.get_id().as_slice()));
+
         let value_type = fir.field.value_type.clone();
         let class = fir.field.class.lock().unwrap();
         let v = if is_static {
@@ -2089,10 +2091,12 @@ impl Frame {
 
     pub fn new_array(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn anew_array(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn array_length(&mut self, thread: &mut JavaThread) {
@@ -2134,10 +2138,12 @@ impl Frame {
 
     pub fn check_cast(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn instance_of(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn monitor_enter(&mut self, thread: &mut JavaThread) {
@@ -2174,6 +2180,7 @@ impl Frame {
 
     pub fn multi_anew_array(&mut self) {
         //todo: impl
+        unimplemented!()
     }
 
     pub fn if_null(&mut self) {

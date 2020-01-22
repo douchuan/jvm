@@ -28,12 +28,17 @@ todo list
   5. impl InstOopDesc
   7. oop class init_class, java call "<clinit>"
      impl JavaCall::with_args(thread, clinit, {})
-  8. impl byte code instruction
-    table_switch, lookup_switch...
   9. oop/class.rs, link_constant_pool
 
   x. verify class file
   x. java to execute a jar by -jar
+  x. oop::class::init_class_fully cycle call
+    JavaMainThread::run init_class_fully
+      invoke_static
+        get_method_ref
+          init_class_fully
+  x. invoke native
+  x. java/lang/Class:Z:useCaches
 */
 
 fn init_vm() {

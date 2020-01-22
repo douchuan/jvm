@@ -13,14 +13,14 @@ pub struct JavaCall {
 
 impl JavaCall {
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        trace!("method name ={} desc={}",
-               String::from_utf8_lossy(mir.method.name.as_slice()),
-               String::from_utf8_lossy(mir.method.desc.as_slice()));
+        let class_name = {
+            mir.method.class.lock().unwrap().name.clone()
+        };
+
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         let mut args = build_method_args(stack, sig);
 
-        trace!("is_static={}, is_native={}", mir.method.is_static(), mir.method.is_native());
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {
@@ -39,12 +39,19 @@ impl JavaCall {
             args.insert(0, v);
         }
 
+//        trace!("class name={}, method name ={} desc={} static={}, native={}",
+//               String::from_utf8_lossy(class_name.as_slice()),
+//               String::from_utf8_lossy(mir.method.name.as_slice()),
+//               String::from_utf8_lossy(mir.method.desc.as_slice()),
+//               mir.method.is_static(),
+//               mir.method.is_native());
+
         Ok(Self { mir, args, return_type })
     }
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
-            unimplemented!()
+//            unimplemented!()
         } else {
             self.invoke_java(jt, stack);
         }

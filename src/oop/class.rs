@@ -28,32 +28,39 @@ pub enum State {
 
 pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
     let need = {
-        class.lock().unwrap().state != State::FullyIni
+        class.lock().unwrap().state == State::BeingIni
     };
 
     if need {
         let mir = {
             let class = class.lock().unwrap();
+//            trace!("init_class_fully name={}, state={:?}",
+//                   String::from_utf8_lossy(class.name.as_slice()),
+//                   class.state);
             class.get_this_class_method(b"()V", b"<clinit>")
         };
-
-        {
-            match mir {
-                Ok(mir) => {
-                    let mut stack = Stack::new(0);
-                    let jc = JavaCall::new(thread, &mut stack, mir);
-                    jc.unwrap().invoke(thread, &mut stack);
-                }
-                _ => (),
-            }
-        }
 
         {
             let mut class = class.lock().unwrap();
             class.state = State::FullyIni;
         }
-    }
 
+        {
+            match mir {
+                Ok(mir) => {
+                    trace!("call <clinit>");
+                    let mut stack = Stack::new(0);
+                    let jc = JavaCall::new(thread, &mut stack, mir);
+                    jc.unwrap().invoke(thread, &mut stack);
+                }
+                _ => {
+                    let class = class.lock().unwrap();
+                    trace!("init_class_fully name={}, no <clinit> ",
+                        String::from_utf8_lossy(class.name.as_slice()));
+                },
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -158,7 +165,6 @@ impl ClassObject {
                 self.link_fields(self_ref.clone());
                 self.link_interfaces();
                 self.link_methods(self_ref);
-                self.link_constant_pool();
                 self.link_attributes();
             }
 
@@ -469,11 +475,6 @@ impl ClassObject {
         });
     }
 
-    fn link_constant_pool(&mut self) {
-        //todo: impl
-        //        unimplemented!()
-    }
-
     fn link_attributes(&mut self) {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
@@ -520,15 +521,11 @@ impl ClassObject {
             None => (),
         }
 
-        if self.super_class.is_none() {
-            return Err(());
-        } else {
-            let super_class = self.super_class.clone();
-            super_class
-                .unwrap()
-                .lock()
-                .unwrap()
-                .get_this_class_method_inner(id)
+        match self.super_class.as_ref() {
+            Some(super_class) => {
+                return super_class.lock().unwrap().get_this_class_method_inner(id);
+            }
+            None => return Err(())
         }
     }
 
@@ -538,11 +535,11 @@ impl ClassObject {
             None => (),
         }
 
-        if self.super_class.is_none() {
-            return Err(());
-        } else {
-            let super_class = self.super_class.clone();
-            super_class.unwrap().lock().unwrap().get_virtual_method_inner(id)
+        match self.super_class.as_ref() {
+            Some(super_class) => {
+                return super_class.lock().unwrap().get_virtual_method_inner(id);
+            }
+            None => return Err(())
         }
     }
 }

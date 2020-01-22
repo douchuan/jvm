@@ -15,6 +15,12 @@ pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) ->
 
     //load Method's Class, then init it
     let class = require_class2(class_index, cp).unwrap();
+
+    {
+        let mut class = class.lock().unwrap();
+        class.init_class(thread);
+    }
+
     let (name, typ) = {
         let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
@@ -22,6 +28,14 @@ pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) ->
 
         (name, typ)
     };
+
+    {
+        let class = class.lock().unwrap();
+        trace!("get_method_ref class ={}, name={}, typ={}",
+               String::from_utf8_lossy(class.name.as_slice()),
+               String::from_utf8_lossy(name.as_slice()),
+               String::from_utf8_lossy(typ.as_slice()));
+    }
 
     oop::class::init_class_fully(thread, class.clone());
 

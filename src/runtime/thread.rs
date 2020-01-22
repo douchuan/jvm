@@ -60,6 +60,34 @@ impl JavaThread {
 
 impl JavaMainThread {
     pub fn run(&self) {
+        let mut jt = JavaThread::new();
+
+        let classes = vec![
+            classfile::consts::J_CLASS,
+            classfile::consts::J_OBJECT,
+            classfile::consts::J_STRING,
+            classfile::consts::J_CLONEABLE,
+            classfile::consts::J_SERIALIZABLE,
+            classfile::consts::J_NPE,
+            classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+            classfile::consts::J_CLASS_NOT_FOUND,
+            classfile::consts::J_INTERNAL_ERROR,
+            classfile::consts::J_IOEXCEPTION,
+
+            classfile::consts::J_SYSTEM,
+        ];
+        classes.iter().for_each(|c| {
+            let class = runtime::require_class3(None, *c);
+            let class = class.unwrap();
+            {
+                let mut class = class.lock().unwrap();
+                class.init_class(&mut jt);
+                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
+            }
+            oop::class::init_class_fully(&mut jt, class);
+            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
+        });
+
         let mir = {
             let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
             let class = class.lock().unwrap();
@@ -68,7 +96,6 @@ impl JavaMainThread {
 
         match mir {
             Ok(mir) => {
-                let mut jt = JavaThread::new();
                 let mut stack = self.build_stack();
                 let jc = JavaCall::new(&mut jt, &mut stack, mir);
                 jc.unwrap().invoke(&mut jt, &mut stack);
