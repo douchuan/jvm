@@ -1,4 +1,4 @@
-use crate::classfile::constant_pool::ConstantType;
+use crate::classfile::constant_pool::{self, ConstantType};
 use crate::classfile::consts;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::types::*;
@@ -350,15 +350,16 @@ impl Frame {
             ConstantType::Long { v } => self.stack.push_long2(*v),
             ConstantType::Double { v } => self.stack.push_double2(*v),
             ConstantType::String { string_index } => {
-                if let ConstantType::Utf8 { length, bytes } = &self.cp[*string_index as usize] {
-                    self.stack.push_const_utf8(bytes.clone());
-                } else {
-                    unreachable!()
-                }
+                let s = constant_pool::get_utf8(&self.cp, *string_index as usize);
+                self.stack.push_const_utf8(s.unwrap());
             }
             ConstantType::Class { name_index } => {
-                //todo: impl me
-                unimplemented!()
+                let name = constant_pool::get_utf8(&self.cp, *name_index as usize).unwrap();
+                let cl = {
+                    self.class.lock().unwrap().class_loader.clone()
+                };
+                let class = runtime::require_class(cl, name);
+                self.stack.push_ref(OopDesc::new_class(class.unwrap()));
             }
             _ => unreachable!(),
         }

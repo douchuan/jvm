@@ -58,6 +58,8 @@ pub enum Oop {
     //todo: optimise me, create a TypeArray
     Array(ArrayOopDesc),
 
+    Class(ClassRef),
+
     //used by oop::field::Filed::get_constant_value
     Null,
 }
@@ -105,6 +107,10 @@ impl OopDesc {
             elements: elms,
         };
         Self::new(Oop::Array(v))
+    }
+
+    pub fn new_class(cls_obj: ClassRef) -> Arc<Self> {
+        Self::new(Oop::Class(cls_obj))
     }
 
     pub fn new_null() -> Arc<Self> {
