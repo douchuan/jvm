@@ -10,7 +10,7 @@ pub mod consts;
 pub mod field;
 pub mod method;
 
-pub use self::class::{ClassObject, Type as ClassType};
+pub use self::class::{Class, ClassKind};
 pub use self::field::FieldIdRef;
 pub use self::method::MethodIdRef;
 
@@ -29,7 +29,7 @@ macro_rules! new_ref {
 
 pub type ClassFileRef = Arc<ClassFile>;
 
-def_ref!(ClassRef, ClassObject);
+def_ref!(ClassRef, Class);
 
 #[derive(Debug, Clone)]
 pub enum ValueType {
@@ -171,7 +171,13 @@ pub struct ArrayOopDesc {
 
 impl InstOopDesc {
     pub fn new(class: ClassRef) -> Self {
-        let n = { class.lock().unwrap().n_inst_fields };
+        let n = {
+            let class = class.lock().unwrap();
+            match &class.kind {
+                class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
+                _ => unreachable!(),
+            }
+        };
 
         Self {
             class,
@@ -189,7 +195,12 @@ impl ArrayOopDesc {
     }
 
     pub fn get_dimension(&self) -> usize {
-        self.class.lock().unwrap().get_dimension().unwrap()
+        let class = self.class.lock().unwrap();
+        match &class.kind {
+            class::ClassKind::ObjectArray(ary_class_obj, _) => ary_class_obj.get_dimension().unwrap(),
+            class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension().unwrap(),
+            _ => unreachable!()
+        }
     }
 
     pub fn get_length(&self) -> usize {

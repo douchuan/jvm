@@ -1,5 +1,5 @@
 use crate::classfile::{constant_pool, types::*};
-use crate::oop::{self, ClassObject, ClassRef, ValueType};
+use crate::oop::{self, Class, ClassRef, ValueType};
 use crate::parser as class_parser;
 use crate::runtime::{self, ClassPathResult};
 use crate::util;
@@ -73,7 +73,7 @@ impl ClassLoader {
                         let elm = &name[2..name.len() - 1];
                         match self.load_class(elm) {
                             Some(elm) => {
-                                let class = ClassObject::new_object_ary(*self, elm, name);
+                                let class = Class::new_object_ary(*self, elm, name);
                                 Some(new_ref!(class))
                             }
                             None => None,
@@ -83,7 +83,7 @@ impl ClassLoader {
                     Some(t) => {
                         //B, Z...
                         let elm = t.into();
-                        let class = ClassObject::new_prime_ary(*self, elm);
+                        let class = Class::new_prime_ary(*self, elm);
                         Some(new_ref!(class))
                     }
 
@@ -96,7 +96,7 @@ impl ClassLoader {
                 let down_type_name = &name[1..];
                 match self.load_array_class(down_type_name) {
                     Some(down_type) => {
-                        let class = ClassObject::new_wrapped_ary(*self, down_type);
+                        let class = Class::new_wrapped_ary(*self, down_type);
                         Some(new_ref!(class))
                     }
 
@@ -112,7 +112,7 @@ impl ClassLoader {
             Ok(ClassPathResult(_, _, buf)) => match class_parser::parse_buf(buf) {
                 Ok(cf) => {
                     let cfr = Arc::new(cf);
-                    let class = ClassObject::new_class(cfr, Some(*self));
+                    let class = Class::new_class(cfr, Some(*self));
                     Some(new_ref!(class))
                 }
 

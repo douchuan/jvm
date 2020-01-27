@@ -1,6 +1,6 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
-    consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
+    consts as oop_consts, field, method, ClassRef, ClassFileRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaThread, JavaCall, Stack};
@@ -9,11 +9,28 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Type {
-    InstanceClass,
-    ObjectArray,
-    PrimeArray,
+#[derive(Debug)]
+pub struct Class {
+    pub name: BytesRef,
+    pub state: State,
+    pub acc_flags: U2,
+
+    // None for java.lang.Object
+    pub super_class: Option<ClassRef>,
+
+    // None for the "bootstrap" loader
+    pub class_loader: Option<ClassLoader>,
+
+    monitor: Mutex<usize>,
+
+    pub kind: ClassKind,
+}
+
+#[derive(Debug)]
+pub enum ClassKind {
+    Instance(ClassObject),
+    ObjectArray(ArrayKlassObject, ClassFileRef),
+    TypeArray(ArrayKlassObject)
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -24,6 +41,34 @@ pub enum State {
     BeingIni,
     FullyIni,
     IniErr,
+}
+
+#[derive(Debug)]
+pub struct ClassObject {
+    pub class_file: ClassFileRef,
+
+    pub n_inst_fields: usize,
+
+    all_methods: HashMap<BytesRef, MethodIdRef>,
+    v_table: HashMap<BytesRef, MethodIdRef>,
+
+    static_fields: HashMap<BytesRef, FieldIdRef>,
+    inst_fields: HashMap<BytesRef, FieldIdRef>,
+
+    static_filed_values: Vec<Arc<OopDesc>>,
+
+    interfaces: HashMap<BytesRef, ClassRef>,
+
+    pub signature: Option<BytesRef>,
+    pub source_file: Option<BytesRef>,
+}
+
+#[derive(Debug)]
+pub struct ArrayKlassObject {
+   //valid when dimension == 1
+   elm_type: Option<ValueType>,
+   //valid when dimension > 1
+   down_type: Option<ClassRef>
 }
 
 pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
@@ -56,57 +101,14 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
                 _ => {
                     let class = class.lock().unwrap();
                     trace!("init_class_fully name={}, no <clinit> ",
-                        String::from_utf8_lossy(class.name.as_slice()));
+                           String::from_utf8_lossy(class.name.as_slice()));
                 },
             }
         }
     }
 }
 
-#[derive(Debug)]
-pub struct ClassObject {
-    pub name: BytesRef,
-
-    pub typ: Type,
-
-    pub state: State,
-
-    pub acc_flags: U2,
-
-    //superclass, or None if this is java.lang.Object
-    pub super_class: Option<ClassRef>,
-
-    //defining class loader, or None for the "bootstrap" system loader
-    pub class_loader: Option<ClassLoader>,
-
-    pub class_file: ClassFileRef,
-
-    pub signature: Option<BytesRef>,
-
-    //valid when dimension == 1
-    elm_type: Option<ValueType>,
-    //valid when dimension > 1
-    down_type: Option<ClassRef>,
-
-    pub n_inst_fields: usize,
-
-    all_methods: HashMap<BytesRef, MethodIdRef>,
-    v_table: HashMap<BytesRef, MethodIdRef>,
-
-    static_fields: HashMap<BytesRef, FieldIdRef>,
-    inst_fields: HashMap<BytesRef, FieldIdRef>,
-
-    static_filed_values: Vec<Arc<OopDesc>>,
-
-    interfaces: HashMap<BytesRef, ClassRef>,
-
-    pub source_file: Option<BytesRef>,
-
-    monitor: Mutex<usize>,
-}
-
-//open api
-impl ClassObject {
+impl Class {
     pub fn get_class_state(&self) -> State {
         self.state
     }
@@ -117,10 +119,6 @@ impl ClassObject {
 
     pub fn get_name(&self) -> BytesRef {
         self.name.clone()
-    }
-
-    pub fn get_class_type(&self) -> Type {
-        self.typ
     }
 
     pub fn get_super_class(&self) -> Option<ClassRef> {
@@ -155,20 +153,35 @@ impl ClassObject {
         (self.acc_flags & ACC_INTERFACE) == ACC_INTERFACE
     }
 
+    pub fn monitor_enter(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v += 1;
+    }
+
+    pub fn monitor_exit(&mut self) {
+        let mut v = self.monitor.lock().unwrap();
+        *v -= 1;
+    }
+
     pub fn link_class(&mut self, self_ref: ClassRef) {
         //todo: java mirror
         //        java::lang::Class::createMirror(this, _javaLoader);
 
-        match self.typ {
-            Type::InstanceClass => {
-                self.link_super_class();
-                self.link_fields(self_ref.clone());
-                self.link_interfaces();
-                self.link_methods(self_ref);
-                self.link_attributes();
+        match &mut self.kind {
+            ClassKind::Instance(class_obj) => {
+                self.super_class = class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+                class_obj.link_fields(self_ref.clone(), self.name.clone());
+                class_obj.link_interfaces();
+                class_obj.link_methods(self_ref);
+                class_obj.link_attributes();
             }
 
-            Type::ObjectArray | Type::PrimeArray => {
+            ClassKind::ObjectArray(ary_class_obj, _) => {
+                let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
+                self.super_class = Some(super_class);
+            }
+
+            ClassKind::TypeArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
             }
@@ -178,8 +191,8 @@ impl ClassObject {
     }
 
     pub fn init_class(&mut self, thread: &mut JavaThread) {
-        match self.typ {
-            Type::InstanceClass => {
+        match &mut self.kind {
+            ClassKind::Instance(class_obj) => {
                 if self.state == State::Linked {
                     self.state = State::BeingIni;
 
@@ -187,42 +200,42 @@ impl ClassObject {
                         super_class.lock().unwrap().init_class(thread);
                     }
 
-                    self.init_static_fields();
+                    class_obj.init_static_fields();
                 }
             }
 
-            Type::ObjectArray | Type::PrimeArray => (), //skip for Array
+            ClassKind::ObjectArray(_, _) => (), //skip for Array
+            ClassKind::TypeArray(_) => ()
         }
     }
 
     pub fn is_array(&self) -> bool {
-        match self.typ {
-            Type::PrimeArray | Type::ObjectArray => true,
-            _ => false,
+        match &self.kind {
+            ClassKind::Instance(_) => false,
+            _ => true,
         }
     }
+}
 
+impl ArrayKlassObject {
     pub fn get_dimension(&self) -> Option<usize> {
         match self.down_type.as_ref() {
-            Some(down_type) => Some(1 + down_type.lock().unwrap().get_dimension().unwrap()),
-            None => {
-                if self.is_array() {
-                    Some(1)
-                } else {
-                    None
-                }
-            }
+            Some(down_type) => {
+                let down_type = down_type.lock().unwrap();
+                let n = match &down_type.kind {
+                    ClassKind::Instance(_) => unreachable!(),
+                    ClassKind::ObjectArray(ary_cls_obj, _) => ary_cls_obj.get_dimension(),
+                    ClassKind::TypeArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
+                };
+                Some(1 + n.unwrap())
+            },
+            None => Some(1)
         }
     }
+}
 
-    pub fn is_prime_array(&self) -> bool {
-        self.typ == Type::PrimeArray
-    }
-
-    pub fn is_object_array(&self) -> bool {
-        self.typ == Type::ObjectArray
-    }
-
+//open api
+impl Class {
     //todo: confirm static method
     pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_this_class_method(desc, name)
@@ -240,14 +253,25 @@ impl ClassObject {
 
     pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
         if is_static {
-            match self.static_fields.get(&id) {
-                Some(fid) => return fid.clone(),
-                None => (),
+            match &self.kind {
+                ClassKind::Instance(cls_obj) => {
+                    match cls_obj.static_fields.get(&id) {
+                        Some(fid) => return fid.clone(),
+                        None => (),
+                    }
+                }
+                _ => unreachable!()
             }
+
         } else {
-            match self.inst_fields.get(&id) {
-                Some(fid) => return fid.clone(),
-                None => (),
+            match &self.kind {
+                ClassKind::Instance(cls_obj) => {
+                    match cls_obj.inst_fields.get(&id) {
+                        Some(fid) => return fid.clone(),
+                        None => (),
+                    }
+                }
+                _ => unreachable!()
             }
         }
 
@@ -275,61 +299,53 @@ impl ClassObject {
     }
 
     pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Arc<OopDesc>) {
-        let id = field_id.field.get_id();
-        if self.static_fields.contains_key(&id) {
-            self.static_filed_values[field_id.offset] = v;
-        } else {
-            let super_class = self.super_class.clone();
-            super_class
-                .unwrap()
-                .lock()
-                .unwrap()
-                .put_static_field_value(field_id, v);
+        match &mut self.kind {
+            ClassKind::Instance(cls_obj) => {
+                let id = field_id.field.get_id();
+                if cls_obj.static_fields.contains_key(&id) {
+                    cls_obj.static_filed_values[field_id.offset] = v;
+                } else {
+                    let super_class = self.super_class.clone();
+                    super_class
+                        .unwrap()
+                        .lock()
+                        .unwrap()
+                        .put_static_field_value(field_id, v);
+                }
+            }
+            _ => unreachable!()
         }
+
     }
 
     pub fn get_static_field_value(&self, field_id: FieldIdRef) -> Arc<OopDesc> {
-        let id = field_id.field.get_id();
-        if self.static_fields.contains_key(&id) {
-            self.static_filed_values[field_id.offset].clone()
-        } else {
-            let super_class = self.super_class.clone();
-            super_class
-                .unwrap()
-                .lock()
-                .unwrap()
-                .get_static_field_value(field_id)
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => {
+                let id = field_id.field.get_id();
+                if cls_obj.static_fields.contains_key(&id) {
+                    cls_obj.static_filed_values[field_id.offset].clone()
+                } else {
+                    let super_class = self.super_class.clone();
+                    super_class
+                        .unwrap()
+                        .lock()
+                        .unwrap()
+                        .get_static_field_value(field_id)
+                }
+            }
+            _ => unreachable!()
         }
-    }
-
-    pub fn monitor_enter(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v += 1;
-    }
-
-    pub fn monitor_exit(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v -= 1;
     }
 }
 
 //open api new
-impl ClassObject {
+impl Class {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = &class_file.cp;
         let name = constant_pool::get_class_name(cp, class_file.this_class as usize).unwrap();
-
-        Self {
-            name,
-            typ: Type::InstanceClass,
-            state: State::Allocated,
-            acc_flags: class_file.acc_flags,
-            super_class: None,
-            class_loader,
+        let acc_flags = class_file.acc_flags;
+        let class_obj = ClassObject {
             class_file,
-            signature: None,
-            elm_type: None,
-            down_type: None,
             n_inst_fields: 0,
             all_methods: HashMap::new(),
             v_table: HashMap::new(),
@@ -337,8 +353,19 @@ impl ClassObject {
             inst_fields: HashMap::new(),
             static_filed_values: vec![],
             interfaces: HashMap::new(),
+            signature: None,
             source_file: None,
+        };
+
+        Self {
+            name,
+            state: State::Allocated,
+            acc_flags,
+            super_class: None,
+            class_loader,
             monitor: Mutex::new(0),
+
+            kind: ClassKind::Instance(class_obj)
         }
     }
 
@@ -346,33 +373,48 @@ impl ClassObject {
         let name = Arc::new(Vec::from(elm_name));
         let class_file = {
             let class = elm.lock().unwrap();
-            class.class_file.clone()
+            match &class.kind {
+                ClassKind::Instance(cls_obj) => cls_obj.class_file.clone(),
+                _ => unreachable!()
+            }
         };
+
+        let array_klass_obj = ArrayKlassObject {
+            elm_type: Some(ValueType::OBJECT),
+            down_type: None,
+        };
+
         Self {
             name,
-            typ: Type::ObjectArray,
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
-            class_file,
-            signature: None,
-            elm_type: Some(ValueType::OBJECT),
-            down_type: None,
-            n_inst_fields: 0,
-            all_methods: HashMap::new(),
-            v_table: HashMap::new(),
-            static_fields: HashMap::new(),
-            inst_fields: HashMap::new(),
-            static_filed_values: vec![],
-            interfaces: HashMap::new(),
-            source_file: None,
             monitor: Mutex::new(0),
+            kind: ClassKind::ObjectArray(array_klass_obj, class_file)
         }
     }
 
     pub fn new_prime_ary(class_loader: ClassLoader, elm: ValueType) -> Self {
         unimplemented!()
+        /*
+        let array_klass_obj = ArrayKlassObject {
+            elm_type: Some(ValueType::OBJECT),
+            down_type: None,
+        };
+
+        Self {
+            name,
+            state: State::Allocated,
+            acc_flags: 0, //todo: should be 0?
+            super_class: None,
+            class_loader: Some(class_loader),
+            signature: None,
+            source_file: None,
+            monitor: Mutex::new(0),
+            kind: ClassKind::TypeArray(array_klass_obj)
+        }
+        */
     }
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
@@ -382,35 +424,36 @@ impl ClassObject {
 
 //inner api for link
 impl ClassObject {
-    fn link_super_class(&mut self) {
+    fn link_super_class(&mut self, name: BytesRef, class_loader: Option<ClassLoader>) -> Option<ClassRef> {
         let class_file = &self.class_file;
         let cp = &class_file.cp;
 
         if class_file.super_class == 0 {
-            if self.name.as_slice() != consts::J_OBJECT {
-                self.set_class_state(State::IniErr);
-                assert!(false, format!("should be {:?}", consts::J_OBJECT));
+            if name.as_slice() != consts::J_OBJECT {
+                unreachable!("should be java/lang/Object");
             }
-            self.super_class = None;
+
+            None
         } else {
             let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
-            let super_class = runtime::require_class(self.class_loader, name).unwrap();
+            let super_class = runtime::require_class(class_loader, name).unwrap();
             util::sync_call_ctx(&super_class, |c| {
                 assert!(!c.is_final(), "should not final");
             });
-            self.super_class = Some(super_class);
+
+            Some(super_class)
         }
     }
 
-    fn link_fields(&mut self, self_ref: ClassRef) {
-        let class_file = self.class_file.clone();
-        let cp = &class_file.cp;
+    fn link_fields(&mut self, self_ref: ClassRef, name: BytesRef) {
+        let cls_file = self.class_file.clone();
+        let cp = &cls_file.cp;
 
         let mut n_static = 0;
         let mut n_inst = 0;
-        let class_name = self.name.clone();
+        let class_name = name.clone();
         let class_name = class_name.as_slice();
-        class_file.fields.iter().for_each(|it| {
+        cls_file.fields.iter().for_each(|it| {
             let field = field::Field::new(cp, it, class_name, self_ref.clone());
             let id = field.get_id();
             if field.is_static() {
@@ -514,11 +557,16 @@ impl ClassObject {
     }
 }
 
-impl ClassObject {
+impl Class {
     pub fn get_this_class_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        match self.all_methods.get(&id) {
-            Some(m) => return Ok(m.clone()),
-            None => (),
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => {
+                match cls_obj.all_methods.get(&id) {
+                    Some(m) => return Ok(m.clone()),
+                    None => (),
+                }
+            }
+            _ => unreachable!()
         }
 
         match self.super_class.as_ref() {
@@ -530,9 +578,14 @@ impl ClassObject {
     }
 
     pub fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        match self.v_table.get(&id) {
-            Some(m) => return Ok(m.clone()),
-            None => (),
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => {
+                match cls_obj.v_table.get(&id) {
+                    Some(m) => return Ok(m.clone()),
+                    None => (),
+                }
+            }
+            _ => unreachable!()
         }
 
         match self.super_class.as_ref() {

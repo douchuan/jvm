@@ -2,7 +2,7 @@ use crate::classfile::{
     access_flags::*, attr_info::Code, constant_pool, consts, types::*, AttrType, FieldInfo,
     MethodInfo,
 };
-use crate::oop::{self, ClassObject, ClassRef, ValueType};
+use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
@@ -90,10 +90,7 @@ impl Method {
         self.id.clone()
     }
 
-    pub fn find_exception_handler(&self, class: &ClassObject, pc: U2, ex: ClassRef) -> Option<U2> {
-        let class_file = class.class_file.clone();
-        let cp = &class_file.cp;
-
+    pub fn find_exception_handler(&self, cp: &ConstantPool, pc: U2, ex: ClassRef) -> Option<U2> {
         match &self.code {
             Some(code) => {
                 for e in code.exceptions.iter() {

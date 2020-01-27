@@ -32,11 +32,6 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
-  x. oop::class::init_class_fully cycle call
-    JavaMainThread::run init_class_fully
-      invoke_static
-        get_method_ref
-          init_class_fully
   x. invoke native
   x. java/lang/Class:Z:useCaches
 */

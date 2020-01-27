@@ -33,7 +33,11 @@ impl Frame {
     pub fn new(mir: MethodIdRef) -> Self {
         let class = mir.method.class.clone();
         let cp = {
-            class.lock().unwrap().class_file.cp.clone()
+            let class = class.lock().unwrap();
+            match &class.kind {
+                oop::ClassKind::Instance(cls_obj) => cls_obj.class_file.cp.clone(),
+                _ => unreachable!()
+            }
         };
         match &mir.method.code {
             Some(code) => {
@@ -2095,8 +2099,61 @@ impl Frame {
     }
 
     pub fn anew_array(&mut self) {
-        //todo: impl
-        unimplemented!()
+        /*
+        let cp_idx = self.read_i2();
+        let length = self.stack.pop_int();
+        if length < 0 {
+            thread.throw_ext_with_msg2(
+                consts::J_NASE,
+                false,
+                b"length < 0",
+            );
+            self.handle_exception(thread);
+        } else {
+            let class = {
+                let constant_idx = self.read_i2();
+                match runtime::require_class2(cp_idx as u16, &self.cp) {
+                    Some(class) => class,
+                    None => panic!("Cannot get class info from constant pool"),
+                }
+            };
+
+            let typ = {
+                let class = class.lock().unwrap();
+                class.typ
+            };
+
+            match typ {
+                oop::class::Type::InstanceClass => {
+                    {
+                        let mut class = class.lock().unwrap();
+                        class.init_class(thread);
+                    }
+
+                    oop::class::init_class_fully(thread, class.clone());
+
+                    let (name, cl) = {
+                        let mut class = class.lock().unwrap();
+                        (class.name.clone(), class.class_loader)
+                    };
+
+                    let mut ary_name = Vec::new();
+                    ary_name.extend_from_slice(b"[L");
+                    ary_name.extend_from_slice(name.as_slice());
+                    ary_name.extend_from_slice(b";");
+
+                    let name = Arc::new(ary_name);
+                    runtime::require_class(cl, name);
+                },
+                oop::class::Type::ObjectArray => {
+
+                }
+                oop::class::Type::PrimeArray => {
+
+                }
+            }
+        }
+        */
     }
 
     pub fn array_length(&mut self, thread: &mut JavaThread) {

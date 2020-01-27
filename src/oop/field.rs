@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
-use crate::oop::{self, consts as oop_consts, ClassObject, ClassRef, Oop, OopDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, ClassRef, Oop, OopDesc, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
