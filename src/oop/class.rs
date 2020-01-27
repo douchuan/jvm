@@ -71,6 +71,7 @@ pub struct ArrayClassObject {
    down_type: Option<ClassRef>
 }
 
+//invoke "<clinit>"
 pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
     let need = {
         class.lock().unwrap().state == State::BeingIni

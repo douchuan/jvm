@@ -94,7 +94,16 @@ impl OopDesc {
         Self::new(Oop::Inst(v))
     }
 
-    pub fn new_ary(v: ArrayOopDesc) -> Arc<Self> {
+    pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> Arc<Self> {
+        let v = ArrayOopDesc::new(ary_cls_obj, len);
+        Self::new(Oop::Array(v))
+    }
+
+    pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<Arc<OopDesc>>) -> Arc<Self> {
+        let v = ArrayOopDesc {
+            class: ary_cls_obj,
+            elements: elms,
+        };
         Self::new(Oop::Array(v))
     }
 

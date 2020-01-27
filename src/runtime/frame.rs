@@ -289,7 +289,7 @@ impl Frame {
                         OpCode::invokedynamic => self.invoke_dynamic(),
                         OpCode::new => self.new_(thread),
                         OpCode::newarray => self.new_array(),
-                        OpCode::anewarray => self.anew_array(),
+                        OpCode::anewarray => self.anew_array(thread),
                         OpCode::arraylength => self.array_length(thread),
                         OpCode::athrow => self.athrow(thread),
                         OpCode::checkcast => self.check_cast(),
@@ -2098,8 +2098,7 @@ impl Frame {
         unimplemented!()
     }
 
-    pub fn anew_array(&mut self) {
-        /*
+    pub fn anew_array(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         let length = self.stack.pop_int();
         if length < 0 {
@@ -2110,50 +2109,27 @@ impl Frame {
             );
             self.handle_exception(thread);
         } else {
-            let class = {
-                let constant_idx = self.read_i2();
-                match runtime::require_class2(cp_idx as u16, &self.cp) {
-                    Some(class) => class,
-                    None => panic!("Cannot get class info from constant pool"),
-                }
+           let class = match runtime::require_class2(cp_idx as u16, &self.cp) {
+                Some(class) => class,
+                None => panic!("Cannot get class info from constant pool"),
             };
 
-            let typ = {
-                let class = class.lock().unwrap();
-                class.typ
-            };
-
-            match typ {
-                oop::class::Type::InstanceClass => {
-                    {
-                        let mut class = class.lock().unwrap();
-                        class.init_class(thread);
-                    }
-
-                    oop::class::init_class_fully(thread, class.clone());
-
-                    let (name, cl) = {
-                        let mut class = class.lock().unwrap();
-                        (class.name.clone(), class.class_loader)
-                    };
-
-                    let mut ary_name = Vec::new();
-                    ary_name.extend_from_slice(b"[L");
-                    ary_name.extend_from_slice(name.as_slice());
-                    ary_name.extend_from_slice(b";");
-
-                    let name = Arc::new(ary_name);
-                    runtime::require_class(cl, name);
-                },
-                oop::class::Type::ObjectArray => {
-
-                }
-                oop::class::Type::PrimeArray => {
-
-                }
+            {
+                let mut class = class.lock().unwrap();
+                class.init_class(thread);
             }
+
+            oop::class::init_class_fully(thread, class.clone());
+
+            let (name, cl) = {
+                let class = class.lock().unwrap();
+                (class.name.clone(), class.class_loader.clone())
+            };
+
+            let ary_cls_obj = runtime::require_class(cl, name);
+            let ary = OopDesc::new_ary(ary_cls_obj.unwrap(), length as usize);
+            self.stack.push_ref(ary);
         }
-        */
     }
 
     pub fn array_length(&mut self, thread: &mut JavaThread) {

@@ -110,7 +110,6 @@ impl JavaMainThread {
 
 impl JavaMainThread {
     fn build_stack(&self) -> Stack {
-        //args array => Vec<Arc<OopDesc>>
         let args = match &self.args {
             Some(args) => args
                 .iter()
@@ -124,11 +123,7 @@ impl JavaMainThread {
 
         //build ArrayOopDesc
         let string_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
-        let ary = oop::ArrayOopDesc {
-            class: string_class,
-            elements: args,
-        };
-        let arg = OopDesc::new_ary(ary);
+        let arg = OopDesc::new_ary2(string_class, args);
 
         //push to stack
         let mut stack = Stack::new(1);

@@ -34,6 +34,7 @@ todo list
   x. java to execute a jar by -jar
   x. invoke native
   x. java/lang/Class:Z:useCaches
+  x. "<clinit>" "<init>" diff?
 */
 
 fn init_vm() {
