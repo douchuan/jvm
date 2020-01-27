@@ -29,8 +29,8 @@ pub struct Class {
 #[derive(Debug)]
 pub enum ClassKind {
     Instance(ClassObject),
-    ObjectArray(ArrayKlassObject, ClassFileRef),
-    TypeArray(ArrayKlassObject)
+    ObjectArray(ArrayClassObject, ClassFileRef),
+    TypeArray(ArrayClassObject)
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -64,7 +64,7 @@ pub struct ClassObject {
 }
 
 #[derive(Debug)]
-pub struct ArrayKlassObject {
+pub struct ArrayClassObject {
    //valid when dimension == 1
    elm_type: Option<ValueType>,
    //valid when dimension > 1
@@ -217,7 +217,7 @@ impl Class {
     }
 }
 
-impl ArrayKlassObject {
+impl ArrayClassObject {
     pub fn get_dimension(&self) -> Option<usize> {
         match self.down_type.as_ref() {
             Some(down_type) => {
@@ -379,7 +379,7 @@ impl Class {
             }
         };
 
-        let array_klass_obj = ArrayKlassObject {
+        let array_klass_obj = ArrayClassObject {
             elm_type: Some(ValueType::OBJECT),
             down_type: None,
         };
