@@ -31,7 +31,7 @@ pub type ClassFileRef = Arc<ClassFile>;
 
 def_ref!(ClassRef, Class);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ValueType {
     BYTE,
     BOOLEAN,
@@ -138,6 +138,24 @@ impl From<&u8> for ValueType {
             b'L' => ValueType::OBJECT,
             b'[' => ValueType::ARRAY,
             _ => unreachable!(),
+        }
+    }
+}
+
+impl Into<&[u8]> for ValueType {
+    fn into(self) -> &'static [u8] {
+        match self {
+            ValueType::BYTE => b"B",
+            ValueType::BOOLEAN => b"Z",
+            ValueType::CHAR => b"C",
+            ValueType::SHORT => b"S",
+            ValueType::INT => b"I",
+            ValueType::LONG => b"J",
+            ValueType::FLOAT => b"F",
+            ValueType::DOUBLE => b"D",
+            ValueType::VOID => b"V",
+            ValueType::OBJECT => b"L",
+            ValueType::ARRAY => b"[",
         }
     }
 }

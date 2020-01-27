@@ -204,8 +204,7 @@ impl Class {
                 }
             }
 
-            ClassKind::ObjectArray(_, _) => (), //skip for Array
-            ClassKind::TypeArray(_) => ()
+            _ => self.state = State::FullyIni,
         }
     }
 
@@ -379,7 +378,7 @@ impl Class {
             }
         };
 
-        let array_klass_obj = ArrayClassObject {
+        let ary_cls_obj = ArrayClassObject {
             elm_type: Some(ValueType::OBJECT),
             down_type: None,
         };
@@ -391,34 +390,55 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind: ClassKind::ObjectArray(array_klass_obj, class_file)
+            kind: ClassKind::ObjectArray(ary_cls_obj, class_file)
         }
     }
 
     pub fn new_prime_ary(class_loader: ClassLoader, elm: ValueType) -> Self {
-        unimplemented!()
-        /*
-        let array_klass_obj = ArrayKlassObject {
-            elm_type: Some(ValueType::OBJECT),
+        let ary_cls_obj = ArrayClassObject {
+            elm_type: Some(elm),
             down_type: None,
         };
 
+        let mut name = Vec::with_capacity(2);
+        name.push(b'[');
+        name.extend_from_slice(elm.into());
+
         Self {
-            name,
+            name: Arc::new(name),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
-            signature: None,
-            source_file: None,
             monitor: Mutex::new(0),
-            kind: ClassKind::TypeArray(array_klass_obj)
+            kind: ClassKind::TypeArray(ary_cls_obj)
         }
-        */
     }
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
-        unimplemented!()
+        let down_type_name = {
+            let class = down_type.lock().unwrap();
+            class.name.clone()
+        };
+
+        let ary_cls_obj = ArrayClassObject {
+            elm_type: None,
+            down_type: Some(down_type),
+        };
+
+        let mut name = Vec::with_capacity(1 + down_type_name.len());
+        name.push(b'[');
+        name.extend_from_slice(&down_type_name);
+
+        Self {
+            name: Arc::new(name),
+            state: State::Allocated,
+            acc_flags: 0, //todo: should be 0?
+            super_class: None,
+            class_loader: Some(class_loader),
+            monitor: Mutex::new(0),
+            kind: ClassKind::TypeArray(ary_cls_obj)
+        }
     }
 }
 
