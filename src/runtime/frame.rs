@@ -124,9 +124,9 @@ impl Frame {
                         OpCode::dconst_1 => self.dconst_1(),
                         OpCode::bipush => self.bipush(),
                         OpCode::sipush => self.sipush(),
-                        OpCode::ldc => self.ldc(),
-                        OpCode::ldc_w => self.ldc_w(),
-                        OpCode::ldc2_w => self.ldc2_w(),
+                        OpCode::ldc => self.ldc(thread),
+                        OpCode::ldc_w => self.ldc_w(thread),
+                        OpCode::ldc2_w => self.ldc2_w(thread),
                         OpCode::iload => self.iload(),
                         OpCode::lload => self.lload(),
                         OpCode::fload => self.fload(),
@@ -343,7 +343,7 @@ impl Frame {
         self.read_u1() << 8 | self.read_u1()
     }
 
-    fn load_constant(&mut self, pos: usize) {
+    fn load_constant(&mut self, pos: usize, thread: &mut JavaThread) {
         match &self.cp[pos] {
             ConstantType::Integer { v } => self.stack.push_int2(*v),
             ConstantType::Float { v } => self.stack.push_float2(*v),
@@ -358,8 +358,16 @@ impl Frame {
                 let cl = {
                     self.class.lock().unwrap().class_loader.clone()
                 };
-                let class = runtime::require_class(cl, name);
-                self.stack.push_ref(OopDesc::new_class(class.unwrap()));
+                let class = runtime::require_class(cl, name).unwrap();
+
+                {
+                    let mut class = class.lock().unwrap();
+                    class.init_class(thread);
+                }
+
+                oop::class::init_class_fully(thread, class.clone());
+
+                self.stack.push_ref(OopDesc::new_class(class));
             }
             _ => unreachable!(),
         }
@@ -409,7 +417,7 @@ impl Frame {
             field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
 
-//        trace!("get_field_helper = {} ", String::from_utf8_lossy(fir.field.get_id().as_slice()));
+        trace!("get_field_helper = {}, is_static = {}", String::from_utf8_lossy(fir.field.get_id().as_slice()), is_static);
 
         let value_type = fir.field.value_type.clone();
         let class = fir.field.class.lock().unwrap();
@@ -561,18 +569,18 @@ impl Frame {
         self.stack.push_int(v);
     }
 
-    pub fn ldc(&mut self) {
+    pub fn ldc(&mut self, thread: &mut JavaThread) {
         let pos = self.read_u1();
-        self.load_constant(pos);
+        self.load_constant(pos, thread);
     }
 
-    pub fn ldc_w(&mut self) {
+    pub fn ldc_w(&mut self, thread: &mut JavaThread) {
         let pos = self.read_u2();
-        self.load_constant(pos);
+        self.load_constant(pos, thread);
     }
 
-    pub fn ldc2_w(&mut self) {
-        self.ldc_w()
+    pub fn ldc2_w(&mut self, thread: &mut JavaThread) {
+        self.ldc_w(thread);
     }
 
     pub fn iload(&mut self) {
@@ -2124,12 +2132,42 @@ impl Frame {
 
             let (name, cl) = {
                 let class = class.lock().unwrap();
-                (class.name.clone(), class.class_loader.clone())
+                let t = class.get_class_kind_type();
+                let name = match t {
+                    oop::class::ClassKindType::Instance | oop::class::ClassKindType::ObjectAry => {
+                        let mut v = Vec::with_capacity(class.name.len() + 2);
+                        v.push(b'[');
+                        v.extend_from_slice(class.name.as_slice());
+                        v.push(b';');
+
+                        v
+                    }
+                    oop::class::ClassKindType::TypAry => {
+                        let mut v = Vec::with_capacity(class.name.len() + 1);
+                        v.push(b'[');
+                        v.extend_from_slice(class.name.as_slice());
+
+                        v
+                    }
+                };
+
+                (Arc::new(name), class.class_loader.clone())
             };
 
-            let ary_cls_obj = runtime::require_class(cl, name);
-            let ary = OopDesc::new_ary(ary_cls_obj.unwrap(), length as usize);
-            self.stack.push_ref(ary);
+            match runtime::require_class(cl, name) {
+                Some(ary_cls_obj) => {
+                    {
+                        let mut class = ary_cls_obj.lock().unwrap();
+                        class.init_class(thread);
+                    }
+
+                    oop::class::init_class_fully(thread, ary_cls_obj.clone());
+
+                    let ary = OopDesc::new_ary(ary_cls_obj, length as usize);
+                    self.stack.push_ref(ary);
+                }
+                None => unreachable!()
+            }
         }
     }
 

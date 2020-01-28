@@ -146,13 +146,20 @@ impl From<&u8> for ValueType {
             b'C' => ValueType::CHAR,
             b'S' => ValueType::SHORT,
             b'I' => ValueType::INT,
-            b'J' => ValueType::LONG,
+            b'J' | b'j' => ValueType::LONG,
             b'F' => ValueType::FLOAT,
             b'D' => ValueType::DOUBLE,
             b'V' => ValueType::VOID,
             b'L' => ValueType::OBJECT,
             b'[' => ValueType::ARRAY,
-            _ => unreachable!(),
+            t => {
+                /*
+                let mut v = Vec::new();
+                v.push(*t);
+                trace!("ValueType = {}", String::from_utf8_lossy(v.as_slice()));
+                */
+                unreachable!()
+            },
         }
     }
 }
@@ -221,6 +228,10 @@ impl InstOopDesc {
 
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, len: usize) -> Self {
+        {
+            assert!(class.lock().unwrap().is_array());
+        }
+
         Self {
             class,
             elements: Vec::with_capacity(len),

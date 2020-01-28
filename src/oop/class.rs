@@ -33,6 +33,13 @@ pub enum ClassKind {
     TypeArray(ArrayClassObject)
 }
 
+#[derive(Debug)]
+pub enum ClassKindType {
+    Instance,
+    ObjectAry,
+    TypAry,
+}
+
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum State {
     Allocated,
@@ -198,7 +205,11 @@ impl Class {
                     self.state = State::BeingIni;
 
                     if let Some(super_class) = self.super_class.as_ref() {
-                        super_class.lock().unwrap().init_class(thread);
+                        {
+                            super_class.lock().unwrap().init_class(thread);
+                        }
+
+                        init_class_fully(thread, super_class.clone());
                     }
 
                     class_obj.init_static_fields();
@@ -206,6 +217,14 @@ impl Class {
             }
 
             _ => self.state = State::FullyIni,
+        }
+    }
+
+    pub fn get_class_kind_type(&self) -> ClassKindType {
+        match &self.kind {
+            ClassKind::Instance(_) => ClassKindType::Instance,
+            ClassKind::ObjectArray(_, _) => ClassKindType::ObjectAry,
+            ClassKind::TypeArray(_) => ClassKindType::TypAry
         }
     }
 
@@ -294,7 +313,9 @@ impl Class {
     pub fn get_field_value(&self, receiver: Arc<OopDesc>, fid: FieldIdRef) -> Arc<OopDesc> {
         match &receiver.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
-            _ => unreachable!(),
+            r => {
+                unreachable!()
+            },
         }
     }
 
