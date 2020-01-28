@@ -51,6 +51,7 @@ impl JavaCall {
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
+            //todo: impl me
 //            unimplemented!()
         } else {
             self.invoke_java(jt, stack);

@@ -2161,6 +2161,8 @@ impl Frame {
                         class.init_class(thread);
                     }
 
+                    trace!("ary_cls_obj={:?}", ary_cls_obj);
+
                     oop::class::init_class_fully(thread, ary_cls_obj.clone());
 
                     let ary = OopDesc::new_ary(ary_cls_obj, length as usize);

@@ -40,13 +40,22 @@ pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) ->
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
-    if tag == consts::CONSTANT_METHOD_REF_TAG {
+    let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
         class.get_this_class_method(typ.as_slice(), name.as_slice())
     } else {
         // invokeinterface
         class.get_virtual_method(typ.as_slice(), name.as_slice())
+    };
+
+    /*
+    match &mir {
+        Ok(mir) => debug!("is_native = {}", mir.method.is_native()),
+        Err(_) => ()
     }
+    */
+
+    mir
 }
 
 #[derive(Debug, Clone)]

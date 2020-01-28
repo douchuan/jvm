@@ -234,6 +234,14 @@ impl Class {
             _ => true,
         }
     }
+
+    pub fn is_object_ary(&self) -> bool {
+        match &self.kind {
+            ClassKind::Instance(_) => false,
+            ClassKind::TypeArray(_) => false,
+            ClassKind::ObjectArray(_, _) => true,
+        }
+    }
 }
 
 impl ArrayClassObject {
@@ -314,6 +322,7 @@ impl Class {
         match &receiver.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
             r => {
+//                trace!("get_field_value = {:?}", r);
                 unreachable!()
             },
         }
@@ -438,9 +447,16 @@ impl Class {
     }
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
-        let down_type_name = {
+        let (down_type_name, class_file) = {
             let class = down_type.lock().unwrap();
-            class.name.clone()
+
+            let class_file = match &class.kind {
+                ClassKind::Instance(cls) => Some(cls.class_file.clone()),
+                ClassKind::ObjectArray(_, class_file) => Some(class_file.clone()),
+                ClassKind::TypeArray(_) => None
+            };
+
+            (class.name.clone(), class_file)
         };
 
         let ary_cls_obj = ArrayClassObject {
@@ -452,6 +468,12 @@ impl Class {
         name.push(b'[');
         name.extend_from_slice(&down_type_name);
 
+        let kind = if class_file.is_none() {
+            ClassKind::TypeArray(ary_cls_obj)
+        } else {
+            ClassKind::ObjectArray(ary_cls_obj, class_file.unwrap())
+        };
+
         Self {
             name: Arc::new(name),
             state: State::Allocated,
@@ -459,7 +481,7 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind: ClassKind::TypeArray(ary_cls_obj)
+            kind
         }
     }
 }

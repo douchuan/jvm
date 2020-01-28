@@ -146,6 +146,7 @@ impl From<&u8> for ValueType {
             b'C' => ValueType::CHAR,
             b'S' => ValueType::SHORT,
             b'I' => ValueType::INT,
+            //todo: where it's 小写字母的 'j' ?
             b'J' | b'j' => ValueType::LONG,
             b'F' => ValueType::FLOAT,
             b'D' => ValueType::DOUBLE,
