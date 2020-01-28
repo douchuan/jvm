@@ -73,7 +73,7 @@ impl JavaCall {
                             frame.exec_interp(jt);
                             self.set_return(jt, stack, frame.return_v.clone());
                         }
-                        _ => error!("frame try_lock failed")
+                        _ => unreachable!()
                     }
                 }
 
@@ -159,54 +159,36 @@ impl JavaCall {
         if !thread.is_exception_occurred() {
             match self.return_type {
                 ArgType::Int => {
-                    match v {
-                        Some(v) => {
-                            match v.v {
-                                Oop::Int(v) => stack.push_int(v),
-                                _ => unreachable!(),
-                            }
-                        },
-                        None => unreachable!(),
+                    let v = v.unwrap();
+                    match v.v {
+                        Oop::Int(v) => stack.push_int(v),
+                        _ => unreachable!(),
                     }
                 }
                 ArgType::Long => {
-                    match v {
-                        Some(v) => {
-                            match v.v {
-                                Oop::Long(v) => stack.push_long(v),
-                                _ => unreachable!()
-                            }
-                        },
-                        None => unreachable!(),
+                    let v = v.unwrap();
+                    match v.v {
+                        Oop::Long(v) => stack.push_long(v),
+                        _ => unreachable!()
                     }
                 }
                 ArgType::Float => {
-                    match v {
-                        Some(v) => {
-                            match v.v {
-                                Oop::Float(v) => stack.push_float(v),
-                                _ => unreachable!()
-                            }
-                        },
-                        None => unreachable!()
+                    let v = v.unwrap();
+                    match v.v {
+                        Oop::Float(v) => stack.push_float(v),
+                        _ => unreachable!()
                     }
                 }
                 ArgType::Double => {
-                    match v {
-                        Some(v) => {
-                            match v.v {
-                                Oop::Double(v) => stack.push_double(v),
-                                _ => unreachable!()
-                            }
-                        },
-                        None => unreachable!()
+                    let v = v.unwrap();
+                    match v.v {
+                        Oop::Double(v) => stack.push_double(v),
+                        _ => unreachable!()
                     }
                 }
                 ArgType::Object(_) | ArgType::Array(_, _) => {
-                    match v {
-                        Some(v) => stack.push_ref(v),
-                        None => unreachable!()
-                    }
+                    let v = v.unwrap();
+                    stack.push_ref(v);
                 }
                 ArgType::Void => (),
                 _ => unreachable!()

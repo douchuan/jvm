@@ -113,6 +113,12 @@ mod tests {
         let s3: &[u8] = b"abcde";
         let sep: &[u8] = b":";
         assert_eq!(vec![s1, s2, s3].join(sep), b"12345:67890:abcde");
+
+        let mut v = Vec::new();
+        v.insert(0, "aaa");
+        v.push("bbb");
+
+        assert_eq!(v[0], "aaa");
     }
 
     #[test]

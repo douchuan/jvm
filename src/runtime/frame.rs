@@ -358,6 +358,7 @@ impl Frame {
                 let cl = {
                     self.class.lock().unwrap().class_loader.clone()
                 };
+                trace!("load_constant name={}", String::from_utf8_lossy(name.as_slice()));
                 let class = runtime::require_class(cl, name).unwrap();
 
                 {
@@ -406,11 +407,11 @@ impl Frame {
         self.goto_by_offset(-(occupied - 1));
     }
 
-    fn set_return(&mut self, v: Arc<OopDesc>) {
-        self.return_v = Some(v);
+    fn set_return(&mut self, v: Option<Arc<OopDesc>>) {
+        self.return_v = v;
     }
 
-    fn get_field_helper(&self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32) -> (Arc<OopDesc>, ValueType) {
+    fn get_field_helper(&mut self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32) {
         let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
 
         let fir = {
@@ -427,7 +428,30 @@ impl Frame {
             class.get_field_value(receiver, fir.clone())
         };
 
-        (v, value_type)
+        match value_type {
+            ValueType::INT
+            | ValueType::SHORT
+            | ValueType::CHAR
+            | ValueType::BOOLEAN
+            | ValueType::BYTE => match v.v {
+                Oop::Int(v) => self.stack.push_int(v),
+                _ => unreachable!(),
+            },
+            ValueType::FLOAT => match v.v {
+                Oop::Float(v) => self.stack.push_float(v),
+                _ => unreachable!(),
+            },
+            ValueType::DOUBLE => match v.v {
+                Oop::Double(v) => self.stack.push_double(v),
+                _ => unreachable!(),
+            },
+            ValueType::LONG => match v.v {
+                Oop::Long(v) => self.stack.push_long(v),
+                _ => unreachable!(),
+            },
+            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
+            _ => unreachable!(),
+        }
     }
 
     fn put_field_helper(&mut self, thread: &mut JavaThread, idx: i32, is_static: bool) {
@@ -1964,66 +1988,41 @@ impl Frame {
     pub fn ireturn(&mut self) {
         let v = self.stack.pop_int();
         let v = OopDesc::new_int(v);
-        self.set_return(v);
+        self.set_return(Some(v));
     }
 
     pub fn lreturn(&mut self) {
         let v = self.stack.pop_long();
         let v = OopDesc::new_long(v);
-        self.set_return(v);
+        self.set_return(Some(v));
     }
 
     pub fn freturn(&mut self) {
         let v = self.stack.pop_float();
         let v = OopDesc::new_float(v);
-        self.set_return(v);
+        self.set_return(Some(v));
     }
 
     pub fn dreturn(&mut self) {
         let v = self.stack.pop_double();
         let v = OopDesc::new_double(v);
-        self.set_return(v);
+        self.set_return(Some(v));
     }
 
     pub fn areturn(&mut self) {
         let v = self.stack.pop_ref();
-        self.set_return(v);
+        self.set_return(Some(v));
     }
 
     pub fn return_(&mut self) {
-        self.set_return(oop_consts::get_null());
+        self.set_return(None);
     }
 
     pub fn get_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        let (v, value_type) = self.get_field_helper(thread, oop_consts::get_null(), cp_idx);
+        self.get_field_helper(thread, oop_consts::get_null(), cp_idx);
         if thread.is_exception_occurred() {
             self.handle_exception(thread);
-        }
-
-        match value_type {
-            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
-            ValueType::INT
-            | ValueType::SHORT
-            | ValueType::CHAR
-            | ValueType::BOOLEAN
-            | ValueType::BYTE => match v.v {
-                Oop::Int(v) => self.stack.push_int(v),
-                _ => unreachable!(),
-            },
-            ValueType::FLOAT => match v.v {
-                Oop::Float(v) => self.stack.push_float(v),
-                _ => unreachable!(),
-            },
-            ValueType::DOUBLE => match v.v {
-                Oop::Double(v) => self.stack.push_double(v),
-                _ => unreachable!(),
-            },
-            ValueType::LONG => match v.v {
-                Oop::Long(v) => self.stack.push_long(v),
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
         }
     }
 
@@ -2204,7 +2203,7 @@ impl Frame {
                     self.goto_abs(handler);
                 } else {
                     trace!("athrow: exception handler not found, rethrowing it to caller");
-                    self.set_return(rf);
+                    self.set_return(Some(rf));
                 }
             }
         }
