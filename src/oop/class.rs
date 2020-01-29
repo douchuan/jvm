@@ -66,6 +66,8 @@ pub struct ClassObject {
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
+    mirror: Option<OopRef>,
+
     pub signature: Option<BytesRef>,
     pub source_file: Option<BytesRef>,
 }
@@ -177,8 +179,14 @@ impl Class {
 
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
+
                 self.super_class = class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+
                 class_obj.link_fields(self_ref.clone(), self.name.clone());
+
+                //must be after link_fields to get n_inst_fields
+                class_obj.mirror = Some(OopDesc::new_mirror(self_ref.clone(), class_obj.n_inst_fields));
+
                 class_obj.link_interfaces();
                 class_obj.link_methods(self_ref);
                 class_obj.link_attributes();
@@ -228,6 +236,13 @@ impl Class {
         }
     }
 
+    pub fn is_instance(&self) -> bool {
+        match &self.kind {
+            ClassKind::Instance(_) => true,
+            _ => false
+        }
+    }
+
     pub fn is_array(&self) -> bool {
         match &self.kind {
             ClassKind::Instance(_) => false,
@@ -240,6 +255,13 @@ impl Class {
             ClassKind::Instance(_) => false,
             ClassKind::TypeArray(_) => false,
             ClassKind::ObjectArray(_, _) => true,
+        }
+    }
+
+    pub fn get_mirror(&self) -> OopRef {
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => cls_obj.mirror.clone().unwrap(),
+            _ => unreachable!(),
         }
     }
 }
@@ -322,6 +344,7 @@ impl Class {
         let rf = receiver.lock().unwrap();
         match &rf.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
+            Oop::Mirror(mirror) => mirror.filed_values[fid.offset].clone(),
             _ => {
 //                trace!("get_field_value = {:?}", r);
                 unreachable!()
@@ -384,6 +407,7 @@ impl Class {
             inst_fields: HashMap::new(),
             static_filed_values: vec![],
             interfaces: HashMap::new(),
+            mirror: None,
             signature: None,
             source_file: None,
         };
@@ -503,6 +527,7 @@ impl ClassObject {
             let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
             let super_class = runtime::require_class(class_loader, name).unwrap();
             util::sync_call_ctx(&super_class, |c| {
+                assert!(c.is_instance());
                 assert!(!c.is_final(), "should not final");
             });
 

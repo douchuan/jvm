@@ -102,8 +102,8 @@ impl Frame {
                             self.areturn();
                             break;
                         }
-                        OpCode::return_ => {
-                            self.return_();
+                        OpCode::return_void => {
+                            self.return_void();
                             break;
                         }
                         OpCode::nop => self.nop(),
@@ -368,7 +368,11 @@ impl Frame {
 
                 oop::class::init_class_fully(thread, class.clone());
 
-                self.stack.push_ref(OopDesc::new_class(class));
+                let mirror = {
+                    class.lock().unwrap().get_mirror()
+                };
+
+                self.stack.push_ref(mirror);
             }
             _ => unreachable!(),
         }
@@ -2025,7 +2029,7 @@ impl Frame {
         self.set_return(Some(v));
     }
 
-    pub fn return_(&mut self) {
+    pub fn return_void(&mut self) {
         self.set_return(None);
     }
 

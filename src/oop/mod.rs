@@ -59,7 +59,7 @@ pub enum Oop {
     //todo: optimise me, create a TypeArray
     Array(ArrayOopDesc),
 
-    Class(ClassRef),
+    Mirror(MirrorOopDesc),
 
     //used by oop::field::Filed::get_constant_value
     Null,
@@ -109,8 +109,18 @@ impl OopDesc {
         Self::new(Oop::Array(v))
     }
 
-    pub fn new_class(cls_obj: ClassRef) -> OopRef {
-        Self::new(Oop::Class(cls_obj))
+    pub fn new_mirror(cls_obj: ClassRef, n: usize) -> OopRef {
+        let mut filed_values = Vec::with_capacity(n);
+        //todo: how to avoid this?
+        for _ in 0..n {
+            filed_values.push(consts::get_null());
+        }
+
+        let v = MirrorOopDesc {
+            class: cls_obj,
+            filed_values
+        };
+        Self::new(Oop::Mirror(v))
     }
 
     pub fn new_null() -> OopRef {
@@ -208,6 +218,12 @@ pub struct InstOopDesc {
 pub struct ArrayOopDesc {
     pub class: ClassRef,
     pub elements: Vec<OopRef>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MirrorOopDesc {
+    class: ClassRef,
+    filed_values: Vec<OopRef>,
 }
 
 impl InstOopDesc {

@@ -73,7 +73,6 @@ impl JavaMainThread {
             classfile::consts::J_CLASS_NOT_FOUND,
             classfile::consts::J_INTERNAL_ERROR,
             classfile::consts::J_IOEXCEPTION,
-
             classfile::consts::J_SYSTEM,
         ];
         classes.iter().for_each(|c| {

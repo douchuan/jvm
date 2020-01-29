@@ -188,7 +188,7 @@ pub enum OpCode {
     freturn,
     dreturn,
     areturn,
-    return_,
+    return_void,
     //References
     getstatic,
     putstatic,
@@ -401,7 +401,7 @@ impl From<u8> for OpCode {
             OpCode::freturn,
             OpCode::dreturn,
             OpCode::areturn,
-            OpCode::return_,
+            OpCode::return_void,
             OpCode::getstatic,
             OpCode::putstatic,
             OpCode::getfield,

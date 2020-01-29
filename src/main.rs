@@ -20,12 +20,8 @@ use crate::runtime::thread::JavaMainThread;
 /*
 todo list
 
-  1. runtime byte code object 相关部分
   2. JNI
   3. runtime::execution::instance_of
-  4. oop::class
-    new_object_ary/new_prime_ary/new_wrapped_ary
-  5. impl InstOopDesc
   7. oop class init_class, java call "<clinit>"
      impl JavaCall::with_args(thread, clinit, {})
   9. oop/class.rs, link_constant_pool
@@ -35,6 +31,8 @@ todo list
   x. invoke native
   x. java/lang/Class:Z:useCaches
   x. "<clinit>" "<init>" diff?
+  x. reimpl instruction by macro
+  x. setup mirror field_values
 */
 
 fn init_vm() {

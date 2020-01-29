@@ -54,6 +54,13 @@ impl JavaCall {
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
+            match self.return_type {
+                ArgType::Void => (),
+                //fixme
+                ArgType::Boolean => stack.push_const0(),
+                _ => unimplemented!()
+            }
+
             //todo: impl me
 //            unimplemented!()
         } else {
@@ -163,7 +170,7 @@ impl JavaCall {
     fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<OopRef>) {
         if !thread.is_exception_occurred() {
             match self.return_type {
-                ArgType::Int => {
+                ArgType::Int | ArgType::Boolean => {
                     let v = v.unwrap();
                     let v = v.lock().unwrap();
                     match v.v {
