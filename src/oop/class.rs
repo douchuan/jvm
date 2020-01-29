@@ -321,7 +321,7 @@ impl Class {
     pub fn get_field_value(&self, receiver: Arc<OopDesc>, fid: FieldIdRef) -> Arc<OopDesc> {
         match &receiver.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
-            r => {
+            _ => {
 //                trace!("get_field_value = {:?}", r);
                 unreachable!()
             },

@@ -411,12 +411,12 @@ impl Frame {
         self.return_v = v;
     }
 
-    fn get_field_helper(&mut self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32) {
-        let is_static = Arc::ptr_eq(&receiver, &oop_consts::get_null());
-
+    fn get_field_helper(&mut self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32, is_static: bool) {
         let fir = {
             field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
+
+        assert_eq!(fir.field.is_static(), is_static);
 
         trace!("get_field_helper = {}, is_static = {}", String::from_utf8_lossy(fir.field.get_id().as_slice()), is_static);
 
@@ -459,10 +459,11 @@ impl Frame {
             field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
 
+        assert_eq!(fir.field.is_static(), is_static);
+
         let value_type = fir.field.value_type.clone();
 
         let v = match value_type {
-            ValueType::ARRAY | ValueType::OBJECT => self.stack.pop_ref(),
             ValueType::INT
             | ValueType::SHORT
             | ValueType::CHAR
@@ -483,6 +484,7 @@ impl Frame {
                 let v = self.stack.pop_long();
                 OopDesc::new_long(v)
             }
+            ValueType::ARRAY | ValueType::OBJECT => self.stack.pop_ref(),
             _ => unreachable!(),
         };
 
@@ -500,7 +502,7 @@ impl Frame {
         }
     }
 
-    fn invoke_helper(&mut self, thread: &mut JavaThread) {
+    fn invoke_helper(&mut self, thread: &mut JavaThread, is_static: bool) {
         let idx = self.read_u2();
 
         let mir = {
@@ -509,6 +511,8 @@ impl Frame {
 
         match mir {
             Ok(mir) => {
+                assert_eq!(mir.method.is_static(), is_static);
+
                 let jc = runtime::java_call::JavaCall::new(thread, &mut self.stack, mir);
                 jc.unwrap().invoke(thread, &mut self.stack);
             }
@@ -2020,7 +2024,7 @@ impl Frame {
 
     pub fn get_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.get_field_helper(thread, oop_consts::get_null(), cp_idx);
+        self.get_field_helper(thread, oop_consts::get_null(), cp_idx, true);
         if thread.is_exception_occurred() {
             self.handle_exception(thread);
         }
@@ -2041,7 +2045,7 @@ impl Frame {
             thread.throw_ext(consts::J_NPE, false);
             self.handle_exception(thread);
         } else {
-            self.get_field_helper(thread, rf, cp_idx);
+            self.get_field_helper(thread, rf, cp_idx, false);
             if thread.is_exception_occurred() {
                 self.handle_exception(thread);
             }
@@ -2054,19 +2058,19 @@ impl Frame {
     }
 
     pub fn invoke_virtual(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread);
+        self.invoke_helper(thread, false);
     }
 
     pub fn invoke_special(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread);
+        self.invoke_helper(thread, false);
     }
 
     pub fn invoke_static(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread);
+        self.invoke_helper(thread, true);
     }
 
     pub fn invoke_interface(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread);
+        self.invoke_helper(thread, false);
     }
 
     pub fn invoke_dynamic(&mut self) {
@@ -2076,8 +2080,8 @@ impl Frame {
 
     pub fn new_(&mut self, thread: &mut JavaThread) {
         let class = {
-            let constant_idx = self.read_i2();
-            match runtime::require_class2(constant_idx as u16, &self.cp) {
+            let cp_idx = self.read_i2();
+            match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => {
                     {
                         let mut class = class.lock().unwrap();
@@ -2088,15 +2092,14 @@ impl Frame {
 
                     class
                 },
-                None => panic!("Cannot get class info from constant pool"),
+                None => unreachable!("Cannot get class info from constant pool"),
             }
         };
 
         if thread.is_exception_occurred() {
             self.handle_exception(thread);
         } else {
-            let v = oop::InstOopDesc::new(class);
-            let v = oop::OopDesc::new_inst(v);
+            let v = oop::OopDesc::new_inst(class);
             self.stack.push_ref(v);
         }
     }

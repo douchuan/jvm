@@ -92,20 +92,19 @@ impl OopDesc {
         Self::new(Oop::Str(v))
     }
 
-    pub fn new_inst(v: InstOopDesc) -> Arc<Self> {
+    pub fn new_inst(cls_obj: ClassRef) -> Arc<Self> {
+        let v = InstOopDesc::new(cls_obj);
         Self::new(Oop::Inst(v))
     }
 
     pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> Arc<Self> {
-        let v = ArrayOopDesc::new(ary_cls_obj, len);
+        let elements = Vec::with_capacity(len);
+        let v = ArrayOopDesc::new(ary_cls_obj, elements);
         Self::new(Oop::Array(v))
     }
 
     pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<Arc<OopDesc>>) -> Arc<Self> {
-        let v = ArrayOopDesc {
-            class: ary_cls_obj,
-            elements: elms,
-        };
+        let v = ArrayOopDesc::new(ary_cls_obj, elms);
         Self::new(Oop::Array(v))
     }
 
@@ -228,14 +227,14 @@ impl InstOopDesc {
 }
 
 impl ArrayOopDesc {
-    pub fn new(class: ClassRef, len: usize) -> Self {
+    pub fn new(class: ClassRef, elements: Vec<Arc<OopDesc>>) -> Self {
         {
             assert!(class.lock().unwrap().is_array());
         }
 
         Self {
             class,
-            elements: Vec::with_capacity(len),
+            elements,
         }
     }
 
