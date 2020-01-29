@@ -1,4 +1,4 @@
-use crate::oop::OopDesc;
+use crate::oop::OopRef;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -11,5 +11,5 @@ pub enum Slot {
     Const4,
     Const5,
     Primitive(Vec<u8>),
-    Ref(Arc<OopDesc>),
+    Ref(OopRef),
 }

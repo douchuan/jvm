@@ -1,7 +1,7 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
     consts as oop_consts, field, method, ClassRef, ClassFileRef, FieldIdRef, MethodIdRef, Oop,
-    OopDesc, ValueType,
+    OopDesc, OopRef, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaThread, JavaCall, Stack};
 use crate::util::{self, PATH_DELIMITER};
@@ -62,7 +62,7 @@ pub struct ClassObject {
     static_fields: HashMap<BytesRef, FieldIdRef>,
     inst_fields: HashMap<BytesRef, FieldIdRef>,
 
-    static_filed_values: Vec<Arc<OopDesc>>,
+    static_filed_values: Vec<OopRef>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
@@ -310,16 +310,17 @@ impl Class {
             .get_field_id(id, is_static)
     }
 
-    pub fn put_field_value(&self, mut receiver: Arc<OopDesc>, fid: FieldIdRef, v: Arc<OopDesc>) {
-        let rff = Arc::get_mut(&mut receiver).unwrap();
+    pub fn put_field_value(&self, mut receiver: OopRef, fid: FieldIdRef, v: OopRef) {
+        let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset] = v,
             _ => unreachable!(),
         }
     }
 
-    pub fn get_field_value(&self, receiver: Arc<OopDesc>, fid: FieldIdRef) -> Arc<OopDesc> {
-        match &receiver.v {
+    pub fn get_field_value(&self, receiver: OopRef, fid: FieldIdRef) -> OopRef {
+        let rf = receiver.lock().unwrap();
+        match &rf.v {
             Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
             _ => {
 //                trace!("get_field_value = {:?}", r);
@@ -328,7 +329,7 @@ impl Class {
         }
     }
 
-    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Arc<OopDesc>) {
+    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: OopRef) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();
@@ -348,7 +349,7 @@ impl Class {
 
     }
 
-    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> Arc<OopDesc> {
+    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> OopRef {
         match &self.kind {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();

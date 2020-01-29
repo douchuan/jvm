@@ -1,13 +1,13 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
-use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc};
+use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
 use crate::runtime::{self, thread, Frame, JavaThread, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 pub struct JavaCall {
     pub mir: MethodIdRef,
-    pub args: Vec<Arc<OopDesc>>,
+    pub args: Vec<OopRef>,
     pub return_type: ArgType
 }
 
@@ -27,13 +27,16 @@ impl JavaCall {
             let v = stack.pop_ref();
 
             //check NPE
-            match &v.v {
-                Oop::Null => {
-                    jt.throw_ext(consts::J_NPE, false);
-                    //todo: caller should call handle_exception
-                    return Err(());
+            {
+                let v = v.lock().unwrap();
+                match &v.v {
+                    Oop::Null => {
+                        jt.throw_ext(consts::J_NPE, false);
+                        //todo: caller should call handle_exception
+                        return Err(());
+                    }
+                    _ => (),
                 }
-                _ => (),
             }
 
             args.insert(0, v);
@@ -95,7 +98,7 @@ impl JavaCall {
                 class.monitor_enter();
             } else {
                 let mut v = self.args.first_mut().unwrap();
-                let v = Arc::get_mut(&mut v).unwrap();
+                let mut v = v.lock().unwrap();
                 v.monitor_enter();
             }
         }
@@ -108,7 +111,7 @@ impl JavaCall {
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first_mut().unwrap();
-                let v = Arc::get_mut(&mut v).unwrap();
+                let mut v = v.lock().unwrap();
                 v.monitor_exit();
             }
         }
@@ -126,6 +129,8 @@ impl JavaCall {
         let locals = &mut frame.local;
         let mut slot_pos: usize = 0;
         self.args.iter().for_each(|v| {
+            let v_ref = v.clone();
+            let v = v.lock().unwrap();
             let step = match &v.v {
                 Oop::Int(v) => {
                     locals.set_int(slot_pos, *v);
@@ -144,7 +149,7 @@ impl JavaCall {
                     2
                 }
                 _ => {
-                    locals.set_ref(slot_pos, v.clone());
+                    locals.set_ref(slot_pos, v_ref);
                     1
                 }
             };
@@ -155,11 +160,12 @@ impl JavaCall {
         return Ok(frame);
     }
 
-    fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<Arc<OopDesc>>) {
+    fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<OopRef>) {
         if !thread.is_exception_occurred() {
             match self.return_type {
                 ArgType::Int => {
                     let v = v.unwrap();
+                    let v = v.lock().unwrap();
                     match v.v {
                         Oop::Int(v) => stack.push_int(v),
                         _ => unreachable!(),
@@ -167,6 +173,7 @@ impl JavaCall {
                 }
                 ArgType::Long => {
                     let v = v.unwrap();
+                    let v = v.lock().unwrap();
                     match v.v {
                         Oop::Long(v) => stack.push_long(v),
                         _ => unreachable!()
@@ -174,6 +181,7 @@ impl JavaCall {
                 }
                 ArgType::Float => {
                     let v = v.unwrap();
+                    let v = v.lock().unwrap();
                     match v.v {
                         Oop::Float(v) => stack.push_float(v),
                         _ => unreachable!()
@@ -181,6 +189,7 @@ impl JavaCall {
                 }
                 ArgType::Double => {
                     let v = v.unwrap();
+                    let v = v.lock().unwrap();
                     match v.v {
                         Oop::Double(v) => stack.push_double(v),
                         _ => unreachable!()
@@ -197,7 +206,7 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<Arc<OopDesc>> {
+fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
     sig.args
         .iter()
         .map(|t| match t {

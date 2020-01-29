@@ -30,6 +30,7 @@ macro_rules! new_ref {
 pub type ClassFileRef = Arc<ClassFile>;
 
 def_ref!(ClassRef, Class);
+def_ref!(OopRef, OopDesc);
 
 #[derive(Debug, Clone, Copy)]
 pub enum ValueType {
@@ -72,56 +73,56 @@ pub struct OopDesc {
 }
 
 impl OopDesc {
-    pub fn new_int(v: i32) -> Arc<Self> {
+    pub fn new_int(v: i32) -> OopRef {
         Self::new(Oop::Int(v))
     }
 
-    pub fn new_long(v: i64) -> Arc<Self> {
+    pub fn new_long(v: i64) -> OopRef {
         Self::new(Oop::Long(v))
     }
 
-    pub fn new_float(v: f32) -> Arc<Self> {
+    pub fn new_float(v: f32) -> OopRef {
         Self::new(Oop::Float(v))
     }
 
-    pub fn new_double(v: f64) -> Arc<Self> {
+    pub fn new_double(v: f64) -> OopRef {
         Self::new(Oop::Double(v))
     }
 
-    pub fn new_str(v: BytesRef) -> Arc<Self> {
+    pub fn new_str(v: BytesRef) -> OopRef {
         Self::new(Oop::Str(v))
     }
 
-    pub fn new_inst(cls_obj: ClassRef) -> Arc<Self> {
+    pub fn new_inst(cls_obj: ClassRef) -> OopRef {
         let v = InstOopDesc::new(cls_obj);
         Self::new(Oop::Inst(v))
     }
 
-    pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> Arc<Self> {
+    pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> OopRef {
         let elements = Vec::with_capacity(len);
         let v = ArrayOopDesc::new(ary_cls_obj, elements);
         Self::new(Oop::Array(v))
     }
 
-    pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<Arc<OopDesc>>) -> Arc<Self> {
+    pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<OopRef>) -> OopRef {
         let v = ArrayOopDesc::new(ary_cls_obj, elms);
         Self::new(Oop::Array(v))
     }
 
-    pub fn new_class(cls_obj: ClassRef) -> Arc<Self> {
+    pub fn new_class(cls_obj: ClassRef) -> OopRef {
         Self::new(Oop::Class(cls_obj))
     }
 
-    pub fn new_null() -> Arc<Self> {
+    pub fn new_null() -> OopRef {
         Self::new(Oop::Null)
     }
 
-    fn new(v: Oop) -> Arc<Self> {
-        Arc::new(Self {
+    fn new(v: Oop) -> OopRef {
+        Arc::new(Mutex::new(Box::new(Self {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
-        })
+        })))
     }
 }
 
@@ -200,13 +201,13 @@ impl ValueType {
 #[derive(Debug, Clone)]
 pub struct InstOopDesc {
     class: ClassRef,
-    filed_values: Vec<Arc<OopDesc>>,
+    filed_values: Vec<OopRef>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
     pub class: ClassRef,
-    pub elements: Vec<Arc<OopDesc>>,
+    pub elements: Vec<OopRef>,
 }
 
 impl InstOopDesc {
@@ -227,7 +228,7 @@ impl InstOopDesc {
 }
 
 impl ArrayOopDesc {
-    pub fn new(class: ClassRef, elements: Vec<Arc<OopDesc>>) -> Self {
+    pub fn new(class: ClassRef, elements: Vec<OopRef>) -> Self {
         {
             assert!(class.lock().unwrap().is_array());
         }
@@ -251,11 +252,11 @@ impl ArrayOopDesc {
         self.elements.len()
     }
 
-    pub fn get_elm_at(&self, index: usize) -> Arc<OopDesc> {
+    pub fn get_elm_at(&self, index: usize) -> OopRef {
         self.elements[index].clone()
     }
 
-    pub fn set_elm_at(&mut self, index: usize, elm: Arc<OopDesc>) {
+    pub fn set_elm_at(&mut self, index: usize, elm: OopRef) {
         self.elements[index] = elm;
     }
 }

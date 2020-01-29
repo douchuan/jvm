@@ -4,7 +4,7 @@ use crate::classfile::opcode::OpCode;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{
-    self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, ValueType,
+    self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
 use crate::runtime::{self, JavaThread, Local, Stack};
 use bytes::{BigEndian, Bytes};
@@ -23,7 +23,7 @@ pub struct Frame {
     pub local: Local,
     stack: Stack,
     pub pc: i32,
-    pub return_v: Option<Arc<OopDesc>>,
+    pub return_v: Option<OopRef>,
 
     pub exception_thrown_here: bool,
 }
@@ -407,11 +407,11 @@ impl Frame {
         self.goto_by_offset(-(occupied - 1));
     }
 
-    fn set_return(&mut self, v: Option<Arc<OopDesc>>) {
+    fn set_return(&mut self, v: Option<OopRef>) {
         self.return_v = v;
     }
 
-    fn get_field_helper(&mut self, thread: &mut JavaThread, receiver: Arc<OopDesc>, idx: i32, is_static: bool) {
+    fn get_field_helper(&mut self, thread: &mut JavaThread, receiver: OopRef, idx: i32, is_static: bool) {
         let fir = {
             field::get_field_ref(thread, &self.cp, idx as usize, is_static)
         };
@@ -428,28 +428,30 @@ impl Frame {
             class.get_field_value(receiver, fir.clone())
         };
 
+        let v_ref = v.clone();
+        let v = v.lock().unwrap();
         match value_type {
             ValueType::INT
             | ValueType::SHORT
             | ValueType::CHAR
             | ValueType::BOOLEAN
-            | ValueType::BYTE => match v.v {
-                Oop::Int(v) => self.stack.push_int(v),
+            | ValueType::BYTE => match &v.v {
+                Oop::Int(v) => self.stack.push_int(*v),
                 _ => unreachable!(),
             },
-            ValueType::FLOAT => match v.v {
-                Oop::Float(v) => self.stack.push_float(v),
+            ValueType::FLOAT => match &v.v {
+                Oop::Float(v) => self.stack.push_float(*v),
                 _ => unreachable!(),
             },
-            ValueType::DOUBLE => match v.v {
-                Oop::Double(v) => self.stack.push_double(v),
+            ValueType::DOUBLE => match &v.v {
+                Oop::Double(v) => self.stack.push_double(*v),
                 _ => unreachable!(),
             },
-            ValueType::LONG => match v.v {
-                Oop::Long(v) => self.stack.push_long(v),
+            ValueType::LONG => match &v.v {
+                Oop::Long(v) => self.stack.push_long(*v),
                 _ => unreachable!(),
             },
-            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
+            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v_ref),
             _ => unreachable!(),
         }
     }
@@ -744,6 +746,7 @@ impl Frame {
     pub fn iaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -757,7 +760,7 @@ impl Frame {
                     self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    let v = v.deref();
+                    let v = v.lock().unwrap();
                     match &v.v {
                         Oop::Int(v) => {
                             self.stack.push_int(*v);
@@ -789,6 +792,7 @@ impl Frame {
     pub fn laload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -802,7 +806,7 @@ impl Frame {
                     self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    let v = v.deref();
+                    let v = v.lock().unwrap();
                     match &v.v {
                         Oop::Long(v) => {
                             self.stack.push_long(*v);
@@ -822,6 +826,7 @@ impl Frame {
     pub fn faload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -835,7 +840,7 @@ impl Frame {
                     self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    let v = v.deref();
+                    let v = v.lock().unwrap();
                     match &v.v {
                         Oop::Float(v) => {
                             self.stack.push_float(*v);
@@ -855,6 +860,7 @@ impl Frame {
     pub fn daload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -868,7 +874,7 @@ impl Frame {
                     self.handle_exception(thread);
                 } else {
                     let v = ary.get_elm_at(pos as usize);
-                    let v = v.deref();
+                    let v = v.lock().unwrap();
                     match &v.v {
                         Oop::Double(v) => {
                             self.stack.push_double(*v);
@@ -888,6 +894,7 @@ impl Frame {
     pub fn aaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1058,7 +1065,7 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1087,7 +1094,7 @@ impl Frame {
         let v = self.stack.pop_long();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1116,7 +1123,7 @@ impl Frame {
         let v = self.stack.pop_float();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1145,7 +1152,7 @@ impl Frame {
         let v = self.stack.pop_double();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -1173,7 +1180,7 @@ impl Frame {
     pub fn aastore(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -2177,6 +2184,7 @@ impl Frame {
 
     pub fn array_length(&mut self, thread: &mut JavaThread) {
         let rf = self.stack.pop_ref();
+        let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
@@ -2192,21 +2200,23 @@ impl Frame {
 
     pub fn athrow(&mut self, thread: &mut JavaThread) {
         let rf = self.stack.pop_ref();
+        let rf_ref = rf.clone();
+        let rf = rf.lock().unwrap();
         match rf.v {
             Oop::Null => {
                 thread.throw_ext(consts::J_NPE, false);
                 self.handle_exception(thread);
             }
             _ => {
-                let handler = thread.try_handle_exception(rf.clone());
+                let handler = thread.try_handle_exception(rf_ref.clone());
                 if handler > 0 {
                     trace!("athrow: exception handler found at offset: {}", handler);
                     self.stack.clear();
-                    self.stack.push_ref(rf);
+                    self.stack.push_ref(rf_ref);
                     self.goto_abs(handler);
                 } else {
                     trace!("athrow: exception handler not found, rethrowing it to caller");
-                    self.set_return(Some(rf));
+                    self.set_return(Some(rf_ref));
                 }
             }
         }
@@ -2224,7 +2234,7 @@ impl Frame {
 
     pub fn monitor_enter(&mut self, thread: &mut JavaThread) {
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
                 thread.throw_ext(consts::J_NPE, false);
@@ -2238,7 +2248,7 @@ impl Frame {
 
     pub fn monitor_exit(&mut self, thread: &mut JavaThread) {
         let mut rf = self.stack.pop_ref();
-        let rff = Arc::get_mut(&mut rf).unwrap();
+        let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
                 thread.throw_ext(consts::J_NPE, false);
@@ -2261,7 +2271,7 @@ impl Frame {
 
     pub fn if_null(&mut self) {
         let v = self.stack.pop_ref();
-        let v = v.deref();
+        let v = v.lock().unwrap();
         match v.v {
             Oop::Null => {
                 let branch = self.read_i2();
@@ -2274,7 +2284,7 @@ impl Frame {
 
     pub fn if_non_null(&mut self) {
         let v = self.stack.pop_ref();
-        let v = v.deref();
+        let v = v.lock().unwrap();
         match v.v {
             Oop::Null => self.pc += 2,
             _ => {

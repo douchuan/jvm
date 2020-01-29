@@ -1,5 +1,5 @@
 use crate::classfile::{self, signature};
-use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc};
+use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc, OopRef};
 use crate::runtime::{self, Frame, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
@@ -8,8 +8,8 @@ pub struct JavaThread {
     pub frames: Vec<Arc<Mutex<Frame>>>,
     in_safe_point: bool,
 
-    java_thread_obj: Option<Arc<OopDesc>>,
-    pub exception: Option<Arc<OopDesc>>,
+    java_thread_obj: Option<OopRef>,
+    pub exception: Option<OopRef>,
 }
 
 pub struct JavaMainThread {
@@ -44,7 +44,7 @@ impl JavaThread {
         //todo: impl
     }
 
-    pub fn try_handle_exception(&mut self, ex: Arc<OopDesc>) -> i32 {
+    pub fn try_handle_exception(&mut self, ex: OopRef) -> i32 {
         //todo: impl
         unimplemented!()
     }

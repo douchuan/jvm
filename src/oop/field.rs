@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, types::*, FieldInfo};
-use crate::oop::{self, consts as oop_consts, ClassRef, Oop, OopDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, ClassRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
@@ -60,7 +60,7 @@ pub struct Field {
 
     pub value_type: ValueType,
 
-    pub attr_constant_value: Option<Arc<OopDesc>>,
+    pub attr_constant_value: Option<OopRef>,
 }
 
 impl Field {
@@ -154,7 +154,7 @@ impl Field {
         (self.acc_flags & ACC_VOLATILE) == ACC_VOLATILE
     }
 
-    pub fn get_constant_value(&self) -> Arc<OopDesc> {
+    pub fn get_constant_value(&self) -> OopRef {
         match self.value_type {
             ValueType::BYTE
             | ValueType::BOOLEAN
@@ -169,7 +169,7 @@ impl Field {
         }
     }
 
-    pub fn get_attr_constant_value(&self) -> Option<Arc<OopDesc>> {
+    pub fn get_attr_constant_value(&self) -> Option<OopRef> {
         self.attr_constant_value.clone()
     }
 }
