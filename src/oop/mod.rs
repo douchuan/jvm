@@ -211,7 +211,7 @@ impl ValueType {
 #[derive(Debug, Clone)]
 pub struct InstOopDesc {
     class: ClassRef,
-    filed_values: Vec<OopRef>,
+    field_values: Vec<OopRef>,
 }
 
 #[derive(Debug, Clone)]
@@ -236,9 +236,14 @@ impl InstOopDesc {
             }
         };
 
+        let mut field_values = Vec::with_capacity(n);
+        for _ in 0..n {
+            field_values.push(consts::get_null());
+        }
+
         Self {
             class,
-            filed_values: Vec::with_capacity(n),
+            field_values
         }
     }
 }

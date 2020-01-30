@@ -503,6 +503,7 @@ impl Frame {
                 thread.throw_ext(consts::J_NPE, false);
                 self.handle_exception(thread);
             } else {
+//                trace!("put_field = {}", String::from_utf8_lossy(fir.field.get_id().as_slice()));
                 class.put_field_value(receiver, fir.clone(), v);
             }
         }

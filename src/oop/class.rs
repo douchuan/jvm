@@ -182,7 +182,20 @@ impl Class {
 
                 self.super_class = class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
 
-                class_obj.link_fields(self_ref.clone(), self.name.clone());
+                let n_super_inst = {
+                    match &self.super_class {
+                        Some(super_cls) => {
+                            let super_cls = super_cls.lock().unwrap();
+                            match &super_cls.kind {
+                                ClassKind::Instance(cls) => cls.n_inst_fields,
+                                _ => 0,
+                            }
+                        }
+                        None => 0,
+                    }
+                };
+
+                class_obj.link_fields(self_ref.clone(), self.name.clone(), n_super_inst);
 
                 //must be after link_fields to get n_inst_fields
                 class_obj.mirror = Some(OopDesc::new_mirror(self_ref.clone(), class_obj.n_inst_fields));
@@ -332,10 +345,10 @@ impl Class {
             .get_field_id(id, is_static)
     }
 
-    pub fn put_field_value(&self, mut receiver: OopRef, fid: FieldIdRef, v: OopRef) {
+    pub fn put_field_value(&self, mut receiver: OopRef, fir: FieldIdRef, v: OopRef) {
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
-            Oop::Inst(inst) => inst.filed_values[fid.offset] = v,
+            Oop::Inst(inst) => inst.field_values[fir.offset] = v,
             _ => unreachable!(),
         }
     }
@@ -343,7 +356,7 @@ impl Class {
     pub fn get_field_value(&self, receiver: OopRef, fid: FieldIdRef) -> OopRef {
         let rf = receiver.lock().unwrap();
         match &rf.v {
-            Oop::Inst(inst) => inst.filed_values[fid.offset].clone(),
+            Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
             Oop::Mirror(mirror) => mirror.filed_values[fid.offset].clone(),
             _ => {
 //                trace!("get_field_value = {:?}", r);
@@ -535,12 +548,12 @@ impl ClassObject {
         }
     }
 
-    fn link_fields(&mut self, self_ref: ClassRef, name: BytesRef) {
+    fn link_fields(&mut self, self_ref: ClassRef, name: BytesRef, n_super_inst: usize) {
         let cls_file = self.class_file.clone();
         let cp = &cls_file.cp;
 
         let mut n_static = 0;
-        let mut n_inst = 0;
+        let mut n_inst = n_super_inst;
         let class_name = name.clone();
         let class_name = class_name.as_slice();
         cls_file.fields.iter().for_each(|it| {
