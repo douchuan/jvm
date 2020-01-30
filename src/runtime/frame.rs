@@ -6,7 +6,7 @@ use crate::classfile::ClassFile;
 use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
-use crate::runtime::{self, JavaThread, Local, Stack};
+use crate::runtime::{self, JavaThread, Local, Stack, require_class2, require_class3, require_class};
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
@@ -525,6 +525,124 @@ impl Frame {
             }
             Err(_) => unimplemented!()
         }
+    }
+
+    fn do_instance_of(&self, s: ClassRef, t: ClassRef) -> bool {
+
+        // Return if S and T are the same class
+        if Arc::ptr_eq(&s, &t) {
+            return true;
+        }
+
+        let (s_kind, s_is_intf) = {
+            let cls = s.lock().unwrap();
+            (cls.get_class_kind_type(), cls.is_interface())
+        };
+
+        let (t_kind, t_is_intf) = {
+            let cls = t.lock().unwrap();
+            (cls.get_class_kind_type(), cls.is_interface())
+        };
+
+        // If S is an ordinary (non-array) class
+        if s_kind == oop::class::ClassKindType::Instance && !s_is_intf {
+
+            // If T is an interface type, then S must implement interface T.
+            if t_is_intf {
+                let s = s.lock().unwrap();
+                return s.check_interface(t);
+            }
+
+            // If T is a class type, then S must be the same class as T,
+            // or S must be a subclass of T;
+            if t_kind == oop::class::ClassKindType::Instance {
+                return Self::check_inherit(s, t);
+            }
+
+            return false;
+        }
+
+        // If S is an interface type
+        if s_is_intf {
+
+            // If T is an interface type, then T must be the same interface as S
+            // or a superinterface of S.
+            if t_is_intf {
+                return Self::check_inherit(s, t);
+            }
+
+            // If T is a class type, then T must be Object
+            if t_kind == oop::class::ClassKindType::Instance {
+                let object = require_class3(None, consts::J_OBJECT).unwrap();
+                return Arc::ptr_eq(&t, &object);
+            }
+
+            return false;
+        }
+
+        // If S is a class representing the array type SC[],
+        // that is, an array of components of type SC
+        match s_kind {
+            oop::class::ClassKindType::TypAry | oop::class::ClassKindType::ObjectAry => {
+
+                // If T is an interface type, then T must be one of the interfaces
+                // implemented by arrays (JLS §4.10.3).
+                // https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.10.3
+                // array implements:
+                // 1. java/lang/Cloneable
+                // 2. java/io/Serializable
+                if t_is_intf {
+                    let serializable = require_class3(None, consts::J_SERIALIZABLE).unwrap();
+                    let cloneable = require_class3(None, consts::J_CLONEABLE).unwrap();
+                    return Arc::ptr_eq(&t, &serializable) || Arc::ptr_eq(&t, &cloneable);
+                }
+
+                if t_kind == oop::class::ClassKindType::Instance {
+                    let object = require_class3(None, consts::J_OBJECT).unwrap();
+                    return Arc::ptr_eq(&t, &object);
+                }
+
+                //todo: impl ArrayClassObject getComponentType
+                unimplemented!()
+                /*
+                if t_kind == oop::class::ClassKindType::TypAry && s_kind == oop::class::ClassKindType::TypAry {
+                    {
+                        let cls = t.lock().unwrap();
+                        match &cls.kind {
+                            oop::class::ClassKind::TypeArray(cls) => {
+                                cls.get_dimension(), cls.
+                            }
+                            _ => unreachable!()
+                        }
+                    }
+                }
+                */
+
+            }
+            _ => (),
+        }
+
+        false
+    }
+
+    fn check_inherit(s: ClassRef, t: ClassRef) -> bool {
+        let mut super_cls = s;
+
+        loop {
+            if Arc::ptr_eq(&super_cls, &t) {
+                return true;
+            }
+
+            let cls = {
+                super_cls.lock().unwrap().super_class.clone()
+            };
+            match cls {
+                Some(cls) => super_cls = cls,
+                None => break,
+            }
+        }
+
+        false
     }
 }
 
@@ -2202,11 +2320,25 @@ impl Frame {
 
     pub fn instance_of(&mut self) {
         let cp_idx = self.read_i2();
-        let rf = self.stack.pop_ref();
+        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
-        //todo: impl
-        unimplemented!()
-//        self.stack.push_const0();
+        let rf = self.stack.pop_ref();
+        let rff = rf.lock().unwrap();
+        let result = match &rff.v {
+            Oop::Null => false,
+            Oop::Inst(inst) => {
+                let obj_cls = inst.class.clone();
+                self.do_instance_of(obj_cls, target_cls)
+            }
+            //todo: array
+            _ => unreachable!()
+        };
+
+        if result {
+            self.stack.push_const1();
+        } else {
+            self.stack.push_const0();
+        }
     }
 
     pub fn monitor_enter(&mut self, thread: &mut JavaThread) {

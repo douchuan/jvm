@@ -33,7 +33,7 @@ pub enum ClassKind {
     TypeArray(ArrayClassObject)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum ClassKindType {
     Instance,
     ObjectAry,
@@ -75,7 +75,7 @@ pub struct ClassObject {
 #[derive(Debug)]
 pub struct ArrayClassObject {
    //valid when dimension == 1
-   elm_type: Option<ValueType>,
+   pub elm_type: Option<ValueType>,
    //valid when dimension > 1
    down_type: Option<ClassRef>
 }
@@ -401,6 +401,32 @@ impl Class {
                 }
             }
             _ => unreachable!()
+        }
+    }
+
+    pub fn check_interface(&self, intf: ClassRef) -> bool {
+        match &self.kind {
+            ClassKind::Instance(inst) => {
+                for (_, e) in &inst.interfaces {
+                    if Arc::ptr_eq(e, &intf) {
+                        return true;
+                    }
+
+                    let e = e.lock().unwrap();
+                    if e.check_interface(intf.clone()) {
+                        return true;
+                    }
+                }
+            }
+            _ => unreachable!()
+        }
+
+        match &self.super_class {
+            Some(super_cls) => {
+                let super_cls = super_cls.lock().unwrap();
+                super_cls.check_interface(intf)
+            }
+            None => false
         }
     }
 }
