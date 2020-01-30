@@ -87,6 +87,11 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
     };
 
     if need {
+        {
+            let mut class = class.lock().unwrap();
+            class.state = State::FullyIni;
+        }
+
         let mir = {
             let class = class.lock().unwrap();
 //            trace!("init_class_fully name={}, state={:?}",
@@ -94,11 +99,6 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 //                   class.state);
             class.get_this_class_method(b"()V", b"<clinit>")
         };
-
-        {
-            let mut class = class.lock().unwrap();
-            class.state = State::FullyIni;
-        }
 
         {
             match mir {

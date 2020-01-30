@@ -2201,6 +2201,8 @@ impl Frame {
     }
 
     pub fn instance_of(&mut self) {
+        let cp_idx = self.read_i2();
+        let rf = self.stack.pop_ref();
         //todo: impl
         unimplemented!()
     }
@@ -2246,11 +2248,7 @@ impl Frame {
         let v = self.stack.pop_ref();
         let v = v.lock().unwrap();
         match v.v {
-            Oop::Null => {
-                let branch = self.read_i2();
-                self.pc += branch;
-                self.pc += -1;
-            }
+            Oop::Null => self.goto_by_offset_hardcoded(2),
             _ => self.pc += 2,
         }
     }
@@ -2260,11 +2258,7 @@ impl Frame {
         let v = v.lock().unwrap();
         match v.v {
             Oop::Null => self.pc += 2,
-            _ => {
-                let branch = self.read_i2();
-                self.pc += branch;
-                self.pc += -1;
-            }
+            _ => self.goto_by_offset_hardcoded(2),
         }
     }
 

@@ -20,6 +20,8 @@ use crate::runtime::thread::JavaMainThread;
 /*
 todo list
 
+  impl instance_of, check_cast
+
   2. JNI
   3. runtime::execution::instance_of
   7. oop class init_class, java call "<clinit>"
