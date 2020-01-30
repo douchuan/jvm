@@ -99,9 +99,13 @@ impl OopDesc {
     }
 
     pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> OopRef {
-        let elements = Vec::with_capacity(len);
-        let v = ArrayOopDesc::new(ary_cls_obj, elements);
-        Self::new(Oop::Array(v))
+        let mut elements = Vec::with_capacity(len);
+        //todo: optimize me
+        for _ in 0..len {
+            elements.push(consts::get_null());
+        }
+
+        Self::new_ary2(ary_cls_obj, elements)
     }
 
     pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<OopRef>) -> OopRef {
@@ -111,7 +115,6 @@ impl OopDesc {
 
     pub fn new_mirror(cls_obj: ClassRef, n: usize) -> OopRef {
         let mut filed_values = Vec::with_capacity(n);
-        //todo: how to avoid this?
         for _ in 0..n {
             filed_values.push(consts::get_null());
         }
@@ -156,7 +159,7 @@ impl From<&u8> for ValueType {
             b'C' => ValueType::CHAR,
             b'S' => ValueType::SHORT,
             b'I' => ValueType::INT,
-            //todo: where it's 小写字母的 'j' ?
+            //todo: 'j' allowed??
             b'J' | b'j' => ValueType::LONG,
             b'F' => ValueType::FLOAT,
             b'D' => ValueType::DOUBLE,

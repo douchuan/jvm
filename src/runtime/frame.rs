@@ -2203,8 +2203,10 @@ impl Frame {
     pub fn instance_of(&mut self) {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
+
         //todo: impl
         unimplemented!()
+//        self.stack.push_const0();
     }
 
     pub fn monitor_enter(&mut self, thread: &mut JavaThread) {

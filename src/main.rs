@@ -22,6 +22,8 @@ todo list
 
   impl instance_of, check_cast
 
+  optimize zip reader
+
   2. JNI
   3. runtime::execution::instance_of
   7. oop class init_class, java call "<clinit>"
@@ -35,6 +37,8 @@ todo list
   x. "<clinit>" "<init>" diff?
   x. reimpl instruction by macro
   x. setup mirror field_values
+  x. 如何不用事先初始化vector，就可以对任意位置赋值?
+  x. 官方的测试用例
 */
 
 fn init_vm() {
@@ -119,6 +123,14 @@ mod tests {
         v.push("bbb");
 
         assert_eq!(v[0], "aaa");
+
+        let mut v = Vec::with_capacity(10);
+        unsafe {
+            v.set_len(10);
+        }
+        v[9] = 9;
+        println!("v[0] = {}", v[0]);
+        println!("v[9] = {}", v[9]);
     }
 
     #[test]

@@ -62,7 +62,7 @@ pub struct ClassObject {
     static_fields: HashMap<BytesRef, FieldIdRef>,
     inst_fields: HashMap<BytesRef, FieldIdRef>,
 
-    static_filed_values: Vec<OopRef>,
+    static_field_values: Vec<OopRef>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
@@ -370,7 +370,7 @@ impl Class {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();
                 if cls_obj.static_fields.contains_key(&id) {
-                    cls_obj.static_filed_values[field_id.offset] = v;
+                    cls_obj.static_field_values[field_id.offset] = v;
                 } else {
                     let super_class = self.super_class.clone();
                     super_class
@@ -390,7 +390,7 @@ impl Class {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();
                 if cls_obj.static_fields.contains_key(&id) {
-                    cls_obj.static_filed_values[field_id.offset].clone()
+                    cls_obj.static_field_values[field_id.offset].clone()
                 } else {
                     let super_class = self.super_class.clone();
                     super_class
@@ -418,7 +418,7 @@ impl Class {
             v_table: HashMap::new(),
             static_fields: HashMap::new(),
             inst_fields: HashMap::new(),
-            static_filed_values: vec![],
+            static_field_values: vec![],
             interfaces: HashMap::new(),
             mirror: None,
             signature: None,
@@ -578,10 +578,10 @@ impl ClassObject {
 
         self.n_inst_fields = n_inst;
 
-        self.static_filed_values.reserve(n_static);
-        //todo: avoid this?
-        for _ in 0..self.static_filed_values.capacity() {
-            self.static_filed_values.push(oop_consts::get_null());
+        //todo: avoid this
+        //  sort static_fields by offset, then static_field_values.push
+        for _ in 0..n_static {
+            self.static_field_values.push(oop_consts::get_null());
         }
     }
 
@@ -644,9 +644,7 @@ impl ClassObject {
     }
 
     fn init_static_fields(&mut self) {
-        let class_file = &self.class_file;
-        let cp = &class_file.cp;
-        let values = &mut self.static_filed_values;
+        let values = &mut self.static_field_values;
         self.static_fields.iter().for_each(|(_, it)| {
             if it.field.is_final() {
                 match it.field.get_attr_constant_value() {
