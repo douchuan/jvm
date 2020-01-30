@@ -400,10 +400,10 @@ impl Frame {
     }
 
     fn goto_by_offset_hardcoded(&mut self, occupied: i32) {
-        let high = (self.code[self.pc as usize] << 8) as u16;
-        let low = self.code[(self.pc + 1) as usize] as u16;
-        let branch =  high | low;
-        self.goto_by_offset_with_occupied(branch as i32, occupied);
+        let high = self.code[self.pc as usize] as i32;
+        let low = self.code[(self.pc + 1) as usize] as i32;
+        let branch =  (high << 8) | low;
+        self.goto_by_offset_with_occupied(branch, occupied);
     }
 
     fn goto_abs_with_occupied(&mut self, pc: i32, occupied: i32) {
@@ -1752,9 +1752,7 @@ impl Frame {
     pub fn ifeq(&mut self) {
         let v = self.stack.pop_int();
         if v == 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1763,9 +1761,7 @@ impl Frame {
     pub fn ifne(&mut self) {
         let v = self.stack.pop_int();
         if v != 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1774,9 +1770,7 @@ impl Frame {
     pub fn iflt(&mut self) {
         let v = self.stack.pop_int();
         if v < 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1785,9 +1779,7 @@ impl Frame {
     pub fn ifge(&mut self) {
         let v = self.stack.pop_int();
         if v >= 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1796,9 +1788,7 @@ impl Frame {
     pub fn ifgt(&mut self) {
         let v = self.stack.pop_int();
         if v > 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1807,9 +1797,7 @@ impl Frame {
     pub fn ifle(&mut self) {
         let v = self.stack.pop_int();
         if v <= 0 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1819,9 +1807,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 == v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1831,9 +1817,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 != v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1843,9 +1827,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 < v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1855,9 +1837,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 >= v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1867,9 +1847,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 > v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1879,9 +1857,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v1 <= v2 {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1891,9 +1867,7 @@ impl Frame {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
         if Arc::ptr_eq(&v1, &v2) {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
@@ -1903,21 +1877,14 @@ impl Frame {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
         if !Arc::ptr_eq(&v1, &v2) {
-            let branch = self.read_i2();
-            self.pc += branch;
-            self.pc += -1;
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
     }
 
     pub fn goto(&mut self) {
-        let v_h = self.code[self.pc as usize] as i32;
-        let v_l = self.code[(self.pc + 1) as usize] as i32;
-        let v = v_h << 8 | v_l;
-
-        self.pc += v;
-        self.pc += -1;
+        self.goto_by_offset_hardcoded(2);
     }
 
     pub fn jsr(&mut self) {
