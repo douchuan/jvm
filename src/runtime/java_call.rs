@@ -19,6 +19,7 @@ impl JavaCall {
 
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
+
         let mut args = build_method_args(stack, sig);
 
         //insert 'this' value
@@ -56,7 +57,7 @@ impl JavaCall {
         if self.mir.method.is_native() {
             match self.return_type {
                 ArgType::Void => (),
-                //fixme
+                //fixme, push native's real return value
                 ArgType::Boolean => stack.push_const0(),
                 _ => unimplemented!()
             }
@@ -233,7 +234,8 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
                 let v = stack.pop_double();
                 OopDesc::new_double(v)
             }
-            _ => stack.pop_ref(),
+            ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
+            _ => unreachable!()
         })
         .collect()
 }

@@ -524,8 +524,6 @@ impl Frame {
             }
             Err(_) => unimplemented!()
         }
-
-
     }
 }
 
@@ -1914,8 +1912,11 @@ impl Frame {
     }
 
     pub fn goto(&mut self) {
-        let branch = self.read_i2();
-        self.pc += branch;
+        let v_h = self.code[self.pc as usize] as i32;
+        let v_l = self.code[(self.pc + 1) as usize] as i32;
+        let v = v_h << 8 | v_l;
+
+        self.pc += v;
         self.pc += -1;
     }
 

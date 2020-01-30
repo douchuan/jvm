@@ -17,6 +17,7 @@ pub enum Type {
     Void,
 }
 
+#[derive(Debug)]
 pub struct MethodSignature {
     pub args: Vec<Type>,
     pub retype: Type,
