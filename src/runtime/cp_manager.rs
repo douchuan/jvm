@@ -29,9 +29,11 @@ pub fn add_paths(path: &str) {
 #[derive(Debug)]
 pub struct ClassPathResult(pub String, pub Vec<u8>);
 
+type ZipRef = Arc<Mutex<Box<ZipArchive<File>>>>;
+
 enum ClassSource {
     DIR,
-    JAR(Box<ZipArchive<File>>),
+    JAR(ZipRef),
 }
 
 struct ClassPathEntry(ClassSource, String);
@@ -55,7 +57,7 @@ impl ClassPathManager {
         } else {
             let f = File::open(p)?;
             let mut z = ZipArchive::new(f)?;
-            let handle = Box::new(z);
+            let handle = Arc::new(Mutex::new(Box::new(z)));
             self.runtime_class_path
                 .push(ClassPathEntry(ClassSource::JAR(handle), path.to_string()));
         }
@@ -69,13 +71,13 @@ impl ClassPathManager {
         });
     }
 
-    pub fn search_class(&mut self, name: &str) -> Result<ClassPathResult, io::Error> {
+    pub fn search_class(&self, name: &str) -> Result<ClassPathResult, io::Error> {
         let name = name.replace("/", util::PATH_SEP_STR);
         let name = name.replace(".", util::PATH_SEP_STR);
 
         debug!("search_class name={}", name);
-        for it in self.runtime_class_path.iter_mut() {
-            match &mut it.0 {
+        for it in self.runtime_class_path.iter() {
+            match &it.0 {
                 ClassSource::DIR => {
                     let mut p = String::from(&it.1);
                     p.push_str(util::PATH_SEP_STR);
@@ -97,6 +99,7 @@ impl ClassPathManager {
                     let mut p = String::from(&name);
                     p.push_str(".class");
 
+                    let mut handle = handle.lock().unwrap();
                     let mut zf = handle.by_name(&p);
 
                     match zf {
