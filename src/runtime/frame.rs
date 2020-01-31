@@ -2279,13 +2279,13 @@ impl Frame {
             match runtime::require_class(cl, name) {
                 Some(ary_cls_obj) => {
                     {
-                        let mut class = ary_cls_obj.lock().unwrap();
-                        class.init_class(thread);
+                        {
+                            let mut class = ary_cls_obj.lock().unwrap();
+                            class.init_class(thread);
+                        }
+
+                        oop::class::init_class_fully(thread, ary_cls_obj.clone());
                     }
-
-                    trace!("ary_cls_obj={:?}", ary_cls_obj);
-
-                    oop::class::init_class_fully(thread, ary_cls_obj.clone());
 
                     let ary = OopDesc::new_ary(ary_cls_obj, length as usize);
                     self.stack.push_ref(ary);
