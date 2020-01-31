@@ -10,7 +10,11 @@ use std::sync::Arc;
 
 pub type MethodIdRef = Arc<MethodId>;
 
-pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
+pub fn get_method_ref(
+    thread: &mut JavaThread,
+    cp: &ConstantPool,
+    idx: usize,
+) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
     //load Method's Class, then init it
@@ -31,10 +35,12 @@ pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) ->
 
     {
         let class = class.lock().unwrap();
-        trace!("get_method_ref class ={}, name={}, typ={}",
-               String::from_utf8_lossy(class.name.as_slice()),
-               String::from_utf8_lossy(name.as_slice()),
-               String::from_utf8_lossy(typ.as_slice()));
+        trace!(
+            "get_method_ref class ={}, name={}, typ={}",
+            String::from_utf8_lossy(class.name.as_slice()),
+            String::from_utf8_lossy(name.as_slice()),
+            String::from_utf8_lossy(typ.as_slice())
+        );
     }
 
     oop::class::init_class_fully(thread, class.clone());

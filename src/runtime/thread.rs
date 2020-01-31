@@ -81,10 +81,10 @@ impl JavaMainThread {
             {
                 let mut class = class.lock().unwrap();
                 class.init_class(&mut jt);
-//                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
+                //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
             }
             oop::class::init_class_fully(&mut jt, class);
-//            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
+            //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
         });
 
         let mir = {
@@ -100,10 +100,8 @@ impl JavaMainThread {
                 jc.unwrap().invoke(&mut jt, &mut stack);
                 info!("stack = {:?}", stack);
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
-
-
     }
 }
 

@@ -35,7 +35,7 @@ pub fn get_field_ref(
         )
     };
 
-//    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
+    //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
 
     oop::class::init_class_fully(thread, class.clone());
 

@@ -8,14 +8,12 @@ use std::sync::{Arc, Mutex};
 pub struct JavaCall {
     pub mir: MethodIdRef,
     pub args: Vec<OopRef>,
-    pub return_type: ArgType
+    pub return_type: ArgType,
 }
 
 impl JavaCall {
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        let class_name = {
-            mir.method.class.lock().unwrap().name.clone()
-        };
+        let class_name = { mir.method.class.lock().unwrap().name.clone() };
 
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
@@ -43,14 +41,18 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-//        trace!("class name={}, method name ={} desc={} static={}, native={}",
-//               String::from_utf8_lossy(class_name.as_slice()),
-//               String::from_utf8_lossy(mir.method.name.as_slice()),
-//               String::from_utf8_lossy(mir.method.desc.as_slice()),
-//               mir.method.is_static(),
-//               mir.method.is_native());
+        //        trace!("class name={}, method name ={} desc={} static={}, native={}",
+        //               String::from_utf8_lossy(class_name.as_slice()),
+        //               String::from_utf8_lossy(mir.method.name.as_slice()),
+        //               String::from_utf8_lossy(mir.method.desc.as_slice()),
+        //               mir.method.is_static(),
+        //               mir.method.is_native());
 
-        Ok(Self { mir, args, return_type })
+        Ok(Self {
+            mir,
+            args,
+            return_type,
+        })
     }
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
@@ -59,11 +61,11 @@ impl JavaCall {
                 ArgType::Void => (),
                 //fixme, push native's real return value
                 ArgType::Boolean => stack.push_const0(),
-                _ => unimplemented!()
+                _ => unimplemented!(),
             }
 
-            //todo: impl me
-//            unimplemented!()
+        //todo: impl me
+        //            unimplemented!()
         } else {
             self.invoke_java(jt, stack);
         }
@@ -84,7 +86,7 @@ impl JavaCall {
                             frame.exec_interp(jt);
                             self.set_return(jt, stack, frame.return_v.clone());
                         }
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
 
@@ -184,7 +186,7 @@ impl JavaCall {
                     let v = v.lock().unwrap();
                     match v.v {
                         Oop::Long(v) => stack.push_long(v),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
                 ArgType::Float => {
@@ -192,7 +194,7 @@ impl JavaCall {
                     let v = v.lock().unwrap();
                     match v.v {
                         Oop::Float(v) => stack.push_float(v),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
                 ArgType::Double => {
@@ -200,7 +202,7 @@ impl JavaCall {
                     let v = v.lock().unwrap();
                     match v.v {
                         Oop::Double(v) => stack.push_double(v),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
                 ArgType::Object(_) | ArgType::Array(_, _) => {
@@ -208,7 +210,7 @@ impl JavaCall {
                     stack.push_ref(v);
                 }
                 ArgType::Void => (),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
     }
@@ -235,7 +237,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
                 OopDesc::new_double(v)
             }
             ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
-            _ => unreachable!()
+            _ => unreachable!(),
         })
         .collect()
 }

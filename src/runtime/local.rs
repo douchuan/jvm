@@ -14,9 +14,7 @@ impl Local {
             locals.push(Slot::Const0);
         }
 
-        Self {
-            locals
-        }
+        Self { locals }
     }
 
     pub fn set_int(&mut self, pos: usize, i: i32) {

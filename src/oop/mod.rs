@@ -121,7 +121,7 @@ impl OopDesc {
 
         let v = MirrorOopDesc {
             class: cls_obj,
-            filed_values
+            filed_values,
         };
         Self::new(Oop::Mirror(v))
     }
@@ -173,7 +173,7 @@ impl From<&u8> for ValueType {
                 trace!("ValueType = {}", String::from_utf8_lossy(v.as_slice()));
                 */
                 unreachable!()
-            },
+            }
         }
     }
 }
@@ -246,7 +246,7 @@ impl InstOopDesc {
 
         Self {
             class,
-            field_values
+            field_values,
         }
     }
 }
@@ -257,10 +257,7 @@ impl ArrayOopDesc {
             assert!(class.lock().unwrap().is_array());
         }
 
-        Self {
-            class,
-            elements,
-        }
+        Self { class, elements }
     }
 
     pub fn get_dimension(&self) -> usize {
@@ -268,7 +265,7 @@ impl ArrayOopDesc {
         match &class.kind {
             class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
             class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 

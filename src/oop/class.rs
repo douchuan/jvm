@@ -1,9 +1,9 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
 use crate::oop::{
-    consts as oop_consts, field, method, ClassRef, ClassFileRef, FieldIdRef, MethodIdRef, Oop,
+    consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, OopRef, ValueType,
 };
-use crate::runtime::{self, require_class2, ClassLoader, JavaThread, JavaCall, Stack};
+use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -30,7 +30,7 @@ pub struct Class {
 pub enum ClassKind {
     Instance(ClassObject),
     ObjectArray(ArrayClassObject),
-    TypeArray(ArrayClassObject)
+    TypeArray(ArrayClassObject),
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -85,9 +85,7 @@ pub struct ArrayClassObject {
 
 //invoke "<clinit>"
 pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
-    let need = {
-        class.lock().unwrap().state == State::BeingIni
-    };
+    let need = { class.lock().unwrap().state == State::BeingIni };
 
     if need {
         let (mir, name) = {
@@ -173,8 +171,8 @@ impl Class {
 
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
-
-                self.super_class = class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+                self.super_class =
+                    class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
 
                 let n_super_inst = {
                     match &self.super_class {
@@ -192,7 +190,10 @@ impl Class {
                 class_obj.link_fields(self_ref.clone(), self.name.clone(), n_super_inst);
 
                 //must be after link_fields to get n_inst_fields
-                class_obj.mirror = Some(OopDesc::new_mirror(self_ref.clone(), class_obj.n_inst_fields));
+                class_obj.mirror = Some(OopDesc::new_mirror(
+                    self_ref.clone(),
+                    class_obj.n_inst_fields,
+                ));
 
                 class_obj.link_interfaces();
                 class_obj.link_methods(self_ref);
@@ -239,14 +240,14 @@ impl Class {
         match &self.kind {
             ClassKind::Instance(_) => ClassKindType::Instance,
             ClassKind::ObjectArray(_) => ClassKindType::ObjectAry,
-            ClassKind::TypeArray(_) => ClassKindType::TypAry
+            ClassKind::TypeArray(_) => ClassKindType::TypAry,
         }
     }
 
     pub fn is_instance(&self) -> bool {
         match &self.kind {
             ClassKind::Instance(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -284,8 +285,8 @@ impl ArrayClassObject {
                     ClassKind::TypeArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
                 };
                 1 + n
-            },
-            None => 1
+            }
+            None => 1,
         }
     }
 }
@@ -315,24 +316,19 @@ impl Class {
     pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
         if is_static {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => {
-                    match cls_obj.static_fields.get(&id) {
-                        Some(fid) => return fid.clone(),
-                        None => (),
-                    }
-                }
-                _ => unreachable!()
+                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&id) {
+                    Some(fid) => return fid.clone(),
+                    None => (),
+                },
+                _ => unreachable!(),
             }
-
         } else {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => {
-                    match cls_obj.inst_fields.get(&id) {
-                        Some(fid) => return fid.clone(),
-                        None => (),
-                    }
-                }
-                _ => unreachable!()
+                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&id) {
+                    Some(fid) => return fid.clone(),
+                    None => (),
+                },
+                _ => unreachable!(),
             }
         }
 
@@ -358,9 +354,9 @@ impl Class {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
             Oop::Mirror(mirror) => mirror.filed_values[fid.offset].clone(),
             _ => {
-//                trace!("get_field_value = {:?}", r);
+                //                trace!("get_field_value = {:?}", r);
                 unreachable!()
-            },
+            }
         }
     }
 
@@ -379,9 +375,8 @@ impl Class {
                         .put_static_field_value(field_id, v);
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
-
     }
 
     pub fn get_static_field_value(&self, field_id: FieldIdRef) -> OopRef {
@@ -399,7 +394,7 @@ impl Class {
                         .get_static_field_value(field_id)
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -417,7 +412,7 @@ impl Class {
                     }
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
 
         match &self.super_class {
@@ -425,7 +420,7 @@ impl Class {
                 let super_cls = super_cls.lock().unwrap();
                 super_cls.check_interface(intf)
             }
-            None => false
+            None => false,
         }
     }
 }
@@ -458,7 +453,7 @@ impl Class {
             class_loader,
             monitor: Mutex::new(0),
 
-            kind: ClassKind::Instance(class_obj)
+            kind: ClassKind::Instance(class_obj),
         }
     }
 
@@ -478,7 +473,7 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind: ClassKind::ObjectArray(ary_cls_obj)
+            kind: ClassKind::ObjectArray(ary_cls_obj),
         }
     }
 
@@ -500,7 +495,7 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind: ClassKind::TypeArray(ary_cls_obj)
+            kind: ClassKind::TypeArray(ary_cls_obj),
         }
     }
 
@@ -518,19 +513,17 @@ impl Class {
 
         let kind = match cls_kind {
             ClassKindType::Instance => unreachable!(),
-            ClassKindType::TypAry => {
-                ClassKind::TypeArray(ArrayClassObject {
-                    value_type: ValueType::ARRAY,
-                    down_type: Some(down_type.clone()),
-                    component: None,
-                })
-            }
+            ClassKindType::TypAry => ClassKind::TypeArray(ArrayClassObject {
+                value_type: ValueType::ARRAY,
+                down_type: Some(down_type.clone()),
+                component: None,
+            }),
             ClassKindType::ObjectAry => {
-                let component= {
+                let component = {
                     let cls = down_type.lock().unwrap();
                     match &cls.kind {
                         ClassKind::ObjectArray(ary_cls) => ary_cls.component.clone(),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 };
                 ClassKind::ObjectArray(ArrayClassObject {
@@ -548,14 +541,18 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind
+            kind,
         }
     }
 }
 
 //inner api for link
 impl ClassObject {
-    fn link_super_class(&mut self, name: BytesRef, class_loader: Option<ClassLoader>) -> Option<ClassRef> {
+    fn link_super_class(
+        &mut self,
+        name: BytesRef,
+        class_loader: Option<ClassLoader>,
+    ) -> Option<ClassRef> {
         let class_file = &self.class_file;
         let cp = &class_file.cp;
 
@@ -688,23 +685,28 @@ impl ClassObject {
 }
 
 impl Class {
-    pub fn get_class_method_inner(&self, id: BytesRef, with_super: bool) -> Result<MethodIdRef, ()> {
+    pub fn get_class_method_inner(
+        &self,
+        id: BytesRef,
+        with_super: bool,
+    ) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => {
-                match cls_obj.all_methods.get(&id) {
-                    Some(m) => return Ok(m.clone()),
-                    None => (),
-                }
-            }
-            _ => unreachable!()
+            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&id) {
+                Some(m) => return Ok(m.clone()),
+                None => (),
+            },
+            _ => unreachable!(),
         }
 
         if with_super {
             match self.super_class.as_ref() {
                 Some(super_class) => {
-                    return super_class.lock().unwrap().get_class_method_inner(id, with_super);
+                    return super_class
+                        .lock()
+                        .unwrap()
+                        .get_class_method_inner(id, with_super);
                 }
-                None => return Err(())
+                None => return Err(()),
             }
         }
 
@@ -713,20 +715,18 @@ impl Class {
 
     pub fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => {
-                match cls_obj.v_table.get(&id) {
-                    Some(m) => return Ok(m.clone()),
-                    None => (),
-                }
-            }
-            _ => unreachable!()
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&id) {
+                Some(m) => return Ok(m.clone()),
+                None => (),
+            },
+            _ => unreachable!(),
         }
 
         match self.super_class.as_ref() {
             Some(super_class) => {
                 return super_class.lock().unwrap().get_virtual_method_inner(id);
             }
-            None => return Err(())
+            None => return Err(()),
         }
     }
 }

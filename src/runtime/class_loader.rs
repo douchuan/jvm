@@ -35,7 +35,7 @@ impl ClassLoader {
                 ClassLoader::Bootstrap => {
                     let it = runtime::sys_dic_find(name);
                     if it.is_some() {
-//                        trace!("found class in dic: {}", String::from_utf8_lossy(name));
+                        //                        trace!("found class in dic: {}", String::from_utf8_lossy(name));
                         return it;
                     }
                 }
