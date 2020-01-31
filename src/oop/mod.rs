@@ -32,7 +32,7 @@ pub type ClassFileRef = Arc<ClassFile>;
 def_ref!(ClassRef, Class);
 def_ref!(OopRef, OopDesc);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum ValueType {
     BYTE,
     BOOLEAN,
@@ -266,8 +266,8 @@ impl ArrayOopDesc {
     pub fn get_dimension(&self) -> usize {
         let class = self.class.lock().unwrap();
         match &class.kind {
-            class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension().unwrap(),
-            class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension().unwrap(),
+            class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
+            class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),
             _ => unreachable!()
         }
     }

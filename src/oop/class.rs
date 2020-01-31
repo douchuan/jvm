@@ -283,7 +283,7 @@ impl Class {
 }
 
 impl ArrayClassObject {
-    pub fn get_dimension(&self) -> Option<usize> {
+    pub fn get_dimension(&self) -> usize {
         match self.down_type.as_ref() {
             Some(down_type) => {
                 let down_type = down_type.lock().unwrap();
@@ -292,9 +292,9 @@ impl ArrayClassObject {
                     ClassKind::ObjectArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
                     ClassKind::TypeArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
                 };
-                Some(1 + n.unwrap())
+                1 + n
             },
-            None => Some(1)
+            None => 1
         }
     }
 }
