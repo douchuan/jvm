@@ -67,10 +67,17 @@ impl JavaCall {
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
-            match self.return_type {
+            match &self.return_type {
                 ArgType::Void => (),
                 //fixme, push native's real return value
                 ArgType::Boolean => stack.push_const0(),
+                ArgType::Object(s) => {
+                    if s.as_slice() == b"Ljava/lang/Thread;" {
+                        stack.push_ref(jt.java_thread_obj.clone().unwrap());
+                    } else {
+                        unimplemented!()
+                    }
+                }
                 _ => unimplemented!(),
             }
 

@@ -8,7 +8,7 @@ pub struct JavaThread {
     pub frames: Vec<Arc<Mutex<Frame>>>,
     in_safe_point: bool,
 
-    java_thread_obj: Option<OopRef>,
+    pub java_thread_obj: Option<OopRef>,
     pub exception: Option<OopRef>,
 }
 

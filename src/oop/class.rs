@@ -60,7 +60,7 @@ pub struct ClassObject {
     v_table: HashMap<BytesRef, MethodIdRef>,
 
     static_fields: HashMap<BytesRef, FieldIdRef>,
-    inst_fields: HashMap<BytesRef, FieldIdRef>,
+    pub inst_fields: HashMap<BytesRef, FieldIdRef>,
 
     static_field_values: Vec<OopRef>,
 
@@ -164,9 +164,6 @@ impl Class {
     }
 
     pub fn link_class(&mut self, self_ref: ClassRef) {
-        //todo: java mirror
-        //        java::lang::Class::createMirror(this, _javaLoader);
-
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
                 self.super_class =
