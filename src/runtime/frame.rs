@@ -15,6 +15,7 @@ use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::classfile::consts::J_STRING;
 
 pub struct Frame {
     class: ClassRef,
@@ -898,7 +899,7 @@ impl Frame {
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
-                if (pos < 0) || (pos as usize >= ary.get_length()) {
+                if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
                     self.handle_exception(thread);
@@ -911,6 +912,17 @@ impl Frame {
                         }
                         _ => unreachable!(),
                     }
+                }
+            }
+            Oop::Str(s) => {
+                let len = s.len();
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
+                    self.handle_exception(thread);
+                } else {
+                    let v = s.as_slice()[pos as usize];
+                    self.stack.push_int(v as i32);
                 }
             }
             Oop::Null => {
@@ -2349,6 +2361,26 @@ impl Frame {
                     self.handle_exception(thread);
                 }
             }
+            Oop::Str(_) => {
+                let obj_cls = require_class3(None, J_STRING).unwrap();
+                let r = Self::do_instance_of(obj_cls.clone(), target_cls.clone());
+                if r {
+                    self.stack.push_ref(rf_back);
+                } else {
+                    let s_name = {
+                        obj_cls.lock().unwrap().name.clone()
+                    };
+                    let t_name = {
+                        target_cls.lock().unwrap().name.clone()
+                    };
+
+                    let s_name = String::from_utf8_lossy(s_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    thread.throw_ext_with_msg(consts::J_CCE, false, msg);
+                    self.handle_exception(thread);
+                }
+            }
             _ => unimplemented!()
         }
     }
@@ -2365,7 +2397,10 @@ impl Frame {
                 let obj_cls = inst.class.clone();
                 Self::do_instance_of(obj_cls, target_cls)
             }
-            //todo: array
+            Oop::Str(_) => {
+                let obj_cls = require_class3(None, J_STRING).unwrap();
+                Self::do_instance_of(obj_cls, target_cls)
+            }
             _ => unimplemented!(),
         };
 

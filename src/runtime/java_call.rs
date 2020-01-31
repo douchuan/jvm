@@ -183,7 +183,7 @@ impl JavaCall {
     fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<OopRef>) {
         if !thread.is_exception_occurred() {
             match self.return_type {
-                ArgType::Int | ArgType::Boolean => {
+                ArgType::Char | ArgType::Int | ArgType::Boolean => {
                     let v = v.unwrap();
                     let v = v.lock().unwrap();
                     match v.v {
