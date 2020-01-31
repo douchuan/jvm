@@ -1302,6 +1302,7 @@ impl Frame {
     }
 
     pub fn aastore(&mut self, thread: &mut JavaThread) {
+        let v = self.stack.pop_ref();
         let pos = self.stack.pop_int();
         let mut rf = self.stack.pop_ref();
         let mut rff = rf.lock().unwrap();
@@ -1313,7 +1314,6 @@ impl Frame {
                     thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
                     self.handle_exception(thread);
                 } else {
-                    let v = self.stack.pop_ref();
                     ary.set_elm_at(pos as usize, v);
                 }
             }
