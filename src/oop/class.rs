@@ -29,7 +29,7 @@ pub struct Class {
 #[derive(Debug)]
 pub enum ClassKind {
     Instance(ClassObject),
-    ObjectArray(ArrayClassObject, ClassFileRef),
+    ObjectArray(ArrayClassObject),
     TypeArray(ArrayClassObject)
 }
 
@@ -74,10 +74,13 @@ pub struct ClassObject {
 
 #[derive(Debug)]
 pub struct ArrayClassObject {
-   //valid when dimension == 1
-   pub elm_type: Option<ValueType>,
-   //valid when dimension > 1
-   down_type: Option<ClassRef>
+    pub value_type: ValueType,
+
+    //valid when dimension > 1
+    down_type: Option<ClassRef>,
+
+    //valid when it's not TypeArray
+    pub component: Option<ClassRef>,
 }
 
 //invoke "<clinit>"
@@ -205,7 +208,7 @@ impl Class {
                 class_obj.link_attributes();
             }
 
-            ClassKind::ObjectArray(ary_class_obj, _) => {
+            ClassKind::ObjectArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
             }
@@ -244,7 +247,7 @@ impl Class {
     pub fn get_class_kind_type(&self) -> ClassKindType {
         match &self.kind {
             ClassKind::Instance(_) => ClassKindType::Instance,
-            ClassKind::ObjectArray(_, _) => ClassKindType::ObjectAry,
+            ClassKind::ObjectArray(_) => ClassKindType::ObjectAry,
             ClassKind::TypeArray(_) => ClassKindType::TypAry
         }
     }
@@ -267,7 +270,7 @@ impl Class {
         match &self.kind {
             ClassKind::Instance(_) => false,
             ClassKind::TypeArray(_) => false,
-            ClassKind::ObjectArray(_, _) => true,
+            ClassKind::ObjectArray(_) => true,
         }
     }
 
@@ -286,7 +289,7 @@ impl ArrayClassObject {
                 let down_type = down_type.lock().unwrap();
                 let n = match &down_type.kind {
                     ClassKind::Instance(_) => unreachable!(),
-                    ClassKind::ObjectArray(ary_cls_obj, _) => ary_cls_obj.get_dimension(),
+                    ClassKind::ObjectArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
                     ClassKind::TypeArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
                 };
                 Some(1 + n.unwrap())
@@ -463,19 +466,13 @@ impl Class {
         }
     }
 
-    pub fn new_object_ary(class_loader: ClassLoader, elm: ClassRef, elm_name: &[u8]) -> Self {
+    pub fn new_object_ary(class_loader: ClassLoader, component: ClassRef, elm_name: &[u8]) -> Self {
         let name = Arc::new(Vec::from(elm_name));
-        let class_file = {
-            let class = elm.lock().unwrap();
-            match &class.kind {
-                ClassKind::Instance(cls_obj) => cls_obj.class_file.clone(),
-                _ => unreachable!()
-            }
-        };
 
         let ary_cls_obj = ArrayClassObject {
-            elm_type: Some(ValueType::OBJECT),
+            value_type: ValueType::ARRAY,
             down_type: None,
+            component: Some(component),
         };
 
         Self {
@@ -485,19 +482,20 @@ impl Class {
             super_class: None,
             class_loader: Some(class_loader),
             monitor: Mutex::new(0),
-            kind: ClassKind::ObjectArray(ary_cls_obj, class_file)
+            kind: ClassKind::ObjectArray(ary_cls_obj)
         }
     }
 
-    pub fn new_prime_ary(class_loader: ClassLoader, elm: ValueType) -> Self {
+    pub fn new_prime_ary(class_loader: ClassLoader, value_type: ValueType) -> Self {
         let ary_cls_obj = ArrayClassObject {
-            elm_type: Some(elm),
+            value_type,
             down_type: None,
+            component: None,
         };
 
         let mut name = Vec::with_capacity(2);
         name.push(b'[');
-        name.extend_from_slice(elm.into());
+        name.extend_from_slice(value_type.into());
 
         Self {
             name: Arc::new(name),
@@ -511,35 +509,44 @@ impl Class {
     }
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
-        let (down_type_name, class_file) = {
-            let class = down_type.lock().unwrap();
-
-            let class_file = match &class.kind {
-                ClassKind::Instance(cls) => Some(cls.class_file.clone()),
-                ClassKind::ObjectArray(_, class_file) => Some(class_file.clone()),
-                ClassKind::TypeArray(_) => None
-            };
-
-            (class.name.clone(), class_file)
+        let (name, cls_kind) = {
+            let cls = down_type.lock().unwrap();
+            assert!(cls.is_array());
+            (cls.name.clone(), cls.get_class_kind_type())
         };
 
-        let ary_cls_obj = ArrayClassObject {
-            elm_type: None,
-            down_type: Some(down_type),
-        };
+        //build name
+        let mut name2 = Vec::with_capacity(1 + name.len());
+        name2.push(b'[');
+        name2.extend_from_slice(&name);
 
-        let mut name = Vec::with_capacity(1 + down_type_name.len());
-        name.push(b'[');
-        name.extend_from_slice(&down_type_name);
-
-        let kind = if class_file.is_none() {
-            ClassKind::TypeArray(ary_cls_obj)
-        } else {
-            ClassKind::ObjectArray(ary_cls_obj, class_file.unwrap())
+        let kind = match cls_kind {
+            ClassKindType::Instance => unreachable!(),
+            ClassKindType::TypAry => {
+                ClassKind::TypeArray(ArrayClassObject {
+                    value_type: ValueType::ARRAY,
+                    down_type: Some(down_type.clone()),
+                    component: None,
+                })
+            }
+            ClassKindType::ObjectAry => {
+                let component= {
+                    let cls = down_type.lock().unwrap();
+                    match &cls.kind {
+                        ClassKind::ObjectArray(ary_cls) => ary_cls.component.clone(),
+                        _ => unreachable!()
+                    }
+                };
+                ClassKind::ObjectArray(ArrayClassObject {
+                    value_type: ValueType::ARRAY,
+                    down_type: Some(down_type.clone()),
+                    component,
+                })
+            }
         };
 
         Self {
-            name: Arc::new(name),
+            name: Arc::new(name2),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,

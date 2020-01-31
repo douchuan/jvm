@@ -266,7 +266,7 @@ impl ArrayOopDesc {
     pub fn get_dimension(&self) -> usize {
         let class = self.class.lock().unwrap();
         match &class.kind {
-            class::ClassKind::ObjectArray(ary_class_obj, _) => ary_class_obj.get_dimension().unwrap(),
+            class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension().unwrap(),
             class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension().unwrap(),
             _ => unreachable!()
         }
