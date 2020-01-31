@@ -1,6 +1,6 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
-use crate::oop::{ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
+use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
 use crate::runtime::{self, thread, Frame, JavaThread, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
@@ -75,7 +75,7 @@ impl JavaCall {
                     if s.as_slice() == b"Ljava/lang/Thread;" {
                         stack.push_ref(jt.java_thread_obj.clone().unwrap());
                     } else {
-                        unimplemented!()
+                        stack.push_ref(oop::consts::get_null());
                     }
                 }
                 _ => unimplemented!(),

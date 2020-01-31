@@ -6,9 +6,7 @@ use crate::classfile::ClassFile;
 use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
-use crate::runtime::{
-    self, require_class, require_class2, require_class3, JavaThread, Local, Stack,
-};
+use crate::runtime::{self, require_class, require_class2, require_class3, JavaThread, Local, Stack, JavaCall};
 use crate::util;
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
@@ -292,7 +290,7 @@ impl Frame {
                         OpCode::invokeinterface => self.invoke_interface(thread),
                         OpCode::invokedynamic => self.invoke_dynamic(),
                         OpCode::new => self.new_(thread),
-                        OpCode::newarray => self.new_array(),
+                        OpCode::newarray => self.new_array(thread),
                         OpCode::anewarray => self.anew_array(thread),
                         OpCode::arraylength => self.array_length(thread),
                         OpCode::athrow => self.athrow(thread),
@@ -335,6 +333,12 @@ impl Frame {
         let v = self.code[self.pc as usize];
         self.pc += 1;
         v as usize
+    }
+
+    fn read_byte(&mut self) -> u8 {
+        let v = self.code[self.pc as usize];
+        self.pc += 1;
+        v
     }
 
     fn read_opcode(&mut self) -> Option<&U1> {
@@ -2222,9 +2226,85 @@ impl Frame {
         }
     }
 
-    pub fn new_array(&mut self) {
-        //todo: impl
-        unimplemented!()
+    pub fn new_array(&mut self, thread: &mut JavaThread) {
+        let t = self.read_byte();
+        let length = self.stack.pop_int();
+        if length < 0 {
+            thread.throw_ext_with_msg2(consts::J_NASE, false, b"length < 0");
+            self.handle_exception(thread);
+        } else {
+            let mut ary = Vec::with_capacity(length as usize);
+            let ary_cls = match t {
+                //boolean
+                4 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_int(0));
+                    }
+
+                    require_class3(None, b"[Z").unwrap()
+                }
+                //char
+                5 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_int(0));
+                    }
+
+                    require_class3(None, b"[C").unwrap()
+                }
+                //float
+                6 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_float(0.0));
+                    }
+
+                    require_class3(None, b"[F").unwrap()
+                }
+                //double
+                7 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_double(0.0));
+                    }
+
+                    require_class3(None, b"[D").unwrap()
+                }
+                //byte
+                8 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_int(0));
+                    }
+
+                    require_class3(None, b"[B").unwrap()
+                }
+                //short
+                9 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_int(0));
+                    }
+
+                    require_class3(None, b"[S").unwrap()
+                }
+                //int
+                10 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_int(0));
+                    }
+
+                    require_class3(None, b"[I").unwrap()
+                }
+                //long
+                11 => {
+                    for _ in 0..length {
+                        ary.push(OopDesc::new_long(0));
+                    }
+
+                    require_class3(None, b"[J").unwrap()
+                }
+                _ => unreachable!()
+            };
+
+            let obj = OopDesc::new_ary2(ary_cls, ary);
+            self.stack.push_ref(obj);
+        }
     }
 
     pub fn anew_array(&mut self, thread: &mut JavaThread) {
