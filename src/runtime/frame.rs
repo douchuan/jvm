@@ -9,6 +9,7 @@ use crate::oop::{
 use crate::runtime::{
     self, require_class, require_class2, require_class3, JavaThread, Local, Stack,
 };
+use crate::util;
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
@@ -294,7 +295,7 @@ impl Frame {
                         OpCode::anewarray => self.anew_array(thread),
                         OpCode::arraylength => self.array_length(thread),
                         OpCode::athrow => self.athrow(thread),
-                        OpCode::checkcast => self.check_cast(),
+                        OpCode::checkcast => self.check_cast(thread),
                         OpCode::instanceof => self.instance_of(),
                         OpCode::monitorenter => self.monitor_enter(thread),
                         OpCode::monitorexit => self.monitor_exit(thread),
@@ -532,7 +533,7 @@ impl Frame {
         }
     }
 
-    fn do_instance_of(&self, s: ClassRef, t: ClassRef) -> bool {
+    fn do_instance_of(s: ClassRef, t: ClassRef) -> bool {
         // Return if S and T are the same class
         if Arc::ptr_eq(&s, &t) {
             return true;
@@ -2316,9 +2317,37 @@ impl Frame {
         }
     }
 
-    pub fn check_cast(&mut self) {
-        //todo: impl
-        unimplemented!()
+    pub fn check_cast(&mut self, thread: &mut JavaThread) {
+        let cp_idx = self.read_i2();
+        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
+
+        let rf = self.stack.pop_ref();
+        let rf_back = rf.clone();
+        let rff = rf.lock().unwrap();
+        match &rff.v {
+            Oop::Null => self.stack.push_ref(rf_back),
+            Oop::Inst(inst) => {
+                let obj_cls = inst.class.clone();
+                let r = Self::do_instance_of(obj_cls.clone(), target_cls.clone());
+                if r {
+                    self.stack.push_ref(rf_back);
+                } else {
+                    let s_name = {
+                        obj_cls.lock().unwrap().name.clone()
+                    };
+                    let t_name = {
+                        target_cls.lock().unwrap().name.clone()
+                    };
+
+                    let s_name = String::from_utf8_lossy(s_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    thread.throw_ext_with_msg(consts::J_CCE, false, msg);
+                    self.handle_exception(thread);
+                }
+            }
+            _ => unimplemented!()
+        }
     }
 
     pub fn instance_of(&mut self) {
@@ -2331,10 +2360,10 @@ impl Frame {
             Oop::Null => false,
             Oop::Inst(inst) => {
                 let obj_cls = inst.class.clone();
-                self.do_instance_of(obj_cls, target_cls)
+                Self::do_instance_of(obj_cls, target_cls)
             }
             //todo: array
-            _ => unreachable!(),
+            _ => unimplemented!(),
         };
 
         if result {

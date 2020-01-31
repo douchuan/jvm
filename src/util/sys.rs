@@ -4,6 +4,7 @@ pub const PATH_DELIMITER: &[u8] = platform::PATH_DELIMITER;
 pub const PATH_DELIMITER_STR: &str = platform::PATH_DELIMITER_STR;
 pub const PATH_SEP: &[u8] = platform::PATH_SEP;
 pub const PATH_SEP_STR: &str = platform::PATH_SEP_STR;
+pub const DOT_STR: &str = ".";
 
 #[cfg(unix)]
 mod platform {
