@@ -90,31 +90,25 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
     };
 
     if need {
-        {
+        let (mir, name) = {
             let mut class = class.lock().unwrap();
             class.state = State::FullyIni;
-        }
 
-        let mir = {
-            let class = class.lock().unwrap();
-//            trace!("init_class_fully name={}, state={:?}",
-//                   String::from_utf8_lossy(class.name.as_slice()),
-//                   class.state);
-            class.get_this_class_method(b"()V", b"<clinit>")
+            let mir = class.get_this_class_method(b"()V", b"<clinit>");
+            (mir, class.name.clone())
         };
 
         {
             match mir {
                 Ok(mir) => {
-                    trace!("call <clinit>");
+                    info!("call <clinit>/{}", String::from_utf8_lossy(name.as_slice()));
                     let mut stack = Stack::new(0);
                     let jc = JavaCall::new(thread, &mut stack, mir);
                     jc.unwrap().invoke(thread, &mut stack);
                 }
                 _ => {
-                    let class = class.lock().unwrap();
-                    trace!("init_class_fully name={}, no <clinit> ",
-                           String::from_utf8_lossy(class.name.as_slice()));
+                    trace!("no <clinit>/{}",
+                           String::from_utf8_lossy(name.as_slice()));
                 },
             }
         }
@@ -303,12 +297,17 @@ impl ArrayClassObject {
 impl Class {
     //todo: confirm static method
     pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        self.get_this_class_method(desc, name)
+        self.get_class_method(desc, name)
+    }
+
+    pub fn get_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
+        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        self.get_class_method_inner(id, true)
     }
 
     pub fn get_this_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
         let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
-        self.get_this_class_method_inner(id)
+        self.get_class_method_inner(id, false)
     }
 
     pub fn get_virtual_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
@@ -692,7 +691,7 @@ impl ClassObject {
 }
 
 impl Class {
-    pub fn get_this_class_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_class_method_inner(&self, id: BytesRef, with_super: bool) -> Result<MethodIdRef, ()> {
         match &self.kind {
             ClassKind::Instance(cls_obj) => {
                 match cls_obj.all_methods.get(&id) {
@@ -703,12 +702,16 @@ impl Class {
             _ => unreachable!()
         }
 
-        match self.super_class.as_ref() {
-            Some(super_class) => {
-                return super_class.lock().unwrap().get_this_class_method_inner(id);
+        if with_super {
+            match self.super_class.as_ref() {
+                Some(super_class) => {
+                    return super_class.lock().unwrap().get_class_method_inner(id, with_super);
+                }
+                None => return Err(())
             }
-            None => return Err(())
         }
+
+        Err(())
     }
 
     pub fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {

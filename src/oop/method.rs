@@ -42,7 +42,7 @@ pub fn get_method_ref(thread: &mut JavaThread, cp: &ConstantPool, idx: usize) ->
     let class = class.lock().unwrap();
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_this_class_method(typ.as_slice(), name.as_slice())
+        class.get_class_method(typ.as_slice(), name.as_slice())
     } else {
         // invokeinterface
         class.get_virtual_method(typ.as_slice(), name.as_slice())
