@@ -28,6 +28,10 @@ impl JavaThread {
         }
     }
 
+    pub fn set_java_thread_obj(&mut self, obj: OopRef) {
+        self.java_thread_obj = Some(obj);
+    }
+
     pub fn run(&mut self) {
         //todo: impl
     }
@@ -62,7 +66,7 @@ impl JavaMainThread {
     pub fn run(&self) {
         let mut jt = JavaThread::new();
 
-        init_vm::initialize_vm_structs(&mut jt);
+        init_vm::initialize_jvm(&mut jt);
 
         let mir = {
             let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
