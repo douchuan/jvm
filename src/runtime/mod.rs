@@ -6,6 +6,7 @@ mod cp_manager;
 mod execution;
 mod frame;
 mod java_call;
+mod init_vm;
 mod local;
 mod slot;
 mod stack;

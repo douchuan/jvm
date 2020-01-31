@@ -1,6 +1,6 @@
 use crate::classfile::{self, signature};
-use crate::oop::{self, consts, InstOopDesc, MethodIdRef, OopDesc, OopRef};
-use crate::runtime::{self, Frame, JavaCall, Local, Stack};
+use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
+use crate::runtime::{self, init_vm, Frame, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -62,30 +62,7 @@ impl JavaMainThread {
     pub fn run(&self) {
         let mut jt = JavaThread::new();
 
-        let classes = vec![
-            classfile::consts::J_CLASS,
-            classfile::consts::J_OBJECT,
-            classfile::consts::J_STRING,
-            classfile::consts::J_CLONEABLE,
-            classfile::consts::J_SERIALIZABLE,
-            classfile::consts::J_NPE,
-            classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-            classfile::consts::J_CLASS_NOT_FOUND,
-            classfile::consts::J_INTERNAL_ERROR,
-            classfile::consts::J_IOEXCEPTION,
-            classfile::consts::J_SYSTEM,
-        ];
-        classes.iter().for_each(|c| {
-            let class = runtime::require_class3(None, *c);
-            let class = class.unwrap();
-            {
-                let mut class = class.lock().unwrap();
-                class.init_class(&mut jt);
-                //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-            }
-            oop::class::init_class_fully(&mut jt, class);
-            //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
-        });
+        init_vm::initialize_vm_structs(&mut jt);
 
         let mir = {
             let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
