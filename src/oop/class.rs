@@ -96,16 +96,14 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             (mir, class.name.clone())
         };
 
-        {
-            match mir {
-                Ok(mir) => {
-                    info!("call <clinit>/{}", String::from_utf8_lossy(name.as_slice()));
-                    let mut stack = Stack::new(0);
-                    let jc = JavaCall::new(thread, &mut stack, mir);
-                    jc.unwrap().invoke(thread, &mut stack);
-                }
-                _ => (),
+        match mir {
+            Ok(mir) => {
+                info!("call <clinit>/{}", String::from_utf8_lossy(name.as_slice()));
+                let mut stack = Stack::new(0);
+                let jc = JavaCall::new(thread, &mut stack, mir);
+                jc.unwrap().invoke(thread, &mut stack);
             }
+            _ => (),
         }
     }
 }
