@@ -1,6 +1,7 @@
-use crate::oop::{self, ClassRef};
-use crate::runtime::{self, JavaThread};
-use crate::classfile::consts::{J_CLASS, J_OBJECT, J_STRING, J_CLONEABLE, J_SERIALIZABLE, J_NPE, J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS_NOT_FOUND, J_INTERNAL_ERROR, J_IOEXCEPTION, J_THREAD, J_THREAD_GROUP};
+use crate::oop::{self, ClassRef, OopDesc};
+use crate::runtime::{self, JavaThread, require_class3};
+use crate::classfile::consts::{J_CLASS, J_OBJECT, J_STRING, J_CLONEABLE, J_SERIALIZABLE, J_NPE, J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS_NOT_FOUND, J_INTERNAL_ERROR, J_IOEXCEPTION, J_THREAD, J_THREAD_GROUP, J_INPUT_STREAM, J_PRINT_STREAM, J_SECURITY_MANAGER, J_SYSTEM};
+use std::sync::Arc;
 
 pub fn initialize_jvm(jt: &mut JavaThread) {
 
@@ -9,7 +10,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let thread_cls = do_init(J_THREAD, jt);
     let thread_group_cls = do_init(J_THREAD_GROUP, jt);
 
-    let init_thread_oop = oop::OopDesc::new_inst(thread_cls.clone());
+    let init_thread_oop = OopDesc::new_inst(thread_cls.clone());
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
@@ -20,8 +21,73 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     // JavaMainThread is created with java_thread_obj none
     // Now we have created a thread for it.
-    jt.set_java_thread_obj(init_thread_oop);
+    jt.set_java_thread_obj(init_thread_oop.clone());
 
+    // Create and construct the system thread group.
+    let system_thread_group = OopDesc::new_inst(thread_group_cls.clone());
+    let ctor = {
+        let cls = thread_group_cls.lock().unwrap();
+        cls.get_this_class_method(b"()V", b"<init>").unwrap()
+    };
+    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, vec![system_thread_group.clone()]);
+    let mut stack = runtime::stack::Stack::new(0);
+    jc.invoke(jt, &mut stack);
+
+    let main_thread_group = OopDesc::new_inst(thread_group_cls.clone());
+
+    {
+        let mut cls = thread_cls.lock().unwrap();
+        cls.put_field_value2(init_thread_oop.clone(), J_THREAD, b"Ljava/lang/ThreadGroup;", b"group", main_thread_group.clone());
+    }
+
+    let _ = do_init(J_INPUT_STREAM, jt);
+    let _ = do_init(J_PRINT_STREAM, jt);
+    let _ = do_init(J_SECURITY_MANAGER, jt);
+
+    // Construct the main thread group
+    // use get_this_class_method() to get a private method
+    let ctor = {
+        let cls = thread_group_cls.lock().unwrap();
+        cls.get_this_class_method(b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
+    };
+    let mut args = vec![
+        main_thread_group.clone(),
+        oop::consts::get_null(),
+        system_thread_group,
+        OopDesc::new_str(Arc::new(Vec::from("main")))
+    ];
+    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
+    let mut stack = runtime::stack::Stack::new(0);
+    jc.invoke(jt, &mut stack);
+
+    //todo: disable sun.security.util.Debug for the following operations
+    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
+
+    let ctor = {
+        let cls = thread_cls.lock().unwrap();
+        cls.get_this_class_method(b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
+    };
+    let args = vec![
+        init_thread_oop,
+        main_thread_group,
+        OopDesc::new_str(Arc::new(Vec::from("main")))
+    ];
+    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
+    let mut stack = runtime::stack::Stack::new(0);
+    jc.invoke(jt, &mut stack);
+
+    //todo: hackJavaClasses
+
+    let init_system_classes_method = {
+        let cls = require_class3(None, J_SYSTEM).unwrap();
+        let cls = cls.lock().unwrap();
+        cls.get_static_method(b"()V", b"initializeSystemClass").unwrap()
+    };
+    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
+    let mut stack = runtime::stack::Stack::new(0);
+    jc.invoke(jt, &mut stack);
+
+    //todo: re-enable sun.security.util.Debug
 }
 
 fn initialize_vm_structs(jt: &mut JavaThread) {
@@ -46,7 +112,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
     {
         let mut cls = class_obj.lock().unwrap();
-        cls.put_static_field_value2(J_CLASS, b"Z", b"useCaches", oop::OopDesc::new_int(0));
+        cls.put_static_field_value2(J_CLASS, b"Z", b"useCaches", OopDesc::new_int(0));
     }
 }
 

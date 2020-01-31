@@ -12,8 +12,18 @@ pub struct JavaCall {
 }
 
 impl JavaCall {
+    pub fn new_with_args(jt: &mut JavaThread, mir: MethodIdRef, args: Vec<OopRef>) -> Self {
+        let sig = MethodSignature::new(mir.method.desc.as_slice());
+        let return_type = sig.retype.clone();
+        Self {
+            mir,
+            args,
+            return_type
+        }
+    }
+
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        let class_name = { mir.method.class.lock().unwrap().name.clone() };
+//        let class_name = { mir.method.class.lock().unwrap().name.clone() };
 
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();

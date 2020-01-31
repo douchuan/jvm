@@ -361,6 +361,7 @@ impl Class {
         match &rf.v {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
             Oop::Mirror(mirror) => mirror.filed_values[fid.offset].clone(),
+            Oop::Str(s) => OopDesc::new_str(s.clone()),
             _ => {
                 //                trace!("get_field_value = {:?}", r);
                 unreachable!()

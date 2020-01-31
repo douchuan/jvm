@@ -2285,6 +2285,9 @@ impl Frame {
                 let len = ary.get_length();
                 self.stack.push_int(len as i32);
             }
+            Oop::Str(s) => {
+                self.stack.push_int(s.len() as i32);
+            }
             Oop::Null => {
                 thread.throw_ext(consts::J_NPE, false);
                 self.handle_exception(thread);
