@@ -26,14 +26,13 @@ pub fn add_paths(path: &str) {
     util::sync_call_ctx(&CPM, |cpm| cpm.add_class_paths(path));
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum ClassSource {
-    DIR,
-    JAR,
-}
-
 #[derive(Debug)]
-pub struct ClassPathResult(pub String, pub ClassSource, pub Vec<u8>);
+pub struct ClassPathResult(pub String, pub Vec<u8>);
+
+enum ClassSource {
+    DIR,
+    JAR(Box<ZipArchive<File>>),
+}
 
 struct ClassPathEntry(ClassSource, String);
 
@@ -54,9 +53,11 @@ impl ClassPathManager {
             self.runtime_class_path
                 .push(ClassPathEntry(ClassSource::DIR, path.to_string()));
         } else {
-            let _ = File::open(p)?;
+            let f = File::open(p)?;
+            let mut z = ZipArchive::new(f)?;
+            let handle = Box::new(z);
             self.runtime_class_path
-                .push(ClassPathEntry(ClassSource::JAR, path.to_string()));
+                .push(ClassPathEntry(ClassSource::JAR(handle), path.to_string()));
         }
 
         Ok(())
@@ -68,13 +69,13 @@ impl ClassPathManager {
         });
     }
 
-    pub fn search_class(&self, name: &str) -> Result<ClassPathResult, io::Error> {
+    pub fn search_class(&mut self, name: &str) -> Result<ClassPathResult, io::Error> {
         let name = name.replace("/", util::PATH_SEP_STR);
         let name = name.replace(".", util::PATH_SEP_STR);
 
         debug!("search_class name={}", name);
-        for it in self.runtime_class_path.iter() {
-            match it.0 {
+        for it in self.runtime_class_path.iter_mut() {
+            match &mut it.0 {
                 ClassSource::DIR => {
                     let mut p = String::from(&it.1);
                     p.push_str(util::PATH_SEP_STR);
@@ -85,27 +86,25 @@ impl ClassPathManager {
                             let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
                             f.read_to_end(&mut v);
 
-                            return Ok(ClassPathResult(p, it.0, v));
+                            return Ok(ClassPathResult(p, v));
                         }
 
                         _ => (),
                     }
                 }
 
-                ClassSource::JAR => {
+                ClassSource::JAR(handle) => {
                     let mut p = String::from(&name);
                     p.push_str(".class");
 
-                    let f = File::open(&it.1)?;
-                    let mut z = ZipArchive::new(f)?;
-                    let mut zf = z.by_name(&p);
+                    let mut zf = handle.by_name(&p);
 
                     match zf {
                         Ok(mut zf) => {
                             let mut v = Vec::with_capacity(zf.size() as usize);
                             let r = zf.read_to_end(&mut v);
                             assert!(r.is_ok());
-                            return Ok(ClassPathResult(it.1.clone(), it.0, v));
+                            return Ok(ClassPathResult(it.1.clone(), v));
                         }
 
                         _ => (),

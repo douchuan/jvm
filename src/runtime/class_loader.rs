@@ -110,7 +110,7 @@ impl ClassLoader {
     fn load_class_from_path(&self, name: &[u8]) -> Option<ClassRef> {
         let name = String::from_utf8_lossy(name);
         match runtime::find_class_in_classpath(&name) {
-            Ok(ClassPathResult(_, _, buf)) => match class_parser::parse_buf(buf) {
+            Ok(ClassPathResult(_, buf)) => match class_parser::parse_buf(buf) {
                 Ok(cf) => {
                     let cfr = Arc::new(cf);
                     let class = Class::new_class(cfr, Some(*self));

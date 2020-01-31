@@ -16,7 +16,7 @@ pub use class_loader::{require_class, require_class2, require_class3, ClassLoade
 pub use consts::THREAD_MAX_STACK_FRAMES;
 pub use cp_manager::{
     add_path as add_class_path, add_paths as add_class_paths,
-    find_class as find_class_in_classpath, ClassPathResult, ClassSource,
+    find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use execution::instance_of;
 pub use frame::Frame;
