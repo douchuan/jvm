@@ -33,16 +33,6 @@ pub fn get_method_ref(
         (name, typ)
     };
 
-    {
-        let class = class.lock().unwrap();
-        trace!(
-            "get_method_ref class ={}, name={}, typ={}",
-            String::from_utf8_lossy(class.name.as_slice()),
-            String::from_utf8_lossy(name.as_slice()),
-            String::from_utf8_lossy(typ.as_slice())
-        );
-    }
-
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
@@ -54,12 +44,21 @@ pub fn get_method_ref(
         class.get_virtual_method(typ.as_slice(), name.as_slice())
     };
 
-    /*
+    //debug info
     match &mir {
-        Ok(mir) => debug!("is_native = {}", mir.method.is_native()),
+        Ok(mir) => {
+            {
+                trace!(
+                    "get_method_ref class ={}, name={}, typ={}, native={}",
+                    String::from_utf8_lossy(class.name.as_slice()),
+                    String::from_utf8_lossy(name.as_slice()),
+                    String::from_utf8_lossy(typ.as_slice()),
+                    mir.method.is_native()
+                );
+            }
+        },
         Err(_) => ()
     }
-    */
 
     mir
 }
