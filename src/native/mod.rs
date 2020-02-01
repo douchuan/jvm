@@ -3,15 +3,19 @@ use crate::util;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
-mod system;
+mod java_lang_class;
+mod java_lang_object;
+mod java_lang_system;
+mod java_lang_thread;
+mod java_security_accesscontroller;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
 pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, Vec<OopRef>) -> Option<OopRef> + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
-    name: &'static [u8],
-    signature: &'static [u8],
+    name: &'static str,
+    signature: &'static str,
     fnptr: NativeMethodPtr,
 }
 
@@ -26,7 +30,7 @@ lazy_static! {
     };
 }
 
-pub fn new_fn(name: &'static [u8], signature: &'static [u8], fnptr: NativeMethodPtr) -> JNINativeMethod {
+pub fn new_fn(name: &'static str, signature: &'static str, fnptr: NativeMethodPtr) -> JNINativeMethod {
     Arc::new(JNINativeMethodStruct {
         name,
         signature,
@@ -52,7 +56,11 @@ pub fn init() {
     lazy_static::initialize(&NATIVES);
 
     let natives = vec! [
-        (b"java/lang/System", system::get_native_methods()),
+        ("java/lang/Class", java_lang_class::get_native_methods()),
+        ("java/lang/Object", java_lang_object::get_native_methods()),
+        ("java/lang/System", java_lang_system::get_native_methods()),
+        ("java/lang/Thread", java_lang_thread::get_native_methods()),
+        ("java/security/AccessController", java_security_accesscontroller::get_native_methods()),
     ];
 
     util::sync_call_ctx(&NATIVES, |h| {
@@ -62,8 +70,7 @@ pub fn init() {
                     package.as_ref(),
                     it.signature,
                     it.name
-                ].join(util::PATH_DELIMITER);
-                let id = String::from_utf8(id).unwrap();
+                ].join(util::PATH_DELIMITER_STR);
 
                 h.insert(id, it.clone());
             });

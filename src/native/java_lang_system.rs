@@ -5,23 +5,21 @@ use std::sync::{Arc, Mutex};
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
         new_fn(
-            b"arraycopy",
-            b"(Ljava/lang/Object;ILjava/lang/Object;II)V",
+            "arraycopy",
+            "(Ljava/lang/Object;ILjava/lang/Object;II)V",
             Box::new(jvm_arraycopy)),
         new_fn(
-            b"registerNatives",
-            b"()V",
+            "registerNatives",
+            "()V",
             Box::new(jvm_register_natives),
         )
     ]
 }
 
 fn jvm_arraycopy(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef>{
-    trace!("jvm_arraycopy called");
-    None
+    unimplemented!()
 }
 
 fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
-    trace!("jvm_register_natives called");
     None
 }
