@@ -1,4 +1,4 @@
-use crate::native::{new_fn, JNIEnv, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
 use crate::oop::OopRef;
 use std::sync::{Arc, Mutex};
 
@@ -12,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_do_privileged(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
+fn jvm_do_privileged(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     unimplemented!()
 }
 

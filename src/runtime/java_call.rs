@@ -77,10 +77,10 @@ impl JavaCall {
             let method = native::find_symbol(package.as_slice(), desc.as_slice(), name.as_slice());
             let v = match method {
                 Some(method) => {
-                    let env = native::new_jni_env();
+                    let env = native::new_jni_env(jt);
                     method.invoke(env, self.args.clone())
                 }
-                None => None,
+                None => unreachable!(),
             };
 
             match &self.return_type {

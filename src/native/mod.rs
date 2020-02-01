@@ -1,5 +1,6 @@
 use crate::oop::OopRef;
 use crate::util;
+use crate::runtime::{JavaThread};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
@@ -10,7 +11,8 @@ mod java_lang_thread;
 mod java_security_accesscontroller;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
-pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, Vec<OopRef>) -> Option<OopRef> + Send + Sync>;
+pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
+pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
@@ -20,7 +22,8 @@ pub struct JNINativeMethodStruct {
 }
 
 pub struct JNIEnvStruct {
-
+    //fixme: just for hack，为了跑HelloWorld，暂时放在这里
+    pub java_thread_obj: Option<OopRef>,
 }
 
 lazy_static! {
@@ -38,9 +41,9 @@ pub fn new_fn(name: &'static str, signature: &'static str, fnptr: NativeMethodPt
     })
 }
 
-pub fn new_jni_env() -> JNIEnv {
+pub fn new_jni_env(jt: &mut JavaThread) -> JNIEnv {
     Arc::new(Mutex::new(Box::new(JNIEnvStruct {
-
+        java_thread_obj: jt.java_thread_obj.clone()
     })))
 }
 
@@ -79,7 +82,7 @@ pub fn init() {
 }
 
 impl JNINativeMethodStruct {
-    pub fn invoke(&self, jni: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
+    pub fn invoke(&self, jni: JNIEnv, args: Vec<OopRef>) -> JNIResult {
         (self.fnptr)(jni, args)
     }
 }

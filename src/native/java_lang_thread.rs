@@ -1,4 +1,4 @@
-use crate::native::{new_fn, JNIEnv, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
 use crate::oop::OopRef;
 use std::sync::{Arc, Mutex};
 
@@ -17,10 +17,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
-    None
+fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    Ok(None)
 }
 
-fn jvm_current_thread(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
-    unimplemented!()
+fn jvm_current_thread(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let r = env.lock().unwrap().java_thread_obj.clone();
+    Ok(r)
 }

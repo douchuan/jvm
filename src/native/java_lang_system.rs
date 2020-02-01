@@ -1,4 +1,4 @@
-use crate::native::{new_fn, JNIEnv, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
 use crate::oop::OopRef;
 use std::sync::{Arc, Mutex};
 
@@ -16,10 +16,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_arraycopy(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef>{
+fn jvm_arraycopy(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     unimplemented!()
 }
 
-fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> Option<OopRef> {
-    None
+fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    Ok(None)
 }

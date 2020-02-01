@@ -21,25 +21,13 @@ use crate::runtime::thread::JavaMainThread;
 /*
 todo list
 
-  impl instance_of, check_cast
-
-  optimize zip reader
-
-  2. JNI
-  3. runtime::execution::instance_of
-  7. oop class init_class, java call "<clinit>"
-     impl JavaCall::with_args(thread, clinit, {})
-  9. oop/class.rs, link_constant_pool
-
   x. verify class file
   x. java to execute a jar by -jar
-  x. invoke native
   x. java/lang/Class:Z:useCaches
-  x. "<clinit>" "<init>" diff?
   x. reimpl instruction by macro
-  x. setup mirror field_values
   x. 如何不用事先初始化vector，就可以对任意位置赋值?
   x. 官方的测试用例
+  x. build thread system
 */
 
 fn init_vm() {
