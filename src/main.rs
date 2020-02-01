@@ -11,6 +11,7 @@ use clap::{App, Arg};
 #[macro_use]
 mod oop;
 mod classfile;
+mod native;
 mod parser;
 mod runtime;
 mod util;
@@ -43,6 +44,7 @@ todo list
 
 fn init_vm() {
     oop::init();
+    native::init();
     runtime::init();
 }
 

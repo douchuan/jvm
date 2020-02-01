@@ -1,5 +1,6 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
+use crate::native;
 use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
 use crate::runtime::{self, thread, Frame, JavaThread, Stack};
 use std::borrow::BorrowMut;
@@ -67,6 +68,21 @@ impl JavaCall {
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
+            let package = {
+                let cls = self.mir.method.class.lock().unwrap();
+                cls.name.clone()
+            };
+            let desc = self.mir.method.desc.clone();
+            let name = self.mir.method.name.clone();
+            let method = native::find_symbol(package.as_slice(), desc.as_slice(), name.as_slice());
+            let v = match method {
+                Some(method) => {
+                    let env = native::new_jni_env();
+                    method.invoke(env, self.args.clone())
+                }
+                None => None,
+            };
+
             match &self.return_type {
                 ArgType::Void => (),
                 //fixme, push native's real return value
@@ -81,8 +97,7 @@ impl JavaCall {
                 _ => unimplemented!(),
             }
 
-        //todo: impl me
-        //            unimplemented!()
+//                    unimplemented!()
         } else {
             self.invoke_java(jt, stack);
         }
