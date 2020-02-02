@@ -78,11 +78,11 @@ impl Frame {
 impl Frame {
     pub fn exec_interp(&mut self, thread: &mut JavaThread) {
         loop {
-            let op_code = self.read_opcode();
-            match op_code {
-                Some(&op_code) => {
-                    let op_code = OpCode::from(op_code);
-                    trace!("exec_interp op_code = {:?}", op_code);
+            let code = self.read_opcode();
+            match code {
+                Some(code) => {
+                    let op_code = OpCode::from(*code);
+                    trace!("exec_interp op_code = {:?} ({})", op_code, *code);
                     match op_code {
                         OpCode::ireturn => {
                             self.ireturn();
@@ -407,10 +407,10 @@ impl Frame {
     }
 
     fn goto_by_offset_hardcoded(&mut self, occupied: i32) {
-        let high = self.code[self.pc as usize] as i32;
-        let low = self.code[(self.pc + 1) as usize] as i32;
+        let high = self.code[self.pc as usize] as i16;
+        let low = self.code[(self.pc + 1) as usize] as i16;
         let branch = (high << 8) | low;
-        self.goto_by_offset_with_occupied(branch, occupied);
+        self.goto_by_offset_with_occupied(branch as i32, occupied);
     }
 
     fn goto_abs_with_occupied(&mut self, pc: i32, occupied: i32) {

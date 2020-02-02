@@ -46,7 +46,6 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     // Construct the main thread group
     // use get_this_class_method() to get a private method
-    warn!("xxxxx thread_group ctor");
     let ctor = {
         let cls = thread_group_cls.lock().unwrap();
         cls.get_this_class_method(b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
@@ -78,7 +77,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);
     jc.invoke(jt, &mut stack);
-    trace!("xxxxx 2");
+    warn!("xxxxx 2");
 
     //todo: hackJavaClasses
 

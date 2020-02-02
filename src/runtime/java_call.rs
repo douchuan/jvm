@@ -72,9 +72,6 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-
-
-
         //        trace!("class name={}, method name ={} desc={} static={}, native={}",
         //               String::from_utf8_lossy(class_name.as_slice()),
         //               String::from_utf8_lossy(mir.method.name.as_slice()),
@@ -276,7 +273,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
         .rev()
         .map(|t| {
             match t {
-                ArgType::Int => {
+                ArgType::Boolean | ArgType::Int => {
                     let v = stack.pop_int();
                     OopDesc::new_int(v)
                 }
@@ -293,7 +290,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
                     OopDesc::new_double(v)
                 }
                 ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
-                _ => unreachable!(),
+                t => unreachable!("t = {:?}", t),
             }
         })
         .collect()

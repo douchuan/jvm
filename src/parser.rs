@@ -30,7 +30,7 @@ impl Parser {
         let magic = self.get_magic();
         assert_eq!(magic, 0xCAFEBABE);
         let version = self.get_version();
-        //        trace!("version={:?}", version);
+        info!("class version={:?}", version);
         let cp_count = self.get_cp_count();
         let cp = self.get_cp(cp_count);
         let acc_flags = self.get_acc_flags();
