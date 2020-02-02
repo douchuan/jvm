@@ -46,6 +46,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     // Construct the main thread group
     // use get_this_class_method() to get a private method
+    warn!("xxxxx thread_group ctor");
     let ctor = {
         let cls = thread_group_cls.lock().unwrap();
         cls.get_this_class_method(b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
@@ -61,8 +62,10 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     jc.invoke(jt, &mut stack);
 
     //todo: disable sun.security.util.Debug for the following operations
-    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
+    //need to impl java_security_accesscontroller
+//    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
 
+    warn!("xxxxx thread ctor");
     let ctor = {
         let cls = thread_cls.lock().unwrap();
         cls.get_this_class_method(b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
@@ -75,6 +78,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);
     jc.invoke(jt, &mut stack);
+    trace!("xxxxx 2");
 
     //todo: hackJavaClasses
 

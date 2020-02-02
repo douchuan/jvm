@@ -76,10 +76,9 @@ impl Local {
     }
 
     pub fn get_ref(&self, pos: usize) -> OopRef {
-        if let Slot::Ref(v) = self.locals.get(pos).unwrap() {
-            v.clone()
-        } else {
-            panic!("Illegal type");
+        match self.locals.get(pos) {
+            Some(Slot::Ref(v)) => v.clone(),
+            t => panic!("Illegal type = {:?}", t),
         }
     }
 }

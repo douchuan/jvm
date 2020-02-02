@@ -1,6 +1,6 @@
-use crate::oop::OopRef;
-use crate::util;
+use crate::oop::{ClassRef, OopRef};
 use crate::runtime::{JavaThread};
+use crate::util;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 
@@ -24,6 +24,7 @@ pub struct JNINativeMethodStruct {
 pub struct JNIEnvStruct {
     //fixme: just for hack，为了跑HelloWorld，暂时放在这里
     pub java_thread_obj: Option<OopRef>,
+    pub class: ClassRef
 }
 
 lazy_static! {
@@ -41,9 +42,10 @@ pub fn new_fn(name: &'static str, signature: &'static str, fnptr: NativeMethodPt
     })
 }
 
-pub fn new_jni_env(jt: &mut JavaThread) -> JNIEnv {
+pub fn new_jni_env(jt: &mut JavaThread, class: ClassRef) -> JNIEnv {
     Arc::new(Mutex::new(Box::new(JNIEnvStruct {
-        java_thread_obj: jt.java_thread_obj.clone()
+        java_thread_obj: jt.java_thread_obj.clone(),
+        class
     })))
 }
 

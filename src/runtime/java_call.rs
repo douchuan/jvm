@@ -30,6 +30,26 @@ impl JavaCall {
         let return_type = sig.retype.clone();
 
         let mut args = build_method_args(stack, sig);
+        args.reverse();
+
+        /*
+        let mut xx = Vec::with_capacity(args.len());
+        args.iter().for_each(|it| {
+            let it = it.lock().unwrap();
+            match it.v {
+                Oop::Int(_) => xx.push("int"),
+                Oop::Str(_) => xx.push("str"),
+                Oop::Array(_) => xx.push("ary"),
+                Oop::Inst(_) => xx.push("obj"),
+                Oop::Null => xx.push("null"),
+                Oop::Double(_) => xx.push("double"),
+                Oop::Long(_) => xx.push("long"),
+                Oop::Float(_) => xx.push("float"),
+                Oop::Mirror(_) => xx.push("mirror")
+            }
+        });
+        trace!("xx = {}", xx.join(":"));
+        */
 
         //insert 'this' value
         let has_this = !mir.method.is_static();
@@ -52,6 +72,9 @@ impl JavaCall {
             args.insert(0, v);
         }
 
+
+
+
         //        trace!("class name={}, method name ={} desc={} static={}, native={}",
         //               String::from_utf8_lossy(class_name.as_slice()),
         //               String::from_utf8_lossy(mir.method.name.as_slice()),
@@ -68,36 +91,7 @@ impl JavaCall {
 
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
-            let package = {
-                let cls = self.mir.method.class.lock().unwrap();
-                cls.name.clone()
-            };
-            let desc = self.mir.method.desc.clone();
-            let name = self.mir.method.name.clone();
-            let method = native::find_symbol(package.as_slice(), desc.as_slice(), name.as_slice());
-            let v = match method {
-                Some(method) => {
-                    let env = native::new_jni_env(jt);
-                    method.invoke(env, self.args.clone())
-                }
-                None => unreachable!(),
-            };
-
-            match &self.return_type {
-                ArgType::Void => (),
-                //fixme, push native's real return value
-                ArgType::Boolean => stack.push_const0(),
-                ArgType::Object(s) => {
-                    if s.as_slice() == b"Ljava/lang/Thread;" {
-                        stack.push_ref(jt.java_thread_obj.clone().unwrap());
-                    } else {
-                        stack.push_ref(oop::consts::get_null());
-                    }
-                }
-                _ => unimplemented!(),
-            }
-
-//                    unimplemented!()
+            self.invoke_native(jt, stack);
         } else {
             self.invoke_java(jt, stack);
         }
@@ -126,6 +120,33 @@ impl JavaCall {
             }
 
             _ => (),
+        }
+
+        self.fin_sync();
+    }
+
+    pub fn invoke_native(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+        self.prepare_sync();
+
+        let package = {
+            let cls = self.mir.method.class.lock().unwrap();
+            cls.name.clone()
+        };
+        let desc = self.mir.method.desc.clone();
+        let name = self.mir.method.name.clone();
+        let method = native::find_symbol(package.as_slice(), desc.as_slice(), name.as_slice());
+        let v = match method {
+            Some(method) => {
+                let class = self.mir.method.class.clone();
+                let env = native::new_jni_env(jt, class);
+                method.invoke(env, self.args.clone())
+            }
+            None => unreachable!(),
+        };
+
+        match v {
+            Ok(v) => self.set_return(jt, stack, v),
+            Err(exception) => unimplemented!()
         }
 
         self.fin_sync();
@@ -249,27 +270,31 @@ impl JavaCall {
 }
 
 fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
+    //Note: iter args by reverse, because of stack
     sig.args
         .iter()
-        .map(|t| match t {
-            ArgType::Int => {
-                let v = stack.pop_int();
-                OopDesc::new_int(v)
+        .rev()
+        .map(|t| {
+            match t {
+                ArgType::Int => {
+                    let v = stack.pop_int();
+                    OopDesc::new_int(v)
+                }
+                ArgType::Long => {
+                    let v = stack.pop_long();
+                    OopDesc::new_long(v)
+                }
+                ArgType::Float => {
+                    let v = stack.pop_float();
+                    OopDesc::new_float(v)
+                }
+                ArgType::Double => {
+                    let v = stack.pop_double();
+                    OopDesc::new_double(v)
+                }
+                ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
+                _ => unreachable!(),
             }
-            ArgType::Long => {
-                let v = stack.pop_long();
-                OopDesc::new_long(v)
-            }
-            ArgType::Float => {
-                let v = stack.pop_float();
-                OopDesc::new_float(v)
-            }
-            ArgType::Double => {
-                let v = stack.pop_double();
-                OopDesc::new_double(v)
-            }
-            ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
-            _ => unreachable!(),
         })
         .collect()
 }

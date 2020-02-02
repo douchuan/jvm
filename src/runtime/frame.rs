@@ -480,6 +480,12 @@ impl Frame {
 
         assert_eq!(fir.field.is_static(), is_static);
 
+        trace!(
+            "put_field_helper = {}, is_static = {}",
+            String::from_utf8_lossy(fir.field.get_id().as_slice()),
+            is_static
+        );
+
         let value_type = fir.field.value_type.clone();
 
         let v = match value_type {
@@ -522,8 +528,7 @@ impl Frame {
         }
     }
 
-    fn invoke_helper(&mut self, thread: &mut JavaThread, is_static: bool) {
-        let idx = self.read_u2();
+    fn invoke_helper(&mut self, thread: &mut JavaThread, is_static: bool, idx: usize) {
 
         let mir = { oop::method::get_method_ref(thread, &self.cp, idx) };
 
@@ -2180,19 +2185,30 @@ impl Frame {
     }
 
     pub fn invoke_virtual(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread, false);
+        let cp_idx = self.read_i2();
+        self.invoke_helper(thread, false, cp_idx as usize);
     }
 
     pub fn invoke_special(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread, false);
+        let cp_idx = self.read_i2();
+        self.invoke_helper(thread, false, cp_idx as usize);
     }
 
     pub fn invoke_static(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread, true);
+        let cp_idx = self.read_i2();
+        self.invoke_helper(thread, true, cp_idx as usize);
     }
 
     pub fn invoke_interface(&mut self, thread: &mut JavaThread) {
-        self.invoke_helper(thread, false);
+        let cp_idx = self.read_i2();
+        let _count = self.read_u1();
+        let zero = self.read_u1();
+
+        if zero != 0 {
+            warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
+        }
+
+        self.invoke_helper(thread, false, cp_idx as usize);
     }
 
     pub fn invoke_dynamic(&mut self) {
@@ -2201,8 +2217,9 @@ impl Frame {
     }
 
     pub fn new_(&mut self, thread: &mut JavaThread) {
+        let cp_idx = self.read_i2();
+
         let class = {
-            let cp_idx = self.read_i2();
             match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => {
                     {

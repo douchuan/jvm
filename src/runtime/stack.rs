@@ -147,10 +147,9 @@ impl Stack {
     }
 
     pub fn pop_ref(&mut self) -> OopRef {
-        if let Slot::Ref(v) = self.inner.pop().unwrap() {
-            return v;
-        } else {
-            panic!("Illegal type")
+        match self.inner.pop() {
+            Some(Slot::Ref(v)) => v,
+            t => panic!("Illegal type = {:?}", t),
         }
     }
 

@@ -17,7 +17,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_arraycopy(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    unimplemented!()
+    unimplemented!();
+//    Ok(None)
 }
 
 fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
