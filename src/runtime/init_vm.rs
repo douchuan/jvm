@@ -1,10 +1,13 @@
+use crate::classfile::consts::{
+    J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_INPUT_STREAM,
+    J_INTERNAL_ERROR, J_IOEXCEPTION, J_NPE, J_OBJECT, J_PRINT_STREAM, J_SECURITY_MANAGER,
+    J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP,
+};
 use crate::oop::{self, ClassRef, OopDesc};
-use crate::runtime::{self, JavaThread, require_class3};
-use crate::classfile::consts::{J_CLASS, J_OBJECT, J_STRING, J_CLONEABLE, J_SERIALIZABLE, J_NPE, J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS_NOT_FOUND, J_INTERNAL_ERROR, J_IOEXCEPTION, J_THREAD, J_THREAD_GROUP, J_INPUT_STREAM, J_PRINT_STREAM, J_SECURITY_MANAGER, J_SYSTEM};
+use crate::runtime::{self, require_class3, JavaThread};
 use std::sync::Arc;
 
 pub fn initialize_jvm(jt: &mut JavaThread) {
-
     initialize_vm_structs(jt);
 
     let thread_cls = do_init(J_THREAD, jt);
@@ -14,9 +17,21 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
-        cls.put_field_value2(init_thread_oop.clone(), J_THREAD, b"J", b"eetop", oop::OopDesc::new_long(0));
+        cls.put_field_value2(
+            init_thread_oop.clone(),
+            J_THREAD,
+            b"J",
+            b"eetop",
+            oop::OopDesc::new_long(0),
+        );
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
-        cls.put_field_value2(init_thread_oop.clone(), J_THREAD, b"I", b"priority", oop::OopDesc::new_int(5));
+        cls.put_field_value2(
+            init_thread_oop.clone(),
+            J_THREAD,
+            b"I",
+            b"priority",
+            oop::OopDesc::new_int(5),
+        );
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -29,7 +44,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         let cls = thread_group_cls.lock().unwrap();
         cls.get_this_class_method(b"()V", b"<init>").unwrap()
     };
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, vec![system_thread_group.clone()]);
+    let mut jc =
+        runtime::java_call::JavaCall::new_with_args(jt, ctor, vec![system_thread_group.clone()]);
     let mut stack = runtime::stack::Stack::new(0);
     jc.invoke(jt, &mut stack);
 
@@ -37,7 +53,13 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     {
         let mut cls = thread_cls.lock().unwrap();
-        cls.put_field_value2(init_thread_oop.clone(), J_THREAD, b"Ljava/lang/ThreadGroup;", b"group", main_thread_group.clone());
+        cls.put_field_value2(
+            init_thread_oop.clone(),
+            J_THREAD,
+            b"Ljava/lang/ThreadGroup;",
+            b"group",
+            main_thread_group.clone(),
+        );
     }
 
     let _ = do_init(J_INPUT_STREAM, jt);
@@ -48,13 +70,17 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     // use get_this_class_method() to get a private method
     let ctor = {
         let cls = thread_group_cls.lock().unwrap();
-        cls.get_this_class_method(b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
+        cls.get_this_class_method(
+            b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
+            b"<init>",
+        )
+        .unwrap()
     };
     let mut args = vec![
         main_thread_group.clone(),
         oop::consts::get_null(),
         system_thread_group,
-        OopDesc::new_str(Arc::new(Vec::from("main")))
+        OopDesc::new_str(Arc::new(Vec::from("main"))),
     ];
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);
@@ -62,31 +88,32 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     //todo: disable sun.security.util.Debug for the following operations
     //need to impl java_security_accesscontroller
-//    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
+    //    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
 
-    warn!("xxxxx thread ctor");
     let ctor = {
         let cls = thread_cls.lock().unwrap();
-        cls.get_this_class_method(b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>").unwrap()
+        cls.get_this_class_method(b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>")
+            .unwrap()
     };
     let args = vec![
         init_thread_oop,
         main_thread_group,
-        OopDesc::new_str(Arc::new(Vec::from("main")))
+        OopDesc::new_str(Arc::new(Vec::from("main"))),
     ];
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);
     jc.invoke(jt, &mut stack);
-    warn!("xxxxx 2");
 
     //todo: hackJavaClasses
 
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
         let cls = cls.lock().unwrap();
-        cls.get_static_method(b"()V", b"initializeSystemClass").unwrap()
+        cls.get_static_method(b"()V", b"initializeSystemClass")
+            .unwrap()
     };
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
+    let mut jc =
+        runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
     let mut stack = runtime::stack::Stack::new(0);
     jc.invoke(jt, &mut stack);
 
@@ -97,8 +124,8 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     //todo: java::lang::Class::initialize
     let class_obj = do_init(J_CLASS, jt);
     //todo:
-//        java::lang::Class::mirrorCoreAndDelayedClasses();
-//        java::lang::Class::mirrorDelayedArrayClasses();
+    //        java::lang::Class::mirrorCoreAndDelayedClasses();
+    //        java::lang::Class::mirrorDelayedArrayClasses();
     let _ = do_init(J_OBJECT, jt);
     let _ = do_init(J_STRING, jt);
     let _ = do_init(J_CLONEABLE, jt);

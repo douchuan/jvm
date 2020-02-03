@@ -1,28 +1,24 @@
-use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, OopRef, ValueType};
+use crate::runtime::require_class3;
 use crate::util;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use crate::runtime::require_class3;
 use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
-        new_fn(
-            "registerNatives",
-            "()V",
-            Box::new(jvm_register_natives),
-        ),
+        new_fn("registerNatives", "()V", Box::new(jvm_register_natives)),
         new_fn(
             "desiredAssertionStatus0",
             "(Ljava/lang/Class;)Z",
-            Box::new(jvm_desiredAssertionStatus0)
+            Box::new(jvm_desiredAssertionStatus0),
         ),
         new_fn(
             "getPrimitiveClass",
             "(Ljava/lang/String;)Ljava/lang/Class;",
-            Box::new(jvm_getPrimitiveClass)
-        )
+            Box::new(jvm_getPrimitiveClass),
+        ),
     ]
 }
 
@@ -31,7 +27,6 @@ lazy_static! {
         let hm = HashMap::new();
         Mutex::new(hm)
     };
-
     static ref SIGNATURE_DIC: HashMap<&'static str, &'static str> = {
         let dic: HashMap<&'static str, &'static str> = [
             ("byte", "B"),
@@ -43,7 +38,10 @@ lazy_static! {
             ("long", "J"),
             ("double", "D"),
             ("void", "V"),
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         dic
     };
@@ -53,24 +51,10 @@ pub fn init() {
     lazy_static::initialize(&PRIM_MIRROS);
 
     [
-        "I",
-        "Z",
-        "B",
-        "C",
-        "S",
-        "F",
-        "J",
-        "D",
-        "V",
-        "[I",
-        "[Z",
-        "[B",
-        "[C",
-        "[S",
-        "[F",
-        "[J",
-        "[D",
-    ].iter().for_each(|&t| {
+        "I", "Z", "B", "C", "S", "F", "J", "D", "V", "[I", "[Z", "[B", "[C", "[S", "[F", "[J", "[D",
+    ]
+    .iter()
+    .for_each(|&t| {
         let is_prim_ary = t.as_bytes()[0] == b'[';
         let vt = if is_prim_ary {
             ValueType::from(&t.as_bytes()[1])
@@ -86,7 +70,7 @@ pub fn init() {
                 Oop::Mirror(mirror) => {
                     mirror.target = Some(target);
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
 
@@ -111,13 +95,14 @@ fn jvm_getPrimitiveClass(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
         let v = v.lock().unwrap();
         match &v.v {
             Oop::Str(s) => s.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
     let s = std::str::from_utf8(v.as_slice()).unwrap();
     match SIGNATURE_DIC.get(s) {
         Some(&s) => {
+            //todo: avoid mutex lock, it's only read
             util::sync_call(&PRIM_MIRROS, |mirros| {
                 Ok(mirros.get(s).map(|it| it.clone()))
             })

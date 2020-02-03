@@ -122,7 +122,7 @@ impl OopDesc {
         let v = MirrorOopDesc {
             target: Some(target),
             filed_values,
-            prim_type: ValueType::OBJECT
+            prim_type: ValueType::OBJECT,
         };
 
         Self::new(Oop::Mirror(v))
@@ -132,7 +132,7 @@ impl OopDesc {
         let v = MirrorOopDesc {
             target: None,
             filed_values: vec![],
-            prim_type
+            prim_type,
         };
 
         Self::new(Oop::Mirror(v))
@@ -236,7 +236,7 @@ pub struct ArrayOopDesc {
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
     filed_values: Vec<OopRef>,
-    prim_type: ValueType
+    prim_type: ValueType,
 }
 
 impl InstOopDesc {
@@ -262,11 +262,11 @@ impl InstOopDesc {
                 ClassKind::Instance(cls_obj) => {
                     cls_obj.inst_fields.iter().for_each(|(_, fir)| {
                         match fir.field.value_type {
-                            ValueType::BYTE |
-                            ValueType::BOOLEAN |
-                            ValueType::CHAR |
-                            ValueType::SHORT |
-                            ValueType::INT => {
+                            ValueType::BYTE
+                            | ValueType::BOOLEAN
+                            | ValueType::CHAR
+                            | ValueType::SHORT
+                            | ValueType::INT => {
                                 field_values[fir.offset] = OopDesc::new_int(0);
                             }
                             ValueType::LONG => {
@@ -285,7 +285,7 @@ impl InstOopDesc {
                         }
                     });
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             }
 
             if cls.super_class.is_none() {

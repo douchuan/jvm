@@ -47,16 +47,15 @@ pub fn get_method_ref(
     //debug info
     match &mir {
         Ok(mir) => {
-            {
-                trace!(
-                    "method={}:{}, native={}, static={}",
-                    String::from_utf8_lossy(class.name.as_slice()),
-                    String::from_utf8_lossy(mir.method.get_id().as_slice()),
-                    mir.method.is_native(),
-                    mir.method.is_static());
-            }
-        },
-        Err(_) => ()
+            trace!(
+                "method={}:{}, native={}, static={}",
+                String::from_utf8_lossy(class.name.as_slice()),
+                String::from_utf8_lossy(mir.method.get_id().as_slice()),
+                mir.method.is_native(),
+                mir.method.is_static()
+            );
+        }
+        Err(_) => (),
     }
 
     mir

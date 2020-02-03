@@ -1,19 +1,21 @@
 use crate::classfile::constant_pool::{self, ConstantType};
 use crate::classfile::consts;
+use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
-use crate::runtime::{self, require_class, require_class2, require_class3, JavaThread, Local, Stack, JavaCall};
+use crate::runtime::{
+    self, require_class, require_class2, require_class3, JavaCall, JavaThread, Local, Stack,
+};
 use crate::util;
 use bytes::{BigEndian, Bytes};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::classfile::consts::J_STRING;
 
 pub struct Frame {
     class: ClassRef,
@@ -533,7 +535,6 @@ impl Frame {
     }
 
     fn invoke_helper(&mut self, thread: &mut JavaThread, is_static: bool, idx: usize) {
-
         let mir = { oop::method::get_method_ref(thread, &self.cp, idx) };
 
         match mir {
@@ -1360,7 +1361,7 @@ impl Frame {
     }
 
     pub fn dup2(&mut self) {
-       self.stack.dup2();
+        self.stack.dup2();
     }
 
     pub fn dup2_x1(&mut self) {
@@ -1384,7 +1385,7 @@ impl Frame {
     pub fn ladd(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
-//        trace!("ladd v1 = {}, v2 = {}, r = {}", v1, v2, v1 + v2);
+        //        trace!("ladd v1 = {}, v2 = {}, r = {}", v1, v2, v1 + v2);
         self.stack.push_long(v1 + v2);
     }
 
@@ -2285,7 +2286,7 @@ impl Frame {
 
                     require_class3(None, b"[J").unwrap()
                 }
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
             let obj = OopDesc::new_ary2(ary_cls, ary);
@@ -2413,15 +2414,13 @@ impl Frame {
                 if r {
                     self.stack.push_ref(rf_back);
                 } else {
-                    let s_name = {
-                        obj_cls.lock().unwrap().name.clone()
-                    };
-                    let t_name = {
-                        target_cls.lock().unwrap().name.clone()
-                    };
+                    let s_name = { obj_cls.lock().unwrap().name.clone() };
+                    let t_name = { target_cls.lock().unwrap().name.clone() };
 
-                    let s_name = String::from_utf8_lossy(s_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
-                    let t_name = String::from_utf8_lossy(t_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let s_name = String::from_utf8_lossy(s_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
                     thread.throw_ext_with_msg(consts::J_CCE, false, msg);
                     self.handle_exception(thread);
@@ -2433,21 +2432,19 @@ impl Frame {
                 if r {
                     self.stack.push_ref(rf_back);
                 } else {
-                    let s_name = {
-                        obj_cls.lock().unwrap().name.clone()
-                    };
-                    let t_name = {
-                        target_cls.lock().unwrap().name.clone()
-                    };
+                    let s_name = { obj_cls.lock().unwrap().name.clone() };
+                    let t_name = { target_cls.lock().unwrap().name.clone() };
 
-                    let s_name = String::from_utf8_lossy(s_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
-                    let t_name = String::from_utf8_lossy(t_name.as_slice()).replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let s_name = String::from_utf8_lossy(s_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
                     thread.throw_ext_with_msg(consts::J_CCE, false, msg);
                     self.handle_exception(thread);
                 }
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 

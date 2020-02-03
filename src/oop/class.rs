@@ -343,13 +343,20 @@ impl Class {
         }
     }
 
-    pub fn put_field_value2(&self, mut receiver: OopRef, cls: &[u8], desc: &[u8], name: &[u8], v: OopRef) {
+    pub fn put_field_value2(
+        &self,
+        mut receiver: OopRef,
+        cls: &[u8],
+        desc: &[u8],
+        name: &[u8],
+        v: OopRef,
+    ) {
         let id = Arc::new(vec![cls, desc, name].join(PATH_DELIMITER));
         let fir = self.get_field_id(id, false);
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.field_values[fir.offset] = v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -394,7 +401,11 @@ impl Class {
                     Some(fir) => cls_obj.static_field_values[fir.offset] = v,
                     None => {
                         let super_cls = self.super_class.clone();
-                        super_cls.unwrap().lock().unwrap().put_static_field_value2(cls, desc, name, v);
+                        super_cls
+                            .unwrap()
+                            .lock()
+                            .unwrap()
+                            .put_static_field_value2(cls, desc, name, v);
                     }
                 }
             }

@@ -1,24 +1,16 @@
-use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::OopRef;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
-        new_fn(
-            "registerNatives",
-            "()V",
-            Box::new(jvm_register_natives),
-        ),
+        new_fn("registerNatives", "()V", Box::new(jvm_register_natives)),
         new_fn(
             "currentThread",
             "()Ljava/lang/Thread;",
-            Box::new(jvm_currentThread)
+            Box::new(jvm_currentThread),
         ),
-        new_fn(
-            "setPriority0",
-            "(I)V",
-            Box::new(jvm_setPriority0)
-        )
+        new_fn("setPriority0", "(I)V", Box::new(jvm_setPriority0)),
     ]
 }
 

@@ -1,4 +1,4 @@
-use crate::native::{new_fn, JNIEnv, JNIResult, JNINativeMethod};
+use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, OopRef};
 use std::sync::{Arc, Mutex};
 
@@ -13,7 +13,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getStackAccessControlContext",
             "()Ljava/security/AccessControlContext;",
             Box::new(jvm_getStackAccessControlContext),
-        )
+        ),
     ]
 }
 
@@ -24,4 +24,3 @@ fn jvm_doPrivileged(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
 fn jvm_getStackAccessControlContext(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }
-

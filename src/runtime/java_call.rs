@@ -19,12 +19,12 @@ impl JavaCall {
         Self {
             mir,
             args,
-            return_type
+            return_type,
         }
     }
 
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
-//        let class_name = { mir.method.class.lock().unwrap().name.clone() };
+        //        let class_name = { mir.method.class.lock().unwrap().name.clone() };
 
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
@@ -143,7 +143,7 @@ impl JavaCall {
 
         match v {
             Ok(v) => self.set_return(jt, stack, v),
-            Err(exception) => unimplemented!()
+            Err(exception) => unimplemented!(),
         }
 
         self.fin_sync();
@@ -271,27 +271,25 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
     sig.args
         .iter()
         .rev()
-        .map(|t| {
-            match t {
-                ArgType::Boolean | ArgType::Int => {
-                    let v = stack.pop_int();
-                    OopDesc::new_int(v)
-                }
-                ArgType::Long => {
-                    let v = stack.pop_long();
-                    OopDesc::new_long(v)
-                }
-                ArgType::Float => {
-                    let v = stack.pop_float();
-                    OopDesc::new_float(v)
-                }
-                ArgType::Double => {
-                    let v = stack.pop_double();
-                    OopDesc::new_double(v)
-                }
-                ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
-                t => unreachable!("t = {:?}", t),
+        .map(|t| match t {
+            ArgType::Boolean | ArgType::Int => {
+                let v = stack.pop_int();
+                OopDesc::new_int(v)
             }
+            ArgType::Long => {
+                let v = stack.pop_long();
+                OopDesc::new_long(v)
+            }
+            ArgType::Float => {
+                let v = stack.pop_float();
+                OopDesc::new_float(v)
+            }
+            ArgType::Double => {
+                let v = stack.pop_double();
+                OopDesc::new_double(v)
+            }
+            ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
+            t => unreachable!("t = {:?}", t),
         })
         .collect()
 }

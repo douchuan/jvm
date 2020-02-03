@@ -141,13 +141,14 @@ impl Stack {
                     Slot::Const0 => 0.0,
                     Slot::Const1 => 1.0,
                     Slot::Primitive(v) => {
-                        let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                        let v =
+                            u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         f64::from_bits(v)
                     }
                     _ => panic!("Illegal type"),
                 }
             }
-            None => panic!("Empty Stack!")
+            None => panic!("Empty Stack!"),
         }
     }
 
@@ -164,7 +165,7 @@ impl Stack {
                     _ => panic!("Illegal type"),
                 }
             }
-            _ => panic!("Empty Stack!")
+            _ => panic!("Empty Stack!"),
         }
     }
 
@@ -270,7 +271,7 @@ impl Stack {
     fn pop_nop(&mut self) {
         match self.inner.pop() {
             Some(Slot::Nop) => (),
-            _ => panic!("Should be Nop!")
+            _ => panic!("Should be Nop!"),
         }
     }
 }
