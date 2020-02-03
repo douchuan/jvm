@@ -1,5 +1,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, OopRef};
+use crate::runtime::JavaThread;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -17,10 +18,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doPrivileged(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     unimplemented!()
 }
 
-fn jvm_getStackAccessControlContext(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackAccessControlContext(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }

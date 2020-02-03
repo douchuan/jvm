@@ -14,7 +14,7 @@ mod java_security_accesscontroller;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
-pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
+pub type NativeMethodPtr = Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
@@ -92,7 +92,7 @@ pub fn init() {
 }
 
 impl JNINativeMethodStruct {
-    pub fn invoke(&self, jni: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-        (self.fnptr)(jni, args)
+    pub fn invoke(&self, jt: &mut JavaThread, jni: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+        (self.fnptr)(jt, jni, args)
     }
 }

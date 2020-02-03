@@ -1,5 +1,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::OopRef;
+use crate::runtime::JavaThread;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -14,16 +15,16 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_currentThread(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_currentThread(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let r = env.lock().unwrap().java_thread_obj.clone();
     Ok(r)
 }
 
-fn jvm_setPriority0(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setPriority0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     //todo: set native thread's priority
     Ok(None)
 }

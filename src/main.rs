@@ -28,6 +28,7 @@ todo list
   x. 如何不用事先初始化vector，就可以对任意位置赋值?
   x. 官方的测试用例
   x. build thread system
+  x. class mirror
 */
 
 fn init_vm() {

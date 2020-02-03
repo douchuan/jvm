@@ -136,7 +136,7 @@ impl JavaCall {
             Some(method) => {
                 let class = self.mir.method.class.clone();
                 let env = native::new_jni_env(jt, class);
-                method.invoke(env, self.args.clone())
+                method.invoke(jt, env, self.args.clone())
             }
             None => unreachable!("NotFound native method"),
         };

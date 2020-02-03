@@ -1,6 +1,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, OopRef, ValueType};
-use crate::runtime::require_class3;
+use crate::runtime::{require_class3, JavaThread};
 use crate::util;
 use std::collections::HashMap;
 use std::ops::DerefMut;
@@ -80,15 +80,15 @@ pub fn init() {
     });
 }
 
-fn jvm_register_natives(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_desiredAssertionStatus0(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_desiredAssertionStatus0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(Some(OopDesc::new_int(0)))
 }
 
-fn jvm_getPrimitiveClass(env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let v = {
