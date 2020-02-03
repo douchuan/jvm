@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 mod java_lang_class;
+mod java_lang_double;
+mod java_lang_float;
 mod java_lang_object;
 mod java_lang_system;
 mod java_lang_thread;
@@ -64,6 +66,8 @@ pub fn init() {
 
     let natives = vec![
         ("java/lang/Class", java_lang_class::get_native_methods()),
+        ("java/lang/Double", java_lang_double::get_native_methods()),
+        ("java/lang/Float", java_lang_float::get_native_methods()),
         ("java/lang/Object", java_lang_object::get_native_methods()),
         ("java/lang/System", java_lang_system::get_native_methods()),
         ("java/lang/Thread", java_lang_thread::get_native_methods()),

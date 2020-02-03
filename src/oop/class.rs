@@ -364,7 +364,14 @@ impl Class {
         let rf = receiver.lock().unwrap();
         match &rf.v {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
-            Oop::Mirror(mirror) => mirror.filed_values[fid.offset].clone(),
+            Oop::Mirror(mirror) => {
+                //fixme: mirror field_values not inited for Class
+                trace!("mirror target.is_none = {}", mirror.target.is_none());
+                match mirror.field_values.get(fid.offset) {
+                    Some(v) => v.clone(),
+                    _ => oop_consts::get_null(),
+                }
+            }
             Oop::Str(s) => OopDesc::new_str(s.clone()),
             _ => {
                 //                trace!("get_field_value = {:?}", r);

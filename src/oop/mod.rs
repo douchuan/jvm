@@ -114,14 +114,14 @@ impl OopDesc {
     }
 
     pub fn new_mirror(target: ClassRef, n: usize) -> OopRef {
-        let mut filed_values = Vec::with_capacity(n);
+        let mut field_values= Vec::with_capacity(n);
         for _ in 0..n {
-            filed_values.push(consts::get_null());
+            field_values.push(consts::get_null());
         }
 
         let v = MirrorOopDesc {
             target: Some(target),
-            filed_values,
+            field_values,
             prim_type: ValueType::OBJECT,
         };
 
@@ -131,7 +131,7 @@ impl OopDesc {
     pub fn new_prim_mirror(prim_type: ValueType) -> OopRef {
         let v = MirrorOopDesc {
             target: None,
-            filed_values: vec![],
+            field_values: vec![],
             prim_type,
         };
 
@@ -235,7 +235,7 @@ pub struct ArrayOopDesc {
 #[derive(Debug, Clone)]
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
-    filed_values: Vec<OopRef>,
+    field_values: Vec<OopRef>,
     prim_type: ValueType,
 }
 
