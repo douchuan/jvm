@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use std::sync::{Arc, Condvar, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::classfile::{types::*, ClassFile};
 use crate::runtime::ClassLoader;
@@ -70,6 +71,8 @@ pub struct OopDesc {
     pub v: Oop,
     cond: Condvar,
     monitor: Mutex<usize>,
+
+    pub hash_code: i32,
 }
 
 impl OopDesc {
@@ -143,10 +146,14 @@ impl OopDesc {
     }
 
     fn new(v: Oop) -> OopRef {
+        //todo: how calc hashcode ?
+        let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let hash_code = start.as_secs() as i32;
         Arc::new(Mutex::new(Box::new(Self {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
+            hash_code
         })))
     }
 }

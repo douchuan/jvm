@@ -23,12 +23,14 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
-  x. java/lang/Class:Z:useCaches
   x. reimpl instruction by macro
   x. 如何不用事先初始化vector，就可以对任意位置赋值?
   x. 官方的测试用例
   x. build thread system
+    去掉native 函数的jt参数
   x. class mirror
+    是底层class在上层的一个实例吗？为了与Oop统一管理
+    classmirror field_value 个数和类型是什么？
 */
 
 fn init_vm() {

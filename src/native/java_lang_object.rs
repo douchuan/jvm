@@ -1,16 +1,34 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::OopRef;
+use crate::oop::{OopRef, OopDesc};
 use crate::runtime::JavaThread;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![new_fn(
+    vec![
+        new_fn(
         "registerNatives",
         "()V",
-        Box::new(jvm_register_natives),
-    )]
+        Box::new(jvm_register_natives)),
+
+        new_fn(
+            "hashCode",
+            "()I",
+            Box::new(jvm_hashCode)),
+    ]
 }
 
 fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
+
+fn jvm_hashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    match args.get(0) {
+        Some(v) => {
+            let v = v.lock().unwrap().hash_code;
+            info!("hashcode = {}", v);
+            Ok(Some(OopDesc::new_int(v)))
+        }
+        None => unreachable!()
+    }
+}
+

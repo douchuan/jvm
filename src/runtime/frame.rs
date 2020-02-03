@@ -1056,8 +1056,9 @@ impl Frame {
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
-                if (pos < 0) || (pos as usize >= ary.get_length()) {
+                if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
+                    warn!("{}", msg);
                     thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
                     self.handle_exception(thread);
                 } else {
