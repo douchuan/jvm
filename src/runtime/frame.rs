@@ -700,35 +700,35 @@ impl Frame {
     }
 
     pub fn iconst_0(&mut self) {
-        self.stack.push_const0();
+        self.stack.push_const0(false);
     }
 
     pub fn lconst_0(&mut self) {
-        self.stack.push_const0();
+        self.stack.push_const0(true);
     }
 
     pub fn fconst_0(&mut self) {
-        self.stack.push_const0();
+        self.stack.push_const0(false);
     }
 
     pub fn dconst_0(&mut self) {
-        self.stack.push_const0();
+        self.stack.push_const0(true);
     }
 
     pub fn iconst_1(&mut self) {
-        self.stack.push_const1();
+        self.stack.push_const1(false);
     }
 
     pub fn lconst_1(&mut self) {
-        self.stack.push_const1();
+        self.stack.push_const1(true);
     }
 
     pub fn fconst_1(&mut self) {
-        self.stack.push_const1();
+        self.stack.push_const1(false);
     }
 
     pub fn dconst_1(&mut self) {
-        self.stack.push_const1();
+        self.stack.push_const1(true);
     }
 
     pub fn iconst_2(&mut self) {
@@ -1384,6 +1384,7 @@ impl Frame {
     pub fn ladd(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
+//        trace!("ladd v1 = {}, v2 = {}, r = {}", v1, v2, v1 + v2);
         self.stack.push_long(v1 + v2);
     }
 
@@ -2470,9 +2471,9 @@ impl Frame {
         };
 
         if result {
-            self.stack.push_const1();
+            self.stack.push_const1(false);
         } else {
-            self.stack.push_const0();
+            self.stack.push_const0(false);
         }
     }
 

@@ -39,19 +39,23 @@ impl Stack {
 
     pub fn push_double(&mut self, d: f64) {
         let v = d.to_bits().to_be_bytes();
+        self.push_nop();
         self.push_primitive3(v);
     }
 
     pub fn push_double2(&mut self, v: [u8; 8]) {
+        self.push_nop();
         self.push_primitive3(v);
     }
 
     pub fn push_long(&mut self, l: i64) {
         let v = l.to_be_bytes();
+        self.push_nop();
         self.push_primitive3(v);
     }
 
     pub fn push_long2(&mut self, v: [u8; 8]) {
+        self.push_nop();
         self.push_primitive3(v);
     }
 
@@ -63,11 +67,17 @@ impl Stack {
         self.inner.push(Slot::ConstM1);
     }
 
-    pub fn push_const0(&mut self) {
+    pub fn push_const0(&mut self, with_nop: bool) {
+        if with_nop {
+            self.push_nop();
+        }
         self.inner.push(Slot::Const0);
     }
 
-    pub fn push_const1(&mut self) {
+    pub fn push_const1(&mut self, with_nop: bool) {
+        if with_nop {
+            self.push_nop();
+        }
         self.inner.push(Slot::Const1);
     }
 
@@ -124,25 +134,37 @@ impl Stack {
     }
 
     pub fn pop_double(&mut self) -> f64 {
-        match self.inner.pop().unwrap() {
-            Slot::Const0 => 0.0,
-            Slot::Const1 => 1.0,
-            Slot::Primitive(v) => {
-                let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                f64::from_bits(v)
+        match self.inner.pop() {
+            Some(v) => {
+                self.pop_nop();
+                match v {
+                    Slot::Const0 => 0.0,
+                    Slot::Const1 => 1.0,
+                    Slot::Primitive(v) => {
+                        let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                        f64::from_bits(v)
+                    }
+                    _ => panic!("Illegal type"),
+                }
             }
-            _ => panic!("Illegal type"),
+            None => panic!("Empty Stack!")
         }
     }
 
     pub fn pop_long(&mut self) -> i64 {
-        match self.inner.pop().unwrap() {
-            Slot::Const0 => 0,
-            Slot::Const1 => 1,
-            Slot::Primitive(v) => {
-                i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]])
+        match self.inner.pop() {
+            Some(v) => {
+                self.pop_nop();
+                match v {
+                    Slot::Const0 => 0,
+                    Slot::Const1 => 1,
+                    Slot::Primitive(v) => {
+                        i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]])
+                    }
+                    _ => panic!("Illegal type"),
+                }
             }
-            _ => panic!("Illegal type"),
+            _ => panic!("Empty Stack!")
         }
     }
 
@@ -239,5 +261,16 @@ impl Stack {
     fn push_primitive3(&mut self, v: [u8; 8]) {
         let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
         self.push_primitive(v);
+    }
+
+    fn push_nop(&mut self) {
+        self.inner.push(Slot::Nop);
+    }
+
+    fn pop_nop(&mut self) {
+        match self.inner.pop() {
+            Some(Slot::Nop) => (),
+            _ => panic!("Should be Nop!")
+        }
     }
 }

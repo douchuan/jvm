@@ -12,4 +12,5 @@ pub enum Slot {
     Const5,
     Primitive(Vec<u8>),
     Ref(OopRef),
+    Nop, //for long, double
 }

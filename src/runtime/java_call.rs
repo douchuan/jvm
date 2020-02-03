@@ -138,7 +138,7 @@ impl JavaCall {
                 let env = native::new_jni_env(jt, class);
                 method.invoke(env, self.args.clone())
             }
-            None => unreachable!(),
+            None => unreachable!("NotFound native method"),
         };
 
         match v {
