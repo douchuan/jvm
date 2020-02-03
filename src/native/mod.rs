@@ -1,8 +1,8 @@
 use crate::oop::{ClassRef, OopRef};
 use crate::runtime::{JavaThread};
 use crate::util;
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 mod java_lang_class;
 mod java_lang_object;
@@ -81,6 +81,8 @@ pub fn init() {
             });
         });
     });
+
+    java_lang_class::init();
 }
 
 impl JNINativeMethodStruct {

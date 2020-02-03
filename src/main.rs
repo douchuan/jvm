@@ -32,8 +32,8 @@ todo list
 
 fn init_vm() {
     oop::init();
-    native::init();
     runtime::init();
+    native::init();
 }
 
 fn main() {

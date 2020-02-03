@@ -21,7 +21,7 @@ pub fn put(key: &[u8], klass: ClassRef) {
 
 pub fn find(key: &[u8]) -> Option<ClassRef> {
     let key = std::str::from_utf8(key).unwrap();
-    util::sync_call_ctx(&SYS_DIC, |dic| dic.get(key).map(|it| it.clone()))
+    util::sync_call(&SYS_DIC, |dic| dic.get(key).map(|it| it.clone()))
 }
 
 pub fn init() {

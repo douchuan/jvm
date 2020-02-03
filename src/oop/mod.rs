@@ -113,16 +113,28 @@ impl OopDesc {
         Self::new(Oop::Array(v))
     }
 
-    pub fn new_mirror(cls_obj: ClassRef, n: usize) -> OopRef {
+    pub fn new_mirror(target: ClassRef, n: usize) -> OopRef {
         let mut filed_values = Vec::with_capacity(n);
         for _ in 0..n {
             filed_values.push(consts::get_null());
         }
 
         let v = MirrorOopDesc {
-            class: cls_obj,
+            target: Some(target),
             filed_values,
+            prim_type: ValueType::OBJECT
         };
+
+        Self::new(Oop::Mirror(v))
+    }
+
+    pub fn new_prim_mirror(prim_type: ValueType) -> OopRef {
+        let v = MirrorOopDesc {
+            target: None,
+            filed_values: vec![],
+            prim_type
+        };
+
         Self::new(Oop::Mirror(v))
     }
 
@@ -167,12 +179,9 @@ impl From<&u8> for ValueType {
             b'L' => ValueType::OBJECT,
             b'[' => ValueType::ARRAY,
             t => {
-                /*
-                let mut v = Vec::new();
-                v.push(*t);
-                trace!("ValueType = {}", String::from_utf8_lossy(v.as_slice()));
-                */
-                unreachable!()
+                let s = [*t];
+                let s = String::from_utf8_lossy(&s);
+                unreachable!("Unknown ValueType = {}", s)
             }
         }
     }
@@ -225,8 +234,9 @@ pub struct ArrayOopDesc {
 
 #[derive(Debug, Clone)]
 pub struct MirrorOopDesc {
-    class: ClassRef,
+    pub target: Option<ClassRef>,
     filed_values: Vec<OopRef>,
+    prim_type: ValueType
 }
 
 impl InstOopDesc {
@@ -320,6 +330,12 @@ impl ArrayOopDesc {
 
     pub fn set_elm_at(&mut self, index: usize, elm: OopRef) {
         self.elements[index] = elm;
+    }
+}
+
+impl MirrorOopDesc {
+    pub fn is_prim_mirror(&self) -> bool {
+        self.target.is_none()
     }
 }
 
