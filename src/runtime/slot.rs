@@ -1,7 +1,7 @@
 use crate::oop::OopRef;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Slot {
     ConstM1,
     Const0,

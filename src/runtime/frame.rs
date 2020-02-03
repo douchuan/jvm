@@ -77,12 +77,16 @@ impl Frame {
 
 impl Frame {
     pub fn exec_interp(&mut self, thread: &mut JavaThread) {
+        //for debug
+        let method = self.mir.method.get_id();
+        let method = String::from_utf8_lossy(method.as_slice());
+
         loop {
             let code = self.read_opcode();
             match code {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
-                    trace!("exec_interp op_code = {:?} ({})", op_code, *code);
+                    trace!("exec_interp op_code = {:?} ({}) {}", op_code, *code, method);
                     match op_code {
                         OpCode::ireturn => {
                             self.ireturn();
@@ -1344,67 +1348,31 @@ impl Frame {
     }
 
     pub fn dup(&mut self) {
-        let v = self.stack.pop_ref();
-        self.stack.push_ref(v.clone());
-        self.stack.push_ref(v);
+        self.stack.dup();
     }
 
     pub fn dup_x1(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        self.stack.push_ref(v1.clone());
-        self.stack.push_ref(v2);
-        self.stack.push_ref(v1);
+        self.stack.dup_x1();
     }
 
     pub fn dup_x2(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        let v3 = self.stack.pop_ref();
-        self.stack.push_ref(v1.clone());
-        self.stack.push_ref(v3);
-        self.stack.push_ref(v2);
-        self.stack.push_ref(v1);
+        self.stack.dup_x2();
     }
 
     pub fn dup2(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        self.stack.push_ref(v2.clone());
-        self.stack.push_ref(v1.clone());
-        self.stack.push_ref(v2);
-        self.stack.push_ref(v1);
+       self.stack.dup2();
     }
 
     pub fn dup2_x1(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        let v3 = self.stack.pop_ref();
-        self.stack.push_ref(v2.clone());
-        self.stack.push_ref(v1.clone());
-        self.stack.push_ref(v3);
-        self.stack.push_ref(v2);
-        self.stack.push_ref(v1);
+        self.stack.dup2_x1();
     }
 
     pub fn dup2_x2(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        let v3 = self.stack.pop_ref();
-        let v4 = self.stack.pop_ref();
-        self.stack.push_ref(v2.clone());
-        self.stack.push_ref(v1.clone());
-        self.stack.push_ref(v4);
-        self.stack.push_ref(v3);
-        self.stack.push_ref(v2);
-        self.stack.push_ref(v1);
+        self.stack.dup2_x2();
     }
 
     pub fn swap(&mut self) {
-        let v1 = self.stack.pop_ref();
-        let v2 = self.stack.pop_ref();
-        self.stack.push_ref(v1);
-        self.stack.push_ref(v2);
+        self.stack.swap();
     }
 
     pub fn iadd(&mut self) {

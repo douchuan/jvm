@@ -49,12 +49,11 @@ pub fn get_method_ref(
         Ok(mir) => {
             {
                 trace!(
-                    "get_method_ref class ={}, name={}, typ={}, native={}",
+                    "method={}:{}, native={}, static={}",
                     String::from_utf8_lossy(class.name.as_slice()),
-                    String::from_utf8_lossy(name.as_slice()),
-                    String::from_utf8_lossy(typ.as_slice()),
-                    mir.method.is_native()
-                );
+                    String::from_utf8_lossy(mir.method.get_id().as_slice()),
+                    mir.method.is_native(),
+                    mir.method.is_static());
             }
         },
         Err(_) => ()

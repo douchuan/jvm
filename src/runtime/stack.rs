@@ -160,6 +160,70 @@ impl Stack {
     pub fn clear(&mut self) {
         self.inner.clear();
     }
+
+    pub fn dup(&mut self) {
+        let v = self.inner.pop().unwrap();
+        self.inner.push(v.clone());
+        self.inner.push(v.clone());
+    }
+
+    pub fn dup_x1(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        self.inner.push(v1.clone());
+        self.inner.push(v2);
+        self.inner.push(v1);
+    }
+
+    pub fn dup_x2(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        let v3 = self.inner.pop().unwrap();
+        self.inner.push(v1.clone());
+        self.inner.push(v3);
+        self.inner.push(v2);
+        self.inner.push(v1);
+    }
+
+    pub fn dup2(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        self.inner.push(v2.clone());
+        self.inner.push(v1.clone());
+        self.inner.push(v2);
+        self.inner.push(v1);
+    }
+
+    pub fn dup2_x1(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        let v3 = self.inner.pop().unwrap();
+        self.inner.push(v2.clone());
+        self.inner.push(v1.clone());
+        self.inner.push(v3);
+        self.inner.push(v2);
+        self.inner.push(v1);
+    }
+
+    pub fn dup2_x2(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        let v3 = self.inner.pop().unwrap();
+        let v4 = self.inner.pop().unwrap();
+        self.inner.push(v2.clone());
+        self.inner.push(v1.clone());
+        self.inner.push(v4);
+        self.inner.push(v3);
+        self.inner.push(v2);
+        self.inner.push(v1);
+    }
+
+    pub fn swap(&mut self) {
+        let v1 = self.inner.pop().unwrap();
+        let v2 = self.inner.pop().unwrap();
+        self.inner.push(v1);
+        self.inner.push(v2);
+    }
 }
 
 impl Stack {

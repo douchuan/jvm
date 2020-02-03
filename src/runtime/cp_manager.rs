@@ -178,8 +178,8 @@ mod tests {
     #[test]
     fn t_search_cls2() {
         let mut cpm = super::ClassPathManager::new();
-        cpm.add_class_paths("test/:test/classloader/class_path_test.jar");
-        assert!(cpm.search_class("Sample").is_ok());
+        cpm.add_class_paths("test/classloader/class_path_test.jar");
+        assert!(cpm.search_class("Sample").is_err());
         assert!(cpm.search_class("Foo").is_ok());
     }
 }
