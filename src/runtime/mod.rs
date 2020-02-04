@@ -6,6 +6,7 @@ mod cp_manager;
 mod execution;
 mod frame;
 mod init_vm;
+mod interpreter;
 mod java_call;
 mod local;
 mod slot;
@@ -27,6 +28,8 @@ pub use slot::Slot;
 pub use stack::Stack;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
+
+def_sync_ref!(FrameRef, Frame);
 
 pub fn init() {
     sys_dic::init();

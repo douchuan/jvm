@@ -2,7 +2,7 @@ use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
 use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
-use crate::runtime::{self, thread, Frame, JavaThread, Stack};
+use crate::runtime::{self, thread, frame::Frame, FrameRef, JavaThread, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -99,7 +99,6 @@ impl JavaCall {
 
         match self.prepare_frame(jt) {
             Ok(frame) => {
-                let mut frame = Arc::new(Mutex::new(frame));
                 jt.frames.push(frame.clone());
 
                 //exec interp
@@ -177,7 +176,7 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<Frame, ()> {
+    fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, ()> {
         if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
             thread.throw_ext(consts::J_SOE, false);
             return Err(());
@@ -217,7 +216,8 @@ impl JavaCall {
             slot_pos += step;
         });
 
-        return Ok(frame);
+        let frame_ref = new_sync_ref!(frame);
+        return Ok(frame_ref);
     }
 
     fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<OopRef>) {

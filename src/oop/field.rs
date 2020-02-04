@@ -25,14 +25,12 @@ pub fn get_field_ref(
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        Arc::new(
-            vec![
-                class.name.deref().as_slice(),
-                typ.deref().as_slice(),
-                name.deref().as_slice(),
-            ]
-            .join(PATH_DELIMITER),
-        )
+        let id = vec![
+            class.name.deref().as_slice(),
+            typ.deref().as_slice(),
+            name.deref().as_slice(),
+        ].join(PATH_DELIMITER);
+        new_ref!(id)
     };
 
     //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
@@ -70,7 +68,7 @@ impl Field {
         let value_type = desc.first().unwrap().into();
         let id = vec![class_name, desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
-        let id = Arc::new(Vec::from(id));
+        let id = new_ref!(id);
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;

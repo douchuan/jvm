@@ -9,12 +9,13 @@ extern crate env_logger;
 use clap::{App, Arg};
 
 #[macro_use]
+mod util;
+
 mod oop;
 mod classfile;
 mod native;
 mod parser;
 mod runtime;
-mod util;
 
 use crate::runtime::thread::JavaMainThread;
 

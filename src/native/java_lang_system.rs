@@ -50,7 +50,11 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     ];
 
     let props: Vec<(BytesRef, BytesRef)> = props.iter().map(|(k, v)| {
-        (Arc::new(Vec::from(*k)), Arc::new(Vec::from(*v)))
+        let k = Vec::from(*k);
+        let k = new_ref!(k);
+        let v = Vec::from(*v);
+        let v = new_ref!(v);
+        (k, v)
     }).collect();
 
     match args.get(0) {

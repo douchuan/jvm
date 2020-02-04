@@ -97,7 +97,7 @@ impl Stack {
         self.inner.push(Slot::Const5);
     }
 
-    pub fn push_const_utf8(&mut self, v: Arc<Vec<u8>>) {
+    pub fn push_const_utf8(&mut self, v: BytesRef) {
         let v = OopDesc::new_str(v);
         self.inner.push(Slot::Ref(v));
     }

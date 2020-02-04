@@ -1,3 +1,6 @@
+#[macro_use]
+pub mod macros;
+
 mod file;
 mod net;
 mod sync;

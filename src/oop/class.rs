@@ -294,17 +294,17 @@ impl Class {
     }
 
     pub fn get_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        let id = new_id_ref(desc, name);
         self.get_class_method_inner(id, true)
     }
 
     pub fn get_this_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        let id = new_id_ref(desc, name);
         self.get_class_method_inner(id, false)
     }
 
     pub fn get_virtual_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = Arc::new(vec![desc, name].join(PATH_DELIMITER));
+        let id = new_id_ref(desc, name);
         self.get_virtual_method_inner(id)
     }
 
@@ -351,7 +351,7 @@ impl Class {
         name: &[u8],
         v: OopRef,
     ) {
-        let id = Arc::new(vec![cls, desc, name].join(PATH_DELIMITER));
+        let id = new_id_ref2(cls, desc, name);
         let fir = self.get_field_id(id, false);
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
@@ -400,7 +400,7 @@ impl Class {
     }
 
     pub fn put_static_field_value2(&mut self, cls: &[u8], desc: &[u8], name: &[u8], v: OopRef) {
-        let id = Arc::new(vec![cls, desc, name].join(PATH_DELIMITER));
+        let id = new_id_ref2(cls, desc, name);
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
                 let fid = cls_obj.static_fields.get(&id);
@@ -499,7 +499,8 @@ impl Class {
     }
 
     pub fn new_object_ary(class_loader: ClassLoader, component: ClassRef, elm_name: &[u8]) -> Self {
-        let name = Arc::new(Vec::from(elm_name));
+        let name = Vec::from(elm_name);
+        let name = new_ref!(name);
 
         let ary_cls_obj = ArrayClassObject {
             value_type: ValueType::ARRAY,
@@ -530,7 +531,7 @@ impl Class {
         name.extend_from_slice(value_type.into());
 
         Self {
-            name: Arc::new(name),
+            name: new_ref!(name),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
@@ -576,7 +577,7 @@ impl Class {
         };
 
         Self {
-            name: Arc::new(name2),
+            name: new_ref!(name2),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
@@ -770,4 +771,14 @@ impl Class {
             None => return Err(()),
         }
     }
+}
+
+fn new_id_ref(desc: &[u8], name: &[u8]) -> BytesRef {
+    let id = vec![desc, name].join(PATH_DELIMITER);
+    new_ref!(id)
+}
+
+fn new_id_ref2(cls: &[u8], desc: &[u8], name: &[u8]) -> BytesRef {
+    let id = vec![cls, desc, name].join(PATH_DELIMITER);
+    new_ref!(id)
 }

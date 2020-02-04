@@ -219,7 +219,7 @@ impl ClassFileParser for Parser {
             }
         }
 
-        Arc::new(v)
+        new_ref!(v)
     }
 
     fn get_acc_flags(&mut self) -> U2 {
@@ -372,7 +372,7 @@ impl ConstantPoolParser for Parser {
     fn get_constant_utf8(&mut self) -> ConstantType {
         let length = self.get_u2();
         let bytes = self.get_u1s(length as usize);
-        let bytes = Arc::new(bytes);
+        let bytes = new_ref!(bytes);
         ConstantType::Utf8 { length, bytes }
     }
 

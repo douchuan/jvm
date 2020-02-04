@@ -75,7 +75,7 @@ impl ClassLoader {
                         match self.load_class(elm) {
                             Some(elm) => {
                                 let class = Class::new_object_ary(*self, elm, name);
-                                Some(new_ref!(class))
+                                Some(new_sync_ref!(class))
                             }
                             None => None,
                         }
@@ -85,7 +85,7 @@ impl ClassLoader {
                         //B, Z...
                         let elm = t.into();
                         let class = Class::new_prime_ary(*self, elm);
-                        Some(new_ref!(class))
+                        Some(new_sync_ref!(class))
                     }
 
                     None => unreachable!(),
@@ -98,7 +98,7 @@ impl ClassLoader {
                 match self.load_array_class(down_type_name) {
                     Some(down_type) => {
                         let class = Class::new_wrapped_ary(*self, down_type);
-                        Some(new_ref!(class))
+                        Some(new_sync_ref!(class))
                     }
 
                     None => None,
@@ -112,9 +112,9 @@ impl ClassLoader {
         match runtime::find_class_in_classpath(&name) {
             Ok(ClassPathResult(_, buf)) => match class_parser::parse_buf(buf) {
                 Ok(cf) => {
-                    let cfr = Arc::new(cf);
+                    let cfr = new_ref!(cf);
                     let class = Class::new_class(cfr, Some(*self));
-                    Some(new_ref!(class))
+                    Some(new_sync_ref!(class))
                 }
 
                 Err(_) => None,

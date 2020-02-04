@@ -80,7 +80,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         main_thread_group.clone(),
         oop::consts::get_null(),
         system_thread_group,
-        OopDesc::new_str(Arc::new(Vec::from("main"))),
+        OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
     ];
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);
@@ -98,7 +98,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let args = vec![
         init_thread_oop,
         main_thread_group,
-        OopDesc::new_str(Arc::new(Vec::from("main"))),
+        OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
     ];
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
     let mut stack = runtime::stack::Stack::new(0);

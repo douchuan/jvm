@@ -15,23 +15,9 @@ pub use self::class::{Class, ClassKind};
 pub use self::field::FieldIdRef;
 pub use self::method::MethodIdRef;
 
-macro_rules! def_ref {
-    ($name:ident, $t:ty) => {
-        pub type $name = Arc<Mutex<Box<$t>>>;
-    };
-}
-
-#[macro_export]
-macro_rules! new_ref {
-    ($name:ident) => {
-        std::sync::Arc::new(std::sync::Mutex::new(Box::new($name)));
-    };
-}
-
-pub type ClassFileRef = Arc<ClassFile>;
-
-def_ref!(ClassRef, Class);
-def_ref!(OopRef, OopDesc);
+def_ref!(ClassFileRef, ClassFile);
+def_sync_ref!(ClassRef, Class);
+def_sync_ref!(OopRef, OopDesc);
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum ValueType {
@@ -149,12 +135,13 @@ impl OopDesc {
         //todo: how calc hashcode ?
         let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let hash_code = start.as_secs() as i32;
-        Arc::new(Mutex::new(Box::new(Self {
+        let v = Self {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
             hash_code
-        })))
+        };
+        new_sync_ref!(v)
     }
 }
 

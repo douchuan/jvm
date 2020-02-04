@@ -1,11 +1,11 @@
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
-use crate::runtime::{self, init_vm, Frame, JavaCall, Local, Stack, require_class3};
+use crate::runtime::{self, init_vm, FrameRef, JavaCall, Local, Stack, require_class3};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 pub struct JavaThread {
-    pub frames: Vec<Arc<Mutex<Frame>>>,
+    pub frames: Vec<FrameRef>,
     in_safe_point: bool,
 
     pub java_thread_obj: Option<OopRef>,
@@ -47,7 +47,7 @@ impl JavaThread {
             cls.get_this_class_method(b"(Ljava/lang/String;)V", b"<init>").unwrap()
         };
         let exception = OopDesc::new_inst(cls.clone());
-        let msg = Arc::new(Vec::from(msg.as_str()));
+        let msg = Arc::new(Box::new(Vec::from(msg.as_str())));
         let args = vec![
             exception.clone(),
             OopDesc::new_str(msg)
@@ -106,7 +106,7 @@ impl JavaMainThread {
             Some(args) => args
                 .iter()
                 .map(|it| {
-                    let v = Arc::new(Vec::from(it.as_bytes()));
+                    let v = Arc::new(Box::new(Vec::from(it.as_bytes())));
                     OopDesc::new_str(v)
                 })
                 .collect(),

@@ -47,7 +47,7 @@ pub enum ConstantType {
     },
     Utf8 {
         length: u16,
-        bytes: Arc<Vec<u8>>,
+        bytes: BytesRef,
     },
     MethodHandle {
         ref_kind: u8,

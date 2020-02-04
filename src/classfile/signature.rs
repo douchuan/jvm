@@ -96,11 +96,11 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         let pos = buf.iter().rposition(|v| *v == b'[').unwrap();
                         let (left, right) = buf.split_at(pos + 1);
                         types.push(Type::Array(
-                            Arc::new(Vec::from(left)),
-                            Arc::new(Type::Object(Arc::new(Vec::from(right)))),
+                            Arc::new(Box::new(Vec::from(left))),
+                            Arc::new(Type::Object(Arc::new(Box::new(Vec::from(right))))),
                         ));
                     } else {
-                        types.push(Type::Object(Arc::new(Vec::from(&buf[..]))));
+                        types.push(Type::Object(Arc::new(Box::new(Vec::from(&buf[..])))));
                     }
 
                     buf.clear();
@@ -127,7 +127,7 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         _ => unreachable!("unknown type v={}", v),
                     };
 
-                    types.push(Type::Array(Arc::new(Vec::from(&buf[..])), Arc::new(t)));
+                    types.push(Type::Array(Arc::new(Box::new(Vec::from(&buf[..]))), Arc::new(t)));
 
                     buf.clear();
                     state = State::One;
@@ -152,8 +152,8 @@ mod tests {
         let args = "([[Ljava/lang/String;)V";
         let ts = vec![
             Type::Array(
-                Arc::new(Vec::from("[[")),
-                Arc::new(Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))),
+                Arc::new(Box::new(Vec::from("[["))),
+                Arc::new(Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;"))))),
             ),
             Type::Void,
         ];
@@ -169,8 +169,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
+            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;")))),
+            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))),
         ];
         assert_eq!(parse(args.as_bytes()), ts);
     }
@@ -187,8 +187,8 @@ mod tests {
         assert_eq!(
             sig.args,
             vec![Type::Array(
-                Arc::new(Vec::from("[[")),
-                Arc::new(Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))))
+                Arc::new(Box::new(Vec::from("[["))),
+                Arc::new(Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))))
             )]
         );
         assert_eq!(sig.retype, Type::Void);
@@ -203,8 +203,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
+            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;")))),
+            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))),
         ];
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
@@ -218,12 +218,12 @@ mod tests {
                 Type::Long,
                 Type::Short,
                 Type::Boolean,
-                Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;")))
+                Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;"))))
             ]
         );
         assert_eq!(
             sig.retype,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))
+            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;"))))
         );
     }
 

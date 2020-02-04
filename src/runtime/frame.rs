@@ -64,7 +64,7 @@ impl Frame {
 
             None => Self {
                 class,
-                cp: Arc::new(Vec::new()),
+                cp: Arc::new(Box::new(Vec::new())),
                 mir,
                 code: Arc::new(vec![]),
                 local: Local::new(0),
@@ -2335,7 +2335,8 @@ impl Frame {
                     }
                 };
 
-                (Arc::new(name), class.class_loader.clone())
+                let name = new_ref!(name);
+                (name, class.class_loader.clone())
             };
 
             match runtime::require_class(cl, name) {
