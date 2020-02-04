@@ -79,7 +79,7 @@ impl Frame {
 }
 
 impl Frame {
-    pub fn exec_interp(&mut self, thread: &mut JavaThread) {
+    pub fn interp(&mut self, thread: &mut JavaThread) {
         //for debug
         let method = self.mir.method.get_id();
         let method = String::from_utf8_lossy(method.as_slice());
@@ -89,7 +89,7 @@ impl Frame {
             match code {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
-                    trace!("exec_interp op_code = {:?} ({}) {}", op_code, *code, method);
+                    trace!("interp: {:?} ({}) {}", op_code, *code, method);
                     match op_code {
                         OpCode::ireturn => {
                             self.ireturn();

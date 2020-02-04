@@ -105,7 +105,7 @@ impl JavaCall {
                 {
                     match frame.try_lock() {
                         Ok(mut frame) => {
-                            frame.exec_interp(jt);
+                            frame.interp(jt);
                             self.set_return(jt, stack, frame.return_v.clone());
                         }
                         _ => unreachable!(),
