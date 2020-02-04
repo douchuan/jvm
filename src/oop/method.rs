@@ -112,7 +112,7 @@ impl Method {
                         }
 
                         if let Some(class) = runtime::require_class2(e.catch_type, cp) {
-                            if runtime::instance_of(ex.clone(), class) {
+                            if runtime::cmp::instance_of(ex.clone(), class) {
                                 return Some(e.handler_pc);
                             }
                         }

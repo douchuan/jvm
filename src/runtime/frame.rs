@@ -8,7 +8,7 @@ use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
 use crate::runtime::{
-    self, require_class, require_class2, require_class3, JavaCall, JavaThread, Local, Stack,
+    self, cmp, require_class, require_class2, require_class3, Exception, JavaCall, JavaThread, Local, Stack,
 };
 use crate::util;
 use bytes::{BigEndian, Bytes};
@@ -29,7 +29,7 @@ pub struct Frame {
     pub pc: i32,
     pub return_v: Option<OopRef>,
 
-    pub exception_thrown_here: bool,
+    pub ex: Option<Exception>,
 }
 
 //new
@@ -58,7 +58,7 @@ impl Frame {
                     stack,
                     pc: 0,
                     return_v: None,
-                    exception_thrown_here: false,
+                    ex: None,
                 }
             }
 
@@ -71,7 +71,7 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
-                exception_thrown_here: false,
+                ex: None,
             },
         }
     }
@@ -391,12 +391,24 @@ impl Frame {
         }
     }
 
+    /*
     fn handle_exception(&mut self, thread: &mut JavaThread) {
         self.stack.clear();
         let ext = thread.exception.clone();
         self.stack.push_ref(ext.unwrap());
         thread.clear_ext();
         self.athrow(thread);
+    }
+    */
+
+    fn meet_ex(&mut self, cls_name: &'static [u8], msg: Option<String>) {
+        let ex = Exception {
+            cls_name,
+            msg,
+            ex_oop: None
+        };
+
+        self.ex = Some(ex);
     }
 
     fn goto_abs(&mut self, pc: i32) {
@@ -525,8 +537,7 @@ impl Frame {
         } else {
             let receiver = self.stack.pop_ref();
             if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             } else {
                 //                trace!("put_field = {}", String::from_utf8_lossy(fir.field.get_id().as_slice()));
                 class.put_field_value(receiver, fir.clone(), v);
@@ -546,145 +557,6 @@ impl Frame {
             }
             Err(_) => unimplemented!(),
         }
-    }
-
-    fn do_instance_of(s: ClassRef, t: ClassRef) -> bool {
-        // Return if S and T are the same class
-        if Arc::ptr_eq(&s, &t) {
-            return true;
-        }
-
-        let (s_kind, s_is_intf) = {
-            let cls = s.lock().unwrap();
-            (cls.get_class_kind_type(), cls.is_interface())
-        };
-
-        let (t_kind, t_is_intf) = {
-            let cls = t.lock().unwrap();
-            (cls.get_class_kind_type(), cls.is_interface())
-        };
-
-        // If S is an ordinary (non-array) class
-        if s_kind == oop::class::ClassKindType::Instance && !s_is_intf {
-            // If T is an interface type, then S must implement interface T.
-            if t_is_intf {
-                let s = s.lock().unwrap();
-                return s.check_interface(t);
-            }
-
-            // If T is a class type, then S must be the same class as T,
-            // or S must be a subclass of T;
-            if t_kind == oop::class::ClassKindType::Instance {
-                return Self::check_inherit(s, t);
-            }
-
-            return false;
-        }
-
-        // If S is an interface type
-        if s_is_intf {
-            // If T is an interface type, then T must be the same interface as S
-            // or a superinterface of S.
-            if t_is_intf {
-                return Self::check_inherit(s, t);
-            }
-
-            // If T is a class type, then T must be Object
-            if t_kind == oop::class::ClassKindType::Instance {
-                let object = require_class3(None, consts::J_OBJECT).unwrap();
-                return Arc::ptr_eq(&t, &object);
-            }
-
-            return false;
-        }
-
-        // If S is a class representing the array type SC[],
-        // that is, an array of components of type SC
-        match s_kind {
-            oop::class::ClassKindType::TypAry | oop::class::ClassKindType::ObjectAry => {
-                // If T is an interface type, then T must be one of the interfaces
-                // implemented by arrays (JLS §4.10.3).
-                // https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.10.3
-                // array implements:
-                // 1. java/lang/Cloneable
-                // 2. java/io/Serializable
-                if t_is_intf {
-                    let serializable = require_class3(None, consts::J_SERIALIZABLE).unwrap();
-                    let cloneable = require_class3(None, consts::J_CLONEABLE).unwrap();
-                    return Arc::ptr_eq(&t, &serializable) || Arc::ptr_eq(&t, &cloneable);
-                }
-
-                if t_kind == oop::class::ClassKindType::Instance {
-                    let object = require_class3(None, consts::J_OBJECT).unwrap();
-                    return Arc::ptr_eq(&t, &object);
-                }
-
-                if t_kind == oop::class::ClassKindType::TypAry
-                    && s_kind == oop::class::ClassKindType::TypAry
-                {
-                    {
-                        let cls = s.lock().unwrap();
-                        let (s_dimension, s_value_type) = match &cls.kind {
-                            oop::class::ClassKind::TypeArray(cls) => {
-                                (cls.get_dimension(), cls.value_type)
-                            }
-                            _ => unreachable!(),
-                        };
-
-                        let cls = t.lock().unwrap();
-                        let (t_dimension, t_value_type) = match &cls.kind {
-                            oop::class::ClassKind::TypeArray(cls) => {
-                                (cls.get_dimension(), cls.value_type)
-                            }
-                            _ => unreachable!(),
-                        };
-                        return s_dimension == t_dimension && s_value_type == t_value_type;
-                    }
-
-                    if t_kind == oop::class::ClassKindType::ObjectAry
-                        && s_kind == oop::class::ClassKindType::ObjectAry
-                    {
-                        let cls = s.lock().unwrap();
-                        let (s_dimension, s_component) = match &cls.kind {
-                            oop::class::ClassKind::ObjectArray(cls) => {
-                                (cls.get_dimension(), cls.component.clone().unwrap())
-                            }
-                            _ => unreachable!(),
-                        };
-                        let cls = t.lock().unwrap();
-                        let (t_dimension, t_component) = match &cls.kind {
-                            oop::class::ClassKind::ObjectArray(cls) => {
-                                (cls.get_dimension(), cls.component.clone().unwrap())
-                            }
-                            _ => unreachable!(),
-                        };
-                        return s_dimension == t_dimension
-                            && Self::check_inherit(s_component, t_component);
-                    }
-                }
-            }
-            _ => (),
-        }
-
-        false
-    }
-
-    fn check_inherit(s: ClassRef, t: ClassRef) -> bool {
-        let mut super_cls = s;
-
-        loop {
-            if Arc::ptr_eq(&super_cls, &t) {
-                return true;
-            }
-
-            let cls = { super_cls.lock().unwrap().super_class.clone() };
-            match cls {
-                Some(cls) => super_cls = cls,
-                None => break,
-            }
-        }
-
-        false
     }
 }
 
@@ -915,8 +787,7 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
@@ -932,16 +803,14 @@ impl Frame {
                 let len = s.len();
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = s.as_slice()[pos as usize];
                     self.stack.push_int(v as i32);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -968,8 +837,7 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
@@ -982,8 +850,7 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -998,8 +865,7 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
@@ -1012,8 +878,7 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1028,8 +893,7 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
@@ -1042,8 +906,7 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1058,17 +921,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    warn!("{}", msg);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     self.stack.push_ref(v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1226,16 +1086,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_int(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1251,16 +1109,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_long(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1276,16 +1132,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_float(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1301,16 +1155,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_double(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1326,15 +1178,13 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    thread.throw_ext_with_msg(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1454,8 +1304,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX,  Some("divide by zero".to_string()));
         } else {
             self.stack.push_int(v1 / v2);
         }
@@ -1465,8 +1314,7 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_long(v1 / v2);
         }
@@ -1476,8 +1324,7 @@ impl Frame {
         let v2 = self.stack.pop_float();
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_float(v1 / v2);
         }
@@ -1487,8 +1334,7 @@ impl Frame {
         let v2 = self.stack.pop_double();
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_double(v1 / v2);
         }
@@ -1498,8 +1344,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_int(v1 - (v1 / v2) * v2);
         }
@@ -1509,8 +1354,7 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            thread.throw_ext_with_msg2(consts::J_ARITHMETIC_EX, false, b"divide by zero");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_long(v1 - (v1 / v2) * v2);
         }
@@ -2123,30 +1967,20 @@ impl Frame {
     pub fn get_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         self.get_field_helper(thread, oop_consts::get_null(), cp_idx, true);
-        if thread.is_exception_occurred() {
-            self.handle_exception(thread);
-        }
     }
 
     pub fn put_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         self.put_field_helper(thread, cp_idx, true);
-        if thread.is_exception_occurred() {
-            self.handle_exception(thread);
-        }
     }
 
     pub fn get_field(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
         if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
-            thread.throw_ext(consts::J_NPE, false);
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_NPE, None);
         } else {
             self.get_field_helper(thread, rf, cp_idx, false);
-            if thread.is_exception_occurred() {
-                self.handle_exception(thread);
-            }
         }
     }
 
@@ -2206,20 +2040,15 @@ impl Frame {
             }
         };
 
-        if thread.is_exception_occurred() {
-            self.handle_exception(thread);
-        } else {
-            let v = oop::OopDesc::new_inst(class);
-            self.stack.push_ref(v);
-        }
+        let v = oop::OopDesc::new_inst(class);
+        self.stack.push_ref(v);
     }
 
     pub fn new_array(&mut self, thread: &mut JavaThread) {
         let t = self.read_byte();
         let length = self.stack.pop_int();
         if length < 0 {
-            thread.throw_ext_with_msg2(consts::J_NASE, false, b"length < 0");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let mut ary = Vec::with_capacity(length as usize);
             let ary_cls = match t {
@@ -2299,8 +2128,7 @@ impl Frame {
         let cp_idx = self.read_i2();
         let length = self.stack.pop_int();
         if length < 0 {
-            thread.throw_ext_with_msg2(consts::J_NASE, false, b"length < 0");
-            self.handle_exception(thread);
+            self.meet_ex(consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let class = match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => class,
@@ -2370,8 +2198,7 @@ impl Frame {
                 self.stack.push_int(s.len() as i32);
             }
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -2383,8 +2210,7 @@ impl Frame {
         let rf = rf.lock().unwrap();
         match rf.v {
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => {
                 let handler = thread.try_handle_exception(rf_ref.clone());
@@ -2412,7 +2238,7 @@ impl Frame {
             Oop::Null => self.stack.push_ref(rf_back),
             Oop::Inst(inst) => {
                 let obj_cls = inst.class.clone();
-                let r = Self::do_instance_of(obj_cls.clone(), target_cls.clone());
+                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                 if r {
                     self.stack.push_ref(rf_back);
                 } else {
@@ -2423,14 +2249,14 @@ impl Frame {
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
                     let t_name = String::from_utf8_lossy(t_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
+
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
-                    thread.throw_ext_with_msg(consts::J_CCE, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_CCE, Some(msg));
                 }
             }
             Oop::Str(_) => {
                 let obj_cls = require_class3(None, J_STRING).unwrap();
-                let r = Self::do_instance_of(obj_cls.clone(), target_cls.clone());
+                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                 if r {
                     self.stack.push_ref(rf_back);
                 } else {
@@ -2441,9 +2267,9 @@ impl Frame {
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
                     let t_name = String::from_utf8_lossy(t_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
+
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
-                    thread.throw_ext_with_msg(consts::J_CCE, false, msg);
-                    self.handle_exception(thread);
+                    self.meet_ex(consts::J_CCE, Some(msg));
                 }
             }
             _ => unimplemented!(),
@@ -2460,11 +2286,11 @@ impl Frame {
             Oop::Null => false,
             Oop::Inst(inst) => {
                 let obj_cls = inst.class.clone();
-                Self::do_instance_of(obj_cls, target_cls)
+                cmp::instance_of(obj_cls, target_cls)
             }
             Oop::Str(_) => {
                 let obj_cls = require_class3(None, J_STRING).unwrap();
-                Self::do_instance_of(obj_cls, target_cls)
+                cmp::instance_of(obj_cls, target_cls)
             }
             _ => unimplemented!(),
         };
@@ -2481,8 +2307,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_enter();
@@ -2495,8 +2320,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                thread.throw_ext(consts::J_NPE, false);
-                self.handle_exception(thread);
+                self.meet_ex(consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_exit();
