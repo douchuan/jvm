@@ -15,7 +15,8 @@ mod java_security_accesscontroller;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
-pub type NativeMethodPtr = Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
+pub type NativeMethodPtr =
+    Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
@@ -72,7 +73,10 @@ pub fn init() {
         ("java/lang/Object", java_lang_object::get_native_methods()),
         ("java/lang/System", java_lang_system::get_native_methods()),
         ("java/lang/Thread", java_lang_thread::get_native_methods()),
-        ("java/lang/Throwable", java_lang_throwable::get_native_methods()),
+        (
+            "java/lang/Throwable",
+            java_lang_throwable::get_native_methods(),
+        ),
         (
             "java/security/AccessController",
             java_security_accesscontroller::get_native_methods(),

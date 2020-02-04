@@ -113,8 +113,7 @@ pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {
                         }
                         _ => unreachable!(),
                     };
-                    return s_dimension == t_dimension
-                        && check_inherit(s_component, t_component);
+                    return s_dimension == t_dimension && check_inherit(s_component, t_component);
                 }
             }
         }

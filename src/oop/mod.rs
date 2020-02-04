@@ -103,7 +103,7 @@ impl OopDesc {
     }
 
     pub fn new_mirror(target: ClassRef, n: usize) -> OopRef {
-        let mut field_values= Vec::with_capacity(n);
+        let mut field_values = Vec::with_capacity(n);
         for _ in 0..n {
             field_values.push(consts::get_null());
         }
@@ -139,7 +139,7 @@ impl OopDesc {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
-            hash_code
+            hash_code,
         };
         new_sync_ref!(v)
     }

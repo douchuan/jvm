@@ -127,7 +127,10 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         _ => unreachable!("unknown type v={}", v),
                     };
 
-                    types.push(Type::Array(Arc::new(Box::new(Vec::from(&buf[..]))), Arc::new(t)));
+                    types.push(Type::Array(
+                        Arc::new(Box::new(Vec::from(&buf[..]))),
+                        Arc::new(t),
+                    ));
 
                     buf.clear();
                     state = State::One;
@@ -153,7 +156,9 @@ mod tests {
         let ts = vec![
             Type::Array(
                 Arc::new(Box::new(Vec::from("[["))),
-                Arc::new(Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;"))))),
+                Arc::new(Type::Object(Arc::new(Box::new(Vec::from(
+                    "Ljava/lang/String;",
+                ))))),
             ),
             Type::Void,
         ];
@@ -188,7 +193,9 @@ mod tests {
             sig.args,
             vec![Type::Array(
                 Arc::new(Box::new(Vec::from("[["))),
-                Arc::new(Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))))
+                Arc::new(Type::Object(Arc::new(Box::new(Vec::from(
+                    "Ljava/lang/String;"
+                )))))
             )]
         );
         assert_eq!(sig.retype, Type::Void);

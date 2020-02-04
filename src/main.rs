@@ -11,9 +11,9 @@ use clap::{App, Arg};
 #[macro_use]
 mod util;
 
-mod oop;
 mod classfile;
 mod native;
+mod oop;
 mod parser;
 mod runtime;
 

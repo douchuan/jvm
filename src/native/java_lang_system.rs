@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 
+use crate::classfile::types::BytesRef;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopRef, OopDesc};
+use crate::oop::{Oop, OopDesc, OopRef};
+use crate::runtime::JavaCall;
 use crate::runtime::{self, JavaThread};
 use crate::util;
 use std::sync::{Arc, Mutex};
-use crate::classfile::types::BytesRef;
-use crate::runtime::JavaCall;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -19,7 +19,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn(
             "initProperties",
             "(Ljava/util/Properties;)Ljava/util/Properties;",
-            Box::new(jvm_initProperties)
+            Box::new(jvm_initProperties),
         ),
     ]
 }
@@ -46,32 +46,37 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("line.separator", "\n"),
         ("file.separator", util::PATH_DELIMITER_STR),
         ("sun.jnu.encoding", "utf8"),
-        ("file.encoding", "utf8")
+        ("file.encoding", "utf8"),
     ];
 
-    let props: Vec<(BytesRef, BytesRef)> = props.iter().map(|(k, v)| {
-        let k = Vec::from(*k);
-        let k = new_ref!(k);
-        let v = Vec::from(*v);
-        let v = new_ref!(v);
-        (k, v)
-    }).collect();
+    let props: Vec<(BytesRef, BytesRef)> = props
+        .iter()
+        .map(|(k, v)| {
+            let k = Vec::from(*k);
+            let k = new_ref!(k);
+            let v = Vec::from(*v);
+            let v = new_ref!(v);
+            (k, v)
+        })
+        .collect();
 
     match args.get(0) {
         Some(v) => {
             let cls = {
                 let v = v.lock().unwrap();
                 match &v.v {
-                    Oop::Inst(inst) => {
-                        inst.class.clone()
-                    }
-                    _ => unreachable!()
+                    Oop::Inst(inst) => inst.class.clone(),
+                    _ => unreachable!(),
                 }
             };
 
             let mir = {
                 let cls = cls.lock().unwrap();
-                cls.get_virtual_method(b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", b"put").unwrap()
+                cls.get_virtual_method(
+                    b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                    b"put",
+                )
+                .unwrap()
             };
 
             let prop = v.clone();
@@ -89,7 +94,6 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
 
             Ok(Some(prop))
         }
-        None => unreachable!()
+        None => unreachable!(),
     }
 }
-

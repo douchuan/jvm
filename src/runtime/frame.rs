@@ -8,7 +8,8 @@ use crate::oop::{
     self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType,
 };
 use crate::runtime::{
-    self, cmp, require_class, require_class2, require_class3, Exception, JavaCall, JavaThread, Local, Stack,
+    self, cmp, require_class, require_class2, require_class3, Exception, JavaCall, JavaThread,
+    Local, Stack,
 };
 use crate::util;
 use bytes::{BigEndian, Bytes};
@@ -405,7 +406,7 @@ impl Frame {
         let ex = Exception {
             cls_name,
             msg,
-            ex_oop: None
+            ex_oop: None,
         };
 
         self.ex = Some(ex);
@@ -1304,7 +1305,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            self.meet_ex(consts::J_ARITHMETIC_EX,  Some("divide by zero".to_string()));
+            self.meet_ex(consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
         } else {
             self.stack.push_int(v1 / v2);
         }

@@ -1,4 +1,3 @@
-
 #[macro_export]
 macro_rules! def_sync_ref {
     ($name:ident, $t:ty) => {
@@ -26,4 +25,3 @@ macro_rules! new_ref {
         std::sync::Arc::new(Box::new($name));
     };
 }
-

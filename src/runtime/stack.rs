@@ -21,7 +21,7 @@ impl Stack {
 
     pub fn push_int(&mut self, i: i32) {
         let v = i.to_be_bytes();
-        self.push_int2(v);
+        self.push_primitive2(v);
     }
 
     pub fn push_int2(&mut self, v: [u8; 4]) {
@@ -30,7 +30,7 @@ impl Stack {
 
     pub fn push_float(&mut self, f: f32) {
         let v = f.to_bits().to_be_bytes();
-        self.push_float2(v);
+        self.push_primitive2(v);
     }
 
     pub fn push_float2(&mut self, v: [u8; 4]) {
@@ -65,6 +65,9 @@ impl Stack {
         self.inner.push(Slot::ConstM1);
     }
 
+    /*
+    double & long, with_nop = true
+    */
     pub fn push_const0(&mut self, with_nop: bool) {
         if with_nop {
             self.push_nop();
@@ -72,6 +75,9 @@ impl Stack {
         self.inner.push(Slot::Const0);
     }
 
+    /*
+       double & long, with_nop = true
+    */
     pub fn push_const1(&mut self, with_nop: bool) {
         if with_nop {
             self.push_nop();

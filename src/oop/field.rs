@@ -29,7 +29,8 @@ pub fn get_field_ref(
             class.name.deref().as_slice(),
             typ.deref().as_slice(),
             name.deref().as_slice(),
-        ].join(PATH_DELIMITER);
+        ]
+        .join(PATH_DELIMITER);
         new_ref!(id)
     };
 

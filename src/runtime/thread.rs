@@ -1,6 +1,6 @@
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
-use crate::runtime::{self, init_vm, FrameRef, JavaCall, Local, Stack, require_class3};
+use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -44,14 +44,12 @@ impl JavaThread {
         let cls = require_class3(None, ext).unwrap();
         let ctor = {
             let cls = cls.lock().unwrap();
-            cls.get_this_class_method(b"(Ljava/lang/String;)V", b"<init>").unwrap()
+            cls.get_this_class_method(b"(Ljava/lang/String;)V", b"<init>")
+                .unwrap()
         };
         let exception = OopDesc::new_inst(cls.clone());
         let msg = Arc::new(Box::new(Vec::from(msg.as_str())));
-        let args = vec![
-            exception.clone(),
-            OopDesc::new_str(msg)
-        ];
+        let args = vec![exception.clone(), OopDesc::new_str(msg)];
         let mut jc = JavaCall::new_with_args(self, ctor, args);
         let mut stack = Stack::new(0);
         jc.invoke(self, &mut stack);

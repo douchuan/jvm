@@ -24,6 +24,10 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
     unimplemented!()
 }
 
-fn jvm_getStackAccessControlContext(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackAccessControlContext(
+    jt: &mut JavaThread,
+    env: JNIEnv,
+    args: Vec<OopRef>,
+) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }
