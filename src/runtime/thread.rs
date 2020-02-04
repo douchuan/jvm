@@ -1,6 +1,6 @@
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
-use crate::runtime::{self, init_vm, Frame, JavaCall, Local, Stack};
+use crate::runtime::{self, init_vm, Frame, JavaCall, Local, Stack, require_class3};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -41,7 +41,21 @@ impl JavaThread {
     }
 
     pub fn throw_ext_with_msg(&mut self, ext: &[u8], rethrow: bool, msg: String) {
-        //todo: impl
+        let cls = require_class3(None, ext).unwrap();
+        let ctor = {
+            let cls = cls.lock().unwrap();
+            cls.get_this_class_method(b"(Ljava/lang/String;)V", b"<init>").unwrap()
+        };
+        let exception = OopDesc::new_inst(cls.clone());
+        let msg = Arc::new(Vec::from(msg.as_str()));
+        let args = vec![
+            exception.clone(),
+            OopDesc::new_str(msg)
+        ];
+        let mut jc = JavaCall::new_with_args(self, ctor, args);
+        let mut stack = Stack::new(0);
+        jc.invoke(self, &mut stack);
+        self.exception = Some(exception);
     }
 
     pub fn throw_ext_with_msg2(&mut self, ext: &[u8], rethrow: bool, msg: &[u8]) {

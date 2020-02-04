@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, OopRef};
 use crate::runtime::JavaThread;

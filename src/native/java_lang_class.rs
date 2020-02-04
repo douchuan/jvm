@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{require_class3, JavaThread};
@@ -62,7 +64,7 @@ pub fn init() {
             ValueType::from(&t.as_bytes()[0])
         };
 
-        let mut mirror = OopDesc::new_prim_mirror(vt);
+        let mirror = OopDesc::new_prim_mirror(vt);
         if is_prim_ary {
             let target = require_class3(None, t.as_bytes()).unwrap();
             let mut mirror = mirror.lock().unwrap();

@@ -10,6 +10,7 @@ mod java_lang_float;
 mod java_lang_object;
 mod java_lang_system;
 mod java_lang_thread;
+mod java_lang_throwable;
 mod java_security_accesscontroller;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
@@ -71,6 +72,7 @@ pub fn init() {
         ("java/lang/Object", java_lang_object::get_native_methods()),
         ("java/lang/System", java_lang_system::get_native_methods()),
         ("java/lang/Thread", java_lang_thread::get_native_methods()),
+        ("java/lang/Throwable", java_lang_throwable::get_native_methods()),
         (
             "java/security/AccessController",
             java_security_accesscontroller::get_native_methods(),

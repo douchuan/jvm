@@ -1,7 +1,8 @@
+#![allow(non_snake_case)]
+
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{OopRef, OopDesc};
 use crate::runtime::JavaThread;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -25,8 +26,8 @@ fn jvm_hashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     match args.get(0) {
         Some(v) => {
             let v = v.lock().unwrap().hash_code;
-            info!("hashcode = {}", v);
-            Ok(Some(OopDesc::new_int(v)))
+            trace!("hashCode = {}", v);
+            Ok(Some(OopDesc::new_int(v as i32)))
         }
         None => unreachable!()
     }
