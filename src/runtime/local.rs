@@ -11,7 +11,7 @@ impl Local {
     pub fn new(size: usize) -> Self {
         let mut locals = Vec::with_capacity(size);
         for _ in 0..size {
-            locals.push(Slot::Const0);
+            locals.push(Slot::Nop);
         }
 
         Self { locals }

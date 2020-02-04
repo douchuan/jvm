@@ -21,7 +21,7 @@ impl Stack {
 
     pub fn push_int(&mut self, i: i32) {
         let v = i.to_be_bytes();
-        self.push_primitive2(v);
+        self.push_int2(v);
     }
 
     pub fn push_int2(&mut self, v: [u8; 4]) {
@@ -30,7 +30,7 @@ impl Stack {
 
     pub fn push_float(&mut self, f: f32) {
         let v = f.to_bits().to_be_bytes();
-        self.push_primitive2(v);
+        self.push_float2(v);
     }
 
     pub fn push_float2(&mut self, v: [u8; 4]) {
@@ -39,8 +39,7 @@ impl Stack {
 
     pub fn push_double(&mut self, d: f64) {
         let v = d.to_bits().to_be_bytes();
-        self.push_nop();
-        self.push_primitive3(v);
+        self.push_double2(v);
     }
 
     pub fn push_double2(&mut self, v: [u8; 8]) {
@@ -50,8 +49,7 @@ impl Stack {
 
     pub fn push_long(&mut self, l: i64) {
         let v = l.to_be_bytes();
-        self.push_nop();
-        self.push_primitive3(v);
+        self.push_long2(v);
     }
 
     pub fn push_long2(&mut self, v: [u8; 8]) {

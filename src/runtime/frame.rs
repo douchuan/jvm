@@ -25,7 +25,7 @@ pub struct Frame {
     code: Arc<Vec<U1>>,
 
     pub local: Local,
-    stack: Stack,
+    pub stack: Stack,
     pub pc: i32,
     pub return_v: Option<OopRef>,
 
