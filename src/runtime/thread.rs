@@ -1,15 +1,16 @@
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
-use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall, Local, Stack};
+use crate::runtime::{self, init_vm, require_class3, Exception, FrameRef, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
+use crate::classfile::attr_info::AttrType::Exceptions;
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
     in_safe_point: bool,
 
     pub java_thread_obj: Option<OopRef>,
-    pub exception: Option<OopRef>,
+    ex: Option<Exception>,
 }
 
 pub struct JavaMainThread {
@@ -24,7 +25,7 @@ impl JavaThread {
             in_safe_point: false,
 
             java_thread_obj: None,
-            exception: None,
+            ex: None,
         }
     }
 
@@ -36,11 +37,18 @@ impl JavaThread {
         //todo: impl
     }
 
-    pub fn throw_ext(&mut self, ext: &[u8], rethrow: bool) {
-        //todo: impl
+    pub fn throw_ex(&mut self, ex: &'static [u8]) {
+        let ex = Exception {
+            cls_name: ex,
+            msg: None,
+            ex_oop: None
+        };
+        self.ex = Some(ex);
     }
 
     pub fn throw_ext_with_msg(&mut self, ext: &[u8], rethrow: bool, msg: String) {
+        unimplemented!()
+        /*
         let cls = require_class3(None, ext).unwrap();
         let ctor = {
             let cls = cls.lock().unwrap();
@@ -53,24 +61,38 @@ impl JavaThread {
         let mut jc = JavaCall::new_with_args(self, ctor, args);
         let mut stack = Stack::new(0);
         jc.invoke(self, &mut stack);
-        self.exception = Some(exception);
+        self.ex = Some(exception);
+        */
     }
 
-    pub fn throw_ext_with_msg2(&mut self, ext: &[u8], rethrow: bool, msg: &[u8]) {
-        //todo: impl
+    pub fn set_ex(&mut self, ex: Option<Exception>) {
+        self.ex= ex;
     }
 
-    pub fn try_handle_exception(&mut self, ex: OopRef) -> i32 {
-        //todo: impl
-        unimplemented!()
+    pub fn clear_ex(&mut self) {
+        self.ex = None;
     }
 
-    pub fn clear_ext(&mut self) {
-        self.exception = None;
+    pub fn is_meet_ex(&self) -> bool {
+        self.ex.is_some()
     }
 
-    pub fn is_exception_occurred(&self) -> bool {
-        self.exception.is_some()
+    fn is_invoke_ended(&self) -> bool {
+        match self.frames.first() {
+            Some(frame) => {
+                match frame.try_lock() {
+                    Ok(_) => true,
+                    _ => false,
+                }
+            },
+            None => true,
+        }
+    }
+
+    pub fn handle_ex(&mut self) {
+        if self.is_meet_ex() && self.is_invoke_ended() {
+            unimplemented!()
+        }
     }
 }
 
@@ -89,9 +111,10 @@ impl JavaMainThread {
         match mir {
             Ok(mir) => {
                 let mut stack = self.build_stack();
-                let jc = JavaCall::new(&mut jt, &mut stack, mir);
-                jc.unwrap().invoke(&mut jt, &mut stack);
-                info!("stack = {:?}", stack);
+                match JavaCall::new(&mut jt, &mut stack, mir) {
+                    Ok(mut jc) => jc.invoke(&mut jt, &mut stack),
+                    _ => unreachable!(),
+                }
             }
             _ => unimplemented!(),
         }

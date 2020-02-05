@@ -24,8 +24,6 @@ impl JavaCall {
     }
 
     pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        //        let class_name = { mir.method.class.lock().unwrap().name.clone() };
-
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
 
@@ -61,8 +59,7 @@ impl JavaCall {
                 let v = v.lock().unwrap();
                 match &v.v {
                     Oop::Null => {
-                        jt.throw_ext(consts::J_NPE, false);
-                        //todo: caller should call handle_exception
+                        jt.throw_ex(consts::J_NPE);
                         return Err(());
                     }
                     _ => (),
@@ -72,47 +69,45 @@ impl JavaCall {
             args.insert(0, v);
         }
 
-        //        trace!("class name={}, method name ={} desc={} static={}, native={}",
-        //               String::from_utf8_lossy(class_name.as_slice()),
-        //               String::from_utf8_lossy(mir.method.name.as_slice()),
-        //               String::from_utf8_lossy(mir.method.desc.as_slice()),
-        //               mir.method.is_static(),
-        //               mir.method.is_native());
-
         Ok(Self {
             mir,
             args,
             return_type,
         })
     }
+}
 
+impl JavaCall {
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         if self.mir.method.is_native() {
             self.invoke_native(jt, stack);
         } else {
             self.invoke_java(jt, stack);
         }
-    }
 
-    pub fn invoke_java(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+        jt.handle_ex();
+    }
+}
+
+impl JavaCall {
+    fn invoke_java(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         self.prepare_sync();
 
         match self.prepare_frame(jt) {
             Ok(frame) => {
                 jt.frames.push(frame.clone());
 
-                //exec interp
-                {
-                    match frame.try_lock() {
-                        Ok(mut frame) => {
-                            frame.interp(jt);
-                            self.set_return(jt, stack, frame.return_v.clone());
-                        }
-                        _ => unreachable!(),
-                    }
-                }
+                match frame.try_lock() {
+                    Ok(mut frame) => {
+                        frame.interp(jt);
 
-                let _frame = jt.frames.pop().unwrap();
+                        if !jt.is_meet_ex() {
+                            self.set_return(stack, frame.return_v.clone());
+                            let _ = jt.frames.pop();
+                        }
+                    }
+                    _ => unreachable!(),
+                }
             }
 
             _ => (),
@@ -121,7 +116,7 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    pub fn invoke_native(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+    fn invoke_native(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
         self.prepare_sync();
 
         let package = {
@@ -141,15 +136,20 @@ impl JavaCall {
         };
 
         match v {
-            Ok(v) => self.set_return(jt, stack, v),
-            Err(exception) => unimplemented!(),
+            Ok(v) => {
+                if !jt.is_meet_ex() {
+                    self.set_return(stack, v)
+                }
+            },
+            Err(_) => {
+                //ex is putted in jt.ex
+                unreachable!()
+            },
         }
 
         self.fin_sync();
     }
-}
 
-impl JavaCall {
     fn prepare_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
@@ -178,7 +178,7 @@ impl JavaCall {
 
     fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, ()> {
         if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
-            thread.throw_ext(consts::J_SOE, false);
+            thread.throw_ex(consts::J_SOE);
             return Err(());
         }
 
@@ -220,48 +220,46 @@ impl JavaCall {
         return Ok(frame_ref);
     }
 
-    fn set_return(&mut self, thread: &mut JavaThread, stack: &mut Stack, v: Option<OopRef>) {
-        if !thread.is_exception_occurred() {
-            match self.return_type {
-                ArgType::Char | ArgType::Int | ArgType::Boolean => {
-                    let v = v.unwrap();
-                    let v = v.lock().unwrap();
-                    match v.v {
-                        Oop::Int(v) => stack.push_int(v),
-                        _ => unreachable!(),
-                    }
+    fn set_return(&mut self, stack: &mut Stack, v: Option<OopRef>) {
+        match self.return_type {
+            ArgType::Char | ArgType::Int | ArgType::Boolean => {
+                let v = v.unwrap();
+                let v = v.lock().unwrap();
+                match v.v {
+                    Oop::Int(v) => stack.push_int(v),
+                    _ => unreachable!(),
                 }
-                ArgType::Long => {
-                    let v = v.unwrap();
-                    let v = v.lock().unwrap();
-                    match v.v {
-                        Oop::Long(v) => stack.push_long(v),
-                        _ => unreachable!(),
-                    }
-                }
-                ArgType::Float => {
-                    let v = v.unwrap();
-                    let v = v.lock().unwrap();
-                    match v.v {
-                        Oop::Float(v) => stack.push_float(v),
-                        _ => unreachable!(),
-                    }
-                }
-                ArgType::Double => {
-                    let v = v.unwrap();
-                    let v = v.lock().unwrap();
-                    match v.v {
-                        Oop::Double(v) => stack.push_double(v),
-                        _ => unreachable!(),
-                    }
-                }
-                ArgType::Object(_) | ArgType::Array(_, _) => {
-                    let v = v.unwrap();
-                    stack.push_ref(v);
-                }
-                ArgType::Void => (),
-                _ => unreachable!(),
             }
+            ArgType::Long => {
+                let v = v.unwrap();
+                let v = v.lock().unwrap();
+                match v.v {
+                    Oop::Long(v) => stack.push_long(v),
+                    _ => unreachable!(),
+                }
+            }
+            ArgType::Float => {
+                let v = v.unwrap();
+                let v = v.lock().unwrap();
+                match v.v {
+                    Oop::Float(v) => stack.push_float(v),
+                    _ => unreachable!(),
+                }
+            }
+            ArgType::Double => {
+                let v = v.unwrap();
+                let v = v.lock().unwrap();
+                match v.v {
+                    Oop::Double(v) => stack.push_double(v),
+                    _ => unreachable!(),
+                }
+            }
+            ArgType::Object(_) | ArgType::Array(_, _) => {
+                let v = v.unwrap();
+                stack.push_ref(v);
+            }
+            ArgType::Void => (),
+            _ => unreachable!(),
         }
     }
 }
