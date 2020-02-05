@@ -1,5 +1,6 @@
 use crate::classfile::attr_info;
 use crate::classfile::types::*;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct MethodInfo {
@@ -19,5 +20,22 @@ impl MethodInfo {
         }
 
         None
+    }
+
+    pub fn get_line_number_table(&self) -> HashMap<U2, U2> {
+        let mut hm = HashMap::new();
+
+        for it in self.attrs.iter() {
+            match it {
+                attr_info::AttrType::LineNumberTable {tables} => {
+                    tables.iter().for_each(|ln| {
+                        hm.insert(ln.start_pc, ln.number);
+                    });
+                }
+                _ => ()
+            }
+        }
+
+        hm
     }
 }

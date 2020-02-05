@@ -7,6 +7,7 @@ use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
 use std::sync::Arc;
+use std::collections::HashMap;
 
 pub type MethodIdRef = Arc<MethodId>;
 
@@ -76,6 +77,7 @@ pub struct Method {
     acc_flags: U2,
 
     pub code: Option<Code>,
+    pub lnt: HashMap<U2, U2>,
 }
 
 impl Method {
@@ -87,6 +89,7 @@ impl Method {
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
+        let lnt = mi.get_line_number_table();
 
         Self {
             class,
@@ -95,6 +98,7 @@ impl Method {
             id,
             acc_flags,
             code,
+            lnt
         }
     }
 

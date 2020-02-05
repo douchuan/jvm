@@ -22,7 +22,7 @@ pub struct Frame {
     class: ClassRef,
     //avoid lock class to access cp
     cp: ConstantPool,
-    mir: MethodIdRef,
+    pub mir: MethodIdRef,
     code: Arc<Vec<U1>>,
 
     pub local: Local,
@@ -565,7 +565,7 @@ impl Frame {
                     _ => (),
                 }
             }
-            Err(_) => unimplemented!(),
+            Err(_) => unreachable!("NotFound method"),
         }
     }
 }

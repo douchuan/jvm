@@ -46,27 +46,8 @@ impl JavaThread {
         self.ex = Some(ex);
     }
 
-    pub fn throw_ext_with_msg(&mut self, ext: &[u8], rethrow: bool, msg: String) {
-        unimplemented!()
-        /*
-        let cls = require_class3(None, ext).unwrap();
-        let ctor = {
-            let cls = cls.lock().unwrap();
-            cls.get_this_class_method(b"(Ljava/lang/String;)V", b"<init>")
-                .unwrap()
-        };
-        let exception = OopDesc::new_inst(cls.clone());
-        let msg = Arc::new(Box::new(Vec::from(msg.as_str())));
-        let args = vec![exception.clone(), OopDesc::new_str(msg)];
-        let mut jc = JavaCall::new_with_args(self, ctor, args);
-        let mut stack = Stack::new(0);
-        jc.invoke(self, &mut stack);
-        self.ex = Some(exception);
-        */
-    }
-
     pub fn set_ex(&mut self, ex: Option<Exception>) {
-        self.ex= ex;
+        self.ex = ex;
     }
 
     pub fn clear_ex(&mut self) {
@@ -78,20 +59,35 @@ impl JavaThread {
     }
 
     fn is_invoke_ended(&self) -> bool {
-        match self.frames.first() {
-            Some(frame) => {
-                match frame.try_lock() {
-                    Ok(_) => true,
-                    _ => false,
-                }
-            },
-            None => true,
-        }
+        self.frames.iter().all(|f| f.try_lock().is_ok())
     }
 
     pub fn handle_ex(&mut self) {
         if self.is_meet_ex() && self.is_invoke_ended() {
-            unimplemented!()
+
+            //consume the ex
+            let ex = self.ex.clone();
+            self.clear_ex();
+
+            match ex {
+                Some(mut ex) => {
+                    trace!("handle exception = {}", String::from_utf8_lossy(ex.cls_name));
+
+                    let cls = require_class3(None, ex.cls_name).unwrap();
+                    let ex_obj = OopDesc::new_inst(cls.clone());
+                    let msg = match &ex.msg {
+                        Some(msg) => Vec::from(msg.as_str()),
+                        None => Vec::new(),
+                    };
+                    let msg = new_ref!(msg);
+                    let args = vec![ex_obj.clone(), OopDesc::new_str(msg)];
+                    runtime::java_call::invoke_ctor(self, cls.clone(), b"(Ljava/lang/String;)V", args);
+
+                    ex.ex_oop = Some(ex_obj);
+                    //todo: handle finish?
+                }
+                None => unreachable!()
+            }
         }
     }
 }
