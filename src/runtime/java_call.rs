@@ -12,6 +12,17 @@ pub struct JavaCall {
     pub return_type: ArgType,
 }
 
+pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<OopRef>) {
+    let ctor = {
+        let cls = cls.lock().unwrap();
+        cls.get_this_class_method(desc,b"<init>").unwrap()
+    };
+
+    let mut jc = JavaCall::new_with_args(jt, ctor, args);
+    let mut stack = Stack::new(0);
+    jc.invoke(jt, &mut stack);
+}
+
 impl JavaCall {
     pub fn new_with_args(jt: &mut JavaThread, mir: MethodIdRef, args: Vec<OopRef>) -> Self {
         let sig = MethodSignature::new(mir.method.desc.as_slice());

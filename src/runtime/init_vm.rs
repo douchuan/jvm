@@ -40,14 +40,12 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     // Create and construct the system thread group.
     let system_thread_group = OopDesc::new_inst(thread_group_cls.clone());
-    let ctor = {
-        let cls = thread_group_cls.lock().unwrap();
-        cls.get_this_class_method(b"()V", b"<init>").unwrap()
-    };
-    let mut jc =
-        runtime::java_call::JavaCall::new_with_args(jt, ctor, vec![system_thread_group.clone()]);
-    let mut stack = runtime::stack::Stack::new(0);
-    jc.invoke(jt, &mut stack);
+    let args = vec![system_thread_group.clone()];
+    runtime::java_call::invoke_ctor(
+        jt,
+        thread_group_cls.clone(),
+        b"()V",
+        args);
 
     let main_thread_group = OopDesc::new_inst(thread_group_cls.clone());
 
@@ -67,42 +65,32 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let _ = do_init(J_SECURITY_MANAGER, jt);
 
     // Construct the main thread group
-    // use get_this_class_method() to get a private method
-    let ctor = {
-        let cls = thread_group_cls.lock().unwrap();
-        cls.get_this_class_method(
-            b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
-            b"<init>",
-        )
-        .unwrap()
-    };
-    let mut args = vec![
+    let args = vec![
         main_thread_group.clone(),
         oop::consts::get_null(),
         system_thread_group,
         OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
     ];
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
-    let mut stack = runtime::stack::Stack::new(0);
-    jc.invoke(jt, &mut stack);
+    runtime::java_call::invoke_ctor(
+        jt,
+        thread_group_cls.clone(),
+        b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
+        args);
 
     //todo: disable sun.security.util.Debug for the following operations
     //need to impl java_security_accesscontroller
     //    let sun_debug_cls = do_init(b"sun/security/util/Debug", jt);
 
-    let ctor = {
-        let cls = thread_cls.lock().unwrap();
-        cls.get_this_class_method(b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V", b"<init>")
-            .unwrap()
-    };
     let args = vec![
         init_thread_oop,
         main_thread_group,
         OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
     ];
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, ctor, args);
-    let mut stack = runtime::stack::Stack::new(0);
-    jc.invoke(jt, &mut stack);
+    runtime::java_call::invoke_ctor(
+        jt,
+        thread_cls.clone(),
+        b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
+        args);
 
     //todo: hackJavaClasses
 
