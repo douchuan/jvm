@@ -31,6 +31,7 @@ pub struct Frame {
     pub return_v: Option<OopRef>,
 
     pub meet_ex_here: bool,
+    pub re_throw_ex: Option<OopRef>
 }
 
 //new
@@ -60,6 +61,7 @@ impl Frame {
                     pc: 0,
                     return_v: None,
                     meet_ex_here: false,
+                    re_throw_ex: None,
                 }
             }
 
@@ -73,6 +75,7 @@ impl Frame {
                 pc: 0,
                 return_v: None,
                 meet_ex_here: false,
+                re_throw_ex: None,
             },
         }
     }
@@ -322,6 +325,13 @@ impl Frame {
             }
         }
     }
+
+    pub fn handle_exception(&mut self, thread: &mut JavaThread, ex: OopRef) {
+        self.stack.clear();
+        self.meet_ex_here = false;
+        self.stack.push_ref(ex);
+        self.athrow(thread);
+    }
 }
 
 //helper methods
@@ -396,20 +406,17 @@ impl Frame {
         }
     }
 
-    /*
-    fn handle_exception(&mut self, thread: &mut JavaThread) {
-        self.stack.clear();
-        let ext = thread.exception.clone();
-        self.stack.push_ref(ext.unwrap());
-        thread.clear_ext();
-        self.athrow(thread);
-    }
-    */
-
     fn meet_ex(&mut self, jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
         let ex = Exception {
             cls_name,
             msg,
+
+            //create Throwable obj, will call Throwable.fillInStackTrace that
+            //need browse all jt.frames to get debug info.
+            //But, 当前和之前的frame，已经被locked，所以会导致失败。
+            //
+            //所以，必须使所有JavaCall出栈 并释放了全部的 jt.frames lock,
+            // ex_oop 才能在JavaThread中创建
             ex_oop: None,
         };
 
@@ -2257,7 +2264,7 @@ impl Frame {
                     self.goto_abs(handler);
                 } else {
                     trace!("athrow: exception handler not found, rethrowing it to caller");
-                    self.set_return(Some(rf_ref));
+                    self.re_throw_ex = Some(rf_ref);
                 }
                 */
             }

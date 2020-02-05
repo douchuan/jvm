@@ -1,7 +1,7 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
-use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef};
+use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{self, frame::Frame, thread, FrameRef, JavaThread, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
@@ -113,7 +113,7 @@ impl JavaCall {
                         frame.interp(jt);
 
                         if !jt.is_meet_ex() {
-                            self.set_return(stack, frame.return_v.clone());
+                            set_return(stack, self.return_type.clone(), frame.return_v.clone());
                             let _ = jt.frames.pop();
                         }
                     }
@@ -149,7 +149,7 @@ impl JavaCall {
         match v {
             Ok(v) => {
                 if !jt.is_meet_ex() {
-                    self.set_return(stack, v)
+                    set_return(stack, self.return_type.clone(), v)
                 }
             }
             Err(_) => {
@@ -230,49 +230,6 @@ impl JavaCall {
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
     }
-
-    fn set_return(&mut self, stack: &mut Stack, v: Option<OopRef>) {
-        match self.return_type {
-            ArgType::Char | ArgType::Int | ArgType::Boolean => {
-                let v = v.unwrap();
-                let v = v.lock().unwrap();
-                match v.v {
-                    Oop::Int(v) => stack.push_int(v),
-                    _ => unreachable!(),
-                }
-            }
-            ArgType::Long => {
-                let v = v.unwrap();
-                let v = v.lock().unwrap();
-                match v.v {
-                    Oop::Long(v) => stack.push_long(v),
-                    _ => unreachable!(),
-                }
-            }
-            ArgType::Float => {
-                let v = v.unwrap();
-                let v = v.lock().unwrap();
-                match v.v {
-                    Oop::Float(v) => stack.push_float(v),
-                    _ => unreachable!(),
-                }
-            }
-            ArgType::Double => {
-                let v = v.unwrap();
-                let v = v.lock().unwrap();
-                match v.v {
-                    Oop::Double(v) => stack.push_double(v),
-                    _ => unreachable!(),
-                }
-            }
-            ArgType::Object(_) | ArgType::Array(_, _) => {
-                let v = v.unwrap();
-                stack.push_ref(v);
-            }
-            ArgType::Void => (),
-            _ => unreachable!(),
-        }
-    }
 }
 
 fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
@@ -301,4 +258,47 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
             t => unreachable!("t = {:?}", t),
         })
         .collect()
+}
+
+pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<OopRef>) {
+    match return_type {
+        ArgType::Char | ArgType::Int | ArgType::Boolean => {
+            let v = v.unwrap();
+            let v = v.lock().unwrap();
+            match v.v {
+                Oop::Int(v) => stack.push_int(v),
+                _ => unreachable!(),
+            }
+        }
+        ArgType::Long => {
+            let v = v.unwrap();
+            let v = v.lock().unwrap();
+            match v.v {
+                Oop::Long(v) => stack.push_long(v),
+                _ => unreachable!(),
+            }
+        }
+        ArgType::Float => {
+            let v = v.unwrap();
+            let v = v.lock().unwrap();
+            match v.v {
+                Oop::Float(v) => stack.push_float(v),
+                _ => unreachable!(),
+            }
+        }
+        ArgType::Double => {
+            let v = v.unwrap();
+            let v = v.lock().unwrap();
+            match v.v {
+                Oop::Double(v) => stack.push_double(v),
+                _ => unreachable!(),
+            }
+        }
+        ArgType::Object(_) | ArgType::Array(_, _) => {
+            let v = v.unwrap();
+            stack.push_ref(v);
+        }
+        ArgType::Void => (),
+        _ => unreachable!(),
+    }
 }
