@@ -41,11 +41,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     // Create and construct the system thread group.
     let system_thread_group = OopDesc::new_inst(thread_group_cls.clone());
     let args = vec![system_thread_group.clone()];
-    runtime::java_call::invoke_ctor(
-        jt,
-        thread_group_cls.clone(),
-        b"()V",
-        args);
+    runtime::java_call::invoke_ctor(jt, thread_group_cls.clone(), b"()V", args);
 
     let main_thread_group = OopDesc::new_inst(thread_group_cls.clone());
 
@@ -75,7 +71,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         jt,
         thread_group_cls.clone(),
         b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
-        args);
+        args,
+    );
 
     //todo: disable sun.security.util.Debug for the following operations
     //need to impl java_security_accesscontroller
@@ -90,7 +87,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         jt,
         thread_cls.clone(),
         b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
-        args);
+        args,
+    );
 
     //todo: hackJavaClasses
 

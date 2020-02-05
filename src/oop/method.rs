@@ -5,9 +5,9 @@ use crate::classfile::{
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
 use crate::util::{self, PATH_DELIMITER};
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
-use std::collections::HashMap;
 
 pub type MethodIdRef = Arc<MethodId>;
 
@@ -98,7 +98,7 @@ impl Method {
             id,
             acc_flags,
             code,
-            lnt
+            lnt,
         }
     }
 

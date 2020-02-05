@@ -1,9 +1,9 @@
+use crate::classfile::attr_info::AttrType::Exceptions;
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
 use crate::runtime::{self, init_vm, require_class3, Exception, FrameRef, JavaCall, Local, Stack};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
-use crate::classfile::attr_info::AttrType::Exceptions;
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -41,7 +41,7 @@ impl JavaThread {
         let ex = Exception {
             cls_name: ex,
             msg: None,
-            ex_oop: None
+            ex_oop: None,
         };
         self.ex = Some(ex);
     }
@@ -66,12 +66,14 @@ impl JavaThread {
         if self.is_meet_ex() && self.is_invoke_ended() {
 
             //consume the ex
-            let ex = self.ex.clone();
-            self.clear_ex();
+            let ex = self.ex.take();
 
             match ex {
                 Some(mut ex) => {
-                    trace!("handle exception = {}", String::from_utf8_lossy(ex.cls_name));
+                    trace!(
+                        "handle exception = {}",
+                        String::from_utf8_lossy(ex.cls_name)
+                    );
 
                     let cls = require_class3(None, ex.cls_name).unwrap();
                     let ex_obj = OopDesc::new_inst(cls.clone());
@@ -81,12 +83,17 @@ impl JavaThread {
                     };
                     let msg = new_ref!(msg);
                     let args = vec![ex_obj.clone(), OopDesc::new_str(msg)];
-                    runtime::java_call::invoke_ctor(self, cls.clone(), b"(Ljava/lang/String;)V", args);
+                    runtime::java_call::invoke_ctor(
+                        self,
+                        cls.clone(),
+                        b"(Ljava/lang/String;)V",
+                        args,
+                    );
 
                     ex.ex_oop = Some(ex_obj);
                     //todo: handle finish?
                 }
-                None => unreachable!()
+                None => unreachable!(),
             }
         }
     }

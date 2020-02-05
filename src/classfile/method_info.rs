@@ -27,12 +27,12 @@ impl MethodInfo {
 
         for it in self.attrs.iter() {
             match it {
-                attr_info::AttrType::LineNumberTable {tables} => {
+                attr_info::AttrType::LineNumberTable { tables } => {
                     tables.iter().for_each(|ln| {
                         hm.insert(ln.start_pc, ln.number);
                     });
                 }
-                _ => ()
+                _ => (),
             }
         }
 

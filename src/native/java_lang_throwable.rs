@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopRef, OopDesc};
+use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::runtime::{require_class3, JavaThread};
 use crate::util;
-use crate::runtime::{JavaThread, require_class3};
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -30,18 +30,16 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
                 //todo: native frame
                 let line_number = {
                     let pc = pc as u16;
-                    match mir.method.lnt.get(&pc ) {
+                    match mir.method.lnt.get(&pc) {
                         Some(&v) => v as i32,
                         _ => -2,
                     }
                 };
 
-                let cls_name = {
-                    mir.method.class.lock().unwrap().name.clone()
-                };
+                let cls_name = { mir.method.class.lock().unwrap().name.clone() };
                 let method_name = mir.method.name.clone();
                 //todo: class source file name
-                let src_file = Vec::new();
+                let src_file = Vec::from("xxx");
                 let src_file = new_ref!(src_file);
 
                 let elm = OopDesc::new_inst(elm_cls.clone());
@@ -50,7 +48,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
                     OopDesc::new_str(cls_name),
                     OopDesc::new_str(method_name),
                     OopDesc::new_str(src_file),
-                    OopDesc::new_int(line_number)
+                    OopDesc::new_int(line_number),
                 ];
 
                 elms.push(elm);
@@ -75,7 +73,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
             b"java/lang/Throwable",
             b"Ljava/lang/Object;",
             b"backtrace",
-            stack_trace_ary
+            stack_trace_ary,
         );
     }
 

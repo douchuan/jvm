@@ -15,7 +15,7 @@ pub struct JavaCall {
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<OopRef>) {
     let ctor = {
         let cls = cls.lock().unwrap();
-        cls.get_this_class_method(desc,b"<init>").unwrap()
+        cls.get_this_class_method(desc, b"<init>").unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);
@@ -151,11 +151,11 @@ impl JavaCall {
                 if !jt.is_meet_ex() {
                     self.set_return(stack, v)
                 }
-            },
+            }
             Err(_) => {
                 //ex is putted in jt.ex
                 unreachable!()
-            },
+            }
         }
 
         self.fin_sync();

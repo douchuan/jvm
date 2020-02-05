@@ -59,7 +59,7 @@ impl Frame {
                     stack,
                     pc: 0,
                     return_v: None,
-                    meet_ex_here: false
+                    meet_ex_here: false,
                 }
             }
 
@@ -72,7 +72,7 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
-                meet_ex_here: false
+                meet_ex_here: false,
             },
         }
     }
@@ -888,7 +888,7 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -903,7 +903,7 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
@@ -916,7 +916,7 @@ impl Frame {
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -931,14 +931,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.get_elm_at(pos as usize);
                     self.stack.push_ref(v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1096,14 +1096,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_int(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1119,14 +1119,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_long(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1142,14 +1142,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_float(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1165,14 +1165,14 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = OopDesc::new_double(v);
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1188,13 +1188,13 @@ impl Frame {
                 let len = ary.get_length();
                 if (pos < 0) || (pos as usize >= ary.get_length()) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread,consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     ary.set_elm_at(pos as usize, v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1314,7 +1314,11 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_int(v1 / v2);
         }
@@ -1324,7 +1328,11 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_long(v1 / v2);
         }
@@ -1334,7 +1342,11 @@ impl Frame {
         let v2 = self.stack.pop_float();
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_float(v1 / v2);
         }
@@ -1344,7 +1356,11 @@ impl Frame {
         let v2 = self.stack.pop_double();
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_double(v1 / v2);
         }
@@ -1354,7 +1370,11 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_int(v1 - (v1 / v2) * v2);
         }
@@ -1364,7 +1384,11 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            self.meet_ex(thread,consts::J_ARITHMETIC_EX, Some("divide by zero".to_string()));
+            self.meet_ex(
+                thread,
+                consts::J_ARITHMETIC_EX,
+                Some("divide by zero".to_string()),
+            );
         } else {
             self.stack.push_long(v1 - (v1 / v2) * v2);
         }
@@ -1988,7 +2012,7 @@ impl Frame {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
         if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
-            self.meet_ex(thread,consts::J_NPE, None);
+            self.meet_ex(thread, consts::J_NPE, None);
         } else {
             self.get_field_helper(thread, rf, cp_idx, false);
         }
@@ -2058,7 +2082,7 @@ impl Frame {
         let t = self.read_byte();
         let length = self.stack.pop_int();
         if length < 0 {
-            self.meet_ex(thread,consts::J_NASE, Some("length < 0".to_string()));
+            self.meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let mut ary = Vec::with_capacity(length as usize);
             let ary_cls = match t {
@@ -2138,7 +2162,7 @@ impl Frame {
         let cp_idx = self.read_i2();
         let length = self.stack.pop_int();
         if length < 0 {
-            self.meet_ex(thread,consts::J_NASE, Some("length < 0".to_string()));
+            self.meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let class = match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => class,
@@ -2208,7 +2232,7 @@ impl Frame {
                 self.stack.push_int(s.len() as i32);
             }
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -2220,7 +2244,7 @@ impl Frame {
         let rf = rf.lock().unwrap();
         match rf.v {
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 unimplemented!()
@@ -2264,7 +2288,7 @@ impl Frame {
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
 
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
-                    self.meet_ex(thread,consts::J_CCE, Some(msg));
+                    self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
             Oop::Str(_) => {
@@ -2282,7 +2306,7 @@ impl Frame {
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
 
                     let msg = format!("{} cannot be cast to {}", s_name, t_name);
-                    self.meet_ex(thread,consts::J_CCE, Some(msg));
+                    self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
             _ => unimplemented!(),
@@ -2320,7 +2344,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_enter();
@@ -2333,7 +2357,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                self.meet_ex(thread,consts::J_NPE, None);
+                self.meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_exit();
