@@ -352,18 +352,10 @@ impl Frame {
 
 //helper methods
 impl Frame {
-    fn read_i1(&mut self) -> i32 {
-        let v = self.code[self.pc as usize];
-        self.pc += 1;
-        v as i32
-    }
-
     fn read_i2(&mut self) -> i32 {
-        self.read_i1() << 8 | self.read_i1()
-    }
-
-    fn read_i4(&mut self) -> i32 {
-        self.read_i2() << 16 | self.read_i2()
+        let h = self.read_byte() as i16;
+        let l = self.read_byte() as i16;
+        (h << 8 | l) as i32
     }
 
     fn read_u1(&mut self) -> usize {
@@ -662,7 +654,7 @@ impl Frame {
     }
 
     pub fn bipush(&mut self) {
-        let v = self.read_i1();
+        let v = (self.read_byte() as i8) as i32;
         self.stack.push_int(v);
     }
 
@@ -2294,9 +2286,10 @@ impl Frame {
 
     pub fn check_cast(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
+        let rf = self.stack.pop_ref();
+
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
-        let rf = self.stack.pop_ref();
         let rf_back = rf.clone();
         let rff = rf.lock().unwrap();
         match &rff.v {
@@ -2337,7 +2330,26 @@ impl Frame {
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
-            _ => unimplemented!(),
+            Oop::Array(ary) => {
+                let obj_cls = ary.class.clone();
+                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                if r {
+                    self.stack.push_ref(rf_back);
+                } else {
+                    let s_name = { obj_cls.lock().unwrap().name.clone() };
+                    let t_name = { target_cls.lock().unwrap().name.clone() };
+
+                    let s_name = String::from_utf8_lossy(s_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+
+                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    warn!("{}", msg);
+                    self.meet_ex(thread, consts::J_CCE, Some(msg));
+                }
+            },
+            _ => unimplemented!()
         }
     }
 
