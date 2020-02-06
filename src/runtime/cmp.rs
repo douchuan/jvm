@@ -77,44 +77,42 @@ pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {
             if t_kind == oop::class::ClassKindType::TypAry
                 && s_kind == oop::class::ClassKindType::TypAry
             {
-                {
-                    let cls = s.lock().unwrap();
-                    let (s_dimension, s_value_type) = match &cls.kind {
-                        oop::class::ClassKind::TypeArray(cls) => {
-                            (cls.get_dimension(), cls.value_type)
-                        }
-                        _ => unreachable!(),
-                    };
+                let cls = s.lock().unwrap();
+                let (s_dimension, s_value_type) = match &cls.kind {
+                    oop::class::ClassKind::TypeArray(cls) => {
+                        (cls.get_dimension(), cls.value_type)
+                    }
+                    _ => unreachable!(),
+                };
 
-                    let cls = t.lock().unwrap();
-                    let (t_dimension, t_value_type) = match &cls.kind {
-                        oop::class::ClassKind::TypeArray(cls) => {
-                            (cls.get_dimension(), cls.value_type)
-                        }
-                        _ => unreachable!(),
-                    };
-                    return s_dimension == t_dimension && s_value_type == t_value_type;
-                }
+                let cls = t.lock().unwrap();
+                let (t_dimension, t_value_type) = match &cls.kind {
+                    oop::class::ClassKind::TypeArray(cls) => {
+                        (cls.get_dimension(), cls.value_type)
+                    }
+                    _ => unreachable!(),
+                };
+                return s_dimension == t_dimension && s_value_type == t_value_type;
+            }
 
-                if t_kind == oop::class::ClassKindType::ObjectAry
-                    && s_kind == oop::class::ClassKindType::ObjectAry
-                {
-                    let cls = s.lock().unwrap();
-                    let (s_dimension, s_component) = match &cls.kind {
-                        oop::class::ClassKind::ObjectArray(cls) => {
-                            (cls.get_dimension(), cls.component.clone().unwrap())
-                        }
-                        _ => unreachable!(),
-                    };
-                    let cls = t.lock().unwrap();
-                    let (t_dimension, t_component) = match &cls.kind {
-                        oop::class::ClassKind::ObjectArray(cls) => {
-                            (cls.get_dimension(), cls.component.clone().unwrap())
-                        }
-                        _ => unreachable!(),
-                    };
-                    return s_dimension == t_dimension && check_inherit(s_component, t_component);
-                }
+            if t_kind == oop::class::ClassKindType::ObjectAry
+                && s_kind == oop::class::ClassKindType::ObjectAry
+            {
+                let cls = s.lock().unwrap();
+                let (s_dimension, s_component) = match &cls.kind {
+                    oop::class::ClassKind::ObjectArray(cls) => {
+                        (cls.get_dimension(), cls.component.clone().unwrap())
+                    }
+                    _ => unreachable!(),
+                };
+                let cls = t.lock().unwrap();
+                let (t_dimension, t_component) = match &cls.kind {
+                    oop::class::ClassKind::ObjectArray(cls) => {
+                        (cls.get_dimension(), cls.component.clone().unwrap())
+                    }
+                    _ => unreachable!(),
+                };
+                return s_dimension == t_dimension && check_inherit(s_component, t_component);
             }
         }
         _ => (),

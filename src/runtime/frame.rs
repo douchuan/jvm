@@ -2202,6 +2202,7 @@ impl Frame {
                     oop::class::ClassKindType::Instance | oop::class::ClassKindType::ObjectAry => {
                         let mut v = Vec::with_capacity(class.name.len() + 2);
                         v.push(b'[');
+                        v.push(b'L');
                         v.extend_from_slice(class.name.as_slice());
                         v.push(b';');
 
@@ -2220,7 +2221,7 @@ impl Frame {
                 (name, class.class_loader.clone())
             };
 
-//            info!("anew_array name={}", String::from_utf8_lossy(name.as_slice()));
+            trace!("anew_array name={}", String::from_utf8_lossy(name.as_slice()));
             match runtime::require_class(cl, name) {
                 Some(ary_cls_obj) => {
                     {

@@ -59,8 +59,9 @@ impl JavaThread {
             match ex {
                 Some(ex) => {
                     info!(
-                        "handle exception = {}",
-                        String::from_utf8_lossy(ex.cls_name)
+                        "handle exception = {}, msg = {:?}",
+                        String::from_utf8_lossy(ex.cls_name),
+                        ex.msg
                     );
 
                     let ex_oop = self.build_ex_oop(ex);
