@@ -72,25 +72,29 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
 
             let mir = {
                 let cls = cls.lock().unwrap();
-                cls.get_virtual_method(
-                    b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
-                    b"put",
-                )
+                let id = util::new_id_ref(b"put",b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+                cls.get_virtual_method(id)
                 .unwrap()
             };
 
             let prop = v.clone();
-            props.iter().for_each(|(k, v)| {
+            for it in props.iter() {
                 let args = vec![
                     prop.clone(),
-                    OopDesc::new_str(k.clone()),
-                    OopDesc::new_str(v.clone()),
+                    OopDesc::new_str(it.0.clone()),
+                    OopDesc::new_str(it.1.clone()),
                 ];
 
                 let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
-                let mut stack = runtime::Stack::new(0);
+                let mut stack = runtime::Stack::new(1);
                 jc.invoke(jt, &mut stack);
-            });
+
+                //fixme: should be removed
+                if jt.is_meet_ex() {
+                    error!("jvm_initProperties meet ex");
+                    break;
+                }
+            }
 
             Ok(Some(prop))
         }

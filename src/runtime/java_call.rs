@@ -3,6 +3,7 @@ use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
 use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{self, frame::Frame, thread, FrameRef, JavaThread, Stack};
+use crate::util;
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -15,7 +16,8 @@ pub struct JavaCall {
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<OopRef>) {
     let ctor = {
         let cls = cls.lock().unwrap();
-        cls.get_this_class_method(desc, b"<init>").unwrap()
+        let id = util::new_id_ref(b"<init>", desc);
+        cls.get_this_class_method(id).unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);
@@ -90,6 +92,8 @@ impl JavaCall {
 
 impl JavaCall {
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+        self.debug();
+
         if self.mir.method.is_native() {
             self.invoke_native(jt, stack);
         } else {
@@ -115,6 +119,8 @@ impl JavaCall {
                         if !jt.is_meet_ex() {
                             set_return(stack, self.return_type.clone(), frame.return_v.clone());
                             let _ = jt.frames.pop();
+                        } else {
+                            info!("ignored pop frame_id = {}", frame.frame_id);
                         }
                     }
                     _ => unreachable!(),
@@ -193,7 +199,8 @@ impl JavaCall {
             return Err(());
         }
 
-        let mut frame = Frame::new(self.mir.clone());
+        let frame_id = thread.frames.len() + 1;
+        let mut frame = Frame::new(self.mir.clone(), frame_id);
 
         //JVM spec, 2.6.1
         let locals = &mut frame.local;
@@ -229,6 +236,23 @@ impl JavaCall {
 
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
+    }
+
+    fn debug(&self) {
+        let cls_name = {
+            self.mir.method.class.lock().unwrap().name.clone()
+        };
+        let name = self.mir.method.name.clone();
+        let desc = self.mir.method.desc.clone();
+        let id = vec![
+            cls_name.as_slice(),
+            name.as_slice(),
+            desc.as_slice()
+        ].join(util::PATH_DELIMITER);
+        info!("invoke method = {} static={} native={}",
+              String::from_utf8_lossy(&id),
+              self.mir.method.is_static(),
+              self.mir.method.is_native());
     }
 }
 

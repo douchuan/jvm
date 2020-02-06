@@ -92,7 +92,8 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             let mut class = class.lock().unwrap();
             class.state = State::FullyIni;
 
-            let mir = class.get_this_class_method(b"()V", b"<clinit>");
+            let id = util::new_id_ref(b"<clinit>", b"()V");
+            let mir = class.get_this_class_method(id);
             (mir, class.name.clone())
         };
 
@@ -289,22 +290,19 @@ impl ArrayClassObject {
 //open api
 impl Class {
     //todo: confirm static method
-    pub fn get_static_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        self.get_class_method(desc, name)
-    }
-
-    pub fn get_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = new_id_ref(desc, name);
+    pub fn get_static_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(id, true)
     }
 
-    pub fn get_this_class_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = new_id_ref(desc, name);
+    pub fn get_class_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+        self.get_class_method_inner(id, true)
+    }
+
+    pub fn get_this_class_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(id, false)
     }
 
-    pub fn get_virtual_method(&self, desc: &[u8], name: &[u8]) -> Result<MethodIdRef, ()> {
-        let id = new_id_ref(desc, name);
+    pub fn get_virtual_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_virtual_method_inner(id)
     }
 
@@ -346,12 +344,9 @@ impl Class {
     pub fn put_field_value2(
         &self,
         mut receiver: OopRef,
-        cls: &[u8],
-        desc: &[u8],
-        name: &[u8],
+        id: BytesRef,
         v: OopRef,
     ) {
-        let id = new_id_ref2(cls, desc, name);
         let fir = self.get_field_id(id, false);
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
@@ -399,8 +394,7 @@ impl Class {
         }
     }
 
-    pub fn put_static_field_value2(&mut self, cls: &[u8], desc: &[u8], name: &[u8], v: OopRef) {
-        let id = new_id_ref2(cls, desc, name);
+    pub fn put_static_field_value2(&mut self, id: BytesRef, v: OopRef) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
                 let fid = cls_obj.static_fields.get(&id);
@@ -412,7 +406,7 @@ impl Class {
                             .unwrap()
                             .lock()
                             .unwrap()
-                            .put_static_field_value2(cls, desc, name, v);
+                            .put_static_field_value2(id, v);
                     }
                 }
             }
@@ -771,14 +765,4 @@ impl Class {
             None => return Err(()),
         }
     }
-}
-
-fn new_id_ref(desc: &[u8], name: &[u8]) -> BytesRef {
-    let id = vec![desc, name].join(PATH_DELIMITER);
-    new_ref!(id)
-}
-
-fn new_id_ref2(cls: &[u8], desc: &[u8], name: &[u8]) -> BytesRef {
-    let id = vec![cls, desc, name].join(PATH_DELIMITER);
-    new_ref!(id)
 }

@@ -19,6 +19,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 pub struct Frame {
+    pub frame_id: usize, //for debug
     class: ClassRef,
     //avoid lock class to access cp
     cp: ConstantPool,
@@ -36,7 +37,7 @@ pub struct Frame {
 
 //new
 impl Frame {
-    pub fn new(mir: MethodIdRef) -> Self {
+    pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
         let class = mir.method.class.clone();
         let cp = {
             let class = class.lock().unwrap();
@@ -52,6 +53,7 @@ impl Frame {
                 let stack = Stack::new(code.max_stack as usize);
                 let code = code.code.clone();
                 Self {
+                    frame_id,
                     class,
                     cp,
                     mir,
@@ -66,6 +68,7 @@ impl Frame {
             }
 
             None => Self {
+                frame_id,
                 class,
                 cp: Arc::new(Box::new(Vec::new())),
                 mir,
@@ -83,7 +86,12 @@ impl Frame {
 
 impl Frame {
     pub fn interp(&mut self, thread: &mut JavaThread) {
+        let frame_id = self.frame_id;
         //for debug
+        let cls_name = {
+            self.mir.method.class.lock().unwrap().name.clone()
+        };
+        let cls_name = String::from_utf8_lossy(cls_name.as_slice());
         let method = self.mir.method.get_id();
         let method = String::from_utf8_lossy(method.as_slice());
 
@@ -92,7 +100,8 @@ impl Frame {
             match code {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
-                    trace!("interp: {:?} ({}) {}", op_code, *code, method);
+                    trace!("interp: {:?} ({}/{}) {} {}", op_code, *code, frame_id, method, cls_name);
+
                     match op_code {
                         OpCode::ireturn => {
                             self.ireturn();
@@ -316,12 +325,14 @@ impl Frame {
                         OpCode::jsr_w => self.jsr_w(),
                         _ => (),
                     }
-                }
-                None => break,
-            }
 
-            if thread.is_meet_ex() {
-                break;
+                    if thread.is_meet_ex() {
+                        error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
+                        break;
+                    }
+                }
+
+                None => break,
             }
         }
     }
@@ -414,7 +425,6 @@ impl Frame {
             //create Throwable obj, will call Throwable.fillInStackTrace that
             //need browse all jt.frames to get debug info.
             //But, 当前和之前的frame，已经被locked，所以会导致失败。
-            //
             //所以，必须使所有JavaCall出栈 并释放了全部的 jt.frames lock,
             // ex_oop 才能在JavaThread中创建
             ex_oop: None,
@@ -512,7 +522,7 @@ impl Frame {
         assert_eq!(fir.field.is_static(), is_static);
 
         trace!(
-            "put_field_helper = {}, is_static = {}",
+            "put_field_helper={}, is_static={}",
             String::from_utf8_lossy(fir.field.get_id().as_slice()),
             is_static
         );

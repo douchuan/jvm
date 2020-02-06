@@ -25,13 +25,7 @@ pub fn get_field_ref(
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        let id = vec![
-            class.name.deref().as_slice(),
-            typ.deref().as_slice(),
-            name.deref().as_slice(),
-        ]
-        .join(PATH_DELIMITER);
-        new_ref!(id)
+        util::new_id_ref2(class.name.as_slice(), name.as_slice(), typ.as_slice())
     };
 
     //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
@@ -67,7 +61,7 @@ impl Field {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
-        let id = vec![class_name, desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
+        let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let id = new_ref!(id);
         let acc_flags = fi.acc_flags;

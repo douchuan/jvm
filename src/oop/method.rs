@@ -37,27 +37,14 @@ pub fn get_method_ref(
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
+    let id = util::new_id_ref(name.as_slice(), typ.as_slice());
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_class_method(typ.as_slice(), name.as_slice())
+        class.get_class_method(id)
     } else {
         // invokeinterface
-        class.get_virtual_method(typ.as_slice(), name.as_slice())
+        class.get_virtual_method(id)
     };
-
-    //debug info
-    match &mir {
-        Ok(mir) => {
-            trace!(
-                "method={}:{}, native={}, static={}",
-                String::from_utf8_lossy(class.name.as_slice()),
-                String::from_utf8_lossy(mir.method.get_id().as_slice()),
-                mir.method.is_native(),
-                mir.method.is_static()
-            );
-        }
-        Err(_) => (),
-    }
 
     mir
 }
@@ -84,7 +71,7 @@ impl Method {
     pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: ClassRef) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
-        let id = vec![desc.as_slice(), name.as_slice()].join(PATH_DELIMITER);
+        let id = vec![name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
         let id = new_ref!(id);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;

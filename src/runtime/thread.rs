@@ -84,6 +84,7 @@ impl JavaThread {
         let cls = require_class3(None, ex.cls_name).unwrap();
         let ex_obj = OopDesc::new_inst(cls.clone());
 
+        info!("invoke throwable ctor");
         //invoke ctor
         match &ex.msg {
             Some(msg) => {
@@ -187,7 +188,7 @@ impl JavaThread {
                         desc.as_slice(),
                         name.as_slice()
                     ].join(util::PATH_DELIMITER);
-                    trace!("{} {}", " ".repeat(count), String::from_utf8_lossy(&id));
+                    trace!("{} ({}){} ex={}", " ".repeat(count), frame.frame_id, String::from_utf8_lossy(&id), frame.meet_ex_here);
                 }
                 _ => warn!("locked frame"),
             }
@@ -195,26 +196,6 @@ impl JavaThread {
             count += 1;
         }
     }
-
-    /*
-    fn build_frames(&self) -> Vec<FrameRef> {
-        let mut frames = Vec::new();
-
-        for it in self.frames.iter() {
-            frames.push(it.clone());
-            match it.try_lock() {
-                Ok(it) => {
-                    if it.meet_ex_here {
-                        break;
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
-
-        frames
-    }
-    */
 }
 
 impl JavaMainThread {
@@ -226,7 +207,8 @@ impl JavaMainThread {
         let mir = {
             let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
             let class = class.lock().unwrap();
-            class.get_static_method(b"([Ljava/lang/String;)V", b"main")
+            let id = util::new_id_ref(b"main", b"([Ljava/lang/String;)V");
+            class.get_static_method(id)
         };
 
         match mir {
