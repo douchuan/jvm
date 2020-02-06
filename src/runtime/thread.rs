@@ -58,7 +58,7 @@ impl JavaThread {
 
             match ex {
                 Some(ex) => {
-                    warn!(
+                    info!(
                         "handle exception = {}",
                         String::from_utf8_lossy(ex.cls_name)
                     );
@@ -83,7 +83,6 @@ impl JavaThread {
         let cls = require_class3(None, ex.cls_name).unwrap();
         let ex_obj = OopDesc::new_inst(cls.clone());
 
-        info!("invoke throwable ctor");
         //invoke ctor
         match &ex.msg {
             Some(msg) => {

@@ -7,6 +7,7 @@ pub struct Local {
     locals: Vec<Slot>,
 }
 
+//添加类型信息, set_xx 是检测之
 impl Local {
     pub fn new(size: usize) -> Self {
         let mut locals = Vec::with_capacity(size);
