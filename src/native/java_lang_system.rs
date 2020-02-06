@@ -72,7 +72,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
 
             let mir = {
                 let cls = cls.lock().unwrap();
-                let id = util::new_id_ref(
+                let id = util::new_method_id(
                     b"put",
                     b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
                 );

@@ -16,7 +16,7 @@ pub struct JavaCall {
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<OopRef>) {
     let ctor = {
         let cls = cls.lock().unwrap();
-        let id = util::new_id_ref(b"<init>", desc);
+        let id = util::new_method_id(b"<init>", desc);
         cls.get_this_class_method(id).unwrap()
     };
 

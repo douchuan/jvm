@@ -197,7 +197,7 @@ impl JavaMainThread {
         let mir = {
             let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
             let class = class.lock().unwrap();
-            let id = util::new_id_ref(b"main", b"([Ljava/lang/String;)V");
+            let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
             class.get_static_method(id)
         };
 

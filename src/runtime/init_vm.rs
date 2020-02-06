@@ -18,10 +18,10 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
-        let id = util::new_id_ref2(J_THREAD, b"eetop", b"J");
+        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
         cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
-        let id = util::new_id_ref2(J_THREAD, b"priority", b"I");
+        let id = util::new_field_id(J_THREAD, b"priority", b"I");
         cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));
     }
 
@@ -38,7 +38,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     {
         let mut cls = thread_cls.lock().unwrap();
-        let id = util::new_id_ref2(J_THREAD, b"group", b"Ljava/lang/ThreadGroup;");
+        let id = util::new_field_id(J_THREAD, b"group", b"Ljava/lang/ThreadGroup;");
         cls.put_field_value2(init_thread_oop.clone(), id, main_thread_group.clone());
     }
 
@@ -81,7 +81,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
         let cls = cls.lock().unwrap();
-        let id = util::new_id_ref(b"initializeSystemClass", b"()V");
+        let id = util::new_method_id(b"initializeSystemClass", b"()V");
         cls.get_static_method(id).unwrap()
     };
     let mut jc =
@@ -114,7 +114,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
     {
         let mut cls = class_obj.lock().unwrap();
-        let id = util::new_id_ref2(J_CLASS, b"useCaches", b"Z");
+        let id = util::new_field_id(J_CLASS, b"useCaches", b"Z");
         cls.put_static_field_value2(id, OopDesc::new_int(0));
     }
 }

@@ -25,7 +25,7 @@ pub fn get_field_ref(
         let name = name.unwrap();
         let typ = typ.unwrap();
 
-        util::new_id_ref2(class.name.as_slice(), name.as_slice(), typ.as_slice())
+        util::new_field_id(class.name.as_slice(), name.as_slice(), typ.as_slice())
     };
 
     //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));

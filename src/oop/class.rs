@@ -92,7 +92,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             let mut class = class.lock().unwrap();
             class.state = State::FullyIni;
 
-            let id = util::new_id_ref(b"<clinit>", b"()V");
+            let id = util::new_method_id(b"<clinit>", b"()V");
             let mir = class.get_this_class_method(id);
             (mir, class.name.clone())
         };

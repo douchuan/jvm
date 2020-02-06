@@ -25,12 +25,3 @@ macro_rules! new_ref {
         std::sync::Arc::new(Box::new($name));
     };
 }
-
-/*
-#[macro_export]
-macro_rules! new_id_ref {
-    ($cls:ident, $method:ident, $desc:ident) => {
-        let v = vec![$cls, $method, $desc].join(util);
-    }
-}
-*/
