@@ -97,24 +97,7 @@ impl JavaCall {
         if self.mir.method.is_native() {
             self.invoke_native(jt, stack);
         } else {
-            let resolve_twice = if force_no_resolve {
-                false
-            } else {
-                self.mir.method.is_abstract() || (self.mir.method.is_public() && !self.mir.method.is_final())
-            };
-            if resolve_twice {
-                let this = self.args[0].clone();
-                let this = this.lock().unwrap();
-                match &this.v {
-                    Oop::Inst(inst) => {
-                        let cls = inst.class.clone();
-                        let cls = cls.lock().unwrap();
-                        let id = self.mir.method.get_id();
-                        self.mir = cls.get_virtual_method(id).unwrap();
-                    },
-                    _ => ()
-                };
-            }
+            self.resolve_virtual_method(force_no_resolve);
             self.invoke_java(jt, stack);
         }
 
@@ -254,6 +237,27 @@ impl JavaCall {
 
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
+    }
+
+    fn resolve_virtual_method(&mut self, force_no_resolve: bool) {
+        let resolve_twice = if force_no_resolve {
+            false
+        } else {
+            self.mir.method.is_abstract() || (self.mir.method.is_public() && !self.mir.method.is_final())
+        };
+        if resolve_twice {
+            let this = self.args[0].clone();
+            let this = this.lock().unwrap();
+            match &this.v {
+                Oop::Inst(inst) => {
+                    let cls = inst.class.clone();
+                    let cls = cls.lock().unwrap();
+                    let id = self.mir.method.get_id();
+                    self.mir = cls.get_virtual_method(id).unwrap();
+                },
+                _ => ()
+            };
+        }
     }
 
     fn debug(&self) {
