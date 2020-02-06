@@ -1,18 +1,23 @@
+#![allow(non_snake_case)]
+
 use crate::oop::{ClassRef, OopRef};
 use crate::runtime::JavaThread;
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-mod java_lang_class;
-mod java_lang_double;
-mod java_lang_float;
-mod java_lang_object;
-mod java_lang_system;
-mod java_lang_thread;
-mod java_lang_throwable;
-mod java_security_accesscontroller;
-mod sun_misc_vm;
+mod java_io_FileDescriptor;
+mod java_io_FileInputStream;
+mod java_lang_Class;
+mod java_lang_Double;
+mod java_lang_Float;
+mod java_lang_Object;
+mod java_lang_System;
+mod java_lang_Thread;
+mod java_lang_Throwable;
+mod java_security_AccessController;
+mod sun_misc_Unsafe;
+mod sun_misc_VM;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
@@ -68,21 +73,24 @@ pub fn init() {
     lazy_static::initialize(&NATIVES);
 
     let natives = vec![
-        ("java/lang/Class", java_lang_class::get_native_methods()),
-        ("java/lang/Double", java_lang_double::get_native_methods()),
-        ("java/lang/Float", java_lang_float::get_native_methods()),
-        ("java/lang/Object", java_lang_object::get_native_methods()),
-        ("java/lang/System", java_lang_system::get_native_methods()),
-        ("java/lang/Thread", java_lang_thread::get_native_methods()),
+        ("java/io/FileDescriptor", java_io_FileDescriptor::get_native_methods()),
+        ("java/io/FileInputStream", java_io_FileInputStream::get_native_methods()),
+        ("java/lang/Class", java_lang_Class::get_native_methods()),
+        ("java/lang/Double", java_lang_Double::get_native_methods()),
+        ("java/lang/Float", java_lang_Float::get_native_methods()),
+        ("java/lang/Object", java_lang_Object::get_native_methods()),
+        ("java/lang/System", java_lang_System::get_native_methods()),
+        ("java/lang/Thread", java_lang_Thread::get_native_methods()),
         (
             "java/lang/Throwable",
-            java_lang_throwable::get_native_methods(),
+            java_lang_Throwable::get_native_methods(),
         ),
         (
             "java/security/AccessController",
-            java_security_accesscontroller::get_native_methods(),
+            java_security_AccessController::get_native_methods(),
         ),
-        ("sun/misc/VM", sun_misc_vm::get_native_methods()),
+        ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
+        ("sun/misc/VM", sun_misc_VM::get_native_methods()),
     ];
 
     util::sync_call_ctx(&NATIVES, |h| {
@@ -96,7 +104,7 @@ pub fn init() {
         });
     });
 
-    java_lang_class::init();
+    java_lang_Class::init();
 }
 
 impl JNINativeMethodStruct {
