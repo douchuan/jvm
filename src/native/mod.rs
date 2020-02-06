@@ -12,6 +12,7 @@ mod java_lang_system;
 mod java_lang_thread;
 mod java_lang_throwable;
 mod java_security_accesscontroller;
+mod sun_misc_vm;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
@@ -81,6 +82,7 @@ pub fn init() {
             "java/security/AccessController",
             java_security_accesscontroller::get_native_methods(),
         ),
+        ("sun/misc/VM", sun_misc_vm::get_native_methods()),
     ];
 
     util::sync_call_ctx(&NATIVES, |h| {
