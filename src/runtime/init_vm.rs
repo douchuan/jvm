@@ -18,19 +18,11 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
-        let id = util::new_id_ref2( J_THREAD, b"eetop", b"J");
-        cls.put_field_value2(
-            init_thread_oop.clone(),
-            id,
-            oop::OopDesc::new_long(0),
-        );
+        let id = util::new_id_ref2(J_THREAD, b"eetop", b"J");
+        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
-        let id = util::new_id_ref2( J_THREAD, b"priority", b"I");
-        cls.put_field_value2(
-            init_thread_oop.clone(),
-            id,
-            oop::OopDesc::new_int(5),
-        );
+        let id = util::new_id_ref2(J_THREAD, b"priority", b"I");
+        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -46,16 +38,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     {
         let mut cls = thread_cls.lock().unwrap();
-        let id = util::new_id_ref2(
-            J_THREAD,
-            b"group",
-            b"Ljava/lang/ThreadGroup;",
-        );
-        cls.put_field_value2(
-            init_thread_oop.clone(),
-            id,
-            main_thread_group.clone(),
-        );
+        let id = util::new_id_ref2(J_THREAD, b"group", b"Ljava/lang/ThreadGroup;");
+        cls.put_field_value2(init_thread_oop.clone(), id, main_thread_group.clone());
     }
 
     let _ = do_init(J_INPUT_STREAM, jt);
@@ -130,7 +114,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
     {
         let mut cls = class_obj.lock().unwrap();
-        let id = util::new_id_ref2(J_CLASS, b"useCaches",  b"Z");
+        let id = util::new_id_ref2(J_CLASS, b"useCaches", b"Z");
         cls.put_static_field_value2(id, OopDesc::new_int(0));
     }
 }

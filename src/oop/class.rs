@@ -341,12 +341,7 @@ impl Class {
         }
     }
 
-    pub fn put_field_value2(
-        &self,
-        mut receiver: OopRef,
-        id: BytesRef,
-        v: OopRef,
-    ) {
+    pub fn put_field_value2(&self, mut receiver: OopRef, id: BytesRef, v: OopRef) {
         let fir = self.get_field_id(id, false);
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {

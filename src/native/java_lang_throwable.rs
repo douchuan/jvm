@@ -64,19 +64,11 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
         let id = util::new_id_ref2(
             b"java/lang/Throwable",
             b"stackTrace",
-            b"[Ljava/lang/StackTraceElement;");
-        cls.put_field_value2(
-            throwable_oop.clone(),
-            id,
-            oop::consts::get_null());
-        let id = util::new_id_ref2(
-            b"java/lang/Throwable",
-            b"backtrace",
-            b"Ljava/lang/Object;");
-        cls.put_field_value2(
-            throwable_oop.clone(),
-            id,
-            stack_trace_ary);
+            b"[Ljava/lang/StackTraceElement;",
+        );
+        cls.put_field_value2(throwable_oop.clone(), id, oop::consts::get_null());
+        let id = util::new_id_ref2(b"java/lang/Throwable", b"backtrace", b"Ljava/lang/Object;");
+        cls.put_field_value2(throwable_oop.clone(), id, stack_trace_ary);
     }
 
     Ok(Some(throwable_oop))

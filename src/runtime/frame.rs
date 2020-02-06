@@ -32,7 +32,7 @@ pub struct Frame {
     pub return_v: Option<OopRef>,
 
     pub meet_ex_here: bool,
-    pub re_throw_ex: Option<OopRef>
+    pub re_throw_ex: Option<OopRef>,
 }
 
 //new
@@ -88,9 +88,7 @@ impl Frame {
     pub fn interp(&mut self, thread: &mut JavaThread) {
         let frame_id = self.frame_id;
         //for debug
-        let cls_name = {
-            self.mir.method.class.lock().unwrap().name.clone()
-        };
+        let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
         let cls_name = String::from_utf8_lossy(cls_name.as_slice());
         let method = self.mir.method.get_id();
         let method = String::from_utf8_lossy(method.as_slice());
@@ -100,7 +98,14 @@ impl Frame {
             match code {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
-                    trace!("interp: {:?} ({}/{}) {} {}", op_code, *code, frame_id, method, cls_name);
+                    trace!(
+                        "interp: {:?} ({}/{}) {} {}",
+                        op_code,
+                        *code,
+                        frame_id,
+                        method,
+                        cls_name
+                    );
 
                     match op_code {
                         OpCode::ireturn => {

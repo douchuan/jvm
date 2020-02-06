@@ -67,14 +67,13 @@ impl JavaThread {
                     self.do_handle_ex(ex_oop);
                 }
 
-                None => unreachable!()
+                None => unreachable!(),
             }
         }
     }
 }
 
 impl JavaThread {
-
     //all frames lock released
     fn is_invoke_ended(&self) -> bool {
         self.frames.iter().all(|f| f.try_lock().is_ok())
@@ -92,23 +91,13 @@ impl JavaThread {
                 let msg = Vec::from(msg.as_str());
                 let msg = new_ref!(msg);
                 let args = vec![ex_obj.clone(), OopDesc::new_str(msg)];
-                runtime::java_call::invoke_ctor(
-                    self,
-                    cls.clone(),
-                    b"(Ljava/lang/String;)V",
-                    args,
-                );
-            },
+                runtime::java_call::invoke_ctor(self, cls.clone(), b"(Ljava/lang/String;)V", args);
+            }
             None => {
                 //No arg ctor
                 let args = vec![ex_obj.clone()];
-                runtime::java_call::invoke_ctor(
-                    self,
-                    cls.clone(),
-                    b"()V",
-                    args,
-                );
-            },
+                runtime::java_call::invoke_ctor(self, cls.clone(), b"()V", args);
+            }
         }
 
         ex_obj
@@ -123,8 +112,8 @@ impl JavaThread {
             match last_frame.try_lock() {
                 Ok(mut frame) => {
                     assert!(frame.meet_ex_here);
-                },
-                _ => unreachable!()
+                }
+                _ => unreachable!(),
             }
         }
 
@@ -138,27 +127,26 @@ impl JavaThread {
                     self.frames.push(frame.clone());
 
                     match frame.try_lock() {
-                        Ok(mut frame) => {
-                            match rethrow_ex.clone() {
-                                Some(ex) => {
-                                    frame.handle_exception(self, ex);
-                                    rethrow_ex = frame.re_throw_ex.take();
-                                    last_return_value = frame.return_v.take();
-                                },
-                                None => {
-                                    let sig = signature::MethodSignature::new(frame.mir.method.desc.as_slice());
-                                    runtime::java_call::set_return(
-                                        &mut frame.stack,
-                                        sig.retype.clone(),
-                                        last_return_value.take()
-                                    );
-                                    frame.interp(self);
-                                    last_return_value = frame.return_v.take();
-                                }
-
+                        Ok(mut frame) => match rethrow_ex.clone() {
+                            Some(ex) => {
+                                frame.handle_exception(self, ex);
+                                rethrow_ex = frame.re_throw_ex.take();
+                                last_return_value = frame.return_v.take();
                             }
-                        }
-                        _ => unreachable!()
+                            None => {
+                                let sig = signature::MethodSignature::new(
+                                    frame.mir.method.desc.as_slice(),
+                                );
+                                runtime::java_call::set_return(
+                                    &mut frame.stack,
+                                    sig.retype.clone(),
+                                    last_return_value.take(),
+                                );
+                                frame.interp(self);
+                                last_return_value = frame.return_v.take();
+                            }
+                        },
+                        _ => unreachable!(),
                     }
                 }
 
@@ -180,15 +168,17 @@ impl JavaThread {
                         let cls = frame.mir.method.class.lock().unwrap();
                         cls.name.clone()
                     };
-                    let (desc, name) = {
-                        (frame.mir.method.desc.clone(),frame.mir.method.name.clone())
-                    };
-                    let id = vec![
-                        cls_name.as_slice(),
-                        desc.as_slice(),
-                        name.as_slice()
-                    ].join(util::PATH_DELIMITER);
-                    trace!("{} ({}){} ex={}", " ".repeat(count), frame.frame_id, String::from_utf8_lossy(&id), frame.meet_ex_here);
+                    let (desc, name) =
+                        { (frame.mir.method.desc.clone(), frame.mir.method.name.clone()) };
+                    let id = vec![cls_name.as_slice(), desc.as_slice(), name.as_slice()]
+                        .join(util::PATH_DELIMITER);
+                    trace!(
+                        "{} ({}){} ex={}",
+                        " ".repeat(count),
+                        frame.frame_id,
+                        String::from_utf8_lossy(&id),
+                        frame.meet_ex_here
+                    );
                 }
                 _ => warn!("locked frame"),
             }
