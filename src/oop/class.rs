@@ -102,7 +102,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
                 info!("call <clinit>/{}", String::from_utf8_lossy(name.as_slice()));
                 let mut stack = Stack::new(0);
                 let jc = JavaCall::new(thread, &mut stack, mir);
-                jc.unwrap().invoke(thread, &mut stack);
+                jc.unwrap().invoke(thread, &mut stack, true);
             }
             _ => (),
         }

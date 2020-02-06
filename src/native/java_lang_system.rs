@@ -89,7 +89,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
 
                 let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
                 let mut stack = runtime::Stack::new(1);
-                jc.invoke(jt, &mut stack);
+                jc.invoke(jt, &mut stack, false);
 
                 //fixme: should be removed
                 if jt.is_meet_ex() {

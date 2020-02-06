@@ -99,12 +99,12 @@ impl Frame {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
                     trace!(
-                        "interp: {:?} ({}/{}) {} {}",
+                        "interp: {:?} ({}/{}) {}:{}",
                         op_code,
                         *code,
                         frame_id,
-                        method,
-                        cls_name
+                        cls_name,
+                        method
                     );
 
                     match op_code {
@@ -573,7 +573,7 @@ impl Frame {
         }
     }
 
-    fn invoke_helper(&mut self, jt: &mut JavaThread, is_static: bool, idx: usize) {
+    fn invoke_helper(&mut self, jt: &mut JavaThread, is_static: bool, idx: usize, force_no_resolve: bool) {
         let mir = { oop::method::get_method_ref(jt, &self.cp, idx) };
 
         match mir {
@@ -581,7 +581,7 @@ impl Frame {
                 assert_eq!(mir.method.is_static(), is_static);
 
                 match runtime::java_call::JavaCall::new(jt, &mut self.stack, mir) {
-                    Ok(mut jc) => jc.invoke(jt, &mut self.stack),
+                    Ok(mut jc) => jc.invoke(jt, &mut self.stack, force_no_resolve),
 
                     //ignored, let interp main loop handle exception
                     _ => (),
@@ -2051,17 +2051,17 @@ impl Frame {
 
     pub fn invoke_virtual(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, false, cp_idx as usize);
+        self.invoke_helper(thread, false, cp_idx as usize, false);
     }
 
     pub fn invoke_special(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, false, cp_idx as usize);
+        self.invoke_helper(thread, false, cp_idx as usize, true);
     }
 
     pub fn invoke_static(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, true, cp_idx as usize);
+        self.invoke_helper(thread, true, cp_idx as usize, true);
     }
 
     pub fn invoke_interface(&mut self, thread: &mut JavaThread) {
@@ -2073,7 +2073,7 @@ impl Frame {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
 
-        self.invoke_helper(thread, false, cp_idx as usize);
+        self.invoke_helper(thread, false, cp_idx as usize, false);
     }
 
     pub fn invoke_dynamic(&mut self) {

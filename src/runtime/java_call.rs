@@ -22,7 +22,7 @@ pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oo
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);
     let mut stack = Stack::new(0);
-    jc.invoke(jt, &mut stack);
+    jc.invoke(jt, &mut stack, false);
 }
 
 impl JavaCall {
@@ -91,12 +91,30 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+    pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack, force_no_resolve: bool) {
         self.debug();
 
         if self.mir.method.is_native() {
             self.invoke_native(jt, stack);
         } else {
+            let resolve_twice = if force_no_resolve {
+                false
+            } else {
+                self.mir.method.is_abstract() || (self.mir.method.is_public() && !self.mir.method.is_final())
+            };
+            if resolve_twice {
+                let this = self.args[0].clone();
+                let this = this.lock().unwrap();
+                match &this.v {
+                    Oop::Inst(inst) => {
+                        let cls = inst.class.clone();
+                        let cls = cls.lock().unwrap();
+                        let id = self.mir.method.get_id();
+                        self.mir = cls.get_virtual_method(id).unwrap();
+                    },
+                    _ => ()
+                };
+            }
             self.invoke_java(jt, stack);
         }
 

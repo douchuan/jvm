@@ -204,7 +204,7 @@ impl JavaMainThread {
             Ok(mir) => {
                 let mut stack = self.build_stack();
                 match JavaCall::new(&mut jt, &mut stack, mir) {
-                    Ok(mut jc) => jc.invoke(&mut jt, &mut stack),
+                    Ok(mut jc) => jc.invoke(&mut jt, &mut stack, true),
                     _ => unreachable!(),
                 }
             }

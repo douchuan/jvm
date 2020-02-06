@@ -144,4 +144,8 @@ impl Method {
     pub fn is_native(&self) -> bool {
         (self.acc_flags & ACC_NATIVE) == ACC_NATIVE
     }
+
+    pub fn is_abstract(&self) -> bool {
+        (self.acc_flags & ACC_ABSTRACT) == ACC_ABSTRACT
+    }
 }
