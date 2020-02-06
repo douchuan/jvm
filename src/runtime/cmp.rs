@@ -79,17 +79,13 @@ pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {
             {
                 let cls = s.lock().unwrap();
                 let (s_dimension, s_value_type) = match &cls.kind {
-                    oop::class::ClassKind::TypeArray(cls) => {
-                        (cls.get_dimension(), cls.value_type)
-                    }
+                    oop::class::ClassKind::TypeArray(cls) => (cls.get_dimension(), cls.value_type),
                     _ => unreachable!(),
                 };
 
                 let cls = t.lock().unwrap();
                 let (t_dimension, t_value_type) = match &cls.kind {
-                    oop::class::ClassKind::TypeArray(cls) => {
-                        (cls.get_dimension(), cls.value_type)
-                    }
+                    oop::class::ClassKind::TypeArray(cls) => (cls.get_dimension(), cls.value_type),
                     _ => unreachable!(),
                 };
                 return s_dimension == t_dimension && s_value_type == t_value_type;

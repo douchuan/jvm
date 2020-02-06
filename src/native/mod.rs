@@ -73,8 +73,14 @@ pub fn init() {
     lazy_static::initialize(&NATIVES);
 
     let natives = vec![
-        ("java/io/FileDescriptor", java_io_FileDescriptor::get_native_methods()),
-        ("java/io/FileInputStream", java_io_FileInputStream::get_native_methods()),
+        (
+            "java/io/FileDescriptor",
+            java_io_FileDescriptor::get_native_methods(),
+        ),
+        (
+            "java/io/FileInputStream",
+            java_io_FileInputStream::get_native_methods(),
+        ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
         ("java/lang/Double", java_lang_Double::get_native_methods()),
         ("java/lang/Float", java_lang_Float::get_native_methods()),

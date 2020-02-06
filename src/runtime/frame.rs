@@ -565,7 +565,13 @@ impl Frame {
         }
     }
 
-    fn invoke_helper(&mut self, jt: &mut JavaThread, is_static: bool, idx: usize, force_no_resolve: bool) {
+    fn invoke_helper(
+        &mut self,
+        jt: &mut JavaThread,
+        is_static: bool,
+        idx: usize,
+        force_no_resolve: bool,
+    ) {
         let mir = { oop::method::get_method_ref(jt, &self.cp, idx) };
 
         match mir {
@@ -943,7 +949,7 @@ impl Frame {
         match &rf.v {
             Oop::Array(ary) => {
                 let len = ary.get_length();
-//                info!("aaload pos={}, len={}", pos, len);
+                //                info!("aaload pos={}, len={}", pos, len);
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
@@ -1255,7 +1261,7 @@ impl Frame {
     pub fn iadd(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
-//        info!("iadd v2={}, v1={}, v={}", v2, v1, (v1 + v2));
+        //        info!("iadd v2={}, v1={}, v={}", v2, v1, (v1 + v2));
         self.stack.push_int(v1 + v2);
     }
 
@@ -1281,7 +1287,7 @@ impl Frame {
     pub fn isub(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
-//        info!("isub v2={}, v1={}, v={}", v2, v1, (v1-v2));
+        //        info!("isub v2={}, v1={}, v={}", v2, v1, (v1-v2));
         self.stack.push_int(v1 - v2);
     }
 
@@ -1441,7 +1447,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         let s = v2 & 0x1F;
-//        info!("ishl v2={}, v1={}, s={}, v={}", v2, v1, s, (v1 << s));
+        //        info!("ishl v2={}, v1={}, s={}, v={}", v2, v1, s, (v1 << s));
         self.stack.push_int(v1 << s);
     }
 
@@ -2179,7 +2185,7 @@ impl Frame {
     pub fn anew_array(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         let length = self.stack.pop_int();
-//        info!("anew_array length={}", length);
+        //        info!("anew_array length={}", length);
         if length < 0 {
             self.meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
@@ -2221,7 +2227,10 @@ impl Frame {
                 (name, class.class_loader.clone())
             };
 
-            trace!("anew_array name={}", String::from_utf8_lossy(name.as_slice()));
+            trace!(
+                "anew_array name={}",
+                String::from_utf8_lossy(name.as_slice())
+            );
             match runtime::require_class(cl, name) {
                 Some(ary_cls_obj) => {
                     {
@@ -2349,8 +2358,8 @@ impl Frame {
                     warn!("{}", msg);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
-            },
-            _ => unimplemented!()
+            }
+            _ => unimplemented!(),
         }
     }
 

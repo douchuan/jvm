@@ -6,13 +6,7 @@ use crate::runtime::JavaThread;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![
-        new_fn(
-            "initIDs",
-            "()V",
-            Box::new(jvm_initIDs),
-        ),
-    ]
+    vec![new_fn("initIDs", "()V", Box::new(jvm_initIDs))]
 }
 
 fn jvm_initIDs(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

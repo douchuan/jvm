@@ -243,7 +243,8 @@ impl JavaCall {
         let resolve_twice = if force_no_resolve {
             false
         } else {
-            self.mir.method.is_abstract() || (self.mir.method.is_public() && !self.mir.method.is_final())
+            self.mir.method.is_abstract()
+                || (self.mir.method.is_public() && !self.mir.method.is_final())
         };
         if resolve_twice {
             let this = self.args[0].clone();
@@ -254,8 +255,8 @@ impl JavaCall {
                     let cls = cls.lock().unwrap();
                     let id = self.mir.method.get_id();
                     self.mir = cls.get_virtual_method(id).unwrap();
-                },
-                _ => ()
+                }
+                _ => (),
             };
         }
     }
