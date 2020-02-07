@@ -309,7 +309,7 @@ pub struct ElementValuePair {
 
 #[derive(Debug, Clone)]
 pub struct AnnotationEntry {
-    pub type_index: U2,
+    pub type_name: BytesRef,
     pub pairs: Vec<ElementValuePair>,
 }
 

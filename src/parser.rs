@@ -455,20 +455,20 @@ trait AttrTypeParser {
     fn get_attr_local_var_table(&mut self) -> AttrType;
     fn get_attr_local_var_type_table(&mut self) -> AttrType;
     fn get_attr_deprecated(&mut self) -> AttrType;
-    fn get_attr_rt_vis_annotations(&mut self) -> AttrType;
-    fn get_attr_rt_in_vis_annotations(&mut self) -> AttrType;
-    fn get_attr_rt_vis_parameter_annotations(&mut self) -> AttrType;
-    fn get_attr_rt_in_vis_parameter_annotations(&mut self) -> AttrType;
-    fn get_attr_annotation_default(&mut self) -> AttrType;
+    fn get_attr_rt_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_bootstrap_methods(&mut self) -> AttrType;
     fn get_attr_method_parameters(&mut self) -> AttrType;
     fn get_attr_unknown(&mut self) -> AttrType;
 }
 
 trait AttrTypeParserUtils {
-    fn get_attr_util_get_annotation(&mut self) -> attr_info::AnnotationEntry;
+    fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry;
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable;
-    fn get_attr_util_get_element_val(&mut self) -> attr_info::ElementValueType;
+    fn get_attr_util_get_element_val(&mut self, cp: &ConstantPool) -> attr_info::ElementValueType;
 }
 
 impl AttrTypeParser for Parser {
@@ -501,15 +501,15 @@ impl AttrTypeParser for Parser {
             AttrTag::LocalVariableTable => self.get_attr_local_var_table(),
             AttrTag::LocalVariableTypeTable => self.get_attr_local_var_type_table(),
             AttrTag::Deprecated => self.get_attr_deprecated(),
-            AttrTag::RuntimeVisibleAnnotations => self.get_attr_rt_vis_annotations(),
-            AttrTag::RuntimeInvisibleAnnotations => self.get_attr_rt_in_vis_annotations(),
+            AttrTag::RuntimeVisibleAnnotations => self.get_attr_rt_vis_annotations(cp),
+            AttrTag::RuntimeInvisibleAnnotations => self.get_attr_rt_in_vis_annotations(cp),
             AttrTag::RuntimeVisibleParameterAnnotations => {
-                self.get_attr_rt_vis_parameter_annotations()
+                self.get_attr_rt_vis_parameter_annotations(cp)
             }
             AttrTag::RuntimeInvisibleParameterAnnotations => {
-                self.get_attr_rt_in_vis_parameter_annotations()
+                self.get_attr_rt_in_vis_parameter_annotations(cp)
             }
-            AttrTag::AnnotationDefault => self.get_attr_annotation_default(),
+            AttrTag::AnnotationDefault => self.get_attr_annotation_default(cp),
             AttrTag::BootstrapMethods => self.get_attr_bootstrap_methods(),
             AttrTag::MethodParameters => self.get_attr_method_parameters(),
             AttrTag::Unknown => self.get_attr_unknown(),
@@ -726,49 +726,49 @@ impl AttrTypeParser for Parser {
         AttrType::Deprecated
     }
 
-    fn get_attr_rt_vis_annotations(&mut self) -> AttrType {
+    fn get_attr_rt_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::with_capacity(annotations_n as usize);
         for _ in 0..annotations_n {
-            annotations.push(self.get_attr_util_get_annotation());
+            annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeVisibleAnnotations { annotations }
     }
 
-    fn get_attr_rt_in_vis_annotations(&mut self) -> AttrType {
+    fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::with_capacity(annotations_n as usize);
         for _ in 0..annotations_n {
-            annotations.push(self.get_attr_util_get_annotation());
+            annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeInvisibleAnnotations { annotations }
     }
 
-    fn get_attr_rt_vis_parameter_annotations(&mut self) -> AttrType {
+    fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::with_capacity(annotations_n as usize);
         for _ in 0..annotations_n {
-            annotations.push(self.get_attr_util_get_annotation());
+            annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeVisibleParameterAnnotations { annotations }
     }
 
-    fn get_attr_rt_in_vis_parameter_annotations(&mut self) -> AttrType {
+    fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
         let annotations_n = self.get_u2();
         let mut annotations = Vec::with_capacity(annotations_n as usize);
         for _ in 0..annotations_n {
-            annotations.push(self.get_attr_util_get_annotation());
+            annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeInvisibleParameterAnnotations { annotations }
     }
 
-    fn get_attr_annotation_default(&mut self) -> AttrType {
+    fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
-        let default_value = self.get_attr_util_get_element_val();
+        let default_value = self.get_attr_util_get_element_val(cp);
         AttrType::AnnotationDefault { default_value }
     }
 
@@ -813,16 +813,17 @@ impl AttrTypeParser for Parser {
 }
 
 impl AttrTypeParserUtils for Parser {
-    fn get_attr_util_get_annotation(&mut self) -> attr_info::AnnotationEntry {
+    fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry {
         let type_index = self.get_u2();
         let pairs_n = self.get_u2();
         let mut pairs = Vec::with_capacity(pairs_n as usize);
         for _ in 0..pairs_n {
             let name_index = self.get_u2();
-            let value = self.get_attr_util_get_element_val();
+            let value = self.get_attr_util_get_element_val(cp);
             pairs.push(attr_info::ElementValuePair { name_index, value });
         }
-        attr_info::AnnotationEntry { type_index, pairs }
+        let type_name = get_utf8(cp, type_index as usize).unwrap();
+        attr_info::AnnotationEntry { type_name, pairs }
     }
 
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable {
@@ -840,7 +841,7 @@ impl AttrTypeParserUtils for Parser {
         }
     }
 
-    fn get_attr_util_get_element_val(&mut self) -> attr_info::ElementValueType {
+    fn get_attr_util_get_element_val(&mut self, cp: &ConstantPool) -> attr_info::ElementValueType {
         let tag = self.get_u1();
         match attr_info::ElementValueTag::from(tag) {
             attr_info::ElementValueTag::Byte => {
@@ -893,7 +894,7 @@ impl AttrTypeParserUtils for Parser {
                 attr_info::ElementValueType::Class { tag, index }
             }
             attr_info::ElementValueTag::Annotation => {
-                let value = self.get_attr_util_get_annotation();
+                let value = self.get_attr_util_get_annotation(cp);
                 let v = attr_info::AnnotationElementValue { value };
                 attr_info::ElementValueType::Annotation(v)
             }
@@ -901,7 +902,7 @@ impl AttrTypeParserUtils for Parser {
                 let n = self.get_u2();
                 let mut values = Vec::new();
                 for _ in 0..n {
-                    values.push(self.get_attr_util_get_element_val());
+                    values.push(self.get_attr_util_get_element_val(cp));
                 }
                 attr_info::ElementValueType::Array { n, values }
             }

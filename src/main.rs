@@ -32,7 +32,7 @@ todo list
   x. class mirror
     是底层class在上层的一个实例吗？为了与Oop统一管理
     classmirror field_value 个数和类型是什么？
-  x. refact fir mir, id clsName:methodName:desc
+  x. impl Type annotations
 */
 
 fn init_vm() {
