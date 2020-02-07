@@ -201,6 +201,16 @@ impl Class {
             ClassKind::ObjectArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
+                match &ary_class_obj.mirror {
+                    Some(mirror) => {
+                        let mut mirror = mirror.lock().unwrap();
+                        match &mut mirror.v {
+                            Oop::Mirror(mirror) => mirror.target = Some(self_ref),
+                            _ => unreachable!(),
+                        }
+                    }
+                    None => unreachable!(),
+                }
             }
 
             ClassKind::TypeArray(ary_class_obj) => {
@@ -279,6 +289,7 @@ impl Class {
             ClassKind::Instance(cls_obj) => cls_obj.mirror.clone().unwrap(),
             //'[J'
             ClassKind::TypeArray(typ_ary) => typ_ary.mirror.clone().unwrap(),
+            ClassKind::ObjectArray(obj_ary) => obj_ary.mirror.clone().unwrap(),
             _ => unreachable!(),
         }
     }
@@ -505,11 +516,13 @@ impl Class {
         let name = Vec::from(elm_name);
         let name = new_ref!(name);
 
+        let mirror = OopDesc::new_prim_mirror(ValueType::ARRAY);
+
         let ary_cls_obj = ArrayClassObject {
             value_type: ValueType::ARRAY,
             down_type: None,
             component: Some(component),
-            mirror: None,
+            mirror: Some(mirror),
         };
 
         Self {
