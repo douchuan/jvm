@@ -165,8 +165,7 @@ impl From<&u8> for ValueType {
             b'C' => ValueType::CHAR,
             b'S' => ValueType::SHORT,
             b'I' => ValueType::INT,
-            //todo: 'j' allowed??
-            b'J' | b'j' => ValueType::LONG,
+            b'J' => ValueType::LONG,
             b'F' => ValueType::FLOAT,
             b'D' => ValueType::DOUBLE,
             b'V' => ValueType::VOID,
