@@ -14,6 +14,14 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
              "arrayBaseOffset",
              "(Ljava/lang/Class;)I",
              Box::new(jvm_arrayBaseOffset)),
+         new_fn(
+             "arrayIndexScale",
+             "(Ljava/lang/Class;)I",
+             Box::new(jvm_arrayIndexScale)),
+         new_fn(
+             "addressSize",
+             "()I",
+             Box::new(jvm_addressSize)),
     ]
 }
 
@@ -24,3 +32,14 @@ fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> J
 fn jvm_arrayBaseOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(Some(OopDesc::new_int(0)))
 }
+
+fn jvm_arrayIndexScale(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    //fixme:
+    Ok(Some(OopDesc::new_int(4)))
+}
+
+fn jvm_addressSize(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    //fixme:
+    Ok(Some(OopDesc::new_int(4)))
+}
+

@@ -287,8 +287,9 @@ impl Class {
     pub fn get_mirror(&self) -> OopRef {
         match &self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.mirror.clone().unwrap(),
-            //'[J'
+            //[J
             ClassKind::TypeArray(typ_ary) => typ_ary.mirror.clone().unwrap(),
+            //[Ljava/lang/Object;
             ClassKind::ObjectArray(obj_ary) => obj_ary.mirror.clone().unwrap(),
             _ => unreachable!(),
         }
