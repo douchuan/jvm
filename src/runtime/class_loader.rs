@@ -1,5 +1,5 @@
 use crate::classfile::{constant_pool, types::*};
-use crate::oop::{self, Class, ClassRef, ValueType};
+use crate::oop::{self, Class, ClassRef, ValueType, OopDesc};
 use crate::parser as class_parser;
 use crate::runtime::{self, ClassPathResult};
 use crate::util;
@@ -53,6 +53,10 @@ impl ClassLoader {
                         util::sync_call_ctx(&class, move |it| {
                             it.set_class_state(oop::class::State::Loaded);
                             it.link_class(this_ref);
+                        });
+                        let mirror = OopDesc::new_mirror(class.clone());
+                        util::sync_call_ctx(&class, |it| {
+                            it.set_mirror(mirror);
                         });
                     }
                 },

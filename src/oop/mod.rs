@@ -102,12 +102,8 @@ impl OopDesc {
         Self::new(Oop::Array(v))
     }
 
-    pub fn new_mirror(target: ClassRef, n: usize) -> OopRef {
-        let mut field_values = Vec::with_capacity(n);
-        for _ in 0..n {
-            field_values.push(consts::get_null());
-        }
-
+    pub fn new_mirror(target: ClassRef) -> OopRef {
+        let field_values = field::build_inited_field_values(target.clone());
         let v = MirrorOopDesc {
             target: Some(target),
             field_values,
@@ -234,59 +230,7 @@ pub struct MirrorOopDesc {
 
 impl InstOopDesc {
     pub fn new(class: ClassRef) -> Self {
-        let n = {
-            let class = class.lock().unwrap();
-            match &class.kind {
-                class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
-                _ => unreachable!(),
-            }
-        };
-
-        let mut field_values = Vec::with_capacity(n);
-        for _ in 0..n {
-            field_values.push(consts::get_null());
-        }
-
-        let mut cur_cls = class.clone();
-        loop {
-            let cls = cur_cls.clone();
-            let cls = cls.lock().unwrap();
-            match &cls.kind {
-                ClassKind::Instance(cls_obj) => {
-                    cls_obj.inst_fields.iter().for_each(|(_, fir)| {
-                        match fir.field.value_type {
-                            ValueType::BYTE
-                            | ValueType::BOOLEAN
-                            | ValueType::CHAR
-                            | ValueType::SHORT
-                            | ValueType::INT => {
-                                field_values[fir.offset] = OopDesc::new_int(0);
-                            }
-                            ValueType::LONG => {
-                                field_values[fir.offset] = OopDesc::new_long(0);
-                            }
-                            ValueType::FLOAT => {
-                                field_values[fir.offset] = OopDesc::new_float(0.0);
-                            }
-                            ValueType::DOUBLE => {
-                                field_values[fir.offset] = OopDesc::new_double(0.0);
-                            }
-                            ValueType::OBJECT | ValueType::ARRAY => {
-                                //ignore, has been inited by NULL
-                            }
-                            ValueType::VOID => (),
-                        }
-                    });
-                }
-                _ => unreachable!(),
-            }
-
-            if cls.super_class.is_none() {
-                break;
-            } else {
-                cur_cls = cls.super_class.clone().unwrap();
-            }
-        }
+        let field_values = field::build_inited_field_values(class.clone());
 
         Self {
             class,
@@ -331,6 +275,7 @@ impl MirrorOopDesc {
         self.target.is_none()
     }
 }
+
 
 pub fn init() {
     consts::init();

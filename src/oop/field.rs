@@ -36,6 +36,64 @@ pub fn get_field_ref(
     class.get_field_id(id, is_static)
 }
 
+pub fn build_inited_field_values(class: ClassRef) -> Vec<OopRef> {
+    let n = {
+        let class = class.lock().unwrap();
+        match &class.kind {
+            oop::class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
+            _ => unreachable!(),
+        }
+    };
+
+    let mut field_values = Vec::with_capacity(n);
+    for _ in 0..n {
+        field_values.push(oop::consts::get_null());
+    }
+
+    let mut cur_cls = class.clone();
+    loop {
+        let cls = cur_cls.clone();
+        let cls = cls.lock().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(cls_obj) => {
+                cls_obj.inst_fields.iter().for_each(|(_, fir)| {
+                    match fir.field.value_type {
+                        ValueType::BYTE
+                        | ValueType::BOOLEAN
+                        | ValueType::CHAR
+                        | ValueType::SHORT
+                        | ValueType::INT => {
+                            field_values[fir.offset] = OopDesc::new_int(0);
+                        }
+                        ValueType::LONG => {
+                            field_values[fir.offset] = OopDesc::new_long(0);
+                        }
+                        ValueType::FLOAT => {
+                            field_values[fir.offset] = OopDesc::new_float(0.0);
+                        }
+                        ValueType::DOUBLE => {
+                            field_values[fir.offset] = OopDesc::new_double(0.0);
+                        }
+                        ValueType::OBJECT | ValueType::ARRAY => {
+                            //ignore, has been inited by NULL
+                        }
+                        ValueType::VOID => (),
+                    }
+                });
+            }
+            _ => unreachable!(),
+        }
+
+        if cls.super_class.is_none() {
+            break;
+        } else {
+            cur_cls = cls.super_class.clone().unwrap();
+        }
+    }
+
+    field_values
+}
+
 #[derive(Debug, Clone)]
 pub struct FieldId {
     pub offset: usize,
@@ -61,6 +119,7 @@ impl Field {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
+
         let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let id = new_ref!(id);
@@ -107,6 +166,15 @@ impl Field {
                 }
             }
         });
+
+        /*
+        trace!("field cls={}, name={} desc={}, value_type={:?}, constant_value={:?}",
+               String::from_utf8_lossy(class_name),
+               String::from_utf8_lossy(name.as_slice()),
+               String::from_utf8_lossy(desc.as_slice()),
+               value_type,
+        attr_constant_value);
+        */
 
         Self {
             class,

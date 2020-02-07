@@ -187,12 +187,6 @@ impl Class {
 
                 class_obj.link_fields(self_ref.clone(), self.name.clone(), n_super_inst);
 
-                //must be after link_fields to get n_inst_fields
-                class_obj.mirror = Some(OopDesc::new_mirror(
-                    self_ref.clone(),
-                    class_obj.n_inst_fields,
-                ));
-
                 class_obj.link_interfaces();
                 class_obj.link_methods(self_ref);
                 class_obj.link_attributes();
@@ -294,6 +288,13 @@ impl Class {
             _ => unreachable!(),
         }
     }
+
+    pub fn set_mirror(&mut self, mirror: OopRef) {
+        match &mut self.kind {
+            ClassKind::Instance(cls_obj) => cls_obj.mirror = Some(mirror),
+            _ => unimplemented!()
+        }
+    }
 }
 
 impl ArrayClassObject {
@@ -382,7 +383,7 @@ impl Class {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
             Oop::Mirror(mirror) => {
                 //fixme: mirror field_values not inited for Class
-                trace!("mirror target.is_none = {}", mirror.target.is_none());
+                trace!("mirror target.is_some = {}", mirror.target.is_some());
                 match mirror.field_values.get(fid.offset) {
                     Some(v) => v.clone(),
                     _ => oop_consts::get_null(),

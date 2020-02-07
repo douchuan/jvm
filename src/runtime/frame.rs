@@ -494,7 +494,7 @@ impl Frame {
             | ValueType::BOOLEAN
             | ValueType::BYTE => match &v.v {
                 Oop::Int(v) => self.stack.push_int(*v),
-                _ => unreachable!(),
+                t => unreachable!("t = {:?}", t),
             },
             ValueType::FLOAT => match &v.v {
                 Oop::Float(v) => self.stack.push_float(*v),
