@@ -81,6 +81,8 @@ pub struct ArrayClassObject {
 
     //valid when it's not TypeArray
     pub component: Option<ClassRef>,
+
+    pub mirror: Option<OopRef>,
 }
 
 //invoke "<clinit>"
@@ -204,6 +206,16 @@ impl Class {
             ClassKind::TypeArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
+                match &ary_class_obj.mirror {
+                    Some(mirror) => {
+                        let mut mirror = mirror.lock().unwrap();
+                        match &mut mirror.v {
+                            Oop::Mirror(mirror) => mirror.target = Some(self_ref),
+                            _ => unreachable!(),
+                        }
+                    }
+                    None => unreachable!(),
+                }
             }
         }
 
@@ -265,6 +277,7 @@ impl Class {
     pub fn get_mirror(&self) -> OopRef {
         match &self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.mirror.clone().unwrap(),
+            ClassKind::TypeArray(typ_ary) => typ_ary.mirror.clone().unwrap(),
             _ => unreachable!(),
         }
     }
@@ -495,6 +508,7 @@ impl Class {
             value_type: ValueType::ARRAY,
             down_type: None,
             component: Some(component),
+            mirror: None,
         };
 
         Self {
@@ -509,10 +523,13 @@ impl Class {
     }
 
     pub fn new_prime_ary(class_loader: ClassLoader, value_type: ValueType) -> Self {
+        let mirror = OopDesc::new_prim_mirror(value_type);
+
         let ary_cls_obj = ArrayClassObject {
             value_type,
             down_type: None,
             component: None,
+            mirror: Some(mirror),
         };
 
         let mut name = Vec::with_capacity(2);
@@ -548,6 +565,7 @@ impl Class {
                 value_type: ValueType::ARRAY,
                 down_type: Some(down_type.clone()),
                 component: None,
+                mirror: None,
             }),
             ClassKindType::ObjectAry => {
                 let component = {
@@ -561,6 +579,7 @@ impl Class {
                     value_type: ValueType::ARRAY,
                     down_type: Some(down_type.clone()),
                     component,
+                    mirror: None,
                 })
             }
         };
