@@ -95,11 +95,15 @@ impl JavaCall {
         self.debug();
 
         if self.mir.method.is_native() {
+            jt.callers.push(self.mir.clone());
             self.invoke_native(jt, stack);
         } else {
             self.resolve_virtual_method(force_no_resolve);
+            jt.callers.push(self.mir.clone());
             self.invoke_java(jt, stack);
         }
+
+        jt.callers.pop();
 
         jt.handle_ex();
     }
