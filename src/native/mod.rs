@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::oop::{ClassRef, OopRef};
-use crate::runtime::JavaThread;
+use crate::runtime::{JavaThread, Exception};
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -22,7 +22,7 @@ mod sun_misc_VM;
 mod sun_reflect_Reflection;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
-pub type JNIResult = Result<Option<OopRef>, Option<OopRef>>;
+pub type JNIResult = Result<Option<OopRef>, Exception>;
 pub type NativeMethodPtr =
     Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<OopRef>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;

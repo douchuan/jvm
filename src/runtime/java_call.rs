@@ -163,9 +163,9 @@ impl JavaCall {
                     set_return(stack, self.return_type.clone(), v)
                 }
             }
-            Err(_) => {
+            Err(ex) => {
                 //ex is putted in jt.ex
-                unreachable!()
+                unimplemented!()
             }
         }
 
