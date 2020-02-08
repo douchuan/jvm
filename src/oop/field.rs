@@ -103,11 +103,11 @@ pub struct FieldId {
 #[derive(Debug, Clone)]
 pub struct Field {
     pub class: ClassRef,
-    name: BytesRef,
+    pub name: BytesRef,
     desc: BytesRef,
     id: BytesRef,
 
-    acc_flags: U2,
+    pub acc_flags: U2,
 
     pub value_type: ValueType,
 

@@ -59,7 +59,7 @@ pub struct ClassObject {
     all_methods: HashMap<BytesRef, MethodIdRef>,
     v_table: HashMap<BytesRef, MethodIdRef>,
 
-    static_fields: HashMap<BytesRef, FieldIdRef>,
+    pub static_fields: HashMap<BytesRef, FieldIdRef>,
     pub inst_fields: HashMap<BytesRef, FieldIdRef>,
 
     static_field_values: Vec<OopRef>,

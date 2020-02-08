@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, ClassRef, Oop, OopDesc, OopRef, ValueType};
-use crate::runtime::{require_class3, JavaThread};
+use crate::oop::{self, ClassRef, Oop, OopDesc, OopRef, ValueType, FieldIdRef};
+use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
 use std::collections::HashMap;
 use std::ops::DerefMut;
@@ -21,6 +21,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/String;)Ljava/lang/Class;",
             Box::new(jvm_getPrimitiveClass),
         ),
+        new_fn(
+            "getDeclaredFields0",
+            "(Z)[Ljava/lang/reflect/Field;",
+            Box::new(jvm_getDeclaredFields0)
+        )
     ]
 }
 
@@ -213,4 +218,69 @@ fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
         }
         _ => unreachable!("Unknown primitive type: {}", s),
     }
+}
+
+fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+
+    //parse args
+    let mirror_target = {
+        let arg0 = match args.get(0) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        };
+
+        let arg0 = arg0.lock().unwrap();
+        match &arg0.v {
+            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!()
+        }
+    };
+
+    let public_only = {
+        let arg1 = match args.get(1) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        };
+
+        let arg1 = arg1.lock().unwrap();
+        match arg1.v {
+            Oop::Int(v) => v == 1,
+            _ => unreachable!()
+        }
+    };
+
+    //obtain inst&static fields
+    let (inst_fields, static_fields) = {
+        let cls = mirror_target.lock().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(inst) => {
+                (inst.inst_fields.clone(), inst.static_fields.clone())
+            },
+            _ => unreachable!()
+        }
+    };
+
+    //build fields ary
+    let mut fields = Vec::new();
+    for (_, it) in inst_fields {
+        if public_only && !it.field.is_public() {
+            continue;
+        }
+
+        let v = runtime::reflect::new_java_field_object(it);
+        fields.push(v);
+    }
+
+    for (_, it) in static_fields {
+        if public_only && !it.field.is_public() {
+            continue;
+        }
+
+        let v = runtime::reflect::new_java_field_object(it);
+        fields.push(v);
+    }
+
+    //build oop field ar
+    let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Field;").unwrap();
+    Ok(Some(OopDesc::new_ary2(ary_cls, fields)))
 }
