@@ -76,6 +76,7 @@ pub fn init() {
     lazy_static::initialize(&DELAYED_ARY_MIRROS);
 }
 
+
 pub fn create_mirror(cls: ClassRef) {
     let is_fixed = util::sync_call_ctx(&MIRROR_STATE, |s| {
         *s == ClassMirrorState::Fixed
@@ -106,6 +107,9 @@ pub fn create_mirror(cls: ClassRef) {
     }
 }
 
+/*
+called after 'java/lang/Class' inited in init_vm.rs
+*/
 pub fn create_delayed_mirrors() {
     let names: Vec<String> = {
         let mirros = DELAYED_MIRROS.lock().unwrap();
@@ -132,13 +136,21 @@ pub fn create_delayed_mirrors() {
             let mirror = OopDesc::new_prim_mirror(vt);
             if is_prim_ary {
                 let target = require_class3(None, name.as_bytes()).unwrap();
-                let mut mirror = mirror.lock().unwrap();
-                match &mut mirror.v {
-                    Oop::Mirror(mirror) => {
-                        mirror.target = Some(target);
+
+                //set mirror's target
+                {
+                    let mut mirror = mirror.lock().unwrap();
+                    match &mut mirror.v {
+                        Oop::Mirror(mirror) => {
+                            mirror.target = Some(target.clone());
+                        }
+                        _ => unreachable!(),
                     }
-                    _ => unreachable!(),
                 }
+
+                let mut cls = target.lock().unwrap();
+//                warn!("set_mirror name={}", String::from_utf8_lossy(cls.name.as_slice()));
+                cls.set_mirror(mirror.clone());
             }
 
             util::sync_call_ctx(&PRIM_MIRROS, |mirrors| {
@@ -148,6 +160,9 @@ pub fn create_delayed_mirrors() {
     }
 }
 
+/*
+called after 'java/lang/Class' inited in init_vm.rs
+*/
 pub fn create_delayed_ary_mirrors() {
     let classes: Vec<ClassRef> = {
         let mirros = DELAYED_ARY_MIRROS.lock().unwrap();

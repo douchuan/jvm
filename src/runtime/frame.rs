@@ -394,8 +394,9 @@ impl Frame {
                 let name = constant_pool::get_utf8(&self.cp, *name_index as usize).unwrap();
                 let cl = { self.class.lock().unwrap().class_loader.clone() };
                 trace!(
-                    "load_constant name={}",
-                    String::from_utf8_lossy(name.as_slice())
+                    "load_constant name={}, cl={:?}",
+                    String::from_utf8_lossy(name.as_slice()),
+                    cl
                 );
                 let class = runtime::require_class(cl, name).unwrap();
 

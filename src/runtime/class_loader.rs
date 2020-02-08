@@ -28,26 +28,25 @@ pub fn require_class3(class_loader: Option<ClassLoader>, name: &[u8]) -> Option<
 
 impl ClassLoader {
     fn load_class(&self, name: &[u8]) -> Option<ClassRef> {
+        match self {
+            ClassLoader::Base => (),
+            ClassLoader::Bootstrap => {
+                let it = runtime::sys_dic_find(name);
+                if it.is_some() {
+//                    info!("load_class in dic: {}", String::from_utf8_lossy(name));
+                    return it;
+                }
+            }
+        }
+
         if is_array(name) {
             self.load_array_class(name)
         } else {
-            match self {
-                ClassLoader::Base => (),
-                ClassLoader::Bootstrap => {
-                    let it = runtime::sys_dic_find(name);
-                    if it.is_some() {
-                        //                        trace!("found class in dic: {}", String::from_utf8_lossy(name));
-                        return it;
-                    }
-                }
-            }
-
-            let mut class = self.load_class_from_path(name);
+            let class = self.load_class_from_path(name);
 
             match class.clone() {
-                Some(mut class) => match self {
+                Some(class) => match self {
                     ClassLoader::Base => (),
-
                     ClassLoader::Bootstrap => {
                         runtime::sys_dic_put(name, class.clone());
                         let this_ref = class.clone();
@@ -78,7 +77,14 @@ impl ClassLoader {
                         match self.load_class(elm) {
                             Some(elm) => {
                                 let class = Class::new_object_ary(*self, elm, name);
-                                Some(new_sync_ref!(class))
+                                let class = new_sync_ref!(class);
+                                match self {
+                                    ClassLoader::Base => (),
+                                    ClassLoader::Bootstrap => {
+                                        runtime::sys_dic_put(name, class.clone());
+                                    }
+                                }
+                                Some(class)
                             }
                             None => None,
                         }
@@ -88,7 +94,14 @@ impl ClassLoader {
                         //B, Z...
                         let elm = t.into();
                         let class = Class::new_prime_ary(*self, elm);
-                        Some(new_sync_ref!(class))
+                        let class = new_sync_ref!(class);
+                        match self {
+                            ClassLoader::Base => (),
+                            ClassLoader::Bootstrap => {
+                                runtime::sys_dic_put(name, class.clone());
+                            }
+                        }
+                        Some(class)
                     }
 
                     None => unreachable!(),
@@ -101,7 +114,14 @@ impl ClassLoader {
                 match self.load_array_class(down_type_name) {
                     Some(down_type) => {
                         let class = Class::new_wrapped_ary(*self, down_type);
-                        Some(new_sync_ref!(class))
+                        let class = new_sync_ref!(class);
+                        match self {
+                            ClassLoader::Base => (),
+                            ClassLoader::Bootstrap => {
+                                runtime::sys_dic_put(name, class.clone());
+                            }
+                        }
+                        Some(class)
                     }
 
                     None => None,
