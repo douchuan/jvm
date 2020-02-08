@@ -84,6 +84,9 @@ impl ClassLoader {
                                         runtime::sys_dic_put(name, class.clone());
                                     }
                                 }
+
+                                native::java_lang_Class::create_mirror(class.clone());
+
                                 Some(class)
                             }
                             None => None,
@@ -101,6 +104,9 @@ impl ClassLoader {
                                 runtime::sys_dic_put(name, class.clone());
                             }
                         }
+
+                        //mirror has been created when vm inited
+
                         Some(class)
                     }
 
@@ -121,6 +127,9 @@ impl ClassLoader {
                                 runtime::sys_dic_put(name, class.clone());
                             }
                         }
+
+                        native::java_lang_Class::create_mirror(class.clone());
+
                         Some(class)
                     }
 
