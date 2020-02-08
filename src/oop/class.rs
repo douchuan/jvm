@@ -195,6 +195,7 @@ impl Class {
             ClassKind::ObjectArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
+                /*
                 match &ary_class_obj.mirror {
                     Some(mirror) => {
                         let mut mirror = mirror.lock().unwrap();
@@ -205,11 +206,13 @@ impl Class {
                     }
                     None => unreachable!(),
                 }
+                */
             }
 
             ClassKind::TypeArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
+                /*
                 match &ary_class_obj.mirror {
                     Some(mirror) => {
                         let mut mirror = mirror.lock().unwrap();
@@ -220,6 +223,7 @@ impl Class {
                     }
                     None => unreachable!(),
                 }
+                */
             }
         }
 
@@ -292,7 +296,8 @@ impl Class {
     pub fn set_mirror(&mut self, mirror: OopRef) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.mirror = Some(mirror),
-            _ => unimplemented!()
+            ClassKind::ObjectArray(obj_ary) => obj_ary.mirror = Some(mirror),
+            ClassKind::TypeArray(typ_ary) => typ_ary.mirror = Some(mirror),
         }
     }
 }
@@ -382,18 +387,13 @@ impl Class {
         match &rf.v {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
             Oop::Mirror(mirror) => {
-                //fixme: mirror field_values not inited for Class
-                trace!("mirror target.is_some = {}", mirror.target.is_some());
                 match mirror.field_values.get(fid.offset) {
                     Some(v) => v.clone(),
-                    _ => oop_consts::get_null(),
+                    _ => unreachable!("mirror = {:?}", mirror),
                 }
             }
             Oop::Str(s) => OopDesc::new_str(s.clone()),
-            _ => {
-                //                trace!("get_field_value = {:?}", r);
-                unreachable!()
-            }
+            t => unreachable!("t = {:?}", t),
         }
     }
 
@@ -518,13 +518,11 @@ impl Class {
         let name = Vec::from(elm_name);
         let name = new_ref!(name);
 
-        let mirror = OopDesc::new_prim_mirror(ValueType::ARRAY);
-
         let ary_cls_obj = ArrayClassObject {
             value_type: ValueType::ARRAY,
             down_type: None,
             component: Some(component),
-            mirror: Some(mirror),
+            mirror: None,
         };
 
         Self {
@@ -539,13 +537,11 @@ impl Class {
     }
 
     pub fn new_prime_ary(class_loader: ClassLoader, value_type: ValueType) -> Self {
-        let mirror = OopDesc::new_prim_mirror(value_type);
-
         let ary_cls_obj = ArrayClassObject {
             value_type,
             down_type: None,
             component: None,
-            mirror: Some(mirror),
+            mirror: None,
         };
 
         let mut name = Vec::with_capacity(2);

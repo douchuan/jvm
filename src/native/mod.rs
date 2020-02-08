@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
-mod java_lang_Class;
+pub mod java_lang_Class;
 mod java_lang_Double;
 mod java_lang_Float;
 mod java_lang_Object;

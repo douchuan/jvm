@@ -3,6 +3,7 @@ use crate::classfile::consts::{
     J_INTERNAL_ERROR, J_IOEXCEPTION, J_NPE, J_OBJECT, J_PRINT_STREAM, J_SECURITY_MANAGER,
     J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP,
 };
+use crate::native;
 use crate::oop::{self, ClassRef, OopDesc};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
@@ -93,8 +94,10 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 }
 
 fn initialize_vm_structs(jt: &mut JavaThread) {
-    //todo: java::lang::Class::initialize
     let class_obj = do_init(J_CLASS, jt);
+    native::java_lang_Class::create_delayed_mirrors();
+    native::java_lang_Class::create_delayed_ary_mirrors();
+
     //todo:
     //        java::lang::Class::mirrorCoreAndDelayedClasses();
     //        java::lang::Class::mirrorDelayedArrayClasses();

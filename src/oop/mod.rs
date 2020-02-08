@@ -4,7 +4,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::classfile::{types::*, ClassFile};
-use crate::runtime::ClassLoader;
+use crate::runtime::{ClassLoader, require_class3};
 
 pub mod class;
 pub mod consts;
@@ -103,21 +103,36 @@ impl OopDesc {
     }
 
     pub fn new_mirror(target: ClassRef) -> OopRef {
-        let field_values = field::build_inited_field_values(target.clone());
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
             target: Some(target),
             field_values,
-            prim_type: ValueType::OBJECT,
+            value_type: ValueType::OBJECT,
         };
 
         Self::new(Oop::Mirror(v))
     }
 
-    pub fn new_prim_mirror(prim_type: ValueType) -> OopRef {
+    pub fn new_prim_mirror(value_type: ValueType) -> OopRef {
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
             target: None,
             field_values: vec![],
-            prim_type,
+            value_type,
+        };
+
+        Self::new(Oop::Mirror(v))
+    }
+
+    pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> OopRef {
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
+        let v = MirrorOopDesc {
+            target: Some(target),
+            field_values: vec![],
+            value_type: value_type,
         };
 
         Self::new(Oop::Mirror(v))
@@ -225,7 +240,7 @@ pub struct ArrayOopDesc {
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
     field_values: Vec<OopRef>,
-    prim_type: ValueType,
+    value_type: ValueType,
 }
 
 impl InstOopDesc {
