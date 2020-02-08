@@ -13,6 +13,7 @@ pub mod java_lang_Class;
 mod java_lang_Double;
 mod java_lang_Float;
 mod java_lang_Object;
+mod java_lang_String;
 mod java_lang_System;
 mod java_lang_Thread;
 mod java_lang_Throwable;
@@ -91,6 +92,7 @@ pub fn init() {
         ("java/lang/Double", java_lang_Double::get_native_methods()),
         ("java/lang/Float", java_lang_Float::get_native_methods()),
         ("java/lang/Object", java_lang_Object::get_native_methods()),
+        ("java/lang/String", java_lang_String::get_native_methods()),
         ("java/lang/System", java_lang_System::get_native_methods()),
         ("java/lang/Thread", java_lang_Thread::get_native_methods()),
         (
