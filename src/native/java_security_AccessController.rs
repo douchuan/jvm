@@ -59,8 +59,13 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
             let mut jc = JavaCall::new_with_args(jt, mir.unwrap(), args);
             let mut stack = Stack::new(1);
             jc.invoke(jt, &mut stack, false);
-            let r = stack.pop_ref();
-            Ok(Some(r))
+
+            if !jt.is_meet_ex() {
+                let r = stack.pop_ref();
+                Ok(Some(r))
+            } else {
+                Ok(None)
+            }
         }
         None => unreachable!()
     }

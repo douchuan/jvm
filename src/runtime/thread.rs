@@ -5,6 +5,7 @@ use crate::runtime::{self, init_vm, require_class3, Exception, FrameRef, JavaCal
 use crate::util;
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
+use crate::util::new_field_id;
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -66,8 +67,7 @@ impl JavaThread {
             info!(
                 "handle exception = {}, msg = {:?}",
                 String::from_utf8_lossy(ex.cls_name.as_slice()),
-                ex.msg
-            );
+                ex.msg);
 
             let ex_oop = {
                 if ex.ex_oop.is_none() {
@@ -76,6 +76,8 @@ impl JavaThread {
                     ex.ex_oop.clone().unwrap()
                 }
             };
+
+            Self::debug_ex(ex_oop.clone());
 
             self.do_handle_ex(ex_oop);
         }
@@ -193,6 +195,35 @@ impl JavaThread {
 
             count += 1;
         }
+    }
+
+    fn debug_ex(ex: OopRef) {
+        let cls = {
+            let v = ex.lock().unwrap();
+            match &v.v {
+                oop::Oop::Inst(inst) => {
+                    inst.class.clone()
+                }
+                _ => unreachable!()
+            }
+        };
+        let detail_msg = {
+            let cls = cls.lock().unwrap();
+            let id = new_field_id(classfile::consts::J_THROWABLE, b"detailMessage", b"Ljava/lang/String;");
+            let fir = cls.get_field_id(id, false);
+            let v = cls.get_field_value(ex.clone(), fir);
+            let v = v.lock().unwrap();
+
+            match &v.v {
+                oop::Oop::Str(s) => s.clone(),
+                _ => unreachable!()
+            }
+        };
+
+        info!(
+            "detail={}",
+            String::from_utf8_lossy(detail_msg.as_slice())
+        );
     }
 }
 

@@ -44,6 +44,7 @@ pub const J_ARITHMETIC_EX: &[u8] = b"java/lang/ArithmeticException";
 pub const J_SOE: &[u8] = b"java/lang/StackOverflowException";
 pub const J_NASE: &[u8] = b"java/lang/NegativeArraySizeException";
 pub const J_CCE: &[u8] = b"java/lang/ClassCastException";
+pub const J_THROWABLE: &[u8] = b"java/lang/Throwable";
 
 pub const CONSTANT_METHOD_REF_TAG: u8 = 10;
 pub const CONSTANT_INTERFACE_METHOD_REF_TAG: u8 = 11;
