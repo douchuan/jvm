@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
 
+use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassRef, Oop, OopDesc, OopRef, ValueType, FieldIdRef};
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3, Exception, JavaThread};
 use crate::util;
 use std::collections::HashMap;
 use std::ops::DerefMut;
@@ -30,7 +31,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getName0",
             "()Ljava/lang/String;",
             Box::new(jvm_getName0)
-        )
+        ),
+        new_fn(
+            "forName0",
+            "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;",
+            Box::new(jvm_forName0)
+        ),
     ]
 }
 
@@ -314,4 +320,83 @@ fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     let v = Vec::from(name.as_bytes());
     let v = new_ref!(v);
     Ok(Some(OopDesc::new_str(v)))
+}
+
+fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let java_name = {
+        let arg0 = match args.get(0) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        };
+
+        let arg0 = arg0.lock().unwrap();
+        match &arg0.v {
+            Oop::Str(s) => s.clone(),
+            _ => unreachable!()
+        }
+    };
+    let initialize = {
+        let arg1 = match args.get(1) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        };
+
+        let arg1 = arg1.lock().unwrap();
+        match &arg1.v {
+            Oop::Int(v) => *v != 0,
+            _ => unreachable!()
+        }
+    };
+    let java_cls_loader = {
+        match args.get(2) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        }
+    };
+    let caller_mirror= {
+        match args.get(3) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        }
+    };
+
+    {
+        let v = java_cls_loader.lock().unwrap();
+        match &v.v {
+            Oop::Null => (),
+            _ => unimplemented!("app class loader, unimpl"),
+        }
+    }
+
+    let name = String::from_utf8_lossy(java_name.as_slice());
+    let name = name.replace(".", "/");
+    info!("forName0: {}", name);
+    let cls = require_class3(None, name.as_bytes());
+
+    match cls {
+        Some(cls) => {
+            {
+                let mut cls= cls.lock().unwrap();
+                cls.init_class(jt);
+                //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
+            }
+            oop::class::init_class_fully(jt, cls.clone());
+
+            let mirror = {
+                cls.lock().unwrap().get_mirror()
+            };
+
+            Ok(Some(mirror))
+        }
+        None => {
+            let cls_name = Vec::from(classfile::consts::J_NPE);
+            let exception = Exception {
+                cls_name: new_ref!(cls_name),
+                msg: None,
+                ex_oop: None,
+            };
+
+            Err(exception)
+        }
+    }
 }
