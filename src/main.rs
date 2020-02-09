@@ -30,6 +30,7 @@ todo list
   x. build thread system
     去掉native 函数的jt参数
   x. impl Type annotations
+  x. test System.arraycopy
 */
 
 fn init_vm() {
@@ -123,6 +124,10 @@ mod tests {
         v[9] = 9;
         println!("v[0] = {}", v[0]);
         println!("v[9] = {}", v[9]);
+
+        let mut v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+        v[1..5].clone_from_slice(&[5, 4, 3, 2][..]);
+        assert_eq!(v, vec![1, 5, 4, 3, 2, 6, 7, 8, 9, 0]);
     }
 
     #[test]
