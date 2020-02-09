@@ -61,14 +61,10 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
         let cls = throwable_cls.lock().unwrap();
-        let id = util::new_field_id(
-            b"java/lang/Throwable",
-            b"stackTrace",
-            b"[Ljava/lang/StackTraceElement;",
-        );
-        cls.put_field_value2(throwable_oop.clone(), id, oop::consts::get_null());
-        let id = util::new_field_id(b"java/lang/Throwable", b"backtrace", b"Ljava/lang/Object;");
-        cls.put_field_value2(throwable_oop.clone(), id, stack_trace_ary);
+        let id = cls.get_field_id(b"stackTrace", b"[Ljava/lang/StackTraceElement;", false);
+        cls.put_field_value(throwable_oop.clone(), id, oop::consts::get_null());
+        let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
+        cls.put_field_value(throwable_oop.clone(), id, stack_trace_ary);
     }
 
     Ok(Some(throwable_oop))

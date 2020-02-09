@@ -20,8 +20,8 @@ pub fn new_java_field_object(fir: FieldIdRef) -> OopRef {
             ("slot", "I", OopDesc::new_int(fir.offset as i32)),
             ("name", "Ljava/lang/String;", OopDesc::new_str(fir.field.name.clone()))
         ].iter().for_each(|(name, desc, v)| {
-            let id = util::new_field_id(J_FIELD, name.as_bytes(), desc.as_bytes());
-            cls.put_field_value2(field_oop.clone(), id, v.clone());
+            let id = cls.get_field_id(name.as_bytes(), desc.as_bytes(), false);
+            cls.put_field_value(field_oop.clone(), id, v.clone());
         });
 
         //todo: signature, type

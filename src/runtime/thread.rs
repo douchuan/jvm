@@ -209,9 +209,8 @@ impl JavaThread {
         };
         let detail_msg = {
             let cls = cls.lock().unwrap();
-            let id = new_field_id(classfile::consts::J_THROWABLE, b"detailMessage", b"Ljava/lang/String;");
-            let fir = cls.get_field_id(id, false);
-            let v = cls.get_field_value(ex.clone(), fir);
+            let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
+            let v = cls.get_field_value(ex.clone(), id);
             let v = v.lock().unwrap();
 
             match &v.v {

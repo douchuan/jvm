@@ -22,8 +22,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 //        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
 //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
-        let id = util::new_field_id(J_THREAD, b"priority", b"I");
-        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));
+        let id = cls.get_field_id(b"priority", b"I", false);
+        cls.put_field_value(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -39,8 +39,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     {
         let mut cls = thread_cls.lock().unwrap();
-        let id = util::new_field_id(J_THREAD, b"group", b"Ljava/lang/ThreadGroup;");
-        cls.put_field_value2(init_thread_oop.clone(), id, main_thread_group.clone());
+        let id = cls.get_field_id(b"group", b"Ljava/lang/ThreadGroup;", false);
+        cls.put_field_value(init_thread_oop.clone(), id, main_thread_group.clone());
     }
 
     let _ = do_init(J_INPUT_STREAM, jt);
@@ -116,8 +116,8 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
         let mut cls = class_obj.lock().unwrap();
         //fixme: if useCaches false, cause 'NoSuchFieldException'
         //  'buf' 是一条线索
-        let id = util::new_field_id(J_CLASS, b"useCaches", b"Z");
-        cls.put_static_field_value2(id, OopDesc::new_int(1));
+        let id = cls.get_field_id(b"useCaches", b"Z", true);
+        cls.put_static_field_value(id, OopDesc::new_int(1));
     }
 }
 

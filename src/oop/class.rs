@@ -6,7 +6,7 @@ use crate::oop::{
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
@@ -338,10 +338,13 @@ impl Class {
         self.get_virtual_method_inner(id)
     }
 
-    pub fn get_field_id(&self, id: BytesRef, is_static: bool) -> FieldIdRef {
+    pub fn get_field_id(&self, name: &[u8], desc: &[u8], is_static: bool) -> FieldIdRef {
+        let field_id = util::new_field_id(self.name.as_slice(), name, desc);
+//        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
+
         if is_static {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&id) {
+                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&field_id) {
                     Some(fid) => return fid.clone(),
                     None => (),
                 },
@@ -349,7 +352,7 @@ impl Class {
             }
         } else {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&id) {
+                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&field_id) {
                     Some(fid) => return fid.clone(),
                     None => (),
                 },
@@ -362,7 +365,7 @@ impl Class {
             .unwrap()
             .lock()
             .unwrap()
-            .get_field_id(id, is_static)
+            .get_field_id(name, desc, is_static)
     }
 
     pub fn put_field_value(&self, mut receiver: OopRef, fir: FieldIdRef, v: OopRef) {
@@ -371,15 +374,6 @@ impl Class {
             Oop::Inst(inst) => inst.field_values[fir.offset] = v,
             Oop::Mirror(mirror) => mirror.field_values[fir.offset] =v,
             t => unreachable!("t = {:?}", t),
-        }
-    }
-
-    pub fn put_field_value2(&self, mut receiver: OopRef, id: BytesRef, v: OopRef) {
-        let fir = self.get_field_id(id, false);
-        let mut rff = receiver.lock().unwrap();
-        match &mut rff.v {
-            Oop::Inst(inst) => inst.field_values[fir.offset] = v,
-            _ => unreachable!(),
         }
     }
 
@@ -411,26 +405,6 @@ impl Class {
                         .lock()
                         .unwrap()
                         .put_static_field_value(field_id, v);
-                }
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn put_static_field_value2(&mut self, id: BytesRef, v: OopRef) {
-        match &mut self.kind {
-            ClassKind::Instance(cls_obj) => {
-                let fid = cls_obj.static_fields.get(&id);
-                match fid {
-                    Some(fir) => cls_obj.static_field_values[fir.offset] = v,
-                    None => {
-                        let super_cls = self.super_class.clone();
-                        super_cls
-                            .unwrap()
-                            .lock()
-                            .unwrap()
-                            .put_static_field_value2(id, v);
-                    }
                 }
             }
             _ => unreachable!(),

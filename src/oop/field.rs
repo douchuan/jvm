@@ -17,15 +17,15 @@ pub fn get_field_ref(
 
     //load Field's Class, then init it
     let class = require_class2(class_index, cp).unwrap();
-    let id = {
+    let (name, desc) = {
         let mut class = class.lock().unwrap();
         class.init_class(thread);
 
-        let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
+        let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
-        let typ = typ.unwrap();
+        let desc = desc.unwrap();
 
-        util::new_field_id(class.name.as_slice(), name.as_slice(), typ.as_slice())
+        (name, desc)
     };
 
     //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
@@ -33,7 +33,7 @@ pub fn get_field_ref(
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
-    class.get_field_id(id, is_static)
+    class.get_field_id(name.as_slice(), desc.as_slice(), is_static)
 }
 
 pub fn build_inited_field_values(class: ClassRef) -> Vec<OopRef> {

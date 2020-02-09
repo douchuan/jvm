@@ -18,7 +18,7 @@ pub fn new_method_id(name: &[u8], desc: &[u8]) -> BytesRef {
     new_ref!(id)
 }
 
-pub fn new_field_id(cls_name: &[u8], name: &[u8], desc: &[u8]) -> BytesRef {
-    let id = vec![cls_name, name, desc].join(PATH_DELIMITER);
+pub fn new_field_id(cls: &[u8], name: &[u8], desc: &[u8]) -> BytesRef {
+    let id = vec![cls, name, desc].join(PATH_DELIMITER);
     new_ref!(id)
 }
