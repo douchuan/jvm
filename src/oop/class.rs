@@ -369,7 +369,8 @@ impl Class {
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.field_values[fir.offset] = v,
-            _ => unreachable!(),
+            Oop::Mirror(mirror) => mirror.field_values[fir.offset] =v,
+            t => unreachable!("t = {:?}", t),
         }
     }
 

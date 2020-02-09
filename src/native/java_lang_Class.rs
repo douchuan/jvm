@@ -25,6 +25,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getDeclaredFields0",
             "(Z)[Ljava/lang/reflect/Field;",
             Box::new(jvm_getDeclaredFields0)
+        ),
+        new_fn(
+            "getName0",
+            "()Ljava/lang/String;",
+            Box::new(jvm_getName0)
         )
     ]
 }
@@ -222,6 +227,7 @@ fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
 
 fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
 
+    warn!("jvm_getDeclaredFields0 xxx");
     //parse args
     let mirror_target = {
         let arg0 = match args.get(0) {
@@ -283,4 +289,29 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
     //build oop field ar
     let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Field;").unwrap();
     Ok(Some(OopDesc::new_ary2(ary_cls, fields)))
+}
+
+fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let target = {
+        let arg0 = match args.get(0) {
+            Some(v) => v.clone(),
+            _ => unreachable!()
+        };
+
+        let arg0 = arg0.lock().unwrap();
+        match &arg0.v {
+            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!()
+        }
+    };
+    let name = {
+        let cls = target.lock().unwrap();
+        cls.name.clone()
+    };
+
+    let name = String::from_utf8_lossy(name.as_slice());
+    let name = name.replace("/", ".");
+    let v = Vec::from(name.as_bytes());
+    let v = new_ref!(v);
+    Ok(Some(OopDesc::new_str(v)))
 }

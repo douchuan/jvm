@@ -98,9 +98,6 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     native::java_lang_Class::create_delayed_mirrors();
     native::java_lang_Class::create_delayed_ary_mirrors();
 
-    //todo:
-    //        java::lang::Class::mirrorCoreAndDelayedClasses();
-    //        java::lang::Class::mirrorDelayedArrayClasses();
     let _ = do_init(J_OBJECT, jt);
     let _ = do_init(J_STRING, jt);
     let _ = do_init(J_CLONEABLE, jt);
@@ -117,8 +114,10 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
     {
         let mut cls = class_obj.lock().unwrap();
+        //fixme: if useCaches false, cause 'NoSuchFieldException'
+        //  'buf' 是一条线索
         let id = util::new_field_id(J_CLASS, b"useCaches", b"Z");
-        cls.put_static_field_value2(id, OopDesc::new_int(0));
+        cls.put_static_field_value2(id, OopDesc::new_int(1));
     }
 }
 

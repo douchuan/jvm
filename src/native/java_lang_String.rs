@@ -23,5 +23,7 @@ fn jvm_intern(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
         }
     };
 
+    warn!("jvm_intern s = {}", String::from_utf8_lossy(s.as_slice()));
+
     Ok(Some(OopDesc::new_str(s)))
 }
