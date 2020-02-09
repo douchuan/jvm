@@ -342,11 +342,11 @@ impl Frame {
         }
     }
 
-    pub fn handle_exception(&mut self, thread: &mut JavaThread, ex: OopRef) {
-        self.stack.clear();
+    pub fn handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) {
         self.meet_ex_here = false;
+        self.stack.clear();
         self.stack.push_ref(ex);
-        self.athrow(thread);
+        self.athrow(jt);
     }
 }
 
@@ -413,23 +413,6 @@ impl Frame {
             }
             _ => unreachable!(),
         }
-    }
-
-    fn meet_ex(&mut self, jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
-        let ex = Exception {
-            cls_name,
-            msg,
-
-            //create Throwable obj, will call Throwable.fillInStackTrace that
-            //need browse all jt.frames to get debug info.
-            //But, 当前和之前的frame，已经被locked，所以会导致失败。
-            //所以，必须使所有JavaCall出栈 并释放了全部的 jt.frames lock,
-            // ex_oop 才能在JavaThread中创建
-            ex_oop: None,
-        };
-
-        self.meet_ex_here = true;
-        jt.set_ex(Some(ex));
     }
 
     fn goto_abs(&mut self, pc: i32) {
@@ -587,6 +570,79 @@ impl Frame {
                 }
             }
             Err(_) => unreachable!("NotFound method"),
+        }
+    }
+}
+
+//handle exception
+impl Frame {
+    fn meet_ex(&mut self, jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
+        let cls_name = Vec::from(cls_name);
+        let ex = Exception {
+            cls_name: new_ref!(cls_name),
+            msg,
+
+            //create Throwable obj, will call Throwable.fillInStackTrace that
+            //need browse all jt.frames to get debug info.
+            //But, 当前和之前的frame，已经被locked，所以会导致失败。
+            //所以，必须使所有JavaCall出栈 并释放了全部的 jt.frames lock,
+            // ex_oop 才能在JavaThread中创建
+            ex_oop: None,
+        };
+
+        self.meet_ex_here = true;
+        jt.set_ex(Some(ex));
+    }
+
+    fn meet_ex2(&mut self, jt: &mut JavaThread, ex: OopRef) {
+        let cls_name = {
+            let ex = ex.lock().unwrap();
+            match &ex.v {
+                Oop::Inst(inst) => inst.class.lock().unwrap().name.clone(),
+                _ => unreachable!()
+            }
+        };
+
+        let ex = Exception {
+            cls_name,
+            msg: None,
+            ex_oop: Some(ex),
+        };
+
+        self.meet_ex_here = true;
+        jt.set_ex(Some(ex));
+    }
+
+    fn do_handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) {
+        let is_null = {
+            let ex = ex.lock().unwrap();
+            match ex.v {
+                Oop::Null => true,
+                _ => false,
+            }
+        };
+
+        if is_null {
+            self.meet_ex(jt, consts::J_NPE, None);
+        } else {
+            let ex_cls = {
+                let ex = ex.lock().unwrap();
+                match &ex.v {
+                    Oop::Inst(inst) => inst.class.clone(),
+                    _ => unreachable!()
+                }
+            };
+
+            let handler = self.mir.method.find_exception_handler(&self.cp, self.pc as u16 , ex_cls);
+            match handler {
+                Some(pc) => {
+                    self.stack.clear();
+                    self.stack.push_ref(ex);
+                    self.goto_abs(pc as i32);
+                }
+
+                None => self.meet_ex2(jt, ex),
+            }
         }
     }
 }
@@ -2269,30 +2325,9 @@ impl Frame {
         }
     }
 
-    pub fn athrow(&mut self, thread: &mut JavaThread) {
-        let rf = self.stack.pop_ref();
-        let rf_ref = rf.clone();
-        let rf = rf.lock().unwrap();
-        match rf.v {
-            Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
-            }
-            _ => {
-                unimplemented!()
-                /*
-                let handler = thread.try_handle_exception(rf_ref.clone());
-                if handler > 0 {
-                    trace!("athrow: exception handler found at offset: {}", handler);
-                    self.stack.clear();
-                    self.stack.push_ref(rf_ref);
-                    self.goto_abs(handler);
-                } else {
-                    trace!("athrow: exception handler not found, rethrowing it to caller");
-                    self.re_throw_ex = Some(rf_ref);
-                }
-                */
-            }
-        }
+    pub fn athrow(&mut self, jt: &mut JavaThread) {
+        let ex = self.stack.pop_ref();
+        self.do_handle_exception(jt, ex);
     }
 
     pub fn check_cast(&mut self, thread: &mut JavaThread) {

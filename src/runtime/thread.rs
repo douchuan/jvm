@@ -37,10 +37,14 @@ impl JavaThread {
     pub fn set_java_thread_obj(&mut self, obj: OopRef) {
         self.java_thread_obj = Some(obj);
     }
+}
 
+//exception
+impl JavaThread {
     pub fn throw_ex(&mut self, ex: &'static [u8]) {
+        let ex = Vec::from(ex);
         let ex = Exception {
-            cls_name: ex,
+            cls_name: new_ref!(ex),
             msg: None,
             ex_oop: None,
         };
@@ -58,22 +62,22 @@ impl JavaThread {
     pub fn handle_ex(&mut self) {
         if self.is_meet_ex() && self.is_invoke_ended() {
             //consume the ex
-            let ex = self.ex.take();
+            let ex = self.ex.take().unwrap();
+            info!(
+                "handle exception = {}, msg = {:?}",
+                String::from_utf8_lossy(ex.cls_name.as_slice()),
+                ex.msg
+            );
 
-            match ex {
-                Some(ex) => {
-                    info!(
-                        "handle exception = {}, msg = {:?}",
-                        String::from_utf8_lossy(ex.cls_name),
-                        ex.msg
-                    );
-
-                    let ex_oop = self.build_ex_oop(ex);
-                    self.do_handle_ex(ex_oop);
+            let ex_oop = {
+                if ex.ex_oop.is_none() {
+                    self.build_ex_oop(ex)
+                } else {
+                    ex.ex_oop.clone().unwrap()
                 }
+            };
 
-                None => unreachable!(),
-            }
+            self.do_handle_ex(ex_oop);
         }
     }
 }
@@ -85,7 +89,7 @@ impl JavaThread {
     }
 
     fn build_ex_oop(&mut self, mut ex: Exception) -> OopRef {
-        let cls = require_class3(None, ex.cls_name).unwrap();
+        let cls = require_class3(None, ex.cls_name.as_slice()).unwrap();
         let ex_obj = OopDesc::new_inst(cls.clone());
 
         //invoke ctor

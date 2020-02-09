@@ -35,8 +35,9 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
                 let v = v.lock().unwrap();
                 match &v.v {
                     Oop::Null => {
+                        let cls_name = Vec::from(classfile::consts::J_NPE);
                         let exception = Exception {
-                            cls_name: classfile::consts::J_NPE,
+                            cls_name: new_ref!(cls_name),
                             msg: None,
                             ex_oop: None,
                         };
