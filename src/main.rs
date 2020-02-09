@@ -29,9 +29,6 @@ todo list
   x. 官方的测试用例
   x. build thread system
     去掉native 函数的jt参数
-  x. class mirror
-    是底层class在上层的一个实例吗？为了与Oop统一管理
-    classmirror field_value 个数和类型是什么？
   x. impl Type annotations
 */
 
