@@ -10,6 +10,7 @@ mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
 pub mod java_lang_Class;
+mod java_lang_ClassLoader;
 mod java_lang_Double;
 mod java_lang_Float;
 mod java_lang_Object;
@@ -89,6 +90,10 @@ pub fn init() {
             java_io_FileOutputStream::get_native_methods(),
         ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
+        (
+            "java/lang/ClassLoader",
+            java_lang_ClassLoader::get_native_methods(),
+        ),
         ("java/lang/Double", java_lang_Double::get_native_methods()),
         ("java/lang/Float", java_lang_Float::get_native_methods()),
         ("java/lang/Object", java_lang_Object::get_native_methods()),

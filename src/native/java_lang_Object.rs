@@ -6,12 +6,12 @@ use crate::runtime::JavaThread;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
-        new_fn("registerNatives", "()V", Box::new(jvm_register_natives)),
+        new_fn("registerNatives", "()V", Box::new(jvm_registerNatives)),
         new_fn("hashCode", "()I", Box::new(jvm_hashCode)),
     ]
 }
 
-fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 

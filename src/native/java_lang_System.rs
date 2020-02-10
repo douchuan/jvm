@@ -15,7 +15,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;ILjava/lang/Object;II)V",
             Box::new(jvm_arraycopy),
         ),
-        new_fn("registerNatives", "()V", Box::new(jvm_register_natives)),
+        new_fn("registerNatives", "()V", Box::new(jvm_registerNatives)),
         new_fn(
             "initProperties",
             "(Ljava/util/Properties;)Ljava/util/Properties;",
@@ -25,7 +25,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
