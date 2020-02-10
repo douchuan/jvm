@@ -44,10 +44,7 @@ fn jvm_addressSize(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 
 fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let field= match args.get(1) {
-        Some(v) => v.clone(),
-        _ => unreachable!(),
-    };
+    let field = args[1].clone();
 
     {
         let v = field.lock().unwrap();
@@ -76,37 +73,19 @@ fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
     Ok(Some(v))
 }
 
+//fixme: 此处语义上要求是原子操作，这里需要重新实现
 fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let owner = {
-        match args.get(1) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let owner = args.get(1).unwrap();
     let offset = {
-        match args.get(2) {
-            Some(v) => {
-                let v = v.lock().unwrap();
-                match &v.v {
-                    Oop::Long(v) => *v,
-                    _ => unreachable!()
-                }
-            },
-            _ => unreachable!(),
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!()
         }
     };
-    let old_data = {
-        match args.get(3) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
-    let new_data= {
-        match args.get(4) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let old_data = args.get(3).unwrap();
+    let new_data = args.get(4).unwrap();
 
     let v_at_offset = {
         let v = owner.lock().unwrap();
@@ -116,11 +95,11 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
         }
     };
 
-    if util::oop::if_acmpeq(v_at_offset, old_data) {
+    if util::oop::if_acmpeq(v_at_offset, old_data.clone()) {
         let mut v = owner.lock().unwrap();
         match &mut v.v {
             Oop::Mirror(mirror) => {
-                mirror.field_values[offset as usize] = new_data;
+                mirror.field_values[offset as usize] = new_data.clone();
             },
             _ => unreachable!()
         }

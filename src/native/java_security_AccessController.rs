@@ -27,47 +27,43 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    match args.get(0) {
-        Some(v) => {
-            let mut mir = None;
+    let v = args.get(0).unwrap();
+    let mut mir = None;
 
-            {
-                let v = v.lock().unwrap();
-                match &v.v {
-                    Oop::Null => {
-                        let cls_name = Vec::from(classfile::consts::J_NPE);
-                        let exception = Exception {
-                            cls_name: new_ref!(cls_name),
-                            msg: None,
-                            ex_oop: None,
-                        };
-                        return Err(exception);
-                    }
-                    Oop::Inst(inst) => {
-                        let m = {
-                            let cls = inst.class.lock().unwrap();
-                            let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
-                            cls.get_virtual_method(id).unwrap()
-                        };
-                        mir = Some(m);
-                    }
-                    _ => unreachable!(),
-                }
+    {
+        let v = v.lock().unwrap();
+        match &v.v {
+            Oop::Null => {
+                let cls_name = Vec::from(classfile::consts::J_NPE);
+                let exception = Exception {
+                    cls_name: new_ref!(cls_name),
+                    msg: None,
+                    ex_oop: None,
+                };
+                return Err(exception);
             }
-
-            let args = vec![v.clone()];
-            let mut jc = JavaCall::new_with_args(jt, mir.unwrap(), args);
-            let mut stack = Stack::new(1);
-            jc.invoke(jt, &mut stack, false);
-
-            if !jt.is_meet_ex() {
-                let r = stack.pop_ref();
-                Ok(Some(r))
-            } else {
-                Ok(None)
+            Oop::Inst(inst) => {
+                let m = {
+                    let cls = inst.class.lock().unwrap();
+                    let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
+                    cls.get_virtual_method(id).unwrap()
+                };
+                mir = Some(m);
             }
+            _ => unreachable!(),
         }
-        None => unreachable!(),
+    }
+
+    let args = vec![v.clone()];
+    let mut jc = JavaCall::new_with_args(jt, mir.unwrap(), args);
+    let mut stack = Stack::new(1);
+    jc.invoke(jt, &mut stack, false);
+
+    if !jt.is_meet_ex() {
+        let r = stack.pop_ref();
+        Ok(Some(r))
+    } else {
+        Ok(None)
     }
 }
 

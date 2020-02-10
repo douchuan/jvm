@@ -231,11 +231,7 @@ fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
 fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     //parse args
     let mirror_target = {
-        let arg0 = match args.get(0) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg0 = args.get(0).unwrap();
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
@@ -244,11 +240,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
     };
 
     let public_only = {
-        let arg1 = match args.get(1) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg1 = args.get(1).unwrap();
         let arg1 = arg1.lock().unwrap();
         match arg1.v {
             Oop::Int(v) => v == 1,
@@ -301,11 +293,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
 
 fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let target = {
-        let arg0 = match args.get(0) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg0 = args.get(0).unwrap();
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
@@ -326,11 +314,7 @@ fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
 
 fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let java_name = {
-        let arg0 = match args.get(0) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg0 = args.get(0).unwrap();
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Str(s) => s.clone(),
@@ -338,30 +322,14 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
         }
     };
     let initialize = {
-        let arg1 = match args.get(1) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg1 = args.get(1).unwrap();
         let arg1 = arg1.lock().unwrap();
-        match &arg1.v {
-            Oop::Int(v) => *v != 0,
+        match arg1.v {
+            Oop::Int(v) => v != 0,
             _ => unreachable!(),
         }
     };
-    let java_cls_loader = {
-        match args.get(2) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
-    let caller_mirror = {
-        match args.get(3) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
-
+    let java_cls_loader = args.get(2).unwrap();
     {
         let v = java_cls_loader.lock().unwrap();
         match &v.v {
@@ -369,6 +337,8 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
             _ => unimplemented!("app class loader, unimpl"),
         }
     }
+
+    let caller_mirror = args.get(3).unwrap();
 
     let name = String::from_utf8_lossy(java_name.as_slice());
     let name = name.replace(".", "/");

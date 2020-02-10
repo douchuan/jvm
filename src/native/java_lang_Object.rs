@@ -16,12 +16,8 @@ fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
 }
 
 fn jvm_hashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    match args.get(0) {
-        Some(v) => {
-            let v = v.lock().unwrap().hash_code;
-            trace!("hashCode = {}", v);
-            Ok(Some(OopDesc::new_int(v as i32)))
-        }
-        None => unreachable!(),
-    }
+    let v = args.get(0).unwrap();
+    let v = v.lock().unwrap().hash_code;
+    trace!("hashCode = {}", v);
+    Ok(Some(OopDesc::new_int(v as i32)))
 }

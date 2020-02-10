@@ -40,13 +40,7 @@ fn jvm_isAlive(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
 }
 
 fn jvm_start0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let thread_oop = {
-        match args.get(0) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
-
+    let thread_oop = args.get(0).unwrap();
     let cls = {
         let v = thread_oop.lock().unwrap();
         match &v.v {
@@ -73,7 +67,7 @@ fn jvm_start0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
 
         let mut jt = JavaThread::new();
         let mut stack = Stack::new(0);
-        let args = vec![thread_oop];
+        let args = vec![thread_oop.clone()];
         let mut jc = JavaCall::new_with_args(&mut jt, mir, args);
         jc.invoke(&mut jt, &mut stack, false);
 

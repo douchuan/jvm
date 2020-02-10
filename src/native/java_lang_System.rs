@@ -29,69 +29,62 @@ fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
 }
 
 fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let src = {
-        match args.get(0) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let src = args.get(0).unwrap();
     let src_pos = {
-        let arg1 = match args.get(1) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg1 = args.get(1).unwrap();
         let arg1 = arg1.lock().unwrap();
-        match &arg1.v {
-            Oop::Int(v) => *v,
+        match arg1.v {
+            Oop::Int(v) => v,
             _ => unreachable!(),
         }
     };
-    let dest = {
-        match args.get(2) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let dest = args.get(2).unwrap();
     let dest_pos = {
-        let arg3 = match args.get(3) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg3 = args.get(3).unwrap();
         let arg3 = arg3.lock().unwrap();
-        match &arg3.v {
-            Oop::Int(v) => *v,
+        match arg3.v {
+            Oop::Int(v) => v,
             _ => unreachable!(),
         }
     };
     let length = {
-        let arg4 = match args.get(4) {
-            Some(v) => v.clone(),
-            _ => unreachable!(),
-        };
-
+        let arg4 = args.get(4).unwrap();
         let arg4 = arg4.lock().unwrap();
-        match &arg4.v {
-            Oop::Int(v) => *v,
+        match arg4.v {
+            Oop::Int(v) => v,
             _ => unreachable!(),
         }
     };
 
-    //todo: do check
+    //todo: do check & throw exception
 
     if length == 0 {
         return Ok(None);
     }
 
-    let is_str = {
-        let src = src.lock().unwrap();
-        match &src.v {
-            Oop::Array(ary) => false,
-            Oop::Str(_) => true,
+    let src = {
+        let ary = src.lock().unwrap();
+        match &ary.v {
+            Oop::Array(ary) => ary.elements.clone(),
             _ => unreachable!(),
         }
     };
+
+    {
+        let mut dest= dest.lock().unwrap();
+        match &mut dest.v {
+            Oop::Array(ary) => {
+                ary.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                    .clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(None)
+
+        /*
+    let is_str = util::oop::is_str(src.clone());
 
     if is_str {
         let src = {
@@ -143,6 +136,7 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
 
         Ok(Some(oop))
     }
+    */
 }
 
 fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

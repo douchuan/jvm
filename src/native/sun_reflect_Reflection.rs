@@ -14,7 +14,6 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_getCallerClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    //todo: impl
     let mut callers = jt.callers.clone();
 
     callers.pop(); //pop cur method

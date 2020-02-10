@@ -17,34 +17,26 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_doubleToRawLongBits(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    match args.get(0) {
-        Some(v) => {
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Double(v) => {
-                    let v = v.to_bits().to_be_bytes();
-                    let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                    Ok(Some(OopDesc::new_long(v)))
-                }
-                _ => unreachable!(),
-            }
+    let d = args.get(0).unwrap();
+    let d = d.lock().unwrap();
+    match d.v {
+        Oop::Double(v) => {
+            let v = v.to_bits().to_be_bytes();
+            let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            Ok(Some(OopDesc::new_long(v)))
         }
         _ => unreachable!(),
     }
 }
 
 fn jvm_longBitsToDouble(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    match args.get(0) {
-        Some(v) => {
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Long(v) => {
-                    let v = v.to_be_bytes();
-                    let v = f64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                    Ok(Some(OopDesc::new_double(v)))
-                }
-                _ => unreachable!(),
-            }
+    let l = args.get(0).unwrap();
+    let v = l.lock().unwrap();
+    match v.v {
+        Oop::Long(v) => {
+            let v = v.to_be_bytes();
+            let v = f64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            Ok(Some(OopDesc::new_double(v)))
         }
         _ => unreachable!(),
     }

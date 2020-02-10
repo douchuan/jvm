@@ -18,7 +18,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
     let elm_cls = require_class3(None, b"java/lang/StackTraceElement").unwrap();
 
-    let throwable_oop = args[0].clone();
+    let throwable_oop = args.get(0).unwrap();
     let mut elms = Vec::new();
 
     for it in jt.frames.iter() {
@@ -67,5 +67,5 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
         cls.put_field_value(throwable_oop.clone(), id, stack_trace_ary);
     }
 
-    Ok(Some(throwable_oop))
+    Ok(Some(throwable_oop.clone()))
 }

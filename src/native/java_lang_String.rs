@@ -14,24 +14,19 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_intern(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let v = {
-        match args.get(0) {
-            Some(v) => {
-                {
-                    let v = v.lock().unwrap();
-                    match &v.v {
-                        oop::Oop::Str(s) => (),
-                        _ => unimplemented!(),
-                    }
-                }
+    let v = args.get(0).unwrap();
 
-                v.clone()
-            }
-            _ => unreachable!(),
+    //todo: impl for java/lang/String
+    //check it's Str
+    {
+        let v = v.lock().unwrap();
+        match &v.v {
+            oop::Oop::Str(s) => (),
+            _ => unimplemented!(),
         }
-    };
+    }
 
     //    warn!("jvm_intern s = {}", String::from_utf8_lossy(s.as_slice()));
 
-    Ok(Some(v))
+    Ok(Some(v.clone()))
 }
