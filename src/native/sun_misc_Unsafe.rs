@@ -30,6 +30,16 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z",
             Box::new(jvm_compareAndSwapObject),
         ),
+        new_fn(
+            "getIntVolatile",
+            "(Ljava/lang/Object;J)I",
+            Box::new(jvm_getIntVolatile),
+        ),
+        new_fn(
+            "compareAndSwapInt",
+            "(Ljava/lang/Object;JII)Z",
+            Box::new(jvm_compareAndSwapInt),
+        ),
     ]
 }
 
@@ -109,6 +119,72 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
             Oop::Mirror(mirror) => {
                 mirror.field_values[offset as usize] = new_data.clone();
             }
+            _ => unreachable!(),
+        }
+
+        Ok(Some(OopDesc::new_int(1)))
+    } else {
+        Ok(Some(OopDesc::new_int(0)))
+    }
+}
+
+fn jvm_getIntVolatile(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let owner = args.get(1).unwrap();
+    let offset = {
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let v_at_offset = {
+        let v = owner.lock().unwrap();
+        match &v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize].clone(),
+            _ => unreachable!(),
+        }
+    };
+    Ok(Some(v_at_offset))
+}
+
+fn jvm_compareAndSwapInt(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let owner = args.get(1).unwrap();
+    let offset = {
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let old_data = args.get(3).unwrap();
+    let old_data = {
+        let v = old_data.lock().unwrap();
+        match v.v {
+            Oop::Int(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let new_data = args.get(4).unwrap();
+
+    let v_at_offset = {
+        let v = owner.lock().unwrap();
+        let v = match &v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize].clone(),
+            _ => unreachable!(),
+        };
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Int(v) => v,
+            _ => unreachable!(),
+        }
+    };
+
+    if v_at_offset == old_data {
+        let mut v = owner.lock().unwrap();
+        match &mut v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
             _ => unreachable!(),
         }
 

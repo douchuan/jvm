@@ -245,7 +245,7 @@ impl ValueType {
 #[derive(Debug, Clone)]
 pub struct InstOopDesc {
     pub class: ClassRef,
-    field_values: Vec<OopRef>,
+    pub field_values: Vec<OopRef>,
 }
 
 #[derive(Debug, Clone)]
