@@ -1,13 +1,7 @@
 use crate::classfile::types::BytesRef;
 use crate::oop::{Oop, OopRef};
 use crate::runtime::require_class3;
-
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
-enum StrTyp {
-    OopStr,
-    JavaLangString,
-    No,
-}
+use std::sync::{Arc};
 
 pub fn is_str(v: OopRef) -> bool {
     let v = v.lock().unwrap();
@@ -68,4 +62,22 @@ pub fn extract_str(v: OopRef) -> BytesRef {
     };
 
     new_ref!(ary)
+}
+
+pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
+    if Arc::ptr_eq(&v1, &v2) {
+        true
+    } else {
+        if is_str(v2.clone()) && is_str(v1.clone()) {
+            let v2 = extract_str(v2.clone());
+            let v1 = extract_str(v1.clone());
+            if v2.as_slice() == v1.as_slice() {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 }

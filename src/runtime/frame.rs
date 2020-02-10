@@ -1902,38 +1902,20 @@ impl Frame {
     pub fn if_acmpeq(&mut self) {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
-        if Arc::ptr_eq(&v1, &v2) {
+
+        if util::oop::if_acmpeq(v1, v2) {
             self.goto_by_offset_hardcoded(2);
         } else {
-            if util::oop::is_str(v2.clone()) && util::oop::is_str(v1.clone()) {
-                let v2 = util::oop::extract_str(v2.clone());
-                let v1 = util::oop::extract_str(v1.clone());
-                if v2.as_slice() == v1.as_slice() {
-                    self.goto_by_offset_hardcoded(2);
-                } else {
-                    self.pc += 2;
-                }
-            } else {
-                self.pc += 2;
-            }
+            self.pc += 2;
         }
     }
 
     pub fn if_acmpne(&mut self) {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
-        if !Arc::ptr_eq(&v1, &v2) {
-            if util::oop::is_str(v2.clone()) && util::oop::is_str(v1.clone()) {
-                let v2 = util::oop::extract_str(v2.clone());
-                let v1 = util::oop::extract_str(v1.clone());
-                if v2.as_slice() != v1.as_slice() {
-                    self.goto_by_offset_hardcoded(2);
-                } else {
-                    self.pc += 2;
-                }
-            } else {
-                self.goto_by_offset_hardcoded(2);
-            }
+
+        if !util::oop::if_acmpeq(v1, v2) {
+            self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
         }
