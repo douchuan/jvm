@@ -62,81 +62,78 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
         return Ok(None);
     }
 
-    let src = {
-        let ary = src.lock().unwrap();
-        match &ary.v {
-            Oop::Array(ary) => ary.elements.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let is_str = util::oop::is_str(src.clone());
+    if is_str {
+        let src: Vec<OopRef> = {
+            let src = src.lock().unwrap();
+            match &src.v {
+                Oop::Str(s) => {
+                    //just construct the needed region
+                    s[src_pos as usize..(src_pos + length - 1) as usize]
+                        .iter()
+                        .map(|v| OopDesc::new_int(*v as i32))
+                        .collect()
+                }
+                _ => unreachable!(),
+            }
+        };
 
-    {
         let mut dest = dest.lock().unwrap();
         match &mut dest.v {
-            Oop::Array(ary) => {
-                ary.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
-                    .clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
+            Oop::Array(dest) => {
+                dest.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                    .clone_from_slice(&src[..]);
             }
             _ => unreachable!(),
+        }
+    } else {
+        //这里为了避免clone一个大数组，做了优化
+        //src 和 dest 有可能是同一个对象，所以，两个不能同时上锁
+        if Arc::ptr_eq(&src, &dest) {
+            let src = {
+                let ary = src.lock().unwrap();
+                match &ary.v {
+                    Oop::Array(ary) => {
+                        let mut new_ary = Vec::new();
+                        new_ary.clone_from_slice(
+                            &ary.elements[src_pos as usize..(src_pos + length - 1) as usize],
+                        );
+                        new_ary
+                    }
+                    _ => unreachable!(),
+                }
+            };
+
+            let mut dest = dest.lock().unwrap();
+            match &mut dest.v {
+                Oop::Array(ary) => {
+                    ary.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                        .clone_from_slice(&src[..]);
+                }
+                _ => unreachable!(),
+            }
+        } else {
+            let src = src.lock().unwrap();
+            match &src.v {
+                Oop::Array(src) => {
+                    let mut dest = dest.lock().unwrap();
+                    match &mut dest.v {
+                        Oop::Array(dest) => {
+                            dest.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                                .clone_from_slice(
+                                    &src.elements
+                                        [src_pos as usize..(src_pos + length - 1) as usize],
+                                );
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                _ => unreachable!(),
+            }
         }
     }
 
     Ok(None)
-
-    /*
-    let is_str = util::oop::is_str(src.clone());
-
-    if is_str {
-        let src = {
-            let ary = src.lock().unwrap();
-            match &ary.v {
-                Oop::Str(s) => s.clone(),
-                _ => unreachable!(),
-            }
-        };
-
-        //just construct the needed region
-        let src: Vec<OopRef> = src[src_pos as usize..(src_pos + length - 1) as usize]
-            .iter()
-            .map(|v| OopDesc::new_int(*v as i32))
-            .collect();
-
-        let (dest_cls, mut dest) = {
-            let ary = dest.lock().unwrap();
-            match &ary.v {
-                Oop::Array(ary) => (ary.class.clone(), ary.elements.clone()),
-                _ => unreachable!(),
-            }
-        };
-
-        dest[dest_pos as usize..(dest_pos + length - 1) as usize].clone_from_slice(&src[..]);
-
-        let oop = OopDesc::new_ary2(dest_cls, dest);
-        Ok(Some(oop))
-    } else {
-        let src = {
-            let ary = src.lock().unwrap();
-            match &ary.v {
-                Oop::Array(ary) => ary.elements.clone(),
-                _ => unreachable!(),
-            }
-        };
-        let (dest_cls, mut dest) = {
-            let ary = dest.lock().unwrap();
-            match &ary.v {
-                Oop::Array(ary) => (ary.class.clone(), ary.elements.clone()),
-                _ => unreachable!(),
-            }
-        };
-
-        dest[dest_pos as usize..(dest_pos + length - 1) as usize]
-            .clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
-
-        let oop = OopDesc::new_ary2(dest_cls, dest);
-
-        Ok(Some(oop))
-    }
-    */
 }
 
 fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
