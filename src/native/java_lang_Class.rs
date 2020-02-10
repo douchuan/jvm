@@ -39,6 +39,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;",
             Box::new(jvm_forName0),
         ),
+        new_fn("isPrimitive", "()Z", Box::new(jvm_isPrimitive)),
+        new_fn(
+            "isAssignableFrom",
+            "(Ljava/lang/Class;)Z",
+            Box::new(jvm_isAssignableFrom),
+        ),
     ]
 }
 
@@ -369,4 +375,59 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
             Err(exception)
         }
     }
+}
+
+fn jvm_isPrimitive(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+    let v = v.lock().unwrap();
+    let v = match &v.v {
+        Oop::Mirror(mirror) => {
+            if mirror.target.is_none() {
+                1
+            } else {
+                0
+            }
+        }
+        _ => unreachable!(),
+    };
+    Ok(Some(OopDesc::new_int(v)))
+}
+
+fn jvm_isAssignableFrom(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let l = args.get(0).unwrap();
+    let r = args.get(1).unwrap();
+
+    let (lt, ltyp) = {
+        let v = l.lock().unwrap();
+        match &v.v {
+            Oop::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
+            _ => unreachable!(),
+        }
+    };
+
+    let (rt, rtyp) = {
+        let v = r.lock().unwrap();
+        match &v.v {
+            Oop::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
+            _ => unreachable!(),
+        }
+    };
+
+    let v = if lt.is_none() && rt.is_none() {
+        if ltyp == rtyp {
+            1
+        } else {
+            0
+        }
+    } else {
+        let lt = lt.unwrap();
+        let rt = rt.unwrap();
+        if runtime::cmp::instance_of(lt, rt) {
+            1
+        } else {
+            0
+        }
+    };
+
+    Ok(Some(OopDesc::new_int(v)))
 }

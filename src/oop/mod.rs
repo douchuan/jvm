@@ -258,7 +258,7 @@ pub struct ArrayOopDesc {
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
     pub field_values: Vec<OopRef>,
-    value_type: ValueType,
+    pub value_type: ValueType,
 }
 
 impl InstOopDesc {
