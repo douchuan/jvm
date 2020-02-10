@@ -1905,9 +1905,9 @@ impl Frame {
         if Arc::ptr_eq(&v1, &v2) {
             self.goto_by_offset_hardcoded(2);
         } else {
-            if is_str_oop(v2.clone()) && is_str_oop(v1.clone()) {
-                let v2 = extract_str_oop(v2.clone());
-                let v1 = extract_str_oop(v1.clone());
+            if util::oop::is_str(v2.clone()) && util::oop::is_str(v1.clone()) {
+                let v2 = util::oop::extract_str(v2.clone());
+                let v1 = util::oop::extract_str(v1.clone());
                 if v2.as_slice() == v1.as_slice() {
                     self.goto_by_offset_hardcoded(2);
                 } else {
@@ -1923,9 +1923,9 @@ impl Frame {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
         if !Arc::ptr_eq(&v1, &v2) {
-            if is_str_oop(v2.clone()) && is_str_oop(v1.clone()) {
-                let v2 = extract_str_oop(v2.clone());
-                let v1 = extract_str_oop(v1.clone());
+            if util::oop::is_str(v2.clone()) && util::oop::is_str(v1.clone()) {
+                let v2 = util::oop::extract_str(v2.clone());
+                let v1 = util::oop::extract_str(v1.clone());
                 if v2.as_slice() != v1.as_slice() {
                     self.goto_by_offset_hardcoded(2);
                 } else {
@@ -2518,67 +2518,4 @@ impl Frame {
             self.code[pc as usize], pc
         );
     }
-}
-
-fn is_str_oop(v: OopRef) -> bool {
-    let v = v.lock().unwrap();
-    match &v.v {
-        Oop::Str(s) => true,
-        Oop::Inst(inst) => {
-            let cls = inst.class.lock().unwrap();
-            warn!(
-                "is_str_oop name = {}",
-                String::from_utf8_lossy(cls.name.as_slice())
-            );
-            cls.name.as_slice() == b"java/lang/String"
-        }
-        _ => false,
-    }
-}
-
-fn extract_str_oop(v: OopRef) -> BytesRef {
-    {
-        let v = v.lock().unwrap();
-        match &v.v {
-            Oop::Str(s) => return s.clone(),
-            _ => (),
-        }
-    }
-
-    let fid = {
-        let v = v.lock().unwrap();
-        match &v.v {
-            Oop::Inst(inst) => {
-                let cls = inst.class.lock().unwrap();
-                assert_eq!(cls.name.as_slice(), b"java/lang/String");
-                cls.get_field_id(b"value", b"[C", false)
-            }
-            _ => unreachable!(),
-        }
-    };
-
-    let cls_string = require_class3(None, b"java/lang/String").unwrap();
-    let value_ary = {
-        let cls = cls_string.lock().unwrap();
-        cls.get_field_value(v.clone(), fid)
-    };
-
-    let value_ary = value_ary.lock().unwrap();
-    let elms = match &value_ary.v {
-        Oop::Array(ary) => ary.elements.clone(),
-        _ => unreachable!(),
-    };
-
-    let ary: Vec<u8> = elms
-        .iter()
-        .map(|it| {
-            let v = it.lock().unwrap();
-            match &v.v {
-                Oop::Int(v) => *v as u8,
-                _ => unreachable!(),
-            }
-        })
-        .collect();
-
-    new_ref!(ary)
 }

@@ -4,6 +4,7 @@ pub mod macros;
 pub mod debug;
 mod file;
 mod net;
+pub mod oop;
 mod sync;
 mod sys;
 
