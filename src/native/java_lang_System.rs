@@ -71,19 +71,19 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     };
 
     {
-        let mut dest= dest.lock().unwrap();
+        let mut dest = dest.lock().unwrap();
         match &mut dest.v {
             Oop::Array(ary) => {
                 ary.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
                     .clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
-            },
+            }
             _ => unreachable!(),
         }
     }
 
     Ok(None)
 
-        /*
+    /*
     let is_str = util::oop::is_str(src.clone());
 
     if is_str {

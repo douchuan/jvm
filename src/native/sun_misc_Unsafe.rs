@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, OopRef};
-use crate::runtime::{JavaThread, require_class3};
+use crate::runtime::{require_class3, JavaThread};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
@@ -20,8 +20,16 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             Box::new(jvm_arrayIndexScale),
         ),
         new_fn("addressSize", "()I", Box::new(jvm_addressSize)),
-        new_fn("objectFieldOffset", "(Ljava/lang/reflect/Field;)J", Box::new(jvm_objectFieldOffset)),
-        new_fn("compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", Box::new(jvm_compareAndSwapObject)),
+        new_fn(
+            "objectFieldOffset",
+            "(Ljava/lang/reflect/Field;)J",
+            Box::new(jvm_objectFieldOffset),
+        ),
+        new_fn(
+            "compareAndSwapObject",
+            "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z",
+            Box::new(jvm_compareAndSwapObject),
+        ),
     ]
 }
 
@@ -54,7 +62,7 @@ fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
                 let cls = cls.lock().unwrap();
                 assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -67,7 +75,7 @@ fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
     let v = v.lock().unwrap();
     let v = match &v.v {
         Oop::Int(i) => OopDesc::new_long(*i as i64),
-        _ => unreachable!()
+        _ => unreachable!(),
     };
 
     Ok(Some(v))
@@ -81,7 +89,7 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
         let v = v.lock().unwrap();
         match v.v {
             Oop::Long(v) => v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let old_data = args.get(3).unwrap();
@@ -91,7 +99,7 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
         let v = owner.lock().unwrap();
         match &v.v {
             Oop::Mirror(mirror) => mirror.field_values[offset as usize].clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -100,8 +108,8 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
         match &mut v.v {
             Oop::Mirror(mirror) => {
                 mirror.field_values[offset as usize] = new_data.clone();
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
 
         Ok(Some(OopDesc::new_int(1)))
@@ -109,4 +117,3 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
         Ok(Some(OopDesc::new_int(0)))
     }
 }
-

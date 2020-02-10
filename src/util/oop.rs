@@ -1,7 +1,7 @@
 use crate::classfile::types::BytesRef;
 use crate::oop::{Oop, OopRef};
 use crate::runtime::require_class3;
-use std::sync::{Arc};
+use std::sync::Arc;
 
 pub fn is_str(v: OopRef) -> bool {
     let v = v.lock().unwrap();
