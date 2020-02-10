@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, OopRef};
-use crate::runtime::{require_class3, JavaThread};
+use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
@@ -20,8 +20,9 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
 
     let throwable_oop = args.get(0).unwrap();
     let mut elms = Vec::new();
+    let frames = jt.frames.clone();
 
-    for it in jt.frames.iter() {
+    for it in frames.iter() {
         match it.try_lock() {
             Ok(frame) => {
                 let mir = frame.mir.clone();
@@ -50,6 +51,12 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
                     OopDesc::new_str(src_file),
                     OopDesc::new_int(line_number),
                 ];
+                runtime::java_call::invoke_ctor(
+                    jt,
+                    elm_cls.clone(),
+                    b"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V",
+                    args,
+                );
 
                 elms.push(elm);
             }

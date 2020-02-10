@@ -77,7 +77,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         args,
     );
 
-    //todo: hackJavaClasses
+    hack_classes(jt);
 
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
@@ -117,7 +117,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
         //fixme: if useCaches false, cause 'NoSuchFieldException'
         //  'buf' 是一条线索
         let id = cls.get_field_id(b"useCaches", b"Z", true);
-        cls.put_static_field_value(id, OopDesc::new_int(1));
+        cls.put_static_field_value(id, OopDesc::new_int(0));
     }
 }
 
@@ -133,4 +133,19 @@ fn do_init(name: &[u8], jt: &mut JavaThread) -> ClassRef {
     //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
 
     class
+}
+
+fn hack_classes(jt: &mut JavaThread) {
+    let charset_cls = do_init(b"java/nio/charset/Charset", jt);
+    let utf8_charset_cls = do_init(b"sun/nio/cs/UTF_8", jt);
+
+    let utf8_inst = OopDesc::new_inst(utf8_charset_cls.clone());
+    let args = vec![utf8_inst.clone()];
+    runtime::java_call::invoke_ctor(jt, utf8_charset_cls.clone(), b"()V", args);
+
+    {
+        let mut cls = charset_cls.lock().unwrap();
+        let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
+        cls.put_static_field_value(id, utf8_inst);
+    }
 }

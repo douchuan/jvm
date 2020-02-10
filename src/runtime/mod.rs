@@ -7,7 +7,7 @@ mod cp_manager;
 mod exception;
 mod frame;
 mod init_vm;
-mod java_call;
+pub mod java_call;
 mod local;
 pub mod reflect;
 mod slot;
