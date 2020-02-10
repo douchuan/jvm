@@ -207,14 +207,40 @@ impl JavaThread {
                 _ => unreachable!()
             }
         };
-        let detail_msg = {
-            let cls = cls.lock().unwrap();
-            let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
-            let v = cls.get_field_value(ex.clone(), id);
-            let v = v.lock().unwrap();
+        let detail_msg: Vec<u8> = {
+            let detail_message_oop = {
+                let cls = cls.lock().unwrap();
+                let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
+                cls.get_field_value(ex.clone(), id)
+            };
 
+            let cls = {
+                let v = detail_message_oop.lock().unwrap();
+                match &v.v {
+                    oop::Oop::Inst(inst) => inst.class.clone(),
+                    _ => unreachable!()
+                }
+            };
+
+            let value = {
+                let cls = cls.lock().unwrap();
+                let id = cls.get_field_id(b"value", b"[C", false);
+                cls.get_field_value(detail_message_oop.clone(), id)
+            };
+
+            let v = value.lock().unwrap();
             match &v.v {
-                oop::Oop::Str(s) => s.clone(),
+                oop::Oop::Array(ary) => {
+                    ary.elements
+                        .iter()
+                        .map(|v| {
+                            let v = v.lock().unwrap();
+                            match &v.v {
+                                oop::Oop::Int(v) => *v as u8,
+                                _ => unreachable!()
+                            }
+                        }).collect()
+                }
                 _ => unreachable!()
             }
         };

@@ -8,6 +8,14 @@ use crate::util;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
+use nix::errno::errno;
+
+pub fn get_primitive_class_mirror(key: &str) -> Option<OopRef> {
+    //todo: avoid mutex lock, it's only read
+    util::sync_call(&PRIM_MIRROS, |mirros| {
+        mirros.get(key).map(|it| it.clone())
+    })
+}
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -221,19 +229,12 @@ fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
 
     let s = std::str::from_utf8(v.as_slice()).unwrap();
     match SIGNATURE_DIC.get(s) {
-        Some(&s) => {
-            //todo: avoid mutex lock, it's only read
-            util::sync_call(&PRIM_MIRROS, |mirros| {
-                Ok(mirros.get(s).map(|it| it.clone()))
-            })
-        }
+        Some(&s) => Ok(get_primitive_class_mirror(s)),
         _ => unreachable!("Unknown primitive type: {}", s),
     }
 }
 
 fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-
-    warn!("jvm_getDeclaredFields0 xxx");
     //parse args
     let mirror_target = {
         let arg0 = match args.get(0) {
@@ -272,12 +273,17 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
         }
     };
 
+    error!("public_only = {}", public_only);
+
     //build fields ary
     let mut fields = Vec::new();
     for (_, it) in inst_fields {
         if public_only && !it.field.is_public() {
             continue;
         }
+
+        error!("field name = {}",
+            String::from_utf8_lossy(it.field.name.as_slice()));
 
         let v = runtime::reflect::new_java_field_object(it);
         fields.push(v);

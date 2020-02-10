@@ -30,7 +30,7 @@ todo list
   x. build thread system
     去掉native 函数的jt参数
   x. impl Type annotations
-  x. test System.arraycopy
+  x. String.intern
 */
 
 fn init_vm() {
@@ -97,6 +97,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use crate::oop::OopDesc;
 
     #[test]
     fn t_basic() {
@@ -132,7 +133,7 @@ mod tests {
 
     #[test]
     fn t_arc() {
-        use std::sync::Arc;
+        use std::sync::{Arc, Mutex};
         struct TestArc {
             bytes: Arc<Vec<u8>>,
         }
@@ -155,5 +156,11 @@ mod tests {
         assert!(!Arc::ptr_eq(&null1, &null2));
         let null11 = null1.clone();
         assert!(Arc::ptr_eq(&null1, &null1));
+
+        let str1 = Vec::from("hello, world");
+        let str1 = new_ref!(str1);
+        let v1 = Arc::new(Mutex::new(Box::new(OopDesc::new_str(str1))));
+        let v2 = v1.clone();
+        assert!(Arc::ptr_eq(&v1, &v2));
     }
 }

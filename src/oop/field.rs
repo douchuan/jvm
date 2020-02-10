@@ -104,7 +104,7 @@ pub struct FieldId {
 pub struct Field {
     pub class: ClassRef,
     pub name: BytesRef,
-    desc: BytesRef,
+    pub desc: BytesRef,
     id: BytesRef,
 
     pub acc_flags: U2,

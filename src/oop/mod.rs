@@ -222,6 +222,24 @@ impl ValueType {
             _ => unreachable!(),
         }
     }
+
+    /*
+    pub fn into_primitive_name(&self) -> &'static [u8] {
+        match *self {
+            ValueType::BYTE => b"byte",
+            ValueType::BOOLEAN => b"boolean",
+            ValueType::CHAR => b"char",
+            ValueType::SHORT => b"short",
+            ValueType::INT => b"int",
+            ValueType::LONG => b"long",
+            ValueType::FLOAT => b"float",
+            ValueType::DOUBLE => b"double",
+            ValueType::VOID => b"void",
+            ValueType::OBJECT => unreachable!(),
+            ValueType::ARRAY => unreachable!(),
+        }
+    }
+    */
 }
 
 #[derive(Debug, Clone)]
