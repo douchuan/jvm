@@ -1,6 +1,6 @@
 use crate::classfile::{constant_pool, types::*};
 use crate::native;
-use crate::oop::{self, Class, ClassRef, ValueType, OopDesc};
+use crate::oop::{self, Class, ClassRef, OopDesc, ValueType};
 use crate::parser as class_parser;
 use crate::runtime::{self, ClassPathResult};
 use crate::util;
@@ -29,13 +29,13 @@ pub fn require_class3(class_loader: Option<ClassLoader>, name: &[u8]) -> Option<
 impl ClassLoader {
     fn load_class(&self, name: &[u8]) -> Option<ClassRef> {
         assert_ne!(name[0], b'L');
-//        error!("load_class name = {}", String::from_utf8_lossy(name));
+        //        error!("load_class name = {}", String::from_utf8_lossy(name));
         match self {
             ClassLoader::Base => (),
             ClassLoader::Bootstrap => {
                 let it = runtime::sys_dic_find(name);
                 if it.is_some() {
-//                    info!("load_class in dic: {}", String::from_utf8_lossy(name));
+                    //                    info!("load_class in dic: {}", String::from_utf8_lossy(name));
                     return it;
                 }
             }

@@ -4,7 +4,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::classfile::{types::*, ClassFile};
-use crate::runtime::{ClassLoader, require_class3};
+use crate::runtime::{require_class3, ClassLoader};
 
 pub mod class;
 pub mod consts;
@@ -308,7 +308,6 @@ impl MirrorOopDesc {
         self.target.is_none()
     }
 }
-
 
 pub fn init() {
     consts::init();

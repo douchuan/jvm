@@ -1,3 +1,4 @@
+use crate::classfile::attr_info::AnnotationEntry;
 use crate::classfile::{
     access_flags::*, attr_info::Code, constant_pool, consts, types::*, AttrType, FieldInfo,
     MethodInfo,
@@ -8,7 +9,6 @@ use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::classfile::attr_info::AnnotationEntry;
 
 pub type MethodIdRef = Arc<MethodId>;
 
@@ -72,7 +72,13 @@ pub struct Method {
 }
 
 impl Method {
-    pub fn new(cp: &ConstantPool, mi: &MethodInfo, class: ClassRef, vis_annos: Vec<AnnotationEntry>, vis_param_annos: Vec<AnnotationEntry>) -> Self {
+    pub fn new(
+        cp: &ConstantPool,
+        mi: &MethodInfo,
+        class: ClassRef,
+        vis_annos: Vec<AnnotationEntry>,
+        vis_param_annos: Vec<AnnotationEntry>,
+    ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
@@ -91,7 +97,7 @@ impl Method {
             code,
             lnt,
             vis_annos,
-            vis_param_annos
+            vis_param_annos,
         }
     }
 

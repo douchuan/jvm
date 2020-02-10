@@ -252,10 +252,7 @@ mod tests {
 
         let v = Vec::from("Ljava/lang/Object;");
         let v = new_ref!(v);
-        setup_test!(
-            "Ljava/lang/Object;".as_bytes(),
-            Type::Object(v)
-        );
+        setup_test!("Ljava/lang/Object;".as_bytes(), Type::Object(v));
         setup_test!("S".as_bytes(), Type::Short);
         setup_test!("Z".as_bytes(), Type::Boolean);
 
@@ -265,17 +262,11 @@ mod tests {
         let v2 = new_ref!(v2);
         setup_test!(
             "[Ljava/lang/Object;".as_bytes(),
-            Type::Array(
-                v1,
-                Arc::new(Type::Object(v2))
-            )
+            Type::Array(v1, Arc::new(Type::Object(v2)))
         );
 
         let v = Vec::from("[[[");
         let v = new_ref!(v);
-        setup_test!(
-            "[[[D".as_bytes(),
-            Type::Array(v, Arc::new(Type::Double))
-        );
+        setup_test!("[[[D".as_bytes(), Type::Array(v, Arc::new(Type::Double)));
     }
 }

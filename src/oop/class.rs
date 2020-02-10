@@ -340,7 +340,7 @@ impl Class {
 
     pub fn get_field_id(&self, name: &[u8], desc: &[u8], is_static: bool) -> FieldIdRef {
         let field_id = util::new_field_id(self.name.as_slice(), name, desc);
-//        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
+        //        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
 
         if is_static {
             match &self.kind {
@@ -372,7 +372,7 @@ impl Class {
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.field_values[fir.offset] = v,
-            Oop::Mirror(mirror) => mirror.field_values[fir.offset] =v,
+            Oop::Mirror(mirror) => mirror.field_values[fir.offset] = v,
             t => unreachable!("t = {:?}", t),
         }
     }
@@ -381,12 +381,10 @@ impl Class {
         let rf = receiver.lock().unwrap();
         match &rf.v {
             Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
-            Oop::Mirror(mirror) => {
-                match mirror.field_values.get(fid.offset) {
-                    Some(v) => v.clone(),
-                    _ => unreachable!("mirror = {:?}", mirror),
-                }
-            }
+            Oop::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
+                Some(v) => v.clone(),
+                _ => unreachable!("mirror = {:?}", mirror),
+            },
             Oop::Str(s) => OopDesc::new_str(s.clone()),
             t => unreachable!("t = {:?}", t),
         }
@@ -672,20 +670,18 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let mut vis_annos= Vec::new();
-            let mut vis_param_annos= Vec::new();
+            let mut vis_annos = Vec::new();
+            let mut vis_param_annos = Vec::new();
             //todo: add type annos
-//            let mut runtime_vis_type_annos = Vec::new();
-            it.attrs.iter().for_each(|attr| {
-                match attr {
-                    AttrType::RuntimeVisibleAnnotations { annotations} => {
-                        vis_annos.extend_from_slice(annotations.as_slice());
-                    }
-                    AttrType::RuntimeVisibleParameterAnnotations {annotations} => {
-                        vis_param_annos.extend_from_slice(annotations.as_slice());
-                    }
-                    _ => (),
+            //            let mut runtime_vis_type_annos = Vec::new();
+            it.attrs.iter().for_each(|attr| match attr {
+                AttrType::RuntimeVisibleAnnotations { annotations } => {
+                    vis_annos.extend_from_slice(annotations.as_slice());
                 }
+                AttrType::RuntimeVisibleParameterAnnotations { annotations } => {
+                    vis_param_annos.extend_from_slice(annotations.as_slice());
+                }
+                _ => (),
             });
 
             let method = method::Method::new(cp, it, this_ref.clone(), vis_annos, vis_param_annos);

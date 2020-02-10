@@ -2,7 +2,7 @@
 use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
-use crate::runtime::{JavaCall, JavaThread, Exception, Stack};
+use crate::runtime::{Exception, JavaCall, JavaThread, Stack};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
@@ -51,7 +51,7 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
                         };
                         mir = Some(m);
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
             }
 
@@ -67,7 +67,7 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
                 Ok(None)
             }
         }
-        None => unreachable!()
+        None => unreachable!(),
     }
 }
 

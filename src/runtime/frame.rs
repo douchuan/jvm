@@ -599,7 +599,7 @@ impl Frame {
             let ex = ex.lock().unwrap();
             match &ex.v {
                 Oop::Inst(inst) => inst.class.lock().unwrap().name.clone(),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
@@ -629,11 +629,14 @@ impl Frame {
                 let ex = ex.lock().unwrap();
                 match &ex.v {
                     Oop::Inst(inst) => inst.class.clone(),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
             };
 
-            let handler = self.mir.method.find_exception_handler(&self.cp, self.pc as u16 , ex_cls);
+            let handler = self
+                .mir
+                .method
+                .find_exception_handler(&self.cp, self.pc as u16, ex_cls);
             match handler {
                 Some(pc) => {
                     self.stack.clear();
@@ -1932,7 +1935,7 @@ impl Frame {
                 self.goto_by_offset_hardcoded(2);
             }
         } else {
-           self.pc += 2;
+            self.pc += 2;
         }
     }
 
@@ -2517,21 +2520,23 @@ impl Frame {
     }
 }
 
-fn is_str_oop(v: OopRef) -> bool{
+fn is_str_oop(v: OopRef) -> bool {
     let v = v.lock().unwrap();
     match &v.v {
         Oop::Str(s) => true,
         Oop::Inst(inst) => {
             let cls = inst.class.lock().unwrap();
-            warn!("is_str_oop name = {}", String::from_utf8_lossy(cls.name.as_slice()));
+            warn!(
+                "is_str_oop name = {}",
+                String::from_utf8_lossy(cls.name.as_slice())
+            );
             cls.name.as_slice() == b"java/lang/String"
         }
-        _ => false
+        _ => false,
     }
 }
 
 fn extract_str_oop(v: OopRef) -> BytesRef {
-
     {
         let v = v.lock().unwrap();
         match &v.v {
@@ -2548,7 +2553,7 @@ fn extract_str_oop(v: OopRef) -> BytesRef {
                 assert_eq!(cls.name.as_slice(), b"java/lang/String");
                 cls.get_field_id(b"value", b"[C", false)
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -2560,19 +2565,20 @@ fn extract_str_oop(v: OopRef) -> BytesRef {
 
     let value_ary = value_ary.lock().unwrap();
     let elms = match &value_ary.v {
-        Oop::Array(ary) => {
-            ary.elements.clone()
-        }
-        _ => unreachable!()
+        Oop::Array(ary) => ary.elements.clone(),
+        _ => unreachable!(),
     };
 
-    let ary: Vec<u8> = elms.iter().map(|it| {
-       let v = it.lock().unwrap();
-        match &v.v {
-            Oop::Int(v) => *v as u8,
-            _ => unreachable!()
-        }
-    }).collect();
+    let ary: Vec<u8> = elms
+        .iter()
+        .map(|it| {
+            let v = it.lock().unwrap();
+            match &v.v {
+                Oop::Int(v) => *v as u8,
+                _ => unreachable!(),
+            }
+        })
+        .collect();
 
     new_ref!(ary)
 }

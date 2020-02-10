@@ -2,19 +2,17 @@
 
 use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, ClassRef, Oop, OopDesc, OopRef, ValueType, FieldIdRef};
+use crate::oop::{self, ClassRef, FieldIdRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{self, require_class3, Exception, JavaThread};
 use crate::util;
+use nix::errno::errno;
 use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
-use nix::errno::errno;
 
 pub fn get_primitive_class_mirror(key: &str) -> Option<OopRef> {
     //todo: avoid mutex lock, it's only read
-    util::sync_call(&PRIM_MIRROS, |mirros| {
-        mirros.get(key).map(|it| it.clone())
-    })
+    util::sync_call(&PRIM_MIRROS, |mirros| mirros.get(key).map(|it| it.clone()))
 }
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -33,17 +31,13 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn(
             "getDeclaredFields0",
             "(Z)[Ljava/lang/reflect/Field;",
-            Box::new(jvm_getDeclaredFields0)
+            Box::new(jvm_getDeclaredFields0),
         ),
-        new_fn(
-            "getName0",
-            "()Ljava/lang/String;",
-            Box::new(jvm_getName0)
-        ),
+        new_fn("getName0", "()Ljava/lang/String;", Box::new(jvm_getName0)),
         new_fn(
             "forName0",
             "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;",
-            Box::new(jvm_forName0)
+            Box::new(jvm_forName0),
         ),
     ]
 }
@@ -51,14 +45,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 #[derive(Copy, Clone, PartialEq)]
 enum ClassMirrorState {
     NotFixed,
-    Fixed
+    Fixed,
 }
 
 lazy_static! {
-    static ref MIRROR_STATE: Mutex<ClassMirrorState> = {
-        Mutex::new(ClassMirrorState::NotFixed)
-    };
-
+    static ref MIRROR_STATE: Mutex<ClassMirrorState> = { Mutex::new(ClassMirrorState::NotFixed) };
     static ref PRIM_MIRROS: Mutex<HashMap<String, OopRef>> = {
         let hm = HashMap::new();
         Mutex::new(hm)
@@ -82,7 +73,10 @@ lazy_static! {
         dic
     };
     static ref DELAYED_MIRROS: Mutex<Vec<String>> = {
-        let v = vec![ "I", "Z", "B", "C", "S", "F", "J", "D", "V", "[I", "[Z", "[B", "[C", "[S", "[F", "[J", "[D",];
+        let v = vec![
+            "I", "Z", "B", "C", "S", "F", "J", "D", "V", "[I", "[Z", "[B", "[C", "[S", "[F", "[J",
+            "[D",
+        ];
         let v: Vec<String> = v.iter().map(|it| it.to_string()).collect();
         Mutex::new(v)
     };
@@ -100,16 +94,16 @@ pub fn init() {
     lazy_static::initialize(&DELAYED_ARY_MIRROS);
 }
 
-
 pub fn create_mirror(cls: ClassRef) {
-    let is_fixed = util::sync_call_ctx(&MIRROR_STATE, |s| {
-        *s == ClassMirrorState::Fixed
-    });
+    let is_fixed = util::sync_call_ctx(&MIRROR_STATE, |s| *s == ClassMirrorState::Fixed);
 
     if is_fixed {
         let mirror = OopDesc::new_mirror(cls.clone());
         let mut cls = cls.lock().unwrap();
-        trace!("mirror created: {}", String::from_utf8_lossy(cls.name.as_slice()));
+        trace!(
+            "mirror created: {}",
+            String::from_utf8_lossy(cls.name.as_slice())
+        );
         cls.set_mirror(mirror);
     } else {
         let cls_back = cls.clone();
@@ -173,7 +167,7 @@ pub fn create_delayed_mirrors() {
                 }
 
                 let mut cls = target.lock().unwrap();
-//                warn!("set_mirror name={}", String::from_utf8_lossy(cls.name.as_slice()));
+                //                warn!("set_mirror name={}", String::from_utf8_lossy(cls.name.as_slice()));
                 cls.set_mirror(mirror.clone());
             }
 
@@ -199,7 +193,7 @@ pub fn create_delayed_ary_mirrors() {
             match &cls.kind {
                 oop::class::ClassKind::ObjectArray(obj_ary) => obj_ary.value_type,
                 oop::class::ClassKind::TypeArray(typ_ary) => typ_ary.value_type,
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
         let mirror = OopDesc::new_ary_mirror(cls.clone(), value_type);
@@ -239,26 +233,26 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
     let mirror_target = {
         let arg0 = match args.get(0) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
     let public_only = {
         let arg1 = match args.get(1) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg1 = arg1.lock().unwrap();
         match arg1.v {
             Oop::Int(v) => v == 1,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -268,8 +262,8 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => {
                 (inst.inst_fields.clone(), inst.static_fields.clone())
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     };
 
@@ -282,8 +276,10 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
             continue;
         }
 
-        error!("field name = {}",
-            String::from_utf8_lossy(it.field.name.as_slice()));
+        error!(
+            "field name = {}",
+            String::from_utf8_lossy(it.field.name.as_slice())
+        );
 
         let v = runtime::reflect::new_java_field_object(it);
         fields.push(v);
@@ -307,13 +303,13 @@ fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     let target = {
         let arg0 = match args.get(0) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let name = {
@@ -332,37 +328,37 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     let java_name = {
         let arg0 = match args.get(0) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
             Oop::Str(s) => s.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let initialize = {
         let arg1 = match args.get(1) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg1 = arg1.lock().unwrap();
         match &arg1.v {
             Oop::Int(v) => *v != 0,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let java_cls_loader = {
         match args.get(2) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
-    let caller_mirror= {
+    let caller_mirror = {
         match args.get(3) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -382,15 +378,13 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     match cls {
         Some(cls) => {
             {
-                let mut cls= cls.lock().unwrap();
+                let mut cls = cls.lock().unwrap();
                 cls.init_class(jt);
                 //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
             }
             oop::class::init_class_fully(jt, cls.clone());
 
-            let mirror = {
-                cls.lock().unwrap().get_mirror()
-            };
+            let mirror = { cls.lock().unwrap().get_mirror() };
 
             Ok(Some(mirror))
         }

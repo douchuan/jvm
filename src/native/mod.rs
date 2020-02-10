@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::oop::{ClassRef, OopRef};
-use crate::runtime::{JavaThread, Exception};
+use crate::runtime::{Exception, JavaThread};
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -105,7 +105,10 @@ pub fn init() {
         ),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
-        ("sun/reflect/Reflection", sun_reflect_Reflection::get_native_methods()),
+        (
+            "sun/reflect/Reflection",
+            sun_reflect_Reflection::get_native_methods(),
+        ),
     ];
 
     util::sync_call_ctx(&NATIVES, |h| {

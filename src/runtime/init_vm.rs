@@ -19,8 +19,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
-//        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
-//        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
+        //        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
+        //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
         let id = cls.get_field_id(b"priority", b"I", false);
         cls.put_field_value(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));

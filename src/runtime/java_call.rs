@@ -147,7 +147,7 @@ impl JavaCall {
         };
         let desc = self.mir.method.desc.clone();
         let name = self.mir.method.name.clone();
-        let method = native::find_symbol(package.as_slice(),  name.as_slice(), desc.as_slice());
+        let method = native::find_symbol(package.as_slice(), name.as_slice(), desc.as_slice());
         let v = match method {
             Some(method) => {
                 let class = self.mir.method.class.clone();

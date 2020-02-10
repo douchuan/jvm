@@ -3,9 +3,9 @@ use crate::classfile::{self, signature};
 use crate::oop::{self, consts, ClassRef, InstOopDesc, MethodIdRef, OopDesc, OopRef};
 use crate::runtime::{self, init_vm, require_class3, Exception, FrameRef, JavaCall, Local, Stack};
 use crate::util;
+use crate::util::new_field_id;
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
-use crate::util::new_field_id;
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -31,7 +31,7 @@ impl JavaThread {
             java_thread_obj: None,
             ex: None,
 
-            callers: vec![]
+            callers: vec![],
         }
     }
 
@@ -67,7 +67,8 @@ impl JavaThread {
             info!(
                 "handle exception = {}, msg = {:?}",
                 String::from_utf8_lossy(ex.cls_name.as_slice()),
-                ex.msg);
+                ex.msg
+            );
 
             let ex_oop = {
                 if ex.ex_oop.is_none() {
@@ -201,10 +202,8 @@ impl JavaThread {
         let cls = {
             let v = ex.lock().unwrap();
             match &v.v {
-                oop::Oop::Inst(inst) => {
-                    inst.class.clone()
-                }
-                _ => unreachable!()
+                oop::Oop::Inst(inst) => inst.class.clone(),
+                _ => unreachable!(),
             }
         };
         let detail_msg: Vec<u8> = {
@@ -218,7 +217,7 @@ impl JavaThread {
                 let v = detail_message_oop.lock().unwrap();
                 match &v.v {
                     oop::Oop::Inst(inst) => inst.class.clone(),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
             };
 
@@ -230,25 +229,22 @@ impl JavaThread {
 
             let v = value.lock().unwrap();
             match &v.v {
-                oop::Oop::Array(ary) => {
-                    ary.elements
-                        .iter()
-                        .map(|v| {
-                            let v = v.lock().unwrap();
-                            match &v.v {
-                                oop::Oop::Int(v) => *v as u8,
-                                _ => unreachable!()
-                            }
-                        }).collect()
-                }
-                _ => unreachable!()
+                oop::Oop::Array(ary) => ary
+                    .elements
+                    .iter()
+                    .map(|v| {
+                        let v = v.lock().unwrap();
+                        match &v.v {
+                            oop::Oop::Int(v) => *v as u8,
+                            _ => unreachable!(),
+                        }
+                    })
+                    .collect(),
+                _ => unreachable!(),
             }
         };
 
-        info!(
-            "detail={}",
-            String::from_utf8_lossy(detail_msg.as_slice())
-        );
+        info!("detail={}", String::from_utf8_lossy(detail_msg.as_slice()));
     }
 }
 

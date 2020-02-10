@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, OopRef, OopDesc};
-use crate::runtime::{JavaThread, JavaCall, Stack};
-use std::sync::{Arc, Mutex};
+use crate::oop::{self, OopDesc, OopRef};
+use crate::runtime::{JavaCall, JavaThread, Stack};
 use crate::util::new_method_id;
+use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -43,15 +43,15 @@ fn jvm_start0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
     let thread_oop = {
         match args.get(0) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
     let cls = {
-        let v= thread_oop.lock().unwrap();
+        let v = thread_oop.lock().unwrap();
         match &v.v {
             oop::Oop::Inst(inst) => inst.class.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -63,7 +63,6 @@ fn jvm_start0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
     if String::from_utf8_lossy(name.as_slice()) == "java/lang/ref/Reference$ReferenceHandler" {
         Ok(None)
     } else {
-
         //todo: impl threads manager
 
         let mir = {

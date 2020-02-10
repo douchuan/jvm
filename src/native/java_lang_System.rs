@@ -29,53 +29,52 @@ fn jvm_register_natives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
 }
 
 fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-
     let src = {
         match args.get(0) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let src_pos = {
         let arg1 = match args.get(1) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg1 = arg1.lock().unwrap();
         match &arg1.v {
             Oop::Int(v) => *v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
-    let dest= {
+    let dest = {
         match args.get(2) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
     let dest_pos = {
         let arg3 = match args.get(3) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg3 = arg3.lock().unwrap();
         match &arg3.v {
             Oop::Int(v) => *v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
-    let length= {
+    let length = {
         let arg4 = match args.get(4) {
             Some(v) => v.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
 
         let arg4 = arg4.lock().unwrap();
         match &arg4.v {
             Oop::Int(v) => *v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
@@ -86,35 +85,34 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     }
 
     let is_str = {
-       let src = src.lock().unwrap();
+        let src = src.lock().unwrap();
         match &src.v {
             Oop::Array(ary) => false,
             Oop::Str(_) => true,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 
     if is_str {
-        let src= {
+        let src = {
             let ary = src.lock().unwrap();
             match &ary.v {
                 Oop::Str(s) => s.clone(),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
         //just construct the needed region
         let src: Vec<OopRef> = src[src_pos as usize..(src_pos + length - 1) as usize]
             .iter()
-            .map(|v| {
-                OopDesc::new_int(*v as i32)
-            }).collect();
+            .map(|v| OopDesc::new_int(*v as i32))
+            .collect();
 
         let (dest_cls, mut dest) = {
             let ary = dest.lock().unwrap();
             match &ary.v {
                 Oop::Array(ary) => (ary.class.clone(), ary.elements.clone()),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
@@ -123,22 +121,23 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
         let oop = OopDesc::new_ary2(dest_cls, dest);
         Ok(Some(oop))
     } else {
-        let src= {
+        let src = {
             let ary = src.lock().unwrap();
             match &ary.v {
                 Oop::Array(ary) => ary.elements.clone(),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
-        let (dest_cls,  mut dest)= {
+        let (dest_cls, mut dest) = {
             let ary = dest.lock().unwrap();
             match &ary.v {
                 Oop::Array(ary) => (ary.class.clone(), ary.elements.clone()),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
-        dest[dest_pos as usize..(dest_pos + length - 1) as usize].clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
+        dest[dest_pos as usize..(dest_pos + length - 1) as usize]
+            .clone_from_slice(&src[src_pos as usize..(src_pos + length - 1) as usize]);
 
         let oop = OopDesc::new_ary2(dest_cls, dest);
 
