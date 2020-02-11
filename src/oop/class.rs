@@ -56,7 +56,7 @@ pub struct ClassObject {
 
     pub n_inst_fields: usize,
 
-    all_methods: HashMap<BytesRef, MethodIdRef>,
+    pub all_methods: HashMap<BytesRef, MethodIdRef>,
     v_table: HashMap<BytesRef, MethodIdRef>,
 
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
@@ -744,6 +744,16 @@ impl Class {
                 Some(m) => return Ok(m.clone()),
                 None => (),
             },
+            ClassKind::ObjectArray(ary_obj) => {
+                let cls = ary_obj.component.clone().unwrap();
+                let cls = cls.try_lock();
+                match cls {
+                    Ok(cls) => {
+                        return cls.get_class_method_inner(id.clone(), with_super);
+                    }
+                    _ => unreachable!(),
+                }
+            }
             _ => unreachable!(),
         }
 

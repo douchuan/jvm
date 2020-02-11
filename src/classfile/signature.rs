@@ -13,7 +13,7 @@ pub enum Type {
     Object(BytesRef),
     Short,
     Boolean,
-    Array(BytesRef, Arc<Type>), //Array("[[[", Box<Type>)
+    Array(BytesRef),
     Void,
 }
 
@@ -83,8 +83,8 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                     state = State::Obj;
                 }
                 b'[' => {
-                    state = State::Ary;
                     buf.push(v.clone());
+                    state = State::Ary;
                 }
                 _ => (),
             },
@@ -92,15 +92,13 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                 b';' => {
                     buf.push(v.clone());
 
+                    let v = Vec::from(&buf[..]);
+                    let v = new_ref!(v);
+
                     if buf[0] == b'[' {
-                        let pos = buf.iter().rposition(|v| *v == b'[').unwrap();
-                        let (left, right) = buf.split_at(pos + 1);
-                        types.push(Type::Array(
-                            Arc::new(Box::new(Vec::from(left))),
-                            Arc::new(Type::Object(Arc::new(Box::new(Vec::from(right))))),
-                        ));
+                        types.push(Type::Array(v));
                     } else {
-                        types.push(Type::Object(Arc::new(Box::new(Vec::from(&buf[..])))));
+                        types.push(Type::Object(v));
                     }
 
                     buf.clear();
@@ -127,10 +125,10 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                         _ => unreachable!("unknown type v={}", v),
                     };
 
-                    types.push(Type::Array(
-                        Arc::new(Box::new(Vec::from(&buf[..]))),
-                        Arc::new(t),
-                    ));
+                    let mut v1 = Vec::from(&buf[..]);
+                    v1.push(*v);
+                    let v = new_ref!(v1);
+                    types.push(Type::Array(v));
 
                     buf.clear();
                     state = State::One;
@@ -154,12 +152,7 @@ mod tests {
 
         let args = "([[Ljava/lang/String;)V";
         let ts = vec![
-            Type::Array(
-                Arc::new(Box::new(Vec::from("[["))),
-                Arc::new(Type::Object(Arc::new(Box::new(Vec::from(
-                    "Ljava/lang/String;",
-                ))))),
-            ),
+            Type::Array(Arc::new(Box::new(Vec::from("[[Ljava/lang/String;")))),
             Type::Void,
         ];
         assert_eq!(parse(args.as_bytes()), ts);
@@ -191,12 +184,9 @@ mod tests {
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
             sig.args,
-            vec![Type::Array(
-                Arc::new(Box::new(Vec::from("[["))),
-                Arc::new(Type::Object(Arc::new(Box::new(Vec::from(
-                    "Ljava/lang/String;"
-                )))))
-            )]
+            vec![Type::Array(Arc::new(Box::new(Vec::from(
+                "[[Ljava/lang/String;"
+            ))))]
         );
         assert_eq!(sig.retype, Type::Void);
 
@@ -256,17 +246,12 @@ mod tests {
         setup_test!("S".as_bytes(), Type::Short);
         setup_test!("Z".as_bytes(), Type::Boolean);
 
-        let v1 = Vec::from("[");
-        let v1 = new_ref!(v1);
-        let v2 = Vec::from("Ljava/lang/Object;");
-        let v2 = new_ref!(v2);
-        setup_test!(
-            "[Ljava/lang/Object;".as_bytes(),
-            Type::Array(v1, Arc::new(Type::Object(v2)))
-        );
-
-        let v = Vec::from("[[[");
+        let v = Vec::from("[Ljava/lang/Object;");
         let v = new_ref!(v);
-        setup_test!("[[[D".as_bytes(), Type::Array(v, Arc::new(Type::Double)));
+        setup_test!("[Ljava/lang/Object;".as_bytes(), Type::Array(v));
+
+        let v = Vec::from("[[[D");
+        let v = new_ref!(v);
+        setup_test!("[[[D".as_bytes(), Type::Array(v));
     }
 }

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::classfile;
+use crate::classfile::{self, access_flags as acc};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassRef, FieldIdRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{self, require_class3, Exception, JavaThread};
@@ -44,6 +44,18 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "isAssignableFrom",
             "(Ljava/lang/Class;)Z",
             Box::new(jvm_isAssignableFrom),
+        ),
+        new_fn("isInterface", "()Z", Box::new(jvm_isInterface)),
+        new_fn(
+            "getDeclaredConstructors0",
+            "(Z)[Ljava/lang/reflect/Constructor;",
+            Box::new(jvm_getDeclaredConstructors0),
+        ),
+        new_fn("getModifiers", "()I", Box::new(jvm_getModifiers)),
+        new_fn(
+            "getSuperclass",
+            "()Ljava/lang/Class;",
+            Box::new(jvm_getSuperclass),
         ),
     ]
 }
@@ -254,6 +266,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
         }
     };
 
+    //fixme: super fields
     //obtain inst&static fields
     let (inst_fields, static_fields) = {
         let cls = mirror_target.lock().unwrap();
@@ -264,8 +277,6 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
             _ => unreachable!(),
         }
     };
-
-    error!("public_only = {}", public_only);
 
     //build fields ary
     let mut fields = Vec::new();
@@ -279,7 +290,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
             String::from_utf8_lossy(it.field.name.as_slice())
         );
 
-        let v = runtime::reflect::new_java_field_object(jt, it);
+        let v = runtime::reflect::new_field(jt, it);
         fields.push(v);
     }
 
@@ -288,7 +299,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
             continue;
         }
 
-        let v = runtime::reflect::new_java_field_object(jt, it);
+        let v = runtime::reflect::new_field(jt, it);
         fields.push(v);
     }
 
@@ -430,4 +441,103 @@ fn jvm_isAssignableFrom(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
     };
 
     Ok(Some(OopDesc::new_int(v)))
+}
+
+fn jvm_isInterface(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+    let v = v.lock().unwrap();
+    let v = match &v.v {
+        Oop::Mirror(mirror) => match &mirror.target {
+            Some(target) => {
+                if target.lock().unwrap().is_interface() {
+                    1
+                } else {
+                    0
+                }
+            }
+            None => 0,
+        },
+        _ => unreachable!(),
+    };
+    Ok(Some(OopDesc::new_int(v)))
+}
+
+fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    //parse args
+    let mirror_target = {
+        let arg0 = args.get(0).unwrap();
+        let arg0 = arg0.lock().unwrap();
+        match &arg0.v {
+            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!(),
+        }
+    };
+
+    let public_only = {
+        let arg1 = args.get(1).unwrap();
+        let arg1 = arg1.lock().unwrap();
+        match arg1.v {
+            Oop::Int(v) => v == 1,
+            _ => unreachable!(),
+        }
+    };
+
+    //fixme: super methods
+    let all_methods = {
+        let cls = mirror_target.lock().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(inst) => inst.all_methods.clone(),
+            _ => unreachable!(),
+        }
+    };
+
+    //build methods ary
+    let mut methods = Vec::new();
+    for (_, m) in all_methods {
+        if m.method.name.as_slice() == b"<init>" {
+            let v = runtime::reflect::new_method_ctor(jt, m);
+            methods.push(v);
+        }
+    }
+
+    //build oop field ar
+    let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Constructor;").unwrap();
+
+    Ok(Some(OopDesc::new_ary2(ary_cls, methods)))
+}
+
+pub fn jvm_getModifiers(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+    let v = v.lock().unwrap();
+    let v = match &v.v {
+        Oop::Mirror(mirror) => match &mirror.target {
+            Some(target) => target.lock().unwrap().acc_flags,
+            None => acc::ACC_ABSTRACT | acc::ACC_FINAL | acc::ACC_PUBLIC,
+        },
+        _ => unreachable!(),
+    };
+
+    Ok(Some(OopDesc::new_int(v as i32)))
+}
+
+pub fn jvm_getSuperclass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let mirror = args.get(0).unwrap();
+    let v = mirror.lock().unwrap();
+    match &v.v {
+        Oop::Mirror(mirror) => match &mirror.target {
+            Some(target) => {
+                let cls = target.lock().unwrap();
+                match &cls.super_class {
+                    Some(super_cls) => {
+                        let cls = super_cls.lock().unwrap();
+                        let mirror = cls.get_mirror();
+                        Ok(Some(mirror))
+                    }
+                    None => Ok(Some(oop::consts::get_null())),
+                }
+            }
+            None => Ok(Some(oop::consts::get_null())),
+        },
+        _ => unreachable!(),
+    }
 }

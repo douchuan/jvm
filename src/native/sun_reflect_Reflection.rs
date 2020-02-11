@@ -1,16 +1,23 @@
 #![allow(non_snake_case)]
 
-use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, OopRef};
 use crate::runtime::JavaThread;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![new_fn(
-        "getCallerClass",
-        "()Ljava/lang/Class;",
-        Box::new(jvm_getCallerClass),
-    )]
+    vec![
+        new_fn(
+            "getCallerClass",
+            "()Ljava/lang/Class;",
+            Box::new(jvm_getCallerClass),
+        ),
+        new_fn(
+            "getClassAccessFlags",
+            "(Ljava/lang/Class;)I",
+            Box::new(jvm_getClassAccessFlags),
+        ),
+    ]
 }
 
 fn jvm_getCallerClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
@@ -30,4 +37,8 @@ fn jvm_getCallerClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         let cls = caller.method.class.lock().unwrap();
         return Ok(Some(cls.get_mirror()));
     }
+}
+
+fn jvm_getClassAccessFlags(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    native::java_lang_Class::jvm_getModifiers(jt, env, args)
 }

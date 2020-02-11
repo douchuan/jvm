@@ -164,6 +164,8 @@ impl JavaCall {
                 }
             }
             Err(ex) => {
+                //fixme:
+                //把charsets.jar去掉，会让代码走到这里
                 //ex is putted in jt.ex
                 unimplemented!()
             }
@@ -302,7 +304,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
                 let v = stack.pop_double();
                 OopDesc::new_double(v)
             }
-            ArgType::Object(_) | ArgType::Array(_, _) => stack.pop_ref(),
+            ArgType::Object(_) | ArgType::Array(_) => stack.pop_ref(),
             t => unreachable!("t = {:?}", t),
         })
         .collect()
@@ -342,7 +344,7 @@ pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<OopRef>) {
                 _ => unreachable!(),
             }
         }
-        ArgType::Object(_) | ArgType::Array(_, _) => {
+        ArgType::Object(_) | ArgType::Array(_) => {
             let v = v.unwrap();
             stack.push_ref(v);
         }

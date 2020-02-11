@@ -62,9 +62,10 @@ pub struct Method {
     pub name: BytesRef,
     pub desc: BytesRef,
     id: BytesRef,
-    acc_flags: U2,
+    pub acc_flags: U2,
 
     pub code: Option<Code>,
+    //fixme: more readable name
     pub lnt: HashMap<U2, U2>,
 
     vis_annos: Vec<AnnotationEntry>,

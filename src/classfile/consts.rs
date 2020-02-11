@@ -30,7 +30,7 @@ pub const J_SECURITY_MANAGER: &[u8] = b"java/lang/SecurityManager";
 
 pub const J_FIELD: &[u8] = b"java/lang/reflect/Field";
 pub const J_METHOD: &[u8] = b"java/lang/reflect/Method";
-pub const J_CTOR: &[u8] = b"java/lang/reflect/Constructor";
+pub const J_METHOD_CTOR: &[u8] = b"java/lang/reflect/Constructor";
 pub const J_ACCESSIBLE_OBJECT: &[u8] = b"java/lang/reflect/AccessibleObject";
 pub const J_METHODHANDLE: &[u8] = b"java/lang/invoke/MethodHandle";
 pub const J_METHODTYPE: &[u8] = b"java/lang/invoke/MethodType";

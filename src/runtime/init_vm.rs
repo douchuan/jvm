@@ -1,7 +1,7 @@
 use crate::classfile::consts::{
-    J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_INPUT_STREAM,
-    J_INTERNAL_ERROR, J_IOEXCEPTION, J_NPE, J_OBJECT, J_PRINT_STREAM, J_SECURITY_MANAGER,
-    J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP,
+    J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM,
+    J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM,
+    J_SECURITY_MANAGER, J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP,
 };
 use crate::native;
 use crate::oop::{self, ClassRef, OopDesc};
@@ -107,6 +107,8 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     let _ = do_init(J_CLASS_NOT_FOUND, jt);
     let _ = do_init(J_INTERNAL_ERROR, jt);
     let _ = do_init(J_IOEXCEPTION, jt);
+    let _ = do_init(J_FIELD, jt);
+    let _ = do_init(J_METHOD_CTOR, jt);
 
     //todo:
     //java::lang::reflect::Constructor::initialize

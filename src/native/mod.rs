@@ -21,6 +21,7 @@ mod java_lang_Throwable;
 mod java_security_AccessController;
 mod sun_misc_Unsafe;
 mod sun_misc_VM;
+mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_Reflection;
 
 pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
@@ -110,6 +111,10 @@ pub fn init() {
         ),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
+        (
+            "sun/reflect/NativeConstructorAccessorImpl",
+            sun_reflect_NativeConstructorAccessorImpl::get_native_methods(),
+        ),
         (
             "sun/reflect/Reflection",
             sun_reflect_Reflection::get_native_methods(),
