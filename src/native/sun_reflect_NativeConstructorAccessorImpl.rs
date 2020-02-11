@@ -27,7 +27,18 @@ fn jvm_newInstance0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
         }
     };
 
+    let name = {
+        let cls = target_cls.lock().unwrap();
+        cls.name.clone()
+    };
+
     let signature = runtime::reflect::get_Constructor_signature(ctor.clone());
+
+    info!(
+        "newInstance0 {}:{}",
+        String::from_utf8_lossy(name.as_slice()),
+        String::from_utf8_lossy(signature.as_slice())
+    );
 
     let mut ctor_args = Vec::new();
     {
@@ -36,14 +47,13 @@ fn jvm_newInstance0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
             Oop::Array(ary) => {
                 ctor_args.extend_from_slice(ary.elements.as_slice());
             }
-            Oop::Null => ctor_args.push(oop::consts::get_null()),
+            Oop::Null => (),
             t => unreachable!("t = {:?}", t),
         }
     }
 
     let oop = OopDesc::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
-
     runtime::java_call::invoke_ctor(jt, target_cls, signature.as_slice(), ctor_args);
 
     Ok(Some(oop))

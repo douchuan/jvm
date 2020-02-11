@@ -31,6 +31,8 @@ todo list
     去掉native 函数的jt参数
   x. impl Type annotations
   x. String.intern
+  x.  newInstance0 sun/nio/cs/ext/ExtendedCharsets:()V
+    会陷入死循环
 */
 
 fn init_vm() {

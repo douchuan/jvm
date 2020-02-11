@@ -285,11 +285,6 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
             continue;
         }
 
-        error!(
-            "field name = {}",
-            String::from_utf8_lossy(it.field.name.as_slice())
-        );
-
         let v = runtime::reflect::new_field(jt, it);
         fields.push(v);
     }
