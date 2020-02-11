@@ -652,7 +652,10 @@ impl Frame {
                     let cls_name = String::from_utf8_lossy(cls_name.as_slice());
                     let method = self.mir.method.get_id();
                     let method = String::from_utf8_lossy(method.as_slice());
-                    info!("Found exception handler: pc = {}, {}:{}", pc, cls_name, method);
+                    info!(
+                        "Found exception handler: pc={}, frame_id={}, {}:{}",
+                        pc, self.frame_id, cls_name, method
+                    );
 
                     self.goto_abs(pc as i32);
                 }

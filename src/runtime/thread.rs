@@ -144,6 +144,7 @@ impl JavaThread {
                                 if frame.re_throw_ex.is_none() {
                                     frame.interp(self);
                                     last_return_value = frame.return_v.take();
+                                    rethrow_ex = None;
                                 } else {
                                     rethrow_ex = frame.re_throw_ex.take();
                                 }
@@ -152,10 +153,11 @@ impl JavaThread {
                                 let sig = signature::MethodSignature::new(
                                     frame.mir.method.desc.as_slice(),
                                 );
-                                //                                info!("xxxx 3, name = {}, desc = {}",
-                                //                                    String::from_utf8_lossy(frame.mir.method.name.as_slice()),
-                                //                                      String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
-                                //                                      );
+                                info!(
+                                    "continue: {}:{}",
+                                    String::from_utf8_lossy(frame.mir.method.name.as_slice()),
+                                    String::from_utf8_lossy(frame.mir.method.desc.as_slice())
+                                );
                                 runtime::java_call::set_return(
                                     &mut frame.stack,
                                     sig.retype.clone(),
@@ -167,13 +169,13 @@ impl JavaThread {
                         },
                         _ => unreachable!(),
                     }
+
+                    let _ = self.frames.pop();
                 }
 
                 //frames empty
                 None => break,
             }
-
-            let _ = self.frames.pop();
         }
     }
 

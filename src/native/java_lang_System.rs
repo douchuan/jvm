@@ -151,6 +151,8 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("file.separator", util::PATH_DELIMITER_STR),
         ("sun.jnu.encoding", "utf8"),
         ("file.encoding", "utf8"),
+        ("sun.stdout.encoding", "utf8"),
+        ("sun.stderr.encoding", "utf8"),
     ];
 
     let props: Vec<(BytesRef, BytesRef)> = props
