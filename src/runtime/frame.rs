@@ -562,8 +562,14 @@ impl Frame {
             Ok(mir) => {
                 assert_eq!(mir.method.is_static(), is_static);
 
+                let is_native = mir.method.is_native();
                 match runtime::java_call::JavaCall::new(jt, &mut self.stack, mir) {
-                    Ok(mut jc) => jc.invoke(jt, &mut self.stack, force_no_resolve),
+                    Ok(mut jc) => {
+                        jc.invoke(jt, &mut self.stack, force_no_resolve);
+                        if jt.is_meet_ex() && is_native {
+                            self.meet_ex_here = true;
+                        }
+                    }
 
                     //ignored, let interp main loop handle exception
                     _ => (),
@@ -641,10 +647,19 @@ impl Frame {
                 Some(pc) => {
                     self.stack.clear();
                     self.stack.push_ref(ex);
+
+                    let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
+                    let cls_name = String::from_utf8_lossy(cls_name.as_slice());
+                    let method = self.mir.method.get_id();
+                    let method = String::from_utf8_lossy(method.as_slice());
+                    info!("Found exception handler: pc = {}, {}:{}", pc, cls_name, method);
+
                     self.goto_abs(pc as i32);
                 }
 
-                None => self.meet_ex2(jt, ex),
+                None => {
+                    self.re_throw_ex = Some(ex);
+                }
             }
         }
     }

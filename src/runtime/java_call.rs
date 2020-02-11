@@ -167,7 +167,7 @@ impl JavaCall {
                 //fixme:
                 //把charsets.jar去掉，会让代码走到这里
                 //ex is putted in jt.ex
-                unimplemented!()
+                jt.set_ex(Some(ex));
             }
         }
 
@@ -202,6 +202,7 @@ impl JavaCall {
 
     fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, ()> {
         if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
+            //todo: test me
             thread.throw_ex(consts::J_SOE);
             return Err(());
         }

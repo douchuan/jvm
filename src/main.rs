@@ -33,6 +33,7 @@ todo list
   x. String.intern
   x.  newInstance0 sun/nio/cs/ext/ExtendedCharsets:()V
     会陷入死循环
+  x. native 调用，需要构造一个Frame吗？
 */
 
 fn init_vm() {

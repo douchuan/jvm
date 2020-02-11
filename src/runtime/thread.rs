@@ -141,13 +141,21 @@ impl JavaThread {
                         Ok(mut frame) => match rethrow_ex.clone() {
                             Some(ex) => {
                                 frame.handle_exception(self, ex);
-                                rethrow_ex = frame.re_throw_ex.take();
-                                last_return_value = frame.return_v.take();
+                                if frame.re_throw_ex.is_none() {
+                                    frame.interp(self);
+                                    last_return_value = frame.return_v.take();
+                                } else {
+                                    rethrow_ex = frame.re_throw_ex.take();
+                                }
                             }
                             None => {
                                 let sig = signature::MethodSignature::new(
                                     frame.mir.method.desc.as_slice(),
                                 );
+                                //                                info!("xxxx 3, name = {}, desc = {}",
+                                //                                    String::from_utf8_lossy(frame.mir.method.name.as_slice()),
+                                //                                      String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
+                                //                                      );
                                 runtime::java_call::set_return(
                                     &mut frame.stack,
                                     sig.retype.clone(),
@@ -216,31 +224,37 @@ impl JavaThread {
             let cls = {
                 let v = detail_message_oop.lock().unwrap();
                 match &v.v {
-                    oop::Oop::Inst(inst) => inst.class.clone(),
-                    _ => unreachable!(),
+                    oop::Oop::Inst(inst) => Some(inst.class.clone()),
+                    oop::Oop::Null => None,
+                    t => unreachable!("t = {:?}", t),
                 }
             };
 
-            let value = {
-                let cls = cls.lock().unwrap();
-                let id = cls.get_field_id(b"value", b"[C", false);
-                cls.get_field_value(detail_message_oop.clone(), id)
-            };
+            if cls.is_none() {
+                vec![]
+            } else {
+                let cls = cls.unwrap();
+                let value = {
+                    let cls = cls.lock().unwrap();
+                    let id = cls.get_field_id(b"value", b"[C", false);
+                    cls.get_field_value(detail_message_oop.clone(), id)
+                };
 
-            let v = value.lock().unwrap();
-            match &v.v {
-                oop::Oop::Array(ary) => ary
-                    .elements
-                    .iter()
-                    .map(|v| {
-                        let v = v.lock().unwrap();
-                        match &v.v {
-                            oop::Oop::Int(v) => *v as u8,
-                            _ => unreachable!(),
-                        }
-                    })
-                    .collect(),
-                _ => unreachable!(),
+                let v = value.lock().unwrap();
+                match &v.v {
+                    oop::Oop::Array(ary) => ary
+                        .elements
+                        .iter()
+                        .map(|v| {
+                            let v = v.lock().unwrap();
+                            match &v.v {
+                                oop::Oop::Int(v) => *v as u8,
+                                _ => unreachable!(),
+                            }
+                        })
+                        .collect(),
+                    _ => unreachable!(),
+                }
             }
         };
 

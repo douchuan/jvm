@@ -354,7 +354,6 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
 
     let name = String::from_utf8_lossy(java_name.as_slice());
     let name = name.replace(".", "/");
-    info!("forName0: {}", name);
     let cls = require_class3(None, name.as_bytes());
 
     match cls {
@@ -371,7 +370,9 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
             Ok(Some(mirror))
         }
         None => {
-            let cls_name = Vec::from(classfile::consts::J_NPE);
+            error!("forName0, NotFound: {}", name);
+
+            let cls_name = Vec::from(classfile::consts::J_CLASS_NOT_FOUND);
             let exception = Exception {
                 cls_name: new_ref!(cls_name),
                 msg: None,
