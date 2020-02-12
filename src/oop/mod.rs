@@ -57,8 +57,6 @@ pub struct OopDesc {
     pub v: Oop,
     cond: Condvar,
     monitor: Mutex<usize>,
-
-    pub hash_code: i32,
 }
 
 impl OopDesc {
@@ -144,13 +142,10 @@ impl OopDesc {
 
     fn new(v: Oop) -> OopRef {
         //todo: how calc hashcode ?
-        let start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let hash_code = start.as_secs() as i32;
         let v = Self {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
-            hash_code,
         };
         new_sync_ref!(v)
     }

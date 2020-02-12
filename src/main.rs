@@ -165,6 +165,12 @@ mod tests {
         let v1 = Arc::new(Mutex::new(Box::new(OopDesc::new_str(str1))));
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));
+
+        let v1 = Arc::new(Mutex::new(Box::new(1000)));
+        let v1_clone = v1.clone();
+        let v1 = Arc::into_raw(v1) as i32;
+        let v2 = Arc::into_raw(v1_clone) as i32;
+        assert_eq!(v1, v2);
     }
 
     #[test]
