@@ -1,6 +1,5 @@
 use crate::oop::{OopDesc, OopRef};
 use crate::runtime::Slot;
-use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 
 pub struct Local {

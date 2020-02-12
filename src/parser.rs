@@ -66,11 +66,11 @@ impl Parser {
     }
 
     fn get_u4(&mut self) -> U4 {
-        self.buf.get_u32_be()
+        self.buf.get_u32()
     }
 
     fn get_u2(&mut self) -> U2 {
-        self.buf.get_u16_be()
+        self.buf.get_u16()
     }
 
     fn get_u1(&mut self) -> U1 {

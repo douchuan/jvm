@@ -4,7 +4,6 @@ use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{consts, OopDesc, OopRef};
 use crate::runtime::Slot;
-use bytes::{BigEndian, Bytes};
 use std::sync::Arc;
 
 #[derive(Debug)]

@@ -12,7 +12,7 @@ use crate::runtime::{
     Local, Stack,
 };
 use crate::util;
-use bytes::{BigEndian, Bytes};
+use bytes::{Bytes};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::ops::Deref;
