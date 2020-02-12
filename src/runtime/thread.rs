@@ -128,8 +128,9 @@ impl JavaThread {
             }
         }
 
-        let mut rethrow_ex = Some(ex);
+        let mut re_throw_ex = Some(ex);
         let mut last_return_value = None;
+        let mut last_return_type = None;
         loop {
             let frame = self.frames.pop();
 
@@ -138,33 +139,46 @@ impl JavaThread {
                     self.frames.push(frame.clone());
 
                     match frame.try_lock() {
-                        Ok(mut frame) => match rethrow_ex.clone() {
+                        Ok(mut frame) => match re_throw_ex.clone() {
                             Some(ex) => {
                                 frame.handle_exception(self, ex);
                                 if frame.re_throw_ex.is_none() {
                                     frame.interp(self);
-                                    last_return_value = frame.return_v.take();
-                                    rethrow_ex = None;
+                                    let sig = signature::MethodSignature::new(
+                                        frame.mir.method.desc.as_slice(),
+                                    );
+                                    last_return_type = Some(sig.retype.clone());
+                                    last_return_value = frame.return_v.clone();
+                                    re_throw_ex = None;
                                 } else {
-                                    rethrow_ex = frame.re_throw_ex.take();
+                                    re_throw_ex = frame.re_throw_ex.take();
                                 }
                             }
                             None => {
-                                let sig = signature::MethodSignature::new(
-                                    frame.mir.method.desc.as_slice(),
-                                );
+                                let cls_name = {
+                                    let cls = frame.mir.method.class.lock().unwrap();
+                                    cls.name.clone()
+                                };
                                 info!(
-                                    "continue: {}:{}",
+                                    "continue: {}:{}:{}, rettype={:?}, last_return_value={:?}",
+                                    String::from_utf8_lossy(cls_name.as_slice()),
                                     String::from_utf8_lossy(frame.mir.method.name.as_slice()),
-                                    String::from_utf8_lossy(frame.mir.method.desc.as_slice())
+                                    String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
+                                    last_return_type,
+                                    last_return_value
                                 );
                                 runtime::java_call::set_return(
                                     &mut frame.stack,
-                                    sig.retype.clone(),
-                                    last_return_value.take(),
+                                    last_return_type.clone().unwrap(),
+                                    last_return_value.clone(),
                                 );
                                 frame.interp(self);
-                                last_return_value = frame.return_v.take();
+
+                                let sig = signature::MethodSignature::new(
+                                    frame.mir.method.desc.as_slice(),
+                                );
+                                last_return_type = Some(sig.retype.clone());
+                                last_return_value = frame.return_v.clone();
                             }
                         },
                         _ => unreachable!(),

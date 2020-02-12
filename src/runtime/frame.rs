@@ -328,7 +328,7 @@ impl Frame {
                         OpCode::ifnonnull => self.if_non_null(),
                         OpCode::goto_w => self.goto_w(),
                         OpCode::jsr_w => self.jsr_w(),
-                        _ => (),
+                        _ => unreachable!(),
                     }
 
                     if thread.is_meet_ex() {
@@ -510,6 +510,7 @@ impl Frame {
 
         let value_type = fir.field.value_type.clone();
 
+        info!("value_type = {:?}", value_type);
         let v = match value_type {
             ValueType::INT
             | ValueType::SHORT
@@ -629,7 +630,9 @@ impl Frame {
         };
 
         if is_null {
-            self.meet_ex(jt, consts::J_NPE, None);
+            //todo: should rethrow null
+            unimplemented!()
+        //            self.meet_ex(jt, consts::J_NPE, None);
         } else {
             let ex_cls = {
                 let ex = ex.lock().unwrap();

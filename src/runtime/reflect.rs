@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use crate::classfile::consts as cls_const;
 use crate::classfile::signature::{FieldSignature, MethodSignature, Type as ArgType, Type};
 use crate::classfile::types::BytesRef;
