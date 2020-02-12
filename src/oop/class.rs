@@ -1,4 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
+use crate::oop::method::MethodId;
 use crate::oop::{
     consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, OopRef, ValueType,
@@ -109,6 +110,21 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             _ => (),
         }
     }
+}
+
+pub fn load_and_init(jt: &mut JavaThread, name: &[u8]) -> ClassRef {
+    let class = runtime::require_class3(None, name);
+    let class = class.unwrap();
+    {
+        let mut class = class.lock().unwrap();
+        class.init_class(jt);
+        //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
+    }
+
+    init_class_fully(jt, class.clone());
+    //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
+
+    class
 }
 
 impl Class {
@@ -453,6 +469,33 @@ impl Class {
             None => false,
         }
     }
+
+    pub fn hack_as_native(&mut self, id: BytesRef) {
+        let cls_name = self.name.clone();
+        match &mut self.kind {
+            ClassKind::Instance(cls) => {
+                {
+                    let m = cls.all_methods.get(&id).unwrap();
+                    let mut method = m.method.clone();
+                    method.acc_flags |= ACC_NATIVE;
+                    let m = Arc::new(method::MethodId {
+                        offset: m.offset,
+                        method,
+                    });
+                    cls.all_methods.insert(id.clone(), m);
+                }
+
+                let m = cls.all_methods.get(&id).unwrap();
+                info!(
+                    "hack_as_native: {}:{}, native={}",
+                    String::from_utf8_lossy(cls_name.as_slice()),
+                    String::from_utf8_lossy(id.as_slice()),
+                    m.method.is_native()
+                );
+            }
+            _ => unreachable!(),
+        }
+    }
 }
 
 //open api new
@@ -600,6 +643,7 @@ impl ClassObject {
         } else {
             let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
             let super_class = runtime::require_class(class_loader, name).unwrap();
+
             util::sync_call_ctx(&super_class, |c| {
                 assert!(c.is_instance());
                 assert!(!c.is_final(), "should not final");

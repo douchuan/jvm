@@ -93,6 +93,13 @@ impl JavaThread {
 
     fn build_ex_oop(&mut self, mut ex: Exception) -> OopRef {
         let cls = require_class3(None, ex.cls_name.as_slice()).unwrap();
+        {
+            let mut class = cls.lock().unwrap();
+            class.init_class(self);
+            //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
+        }
+        oop::class::init_class_fully(self, cls.clone());
+
         let ex_obj = OopDesc::new_inst(cls.clone());
 
         //invoke ctor
@@ -167,12 +174,11 @@ impl JavaThread {
                             cls.name.clone()
                         };
                         info!(
-                            "continue: {}:{}:{}, rettype={:?}, last_return_value={:?}",
+                            "continue: {}:{}:{}, rettype={:?}",
                             String::from_utf8_lossy(cls_name.as_slice()),
                             String::from_utf8_lossy(frame.mir.method.name.as_slice()),
                             String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
                             last_return_type,
-                            last_return_value
                         );
                         runtime::java_call::set_return(
                             &mut frame.stack,

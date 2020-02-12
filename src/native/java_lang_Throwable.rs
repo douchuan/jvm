@@ -15,8 +15,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let elm_cls = oop::class::load_and_init(jt, b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
-    let elm_cls = require_class3(None, b"java/lang/StackTraceElement").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
     let mut elms = Vec::new();

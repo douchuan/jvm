@@ -21,6 +21,7 @@ mod java_lang_Throwable;
 mod java_security_AccessController;
 mod sun_misc_Unsafe;
 mod sun_misc_VM;
+mod sun_nio_cs_StreamEncoder;
 mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_Reflection;
 
@@ -111,6 +112,10 @@ pub fn init() {
         ),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
+        (
+            "sun/nio/cs/StreamEncoder",
+            sun_nio_cs_StreamEncoder::get_native_methods(),
+        ),
         (
             "sun/reflect/NativeConstructorAccessorImpl",
             sun_reflect_NativeConstructorAccessorImpl::get_native_methods(),

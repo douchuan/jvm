@@ -22,6 +22,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             Box::new(jvm_initProperties),
         ),
         new_fn("setIn0", "(Ljava/io/InputStream;)V", Box::new(jvm_setIn0)),
+        new_fn("setOut0", "(Ljava/io/PrintStream;)V", Box::new(jvm_setOut0)),
     ]
 }
 
@@ -215,6 +216,15 @@ fn jvm_setIn0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"in", b"Ljava/io/InputStream;", true);
+    cls.put_static_field_value(id, v.clone());
+    Ok(None)
+}
+
+fn jvm_setOut0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+    let cls = { env.lock().unwrap().class.clone() };
+    let mut cls = cls.lock().unwrap();
+    let id = cls.get_field_id(b"out", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }

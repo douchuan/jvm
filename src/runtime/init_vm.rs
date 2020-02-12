@@ -1,19 +1,16 @@
-use crate::classfile::consts::{
-    J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM,
-    J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM,
-    J_SECURITY_MANAGER, J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP,
-};
+use crate::classfile::consts::{J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM, J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM, J_SECURITY_MANAGER, J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP, J_THROWABLE};
 use crate::native;
 use crate::oop::{self, ClassRef, OopDesc};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
+use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 pub fn initialize_jvm(jt: &mut JavaThread) {
     initialize_vm_structs(jt);
 
-    let thread_cls = do_init(J_THREAD, jt);
-    let thread_group_cls = do_init(J_THREAD_GROUP, jt);
+    let thread_cls = oop::class::load_and_init(jt, J_THREAD);
+    let thread_group_cls = oop::class::load_and_init(jt, J_THREAD_GROUP);
 
     let init_thread_oop = OopDesc::new_inst(thread_cls.clone());
     {
@@ -43,9 +40,9 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         cls.put_field_value(init_thread_oop.clone(), id, main_thread_group.clone());
     }
 
-    let _ = do_init(J_INPUT_STREAM, jt);
-    let _ = do_init(J_PRINT_STREAM, jt);
-    let _ = do_init(J_SECURITY_MANAGER, jt);
+    let _ = oop::class::load_and_init(jt, J_INPUT_STREAM);
+    let _ = oop::class::load_and_init(jt, J_PRINT_STREAM);
+    let _ = oop::class::load_and_init(jt, J_SECURITY_MANAGER);
 
     // Construct the main thread group
     let args = vec![
@@ -94,21 +91,22 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 }
 
 fn initialize_vm_structs(jt: &mut JavaThread) {
-    let class_obj = do_init(J_CLASS, jt);
+    let class_obj = oop::class::load_and_init(jt, J_CLASS);
     native::java_lang_Class::create_delayed_mirrors();
     native::java_lang_Class::create_delayed_ary_mirrors();
 
-    let _ = do_init(J_OBJECT, jt);
-    let _ = do_init(J_STRING, jt);
-    let _ = do_init(J_CLONEABLE, jt);
-    let _ = do_init(J_SERIALIZABLE, jt);
-    let _ = do_init(J_NPE, jt);
-    let _ = do_init(J_ARRAY_INDEX_OUT_OF_BOUNDS, jt);
-    let _ = do_init(J_CLASS_NOT_FOUND, jt);
-    let _ = do_init(J_INTERNAL_ERROR, jt);
-    let _ = do_init(J_IOEXCEPTION, jt);
-    let _ = do_init(J_FIELD, jt);
-    let _ = do_init(J_METHOD_CTOR, jt);
+    let _ = oop::class::load_and_init(jt, J_OBJECT);
+    let _ = oop::class::load_and_init(jt, J_STRING);
+    let _ = oop::class::load_and_init(jt, J_CLONEABLE);
+    let _ = oop::class::load_and_init(jt, J_SERIALIZABLE);
+    let _ = oop::class::load_and_init(jt, J_NPE);
+    let _ = oop::class::load_and_init(jt, J_ARRAY_INDEX_OUT_OF_BOUNDS);
+    let _ = oop::class::load_and_init(jt, J_CLASS_NOT_FOUND);
+    let _ = oop::class::load_and_init(jt, J_INTERNAL_ERROR);
+    let _ = oop::class::load_and_init(jt, J_IOEXCEPTION);
+    let _ = oop::class::load_and_init(jt, J_FIELD);
+    let _ = oop::class::load_and_init(jt, J_METHOD_CTOR);
+    let _ = oop::class::load_and_init(jt, J_THROWABLE);
 
     //todo:
     //java::lang::reflect::Constructor::initialize
@@ -123,23 +121,9 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     }
 }
 
-fn do_init(name: &[u8], jt: &mut JavaThread) -> ClassRef {
-    let class = runtime::require_class3(None, name);
-    let class = class.unwrap();
-    {
-        let mut class = class.lock().unwrap();
-        class.init_class(jt);
-        //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-    }
-    oop::class::init_class_fully(jt, class.clone());
-    //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
-
-    class
-}
-
 fn hack_classes(jt: &mut JavaThread) {
-    let charset_cls = do_init(b"java/nio/charset/Charset", jt);
-    let utf8_charset_cls = do_init(b"sun/nio/cs/UTF_8", jt);
+    let charset_cls = oop::class::load_and_init(jt, b"java/nio/charset/Charset");
+    let utf8_charset_cls = oop::class::load_and_init(jt, b"sun/nio/cs/UTF_8");
 
     let utf8_inst = OopDesc::new_inst(utf8_charset_cls.clone());
     let args = vec![utf8_inst.clone()];
@@ -150,4 +134,25 @@ fn hack_classes(jt: &mut JavaThread) {
         let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
         cls.put_static_field_value(id, utf8_inst);
     }
+
+    let encoder = oop::class::load_and_init(jt, b"sun/nio/cs/StreamEncoder");
+    {
+        let mut cls = encoder.lock().unwrap();
+        let id = util::new_method_id(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
+        cls.hack_as_native(id);
+    }
+
+    let system = oop::class::load_and_init(jt, b"java/lang/System");
+    {
+        let mut cls = system.lock().unwrap();
+        let id = util::new_method_id(b"load", b"(Ljava/lang/String;)V");
+        cls.hack_as_native(id);
+    }
+    /*
+    let mut mir = {
+        let cls = encoder.lock().unwrap();
+        let id = util::new_method_id(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
+        cls.get_static_method(id).unwrap()
+    };
+    */
 }
