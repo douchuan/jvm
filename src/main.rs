@@ -166,4 +166,19 @@ mod tests {
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));
     }
+
+    #[test]
+    fn t_libc() {
+        let ptr = unsafe { libc::malloc(std::mem::size_of::<u8>() * 8) as *mut u8 };
+
+        let l = 0x0102030405060708i64;
+        let v = l.to_be_bytes();
+        let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
+        unsafe {
+            libc::memcpy(ptr as *mut libc::c_void, v.as_ptr() as *const libc::c_void, 8);
+        }
+
+        let v = unsafe { *ptr } as u8;
+        assert_eq!(v, 0x01u8);
+    }
 }
