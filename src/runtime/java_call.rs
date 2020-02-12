@@ -313,7 +313,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
 
 pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<OopRef>) {
     match return_type {
-        ArgType::Char | ArgType::Int | ArgType::Boolean => {
+        ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
             let v = v.lock().unwrap();
             match v.v {

@@ -1,9 +1,12 @@
 #![allow(non_snake_case)]
 
+use crate::classfile::types::BytesRef;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{require_class3, JavaThread};
 use crate::util;
+use std::collections::HashMap;
+use std::os::raw::c_void;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -40,6 +43,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JII)Z",
             Box::new(jvm_compareAndSwapInt),
         ),
+        new_fn("allocateMemory", "(J)J", Box::new(jvm_allocateMemory)),
+        new_fn("freeMemory", "(J)V", Box::new(jvm_freeMemory)),
+        new_fn("putLong", "(JJ)V", Box::new(jvm_putLong)),
+        new_fn("getByte", "(J)B", Box::new(jvm_getByte)),
     ]
 }
 
@@ -52,13 +59,13 @@ fn jvm_arrayBaseOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> J
 }
 
 fn jvm_arrayIndexScale(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    //fixme:
-    Ok(Some(OopDesc::new_int(4)))
+    let v = std::mem::size_of::<*mut u8>();
+    Ok(Some(OopDesc::new_int(v as i32)))
 }
 
 fn jvm_addressSize(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    //fixme:
-    Ok(Some(OopDesc::new_int(4)))
+    let v = std::mem::size_of::<*mut u8>();
+    Ok(Some(OopDesc::new_int(v as i32)))
 }
 
 fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
@@ -192,4 +199,76 @@ fn jvm_compareAndSwapInt(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
     } else {
         Ok(Some(OopDesc::new_int(0)))
     }
+}
+
+fn jvm_allocateMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let size = {
+        let v = args.get(1).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v as usize,
+            _ => unreachable!(),
+        }
+    };
+
+    let arr = unsafe { libc::malloc(std::mem::size_of::<u8>() * size) };
+    let v = arr as i64;
+
+    Ok(Some(OopDesc::new_long(v)))
+}
+
+fn jvm_freeMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let ptr = {
+        let v = args.get(1).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v as *mut c_void,
+            _ => unreachable!(),
+        }
+    };
+
+    unsafe {
+        libc::free(ptr);
+    }
+
+    Ok(None)
+}
+
+fn jvm_putLong(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let ptr = {
+        let v = args.get(1).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v as *mut c_void,
+            _ => unreachable!(),
+        }
+    };
+    let l = {
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let v = l.to_be_bytes();
+    let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
+    unsafe {
+        libc::memcpy(ptr, v.as_ptr() as *const c_void, 8);
+    }
+
+    Ok(None)
+}
+
+fn jvm_getByte(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let ptr = {
+        let v = args.get(1).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v as *mut u8,
+            _ => unreachable!(),
+        }
+    };
+    let v = unsafe { *ptr };
+    Ok(Some(OopDesc::new_int(v as i32)))
 }

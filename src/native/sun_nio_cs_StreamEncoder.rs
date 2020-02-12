@@ -26,15 +26,16 @@ fn jvm_forOutputStreamWriter(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>
         cls.get_static_field_value(id)
     };
 
+    //check defaultCharset
+    {
+        let v = default_charset_oop.lock().unwrap();
+        match &v.v {
+            Oop::Inst(inst) => (),
+            _ => unreachable!(),
+        }
+    }
+
     let encoder = require_class3(None, b"sun/nio/cs/StreamEncoder").unwrap();
-    let ctor = {
-        let cls = encoder.lock().unwrap();
-        let id = util::new_method_id(
-            b"<init>",
-            b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/nio/charset/Charset;)V",
-        );
-        cls.get_static_method(id).unwrap()
-    };
     let encoder_oop = OopDesc::new_inst(encoder.clone());
     let args = vec![
         encoder_oop.clone(),
