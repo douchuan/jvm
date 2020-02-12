@@ -133,63 +133,73 @@ impl JavaThread {
         let mut last_return_type = None;
         loop {
             let frame = self.frames.pop();
+            if frame.is_none() {
+                break;
+            }
+            let frame = frame.unwrap();
 
-            match frame {
-                Some(frame) => {
-                    self.frames.push(frame.clone());
+            self.frames.push(frame.clone());
 
-                    match frame.try_lock() {
-                        Ok(mut frame) => match re_throw_ex.clone() {
-                            Some(ex) => {
-                                frame.handle_exception(self, ex);
-                                if frame.re_throw_ex.is_none() {
-                                    frame.interp(self);
-                                    let sig = signature::MethodSignature::new(
-                                        frame.mir.method.desc.as_slice(),
-                                    );
-                                    last_return_type = Some(sig.retype.clone());
-                                    last_return_value = frame.return_v.clone();
-                                    re_throw_ex = None;
-                                } else {
-                                    re_throw_ex = frame.re_throw_ex.take();
-                                }
-                            }
-                            None => {
-                                let cls_name = {
-                                    let cls = frame.mir.method.class.lock().unwrap();
-                                    cls.name.clone()
-                                };
-                                info!(
-                                    "continue: {}:{}:{}, rettype={:?}, last_return_value={:?}",
-                                    String::from_utf8_lossy(cls_name.as_slice()),
-                                    String::from_utf8_lossy(frame.mir.method.name.as_slice()),
-                                    String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
-                                    last_return_type,
-                                    last_return_value
-                                );
-                                runtime::java_call::set_return(
-                                    &mut frame.stack,
-                                    last_return_type.clone().unwrap(),
-                                    last_return_value.clone(),
-                                );
+            match frame.try_lock() {
+                Ok(mut frame) => match re_throw_ex.clone() {
+                    Some(ex) => {
+                        frame.handle_exception(self, ex);
+
+                        if self.is_meet_ex() {
+                            unimplemented!("meet ex again")
+                        } else {
+                            re_throw_ex = frame.re_throw_ex.take();
+
+                            if re_throw_ex.is_none() {
                                 frame.interp(self);
+                                let sig = signature::MethodSignature::new(
+                                    frame.mir.method.desc.as_slice(),
+                                );
+                                last_return_type = Some(sig.retype.clone());
+                                last_return_value = frame.return_v.clone();
+                                re_throw_ex = None;
+                            }
+                        }
+                    }
+                    None => {
+                        let cls_name = {
+                            let cls = frame.mir.method.class.lock().unwrap();
+                            cls.name.clone()
+                        };
+                        info!(
+                            "continue: {}:{}:{}, rettype={:?}, last_return_value={:?}",
+                            String::from_utf8_lossy(cls_name.as_slice()),
+                            String::from_utf8_lossy(frame.mir.method.name.as_slice()),
+                            String::from_utf8_lossy(frame.mir.method.desc.as_slice()),
+                            last_return_type,
+                            last_return_value
+                        );
+                        runtime::java_call::set_return(
+                            &mut frame.stack,
+                            last_return_type.clone().unwrap(),
+                            last_return_value.clone(),
+                        );
+                        frame.interp(self);
 
+                        if self.is_meet_ex() {
+                            unimplemented!("meet ex again")
+                        } else {
+                            re_throw_ex = frame.re_throw_ex.take();
+
+                            if re_throw_ex.is_none() {
                                 let sig = signature::MethodSignature::new(
                                     frame.mir.method.desc.as_slice(),
                                 );
                                 last_return_type = Some(sig.retype.clone());
                                 last_return_value = frame.return_v.clone();
                             }
-                        },
-                        _ => unreachable!(),
+                        }
                     }
-
-                    let _ = self.frames.pop();
-                }
-
-                //frames empty
-                None => break,
+                },
+                _ => unreachable!(),
             }
+
+            let _ = self.frames.pop();
         }
     }
 
@@ -230,7 +240,7 @@ impl JavaThread {
                 _ => unreachable!(),
             }
         };
-        let detail_msg: Vec<u8> = {
+        let detail_msg = {
             let detail_message_oop = {
                 let cls = cls.lock().unwrap();
                 let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
@@ -247,30 +257,10 @@ impl JavaThread {
             };
 
             if cls.is_none() {
-                vec![]
+                let v = vec![];
+                new_ref!(v)
             } else {
-                let cls = cls.unwrap();
-                let value = {
-                    let cls = cls.lock().unwrap();
-                    let id = cls.get_field_id(b"value", b"[C", false);
-                    cls.get_field_value(detail_message_oop.clone(), id)
-                };
-
-                let v = value.lock().unwrap();
-                match &v.v {
-                    oop::Oop::Array(ary) => ary
-                        .elements
-                        .iter()
-                        .map(|v| {
-                            let v = v.lock().unwrap();
-                            match &v.v {
-                                oop::Oop::Int(v) => *v as u8,
-                                _ => unreachable!(),
-                            }
-                        })
-                        .collect(),
-                    _ => unreachable!(),
-                }
+                util::oop::extract_str(detail_message_oop)
             }
         };
 

@@ -335,6 +335,12 @@ impl Frame {
                         error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
                         break;
                     }
+
+                    if self.re_throw_ex.is_some() {
+                        error!("throw ex, again");
+                        self.meet_ex_here = true;
+                        break;
+                    }
                 }
 
                 None => break,
@@ -509,8 +515,7 @@ impl Frame {
         );
 
         let value_type = fir.field.value_type.clone();
-
-        info!("value_type = {:?}", value_type);
+        //        info!("value_type = {:?}", value_type);
         let v = match value_type {
             ValueType::INT
             | ValueType::SHORT
@@ -631,8 +636,8 @@ impl Frame {
 
         if is_null {
             //todo: should rethrow null
+            self.meet_ex(jt, consts::J_NPE, None);
             unimplemented!()
-        //            self.meet_ex(jt, consts::J_NPE, None);
         } else {
             let ex_cls = {
                 let ex = ex.lock().unwrap();
