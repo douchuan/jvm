@@ -159,10 +159,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("path.separator", util::PATH_SEP_STR),
         ("line.separator", "\n"),
         ("user.language", "en"),
-        ("file.encoding", "UTF-8"),
-        ("sun.jnu.encoding", "UTF-8"),
         ("file.encoding.pkg", "sun.io"),
-        ("sun.io.unicode.encoding", "UnicodeBig"),
         ("sun.cpu.isalist", ""),
         ("sun.cpu.endian", "little"),
         ("sun.arch.data.model", "32"),
@@ -170,8 +167,11 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("user.home", "/Users/douchuan/"),
         ("user.dir", "/Users/douchuan/"),
         ("java.home", "/Users/douchuan/work/prj_rust/jvm/test/"),
-        ("sun.stdout.encoding", "UTF-8"),
-        ("sun.stderr.encoding", "UTF-8"),
+        //        ("file.encoding", "UTF-8"),
+        //        ("sun.jnu.encoding", "UTF-8"),
+        //        ("sun.stdout.encoding", "UTF-8"),
+        //        ("sun.stderr.encoding", "UTF-8"),
+        //        ("sun.io.unicode.encoding", "UnicodeBig"),
     ];
 
     let props: Vec<(OopRef, OopRef)> = props

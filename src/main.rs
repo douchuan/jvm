@@ -31,11 +31,18 @@ todo list
     去掉native 函数的jt参数
   x. impl Type annotations
   x. String.intern
-  x.  newInstance0 sun/nio/cs/ext/ExtendedCharsets:()V
-    会陷入死循环
 
-    java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
   x. native 调用，需要构造一个Frame吗？
+
+  x. UTF-8导致的问题
+    java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
+
+    xx. 按正常流程加载"sun/nio/cs/ext/ExtendedCharsets"，
+        ExtendedCharsets会加载大量的内容，好像陷入死循环，还是需要多等一会？不确定
+
+    xx. java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
+      会导致抛出Charset.ExtendedProviderHolder.extendedProvider抛出ClassNotFoundException
+      但目前，native异常的处理，还不正常，处理不了
 */
 
 fn init_vm() {

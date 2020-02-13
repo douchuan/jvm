@@ -905,7 +905,7 @@ impl Frame {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-//                    info!("iaload 1 pos = {}, len = {}", pos, len);
+                    //                    info!("iaload 1 pos = {}, len = {}", pos, len);
                     let v = ary.get_elm_at(pos as usize);
                     let v = v.lock().unwrap();
                     match &v.v {
@@ -922,7 +922,7 @@ impl Frame {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-//                    info!("iaload 2 pos = {}, len = {}", pos, len);
+                    //                    info!("iaload 2 pos = {}, len = {}", pos, len);
                     let v = s.as_slice()[pos as usize];
                     self.stack.push_int(v as i32);
                 }
