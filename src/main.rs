@@ -33,6 +33,8 @@ todo list
   x. String.intern
   x.  newInstance0 sun/nio/cs/ext/ExtendedCharsets:()V
     会陷入死循环
+
+    java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
   x. native 调用，需要构造一个Frame吗？
 */
 
@@ -202,6 +204,18 @@ mod tests {
         s2.hash(&mut hasher);
         let s2_hash = hasher.finish();
         assert_ne!(s1_hash, s2_hash);
+
+        //hash eq
+        let s1 = "abcde".as_bytes();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s1.hash(&mut hasher);
+        let s1_hash = hasher.finish();
+        let s2 = String::from_utf8_lossy(b"abcde").to_string();
+        let s2 = s2.as_bytes();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s2.hash(&mut hasher);
+        let s2_hash = hasher.finish();
+        assert_eq!(s1_hash, s2_hash);
     }
 
     #[test]
@@ -212,7 +226,11 @@ mod tests {
         let v = l.to_be_bytes();
         let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
         unsafe {
-            libc::memcpy(ptr as *mut libc::c_void, v.as_ptr() as *const libc::c_void, 8);
+            libc::memcpy(
+                ptr as *mut libc::c_void,
+                v.as_ptr() as *const libc::c_void,
+                8,
+            );
         }
 
         let v = unsafe { *ptr } as u8;

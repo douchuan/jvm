@@ -7,11 +7,7 @@ use crate::util;
 use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![new_fn(
-        "VMSupportsCS8",
-        "()Z",
-        Box::new(jvm_VMSupportsCS8),
-    )]
+    vec![new_fn("VMSupportsCS8", "()Z", Box::new(jvm_VMSupportsCS8))]
 }
 
 fn jvm_VMSupportsCS8(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

@@ -116,7 +116,10 @@ pub fn init() {
             "java/security/AccessController",
             java_security_AccessController::get_native_methods(),
         ),
-        ("java/util/concurrent/atomic/AtomicLong", java_util_concurrent_atomic_AtomicLong::get_native_methods()),
+        (
+            "java/util/concurrent/atomic/AtomicLong",
+            java_util_concurrent_atomic_AtomicLong::get_native_methods(),
+        ),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
         (

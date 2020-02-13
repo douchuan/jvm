@@ -3,8 +3,8 @@
 use crate::classfile::types::BytesRef;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, OopRef};
-use crate::runtime::{JavaCall, require_class3, Stack};
 use crate::runtime::{self, JavaThread};
+use crate::runtime::{require_class3, JavaCall, Stack};
 use crate::util;
 use std::sync::{Arc, Mutex};
 
@@ -24,9 +24,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("setIn0", "(Ljava/io/InputStream;)V", Box::new(jvm_setIn0)),
         new_fn("setOut0", "(Ljava/io/PrintStream;)V", Box::new(jvm_setOut0)),
         new_fn("setErr0", "(Ljava/io/PrintStream;)V", Box::new(jvm_setErr0)),
-
         //Note: just for debug
-//        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
+        //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
     ]
 }
 
@@ -208,11 +207,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     };
 
     for it in props.iter() {
-        let args = vec![
-            props_oop.clone(),
-            it.0.clone(),
-            it.1.clone()
-        ];
+        let args = vec![props_oop.clone(), it.0.clone(), it.1.clone()];
 
         let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
         let mut stack = runtime::Stack::new(1);
@@ -255,10 +250,13 @@ fn jvm_setErr0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
 }
 
 fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let key= args.get(0).unwrap();
+    let key = args.get(0).unwrap();
 
     let str_key = util::oop::extract_str(key.clone());
-    warn!("xxxx jvm_getProperty key = {}", String::from_utf8_lossy(str_key.as_slice()));
+    warn!(
+        "xxxx jvm_getProperty key = {}",
+        String::from_utf8_lossy(str_key.as_slice())
+    );
 
     let cls = require_class3(None, b"java/lang/System").unwrap();
     let props = {
@@ -274,21 +272,17 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
         cls.get_class_method(id).unwrap()
     };
 
-    let args = vec![
-        props,
-        key.clone()
-    ];
+    let args = vec![props, key.clone()];
     let mut stack = Stack::new(1);
     let mut jc = runtime::java_call::JavaCall::new_with_args(jt, mir, args);
     jc.invoke(jt, &mut stack, false);
 
     let v = stack.pop_ref();
 
-//    trace!("xxxxx 1, str_key = {}", String::from_utf8_lossy(str_key.as_slice()));
-//    let str_v = util::oop::extract_str(v.clone());
-//    warn!("xxxx jvm_getProperty v = {}", String::from_utf8_lossy(str_v.as_slice()));
-//    trace!("xxxxx 2");
-
+    //    trace!("xxxxx 1, str_key = {}", String::from_utf8_lossy(str_key.as_slice()));
+    //    let str_v = util::oop::extract_str(v.clone());
+    //    warn!("xxxx jvm_getProperty v = {}", String::from_utf8_lossy(str_v.as_slice()));
+    //    trace!("xxxxx 2");
 
     Ok(Some(v))
 }

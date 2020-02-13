@@ -20,7 +20,7 @@ fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> J
 
 fn jvm_hashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let v =  util::oop::hash_code(v.clone());
+    let v = util::oop::hash_code(v.clone());
     Ok(Some(OopDesc::new_int(v as i32)))
 }
 

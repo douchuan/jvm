@@ -78,10 +78,12 @@ impl JavaCall {
                             cls.name.clone()
                         };
 
-                        error!("Java new failed, null this: {}:{}, this={:?}",
+                        error!(
+                            "Java new failed, null this: {}:{}, this={:?}",
                             String::from_utf8_lossy(cls_name.as_slice()),
                             String::from_utf8_lossy(mir.method.get_id().as_slice()),
-                            v);
+                            v
+                        );
                         jt.throw_ex(consts::J_NPE);
                         return Err(());
                     }

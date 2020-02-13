@@ -352,9 +352,16 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
 
     let caller_mirror = args.get(3).unwrap();
 
-    let name = String::from_utf8_lossy(java_name.as_slice());
-    let name = name.replace(".", "/");
-    let cls = require_class3(None, name.as_bytes());
+    let cls = {
+        let name = String::from_utf8_lossy(java_name.as_slice());
+        let name = name.replace(".", "/");
+        if name == "sun/nio/cs/ext/ExtendedCharsets" {
+            //fixme: skip, cause jvm start very slow
+            None
+        } else {
+            require_class3(None, name.as_bytes())
+        }
+    };
 
     match cls {
         Some(cls) => {
@@ -370,7 +377,10 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
             Ok(Some(mirror))
         }
         None => {
-            error!("forName0, NotFound: {}", name);
+            error!(
+                "forName0, NotFound: {}",
+                String::from_utf8_lossy(java_name.as_slice())
+            );
 
             let cls_name = Vec::from(classfile::consts::J_CLASS_NOT_FOUND);
             let exception = Exception {
