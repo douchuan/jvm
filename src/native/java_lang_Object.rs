@@ -11,6 +11,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("hashCode", "()I", Box::new(jvm_hashCode)),
         new_fn("clone", "()Ljava/lang/Object;", Box::new(jvm_clone)),
         new_fn("getClass", "()Ljava/lang/Class;", Box::new(jvm_getClass)),
+        new_fn("notifyAll", "()V", Box::new(jvm_notifyAll)),
     ]
 }
 
@@ -48,4 +49,8 @@ fn jvm_getClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
         }
     };
     Ok(Some(mirror))
+}
+
+fn jvm_notifyAll(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    Ok(None)
 }

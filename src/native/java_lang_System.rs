@@ -29,6 +29,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/String;)Ljava/lang/String;",
             Box::new(jvm_mapLibraryName),
         ),
+        new_fn(
+            "loadLibrary",
+            "(Ljava/lang/String;)V",
+            Box::new(jvm_loadLibrary),
+        ),
         //Note: just for debug
         //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
     ]
@@ -258,6 +263,10 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     let v = args.get(0).unwrap();
     let s = util::oop::extract_str(v.clone());
 
+    trace!(
+        "mapLibraryName libname = {}",
+        String::from_utf8_lossy(s.as_slice())
+    );
     let mut name = Vec::new();
     if cfg!(target_os = "macos") {
         name.extend_from_slice("lib".as_bytes());
@@ -275,11 +284,18 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     } else {
         unimplemented!()
     }
+    trace!(
+        "mapLibraryName name = {}",
+        String::from_utf8_lossy(name.as_slice())
+    );
 
-    let v = new_ref!(name);
-    let v = OopDesc::new_str(v);
+    let v = util::oop::new_java_lang_string(jt, name.as_slice());
 
     Ok(Some(v))
+}
+
+fn jvm_loadLibrary(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    Ok(None)
 }
 
 fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

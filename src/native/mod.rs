@@ -21,6 +21,7 @@ mod java_lang_Thread;
 mod java_lang_Throwable;
 mod java_security_AccessController;
 mod java_util_concurrent_atomic_AtomicLong;
+mod sun_misc_Signal;
 mod sun_misc_Unsafe;
 mod sun_misc_VM;
 mod sun_nio_cs_StreamEncoder;
@@ -120,6 +121,7 @@ pub fn init() {
             "java/util/concurrent/atomic/AtomicLong",
             java_util_concurrent_atomic_AtomicLong::get_native_methods(),
         ),
+        ("sun/misc/Signal", sun_misc_Signal::get_native_methods()),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
         (

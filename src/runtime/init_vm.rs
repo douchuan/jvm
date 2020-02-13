@@ -153,6 +153,10 @@ fn hack_classes(jt: &mut JavaThread) {
         let id = util::new_method_id(b"load", b"(Ljava/lang/String;)V");
         cls.hack_as_native(id);
 
+        //todo: support load lib
+        let id = util::new_method_id(b"loadLibrary", b"(Ljava/lang/String;)V");
+        cls.hack_as_native(id);
+
         //fixme: rm, just for debug
         //        let id = util::new_method_id(b"getProperty", b"(Ljava/lang/String;)Ljava/lang/String;");
         //        cls.hack_as_native(id);
