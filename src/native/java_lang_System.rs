@@ -24,6 +24,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("setIn0", "(Ljava/io/InputStream;)V", Box::new(jvm_setIn0)),
         new_fn("setOut0", "(Ljava/io/PrintStream;)V", Box::new(jvm_setOut0)),
         new_fn("setErr0", "(Ljava/io/PrintStream;)V", Box::new(jvm_setErr0)),
+        new_fn(
+            "mapLibraryName",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            Box::new(jvm_mapLibraryName),
+        ),
         //Note: just for debug
         //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
     ]
@@ -247,6 +252,34 @@ fn jvm_setErr0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     let id = cls.get_field_id(b"err", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
+}
+
+fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+    let s = util::oop::extract_str(v.clone());
+
+    let mut name = Vec::new();
+    if cfg!(target_os = "macos") {
+        name.extend_from_slice("lib".as_bytes());
+        name.extend_from_slice(s.as_slice());
+        name.extend_from_slice(".dylib".as_bytes());
+    } else if cfg!(target_os = "windows") {
+        unimplemented!();
+        name.extend_from_slice(s.as_slice());
+        name.extend_from_slice(".dll".as_bytes());
+    } else if cfg!(target_os = "linux") {
+        unimplemented!();
+        name.extend_from_slice("lib".as_bytes());
+        name.extend_from_slice(s.as_slice());
+        name.extend_from_slice(".so".as_bytes());
+    } else {
+        unimplemented!()
+    }
+
+    let v = new_ref!(name);
+    let v = OopDesc::new_str(v);
+
+    Ok(Some(v))
 }
 
 fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
