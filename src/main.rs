@@ -101,6 +101,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use crate::oop::OopDesc;
+    use std::hash::{Hash, Hasher};
 
     #[test]
     fn t_basic() {
@@ -166,11 +167,41 @@ mod tests {
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));
 
+        //raw arc eq
         let v1 = Arc::new(Mutex::new(Box::new(1000)));
         let v1_clone = v1.clone();
         let v1 = Arc::into_raw(v1) as i32;
         let v2 = Arc::into_raw(v1_clone) as i32;
         assert_eq!(v1, v2);
+
+        //raw Arc not eq
+        let v1 = Arc::new(Mutex::new(Box::new(1000)));
+        let v2 = Arc::new(Mutex::new(Box::new(1000)));
+        let v1 = Arc::into_raw(v1) as i32;
+        let v2 = Arc::into_raw(v2) as i32;
+        assert_ne!(v1, v2);
+
+        //hash eq
+        let s1 = String::from_utf8_lossy(b"abcde").to_string();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s1.hash(&mut hasher);
+        let s1_hash = hasher.finish();
+        let s2 = String::from_utf8_lossy(b"abcde").to_string();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s2.hash(&mut hasher);
+        let s2_hash = hasher.finish();
+        assert_eq!(s1_hash, s2_hash);
+
+        //hash not eq
+        let s1 = String::from_utf8_lossy(b"abcde").to_string();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s1.hash(&mut hasher);
+        let s1_hash = hasher.finish();
+        let s2 = String::from_utf8_lossy(b"abcde2").to_string();
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s2.hash(&mut hasher);
+        let s2_hash = hasher.finish();
+        assert_ne!(s1_hash, s2_hash);
     }
 
     #[test]

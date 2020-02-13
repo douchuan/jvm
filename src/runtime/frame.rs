@@ -1560,24 +1560,30 @@ impl Frame {
 
     pub fn iushr(&mut self) {
         let v2 = self.stack.pop_int();
-        let v1 = self.stack.pop_int();
-        let s = v2 & 0x1F;
+        let v1 = self.stack.pop_int() as u32;
+        let s = (v2 & 0x1F) as u32;
+        self.stack.push_int((v1 >> s) as i32);
+        /*
         if v1 >= 0 {
             self.stack.push_int(v1 >> s);
         } else {
             self.stack.push_int((v1 >> s) + (2 << !s));
         }
+        */
     }
 
     pub fn lushr(&mut self) {
         let v2 = self.stack.pop_int();
-        let v1 = self.stack.pop_long();
-        let s = (v2 & 0x3F) as i64;
+        let v1 = self.stack.pop_long() as u64;
+        let s = (v2 & 0x3F) as u64;
+        self.stack.push_long((v1 >> s) as i64);
+        /*
         if v1 >= 0 {
             self.stack.push_long(v1 >> s);
         } else {
             self.stack.push_long((v1 >> s) + (2 << !s));
         }
+        */
     }
 
     pub fn iand(&mut self) {

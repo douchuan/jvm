@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
+mod java_io_UnixFileSystem;
 pub mod java_lang_Class;
 mod java_lang_ClassLoader;
 mod java_lang_Double;
@@ -91,6 +92,10 @@ pub fn init() {
         (
             "java/io/FileOutputStream",
             java_io_FileOutputStream::get_native_methods(),
+        ),
+        (
+            "java/io/UnixFileSystem",
+            java_io_UnixFileSystem::get_native_methods(),
         ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
         (

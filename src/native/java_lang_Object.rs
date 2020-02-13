@@ -3,6 +3,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{require_class3, JavaThread};
+use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -19,7 +20,7 @@ fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> J
 
 fn jvm_hashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let v = std::sync::Arc::into_raw(v.clone());
+    let v =  util::oop::hash_code(v.clone());
     Ok(Some(OopDesc::new_int(v as i32)))
 }
 

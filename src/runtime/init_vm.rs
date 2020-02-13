@@ -147,11 +147,17 @@ fn hack_classes(jt: &mut JavaThread) {
     }
 
     let system = oop::class::load_and_init(jt, b"java/lang/System");
+
     {
         let mut cls = system.lock().unwrap();
         let id = util::new_method_id(b"load", b"(Ljava/lang/String;)V");
         cls.hack_as_native(id);
+
+        //fixme: rm, just for debug
+//        let id = util::new_method_id(b"getProperty", b"(Ljava/lang/String;)Ljava/lang/String;");
+//        cls.hack_as_native(id);
     }
+
     /*
     let mut mir = {
         let cls = encoder.lock().unwrap();

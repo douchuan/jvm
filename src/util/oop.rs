@@ -1,7 +1,9 @@
 use crate::classfile::types::BytesRef;
-use crate::oop::{Oop, OopRef};
-use crate::runtime::require_class3;
+use crate::oop::{Oop, OopRef, OopDesc};
+use crate::runtime::{self, require_class3, JavaThread};
 use std::sync::Arc;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 pub fn is_str(v: OopRef) -> bool {
     let v = v.lock().unwrap();
@@ -35,7 +37,7 @@ pub fn extract_str(v: OopRef) -> BytesRef {
                 let cls = inst.class.lock().unwrap();
                 cls.get_field_id(b"value", b"[C", false)
             }
-            _ => unreachable!(),
+            t => unreachable!("t = {:?}", t),
         }
     };
 
@@ -79,5 +81,45 @@ pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
         } else {
             false
         }
+    }
+}
+
+pub fn new_java_lang_string(jt: &mut JavaThread, v: &[u8]) -> OopRef {
+    //build "char value[]"
+    let char_ary_cls = require_class3(None, b"[C").unwrap();
+    let elms: Vec<OopRef> = v.iter().map(|it| {
+        OopDesc::new_int(*it as i32)
+    }).collect();
+    let ary = OopDesc::new_ary2(char_ary_cls, elms);
+
+    //new String(char value[])
+    let string_cls = require_class3(None, b"java/lang/String").unwrap();
+    let string_oop = OopDesc::new_inst(string_cls.clone());
+    let args = vec![
+        string_oop.clone(),
+        ary
+    ];
+    runtime::java_call::invoke_ctor(jt, string_cls, b"([C)V", args);
+
+    string_oop
+}
+
+pub fn hash_code(v: OopRef) -> u64 {
+    {
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Null => return 0,
+            _ => (),
+        }
+    }
+
+    if is_str(v.clone()) {
+        let s = extract_str(v);
+        let s = String::from_utf8_lossy(s.as_slice()).to_string();
+        let mut hasher = DefaultHasher::new();
+        s.hash(&mut hasher);
+        hasher.finish()
+    } else {
+        Arc::into_raw(v) as u64
     }
 }

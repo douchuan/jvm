@@ -65,13 +65,23 @@ impl JavaCall {
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {
-            let v = stack.pop_ref();
+            let this = stack.pop_ref();
+            let this_back = this.clone();
 
             //check NPE
             {
-                let v = v.lock().unwrap();
+                let v = this.lock().unwrap();
                 match &v.v {
                     Oop::Null => {
+                        let cls_name = {
+                            let cls = mir.method.class.lock().unwrap();
+                            cls.name.clone()
+                        };
+
+                        error!("Java new failed, null this: {}:{}, this={:?}",
+                            String::from_utf8_lossy(cls_name.as_slice()),
+                            String::from_utf8_lossy(mir.method.get_id().as_slice()),
+                            v);
                         jt.throw_ex(consts::J_NPE);
                         return Err(());
                     }
@@ -79,7 +89,7 @@ impl JavaCall {
                 }
             }
 
-            args.insert(0, v);
+            args.insert(0, this);
         }
 
         Ok(Self {
@@ -289,7 +299,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
         .iter()
         .rev()
         .map(|t| match t {
-            ArgType::Boolean | ArgType::Int => {
+            ArgType::Boolean | ArgType::Int | ArgType::Char => {
                 let v = stack.pop_int();
                 OopDesc::new_int(v)
             }
