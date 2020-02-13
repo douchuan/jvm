@@ -22,6 +22,8 @@ use crate::runtime::thread::JavaMainThread;
 /*
 todo list
 
+  x. fix warn & fixme
+
   x. verify class file
   x. java to execute a jar by -jar
   x. reimpl instruction by macro
@@ -30,9 +32,11 @@ todo list
   x. build thread system
     去掉native 函数的jt参数
   x. impl Type annotations
+  x. new Constructor with Exception and Type Annotations
   x. String.intern
-
+  x. refact Exception处理方式
   x. native 调用，需要构造一个Frame吗？
+  x. writeBytes实现完整
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
