@@ -1,3 +1,4 @@
+use crate::classfile::types::BytesRef;
 use crate::oop::OopRef;
 use std::sync::Arc;
 

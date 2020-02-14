@@ -36,7 +36,8 @@ todo list
   x. String.intern
   x. refact Exception处理方式
   x. native 调用，需要构造一个Frame吗？
-  x. writeBytes实现完整
+  x. writeBytes实现完整, 获取fd，用write写到标准输出中
+  x. ByteAry, BytesRef 留一个
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
@@ -148,6 +149,14 @@ mod tests {
         let mut v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
         v[1..5].clone_from_slice(&[5, 4, 3, 2][..]);
         assert_eq!(v, vec![1, 5, 4, 3, 2, 6, 7, 8, 9, 0]);
+
+        let mut ary = Box::new(Vec::new());
+        ary.push(100);
+        ary.push(99);
+        ary.push(98);
+        ary.push(97);
+        ary.push(96);
+        assert_eq!(ary.as_slice(), vec![100, 99, 98, 97, 96]);
     }
 
     #[test]

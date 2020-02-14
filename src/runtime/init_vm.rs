@@ -53,7 +53,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         main_thread_group.clone(),
         oop::consts::get_null(),
         system_thread_group,
-        OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
+        util::oop::new_java_lang_string2(jt, "main"),
     ];
     runtime::java_call::invoke_ctor(
         jt,
@@ -69,7 +69,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let args = vec![
         init_thread_oop,
         main_thread_group,
-        OopDesc::new_str(Arc::new(Box::new(Vec::from("main")))),
+        util::oop::new_java_lang_string2(jt, "main"),
     ];
     runtime::java_call::invoke_ctor(
         jt,

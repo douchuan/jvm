@@ -26,6 +26,6 @@ fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> J
 fn jvm_findBuiltinLib(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let name = args.get(0).unwrap();
     let name = util::oop::extract_str(name.clone());
-    trace!("name = {}", String::from_utf8_lossy(name.as_slice()));
+    trace!("name = {}", name);
     Ok(None)
 }

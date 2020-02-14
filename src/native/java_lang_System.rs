@@ -2,7 +2,7 @@
 
 use crate::classfile::types::BytesRef;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc, OopRef};
+use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{self, JavaThread};
 use crate::runtime::{require_class3, JavaCall, Stack};
 use crate::util;
@@ -77,28 +77,59 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
         return Ok(None);
     }
 
-    let is_str = util::oop::is_str(src.clone());
-    if is_str {
-        let src: Vec<OopRef> = {
+    let is_type_ary = {
+        let src = src.lock().unwrap();
+        match &src.v {
+            Oop::TypeArray(s) => true,
+            _ => unreachable!(),
+        }
+    };
+
+    if is_type_ary {
+        let src = {
             let src = src.lock().unwrap();
+
+            let mut src_ary = Vec::new();
+            //just choose the needed region
             match &src.v {
-                Oop::Str(s) => {
-                    //just construct the needed region
-                    s[src_pos as usize..(src_pos + length - 1) as usize]
-                        .iter()
-                        .map(|v| OopDesc::new_int(*v as i32))
-                        .collect()
-                }
+                Oop::TypeArray(s) => match s {
+                    oop::TypeArrayValue::Char(ary) => {
+                        ary[src_pos as usize..(src_pos + length) as usize]
+                            .iter()
+                            .for_each(|v| {
+                                src_ary.push(*v);
+                            });
+                    }
+                    oop::TypeArrayValue::Byte(ary) => {
+                        ary[src_pos as usize..(src_pos + length) as usize]
+                            .iter()
+                            .for_each(|v| {
+                                src_ary.push(*v as u16);
+                            });
+                    }
+                    t => unreachable!("t = {:?}", t),
+                },
                 _ => unreachable!(),
             }
+
+            src_ary
         };
 
         let mut dest = dest.lock().unwrap();
         match &mut dest.v {
-            Oop::Array(dest) => {
-                dest.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
-                    .clone_from_slice(&src[..]);
-            }
+            Oop::TypeArray(ary) => match ary {
+                oop::TypeArrayValue::Char(dest) => {
+                    dest[dest_pos as usize..(dest_pos + length) as usize]
+                        .clone_from_slice(&src[..]);
+                }
+                oop::TypeArrayValue::Byte(dest) => {
+                    let src: Vec<u8> = src.iter().map(|v| *v as u8).collect();
+                    dest[dest_pos as usize..(dest_pos + length) as usize]
+                        .clone_from_slice(&src[..]);
+                }
+                t => unreachable!("t = {:?}", t),
+            },
+
             _ => unreachable!(),
         }
     } else {
@@ -111,7 +142,7 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
                     Oop::Array(ary) => {
                         let mut new_ary = Vec::new();
                         new_ary.clone_from_slice(
-                            &ary.elements[src_pos as usize..(src_pos + length - 1) as usize],
+                            &ary.elements[src_pos as usize..(src_pos + length) as usize],
                         );
                         new_ary
                     }
@@ -122,7 +153,7 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
             let mut dest = dest.lock().unwrap();
             match &mut dest.v {
                 Oop::Array(ary) => {
-                    ary.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                    ary.elements[dest_pos as usize..(dest_pos + length) as usize]
                         .clone_from_slice(&src[..]);
                 }
                 _ => unreachable!(),
@@ -134,10 +165,9 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
                     let mut dest = dest.lock().unwrap();
                     match &mut dest.v {
                         Oop::Array(dest) => {
-                            dest.elements[dest_pos as usize..(dest_pos + length - 1) as usize]
+                            dest.elements[dest_pos as usize..(dest_pos + length) as usize]
                                 .clone_from_slice(
-                                    &src.elements
-                                        [src_pos as usize..(src_pos + length - 1) as usize],
+                                    &src.elements[src_pos as usize..(src_pos + length) as usize],
                                 );
                         }
                         _ => unreachable!(),
@@ -171,7 +201,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("user.language", "en"),
         ("file.encoding.pkg", "sun.io"),
         ("sun.cpu.isalist", ""),
-//        ("sun.cpu.endian", "little"),
+        //        ("sun.cpu.endian", "little"),
         ("sun.arch.data.model", "32"),
         ("user.name", "chuan"),
         ("user.home", "/Users/douchuan/"),
@@ -187,21 +217,10 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     let props: Vec<(OopRef, OopRef)> = props
         .iter()
         .map(|(k, v)| {
-            /*
-            let k = util::oop::new_java_lang_string(jt, k.as_bytes());
-            let v = util::oop::new_java_lang_string(jt, v.as_bytes());
-            */
-
-            let k = Vec::from(k.as_bytes());
-            let k = new_ref!(k);
-            let k = OopDesc::new_str(k);
-
-            let v = Vec::from(v.as_bytes());
-            let v = new_ref!(v);
-            let v = OopDesc::new_str(v);
+            let k = util::oop::new_java_lang_string2(jt, k);
+            let v = util::oop::new_java_lang_string2(jt, v);
 
             (k, v)
-
         })
         .collect();
 
@@ -270,33 +289,27 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     let v = args.get(0).unwrap();
     let s = util::oop::extract_str(v.clone());
 
-    trace!(
-        "mapLibraryName libname = {}",
-        String::from_utf8_lossy(s.as_slice())
-    );
-    let mut name = Vec::new();
+    trace!("mapLibraryName libname = {}", s);
+    let mut name = String::new();
     if cfg!(target_os = "macos") {
-        name.extend_from_slice("lib".as_bytes());
-        name.extend_from_slice(s.as_slice());
-        name.extend_from_slice(".dylib".as_bytes());
+        name.push_str("lib");
+        name.push_str(&s);
+        name.push_str(".dylib");
     } else if cfg!(target_os = "windows") {
         unimplemented!();
-        name.extend_from_slice(s.as_slice());
-        name.extend_from_slice(".dll".as_bytes());
+    //        name.extend_from_slice(s.as_bytes());
+    //        name.extend_from_slice(".dll".as_bytes());
     } else if cfg!(target_os = "linux") {
         unimplemented!();
-        name.extend_from_slice("lib".as_bytes());
-        name.extend_from_slice(s.as_slice());
-        name.extend_from_slice(".so".as_bytes());
+    //        name.extend_from_slice("lib".as_bytes());
+    //        name.extend_from_slice(s.as_bytes());
+    //        name.extend_from_slice(".so".as_bytes());
     } else {
         unimplemented!()
     }
-    trace!(
-        "mapLibraryName name = {}",
-        String::from_utf8_lossy(name.as_slice())
-    );
+    trace!("mapLibraryName name = {}", name);
 
-    let v = util::oop::new_java_lang_string(jt, name.as_slice());
+    let v = util::oop::new_java_lang_string2(jt, &name);
 
     Ok(Some(v))
 }
@@ -309,10 +322,7 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
     let key = args.get(0).unwrap();
 
     let str_key = util::oop::extract_str(key.clone());
-    warn!(
-        "xxxx jvm_getProperty key = {}",
-        String::from_utf8_lossy(str_key.as_slice())
-    );
+    warn!("xxxx jvm_getProperty key = {}", str_key);
 
     let cls = require_class3(None, b"java/lang/System").unwrap();
     let props = {

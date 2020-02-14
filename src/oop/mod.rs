@@ -18,6 +18,14 @@ pub use self::method::MethodIdRef;
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
 def_sync_ref!(OopRef, OopDesc);
+def_ptr!(ByteAry, Vec<u8>);
+def_ptr!(BoolAry, Vec<u8>);
+def_ptr!(CharAry, Vec<u16>);
+def_ptr!(ShortAry, Vec<i16>);
+def_ptr!(IntAry, Vec<i32>);
+def_ptr!(LongAry, Vec<i64>);
+def_ptr!(FloatAry, Vec<f32>);
+def_ptr!(DoubleAry, Vec<f64>);
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum ValueType {
@@ -40,14 +48,12 @@ pub enum Oop {
     Long(i64),
     Float(f32),
     Double(f64),
-    Str(BytesRef),
     Inst(InstOopDesc),
-
-    //todo: optimise me, create a TypeArray
     Array(ArrayOopDesc),
-
+    TypeArray(TypeArrayValue),
     Mirror(MirrorOopDesc),
 
+    ConstUtf8(BytesRef),
     //used by oop::field::Filed::get_constant_value
     Null,
 }
@@ -76,8 +82,8 @@ impl OopDesc {
         Self::new(Oop::Double(v))
     }
 
-    pub fn new_str(v: BytesRef) -> OopRef {
-        Self::new(Oop::Str(v))
+    pub fn new_const_utf8(v: BytesRef) -> OopRef {
+        Self::new(Oop::ConstUtf8(v))
     }
 
     pub fn new_inst(cls_obj: ClassRef) -> OopRef {
@@ -85,17 +91,16 @@ impl OopDesc {
         Self::new(Oop::Inst(v))
     }
 
-    pub fn new_ary(ary_cls_obj: ClassRef, len: usize) -> OopRef {
+    pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> OopRef {
         let mut elements = Vec::with_capacity(len);
-        //todo: optimize me
         for _ in 0..len {
             elements.push(consts::get_null());
         }
 
-        Self::new_ary2(ary_cls_obj, elements)
+        Self::new_ref_ary2(ary_cls_obj, elements)
     }
 
-    pub fn new_ary2(ary_cls_obj: ClassRef, elms: Vec<OopRef>) -> OopRef {
+    pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<OopRef>) -> OopRef {
         let v = ArrayOopDesc::new(ary_cls_obj, elms);
         Self::new(Oop::Array(v))
     }
@@ -138,6 +143,123 @@ impl OopDesc {
 
     pub fn new_null() -> OopRef {
         Self::new(Oop::Null)
+    }
+
+    pub fn char_ary_from1(v: &[u16]) -> OopRef {
+        let elms = Vec::from(v);
+        Self::new_char_ary2(elms)
+    }
+
+    pub fn new_byte_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_byte_ary2(elms)
+    }
+
+    pub fn new_bool_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_bool_ary2(elms)
+    }
+
+    pub fn new_char_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_char_ary2(elms)
+    }
+
+    pub fn new_short_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_short_ary2(elms)
+    }
+
+    pub fn new_int_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_int_ary2(elms)
+    }
+
+    pub fn new_float_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0.0);
+        }
+        Self::new_float_ary2(elms)
+    }
+
+    pub fn new_double_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0.0);
+        }
+        Self::new_double_ary2(elms)
+    }
+
+    pub fn new_long_ary(len: usize) -> OopRef {
+        let mut elms = Vec::with_capacity(len);
+        for _ in 0..len {
+            elms.push(0);
+        }
+        Self::new_long_ary2(elms)
+    }
+
+    pub fn new_byte_ary2(elms: Vec<u8>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Byte(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_bool_ary2(elms: Vec<u8>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Bool(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_char_ary2(elms: Vec<u16>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Char(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_short_ary2(elms: Vec<i16>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Short(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_int_ary2(elms: Vec<i32>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Int(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_float_ary2(elms: Vec<f32>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Float(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_double_ary2(elms: Vec<f64>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Double(ary);
+        Self::new(Oop::TypeArray(v))
+    }
+
+    pub fn new_long_ary2(elms: Vec<i64>) -> OopRef {
+        let ary = Box::new(elms);
+        let v = TypeArrayValue::Long(ary);
+        Self::new(Oop::TypeArray(v))
     }
 
     fn new(v: Oop) -> OopRef {
@@ -247,6 +369,18 @@ pub struct InstOopDesc {
 pub struct ArrayOopDesc {
     pub class: ClassRef,
     pub elements: Vec<OopRef>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TypeArrayValue {
+    Byte(ByteAry),
+    Bool(BoolAry),
+    Char(CharAry),
+    Short(ShortAry),
+    Float(FloatAry),
+    Double(DoubleAry),
+    Int(IntAry),
+    Long(LongAry),
 }
 
 #[derive(Debug, Clone)]

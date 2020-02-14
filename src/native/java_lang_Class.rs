@@ -230,19 +230,10 @@ fn jvm_desiredAssertionStatus0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRe
 
 fn jvm_getPrimitiveClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
-
-    let v = {
-        let v = v.lock().unwrap();
-        match &v.v {
-            Oop::Str(s) => s.clone(),
-            _ => unreachable!(),
-        }
-    };
-
-    let s = std::str::from_utf8(v.as_slice()).unwrap();
-    match SIGNATURE_DIC.get(s) {
+    let v = util::oop::extract_str(v.clone());
+    match SIGNATURE_DIC.get(v.as_str()) {
         Some(&s) => Ok(get_primitive_class_mirror(s)),
-        _ => unreachable!("Unknown primitive type: {}", s),
+        _ => unreachable!("Unknown primitive type: {}", v),
     }
 }
 
@@ -300,7 +291,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
 
     //build oop field ar
     let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Field;").unwrap();
-    Ok(Some(OopDesc::new_ary2(ary_cls, fields)))
+    Ok(Some(OopDesc::new_ref_ary2(ary_cls, fields)))
 }
 
 fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
@@ -319,20 +310,13 @@ fn jvm_getName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
 
     let name = String::from_utf8_lossy(name.as_slice());
     let name = name.replace("/", ".");
-    let v = Vec::from(name.as_bytes());
-    let v = new_ref!(v);
-    Ok(Some(OopDesc::new_str(v)))
+    let v = util::oop::new_java_lang_string2(jt, &name);
+    Ok(Some(v))
 }
 
 fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let java_name = {
-        let arg0 = args.get(0).unwrap();
-        let arg0 = arg0.lock().unwrap();
-        match &arg0.v {
-            Oop::Str(s) => s.clone(),
-            _ => unreachable!(),
-        }
-    };
+    let arg0 = args.get(0).unwrap();
+    let java_name = util::oop::extract_str(arg0.clone());
     let initialize = {
         let arg1 = args.get(1).unwrap();
         let arg1 = arg1.lock().unwrap();
@@ -353,13 +337,11 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     let caller_mirror = args.get(3).unwrap();
 
     let cls = {
-        let name = String::from_utf8_lossy(java_name.as_slice());
-        let name = name.replace(".", "/");
-        if name == "sun/nio/cs/ext/ExtendedCharsets" {
+        if java_name == "sun.nio.cs.ext.ExtendedCharsets" {
             //fixme: skip, cause jvm start very slow
             None
         } else {
-            require_class3(None, name.as_bytes())
+            require_class3(None, java_name.as_bytes())
         }
     };
 
@@ -377,10 +359,7 @@ fn jvm_forName0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
             Ok(Some(mirror))
         }
         None => {
-            error!(
-                "forName0, NotFound: {}",
-                String::from_utf8_lossy(java_name.as_slice())
-            );
+            error!("forName0, NotFound: {}", java_name);
 
             let cls_name = Vec::from(classfile::consts::J_CLASS_NOT_FOUND);
             let exception = Exception {
@@ -506,10 +485,10 @@ fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopR
         }
     }
 
-    //build oop field ar
+    //build oop methods ary
     let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Constructor;").unwrap();
 
-    Ok(Some(OopDesc::new_ary2(ary_cls, methods)))
+    Ok(Some(OopDesc::new_ref_ary2(ary_cls, methods)))
 }
 
 pub fn jvm_getModifiers(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

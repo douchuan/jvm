@@ -106,9 +106,8 @@ impl JavaThread {
         match &ex.msg {
             Some(msg) => {
                 //with 'String' arg ctor
-                let msg = Vec::from(msg.as_str());
-                let msg = new_ref!(msg);
-                let args = vec![ex_obj.clone(), OopDesc::new_str(msg)];
+                let msg = util::oop::new_java_lang_string2(self, msg);
+                let args = vec![ex_obj.clone(), msg];
                 runtime::java_call::invoke_ctor(self, cls.clone(), b"(Ljava/lang/String;)V", args);
             }
             None => {
@@ -253,24 +252,10 @@ impl JavaThread {
                 cls.get_field_value(ex.clone(), id)
             };
 
-            let cls = {
-                let v = detail_message_oop.lock().unwrap();
-                match &v.v {
-                    oop::Oop::Inst(inst) => Some(inst.class.clone()),
-                    oop::Oop::Null => None,
-                    t => unreachable!("t = {:?}", t),
-                }
-            };
-
-            if cls.is_none() {
-                let v = vec![];
-                new_ref!(v)
-            } else {
-                util::oop::extract_str(detail_message_oop)
-            }
+            util::oop::extract_str(detail_message_oop)
         };
 
-        info!("detail={}", String::from_utf8_lossy(detail_msg.as_slice()));
+        info!("detail={}", detail_msg);
     }
 }
 
@@ -289,7 +274,7 @@ impl JavaMainThread {
 
         match mir {
             Ok(mir) => {
-                let mut stack = self.build_stack();
+                let mut stack = self.build_stack(&mut jt);
                 match JavaCall::new(&mut jt, &mut stack, mir) {
                     Ok(mut jc) => jc.invoke(&mut jt, &mut stack, true),
                     _ => unreachable!(),
@@ -301,21 +286,18 @@ impl JavaMainThread {
 }
 
 impl JavaMainThread {
-    fn build_stack(&self) -> Stack {
+    fn build_stack(&self, jt: &mut JavaThread) -> Stack {
         let args = match &self.args {
             Some(args) => args
                 .iter()
-                .map(|it| {
-                    let v = Arc::new(Box::new(Vec::from(it.as_bytes())));
-                    OopDesc::new_str(v)
-                })
+                .map(|it| util::oop::new_java_lang_string2(jt, it))
                 .collect(),
             None => vec![consts::get_null()],
         };
 
         //build ArrayOopDesc
-        let string_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
-        let arg = OopDesc::new_ary2(string_class, args);
+        let ary_str_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
+        let arg = OopDesc::new_ref_ary2(ary_str_class, args);
 
         //push to stack
         let mut stack = Stack::new(1);

@@ -6,7 +6,6 @@ use crate::runtime::JavaThread;
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
-
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
         new_fn("initIDs", "()V", Box::new(jvm_initIDs)),
@@ -49,29 +48,22 @@ fn jvm_writeBytes(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRes
     let bytes: Vec<u8> = {
         let v = byte_ary.lock().unwrap();
         match &v.v {
-            Oop::Array(ary) => {
-                let p1 = off as usize;
-                let p2 = (off + len) as usize;
-                ary.elements[off as usize..(off + len) as usize]
+            Oop::TypeArray(ary) => match ary {
+                oop::TypeArrayValue::Byte(ary) => ary[off as usize..(off + len) as usize]
                     .iter()
-                    .map(|v| {
-                        let v = v.lock().unwrap();
-                        match v.v {
-                            Oop::Int(v) => v as u8,
-                            _ => unreachable!(),
-                        }
-                    })
-                    .collect()
-            }
+                    .map(|v| *v)
+                    .collect(),
+                t => unreachable!("t = {:?}", t),
+            },
             _ => unreachable!(),
         }
     };
 
-//    println!("xxxxxx 1");
+    //    println!("xxxxxx 1");
     print!("{}", String::from_utf8_lossy(bytes.as_slice()));
-//    print!("{:?}, len={}", bytes.as_slice(), bytes.len());
-//    io::stdout().flush().unwrap();
-//    print!("{}", String::from_utf8_lossy("\n".as_bytes()));
+    //    print!("{:?}, len={}", bytes.as_slice(), bytes.len());
+    //    io::stdout().flush().unwrap();
+    //    print!("{}", String::from_utf8_lossy("\n".as_bytes()));
 
     Ok(None)
 }

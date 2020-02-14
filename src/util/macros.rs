@@ -13,6 +13,13 @@ macro_rules! def_ref {
 }
 
 #[macro_export]
+macro_rules! def_ptr {
+    ($name:ident, $t:ty) => {
+        pub type $name = Box<$t>;
+    };
+}
+
+#[macro_export]
 macro_rules! new_sync_ref {
     ($name:ident) => {
         std::sync::Arc::new(std::sync::Mutex::new(Box::new($name)));

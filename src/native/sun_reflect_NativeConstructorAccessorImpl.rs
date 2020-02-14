@@ -37,7 +37,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
     info!(
         "newInstance0 {}:{}",
         String::from_utf8_lossy(name.as_slice()),
-        String::from_utf8_lossy(signature.as_slice())
+        signature
     );
 
     let mut ctor_args = Vec::new();
@@ -54,7 +54,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
 
     let oop = OopDesc::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
-    runtime::java_call::invoke_ctor(jt, target_cls, signature.as_slice(), ctor_args);
+    runtime::java_call::invoke_ctor(jt, target_cls, signature.as_bytes(), ctor_args);
 
     Ok(Some(oop))
 }

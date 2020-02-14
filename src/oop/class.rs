@@ -401,7 +401,6 @@ impl Class {
                 Some(v) => v.clone(),
                 _ => unreachable!("mirror = {:?}", mirror),
             },
-            Oop::Str(s) => OopDesc::new_str(s.clone()),
             t => unreachable!("t = {:?}", t),
         }
     }

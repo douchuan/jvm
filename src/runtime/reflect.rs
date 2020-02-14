@@ -15,7 +15,7 @@ pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> OopRef {
 
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
-    let signature = OopDesc::new_str(fir.field.desc.clone());
+    let signature = util::oop::new_java_lang_string3(jt, fir.field.desc.as_slice());
 
     let mut desc = Vec::new();
     desc.push(b'(');
@@ -24,7 +24,7 @@ pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> OopRef {
         (
             "name",
             "Ljava/lang/String;",
-            OopDesc::new_str(fir.field.name.clone()),
+            util::oop::new_java_lang_string3(jt, fir.field.name.as_slice()),
         ),
         ("type", "Ljava/lang/Class;", typ_mirror),
         (
@@ -65,24 +65,25 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> OopRef {
         .map(|t| create_value_type(t.clone()))
         .collect();
     let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
-    let parameter_types = OopDesc::new_ary2(cls, params);
+    let parameter_types = OopDesc::new_ref_ary2(cls, params);
 
     //fixme:
     //checkedExceptions
     let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
-    let checked_exceptions = OopDesc::new_ary2(cls, vec![]);
+    let checked_exceptions = OopDesc::new_ref_ary2(cls, vec![]);
 
     //modifiers
     let modifiers = mir.method.acc_flags;
     //slot
     let slot = mir.offset;
     //signature
-    let signature = OopDesc::new_str(mir.method.desc.clone());
+    let signature = util::oop::new_java_lang_string3(jt, mir.method.desc.as_slice());
 
     //fixme: annotations, parameterAnnotations
     let cls = require_class3(None, b"[B").unwrap();
-    let annotations = OopDesc::new_ary(cls.clone(), 0);
-    let parameter_annotations = OopDesc::new_ary(cls.clone(), 0);
+    //fixme: it's a prime array
+    let annotations = OopDesc::new_ref_ary(cls.clone(), 0);
+    let parameter_annotations = OopDesc::new_ref_ary(cls.clone(), 0);
 
     let mut desc = Vec::new();
     desc.push(b'(');
@@ -150,8 +151,8 @@ pub fn get_Constructor_slot(ctor: OopRef) -> i32 {
     }
 }
 
-pub fn get_Constructor_signature(ctor: OopRef) -> BytesRef {
-    //todo: optimize, avoid obtain class
+pub fn get_Constructor_signature(ctor: OopRef) -> String {
+    //todo: optimisze, cache Constructor cls, avoid obtain class
     let cls = {
         let v = ctor.lock().unwrap();
         match &v.v {
@@ -160,7 +161,7 @@ pub fn get_Constructor_signature(ctor: OopRef) -> BytesRef {
         }
     };
 
-    //todo: optimize, avoid obtain id
+    //todo: optimize, cache id
     let cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
     let v = cls.get_field_value(ctor, id);

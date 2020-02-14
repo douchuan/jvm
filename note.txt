@@ -28,6 +28,11 @@ test
 test push
 
 
+char
+-----------------------
+Java中的char: 16-bit unsigned integers
+Rust中的char: four bytes in size
+
 大事记
 -----------------------
 1. 2020.01.30 Add.java 被顺利执行

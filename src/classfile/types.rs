@@ -8,5 +8,6 @@ pub type U4 = u32;
 
 pub type CheckResult = Result<(), checker::Err>;
 
+//todo: rename to CharsRef
 def_ref!(BytesRef, Vec<u8>);
 def_ref!(ConstantPool, Vec<ConstantType>);

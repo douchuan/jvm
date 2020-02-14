@@ -39,16 +39,15 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
 
                 let cls_name = { mir.method.class.lock().unwrap().name.clone() };
                 let method_name = mir.method.name.clone();
-                //todo: class source file name
-                let src_file = Vec::from("xxx");
-                let src_file = new_ref!(src_file);
+                //fixme: src_file
+                let src_file = "xxx";
 
                 let elm = OopDesc::new_inst(elm_cls.clone());
                 let args = vec![
                     elm.clone(),
-                    OopDesc::new_str(cls_name),
-                    OopDesc::new_str(method_name),
-                    OopDesc::new_str(src_file),
+                    util::oop::new_java_lang_string3(jt, cls_name.as_slice()),
+                    util::oop::new_java_lang_string3(jt, method_name.as_slice()),
+                    util::oop::new_java_lang_string2(jt, src_file),
                     OopDesc::new_int(line_number),
                 ];
                 runtime::java_call::invoke_ctor(
@@ -64,7 +63,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> 
         }
     }
 
-    let stack_trace_ary = OopDesc::new_ary2(ary_cls, elms);
+    let stack_trace_ary = OopDesc::new_ref_ary2(ary_cls, elms);
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
         let cls = throwable_cls.lock().unwrap();

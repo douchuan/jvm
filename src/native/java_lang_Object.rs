@@ -40,14 +40,7 @@ fn jvm_getClass(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
                 let cls = inst.class.lock().unwrap();
                 cls.get_mirror()
             }
-            Oop::Str(_) => {
-                let cls = require_class3(None, b"java/lang/String").unwrap();
-                let cls = cls.lock().unwrap();
-                cls.get_mirror()
-            }
-            Oop::Array(ary) => {
-                ary.class.lock().unwrap().get_mirror()
-            }
+            Oop::Array(ary) => ary.class.lock().unwrap().get_mirror(),
             t => unimplemented!("t = {:?}", t),
         }
     };
