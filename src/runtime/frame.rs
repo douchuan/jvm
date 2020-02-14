@@ -1224,13 +1224,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Byte(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Byte(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v as u8;
+                        ary[pos as usize] = v as u8;
                     }
                 }
                 _ => unreachable!(),
@@ -1249,13 +1249,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Char(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v as u16;
+                        ary[pos as usize] = v as u16;
                     }
                 }
                 _ => unreachable!(),
@@ -1274,13 +1274,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Short(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Short(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v as i16;
+                        ary[pos as usize] = v as i16;
                     }
                 }
                 _ => unreachable!(),
@@ -1299,13 +1299,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Int(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Int(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v as i32;
+                        ary[pos as usize] = v as i32;
                     }
                 }
                 _ => unreachable!(),
@@ -1324,13 +1324,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Long(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Long(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v;
+                        ary[pos as usize] = v;
                     }
                 }
                 _ => unreachable!(),
@@ -1349,13 +1349,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Float(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Float(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v;
+                        ary[pos as usize] = v;
                     }
                 }
                 _ => unreachable!(),
@@ -1374,13 +1374,13 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Double(int_ary) => {
-                    let len = int_ary.len();
+                oop::TypeArrayValue::Double(ary) => {
+                    let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
                         self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
-                        int_ary[pos as usize] = v;
+                        ary[pos as usize] = v;
                     }
                 }
                 _ => unreachable!(),
