@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::classfile::ClassFile;
 use crate::runtime::{require_class3, ClassLoader};

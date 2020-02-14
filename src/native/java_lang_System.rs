@@ -1,12 +1,11 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::oop::{self, Oop, OopRef};
+use crate::runtime::JavaCall;
 use crate::runtime::{self, JavaThread};
-use crate::runtime::{require_class3, JavaCall, Stack};
-use crate::types::BytesRef;
 use crate::util;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -39,11 +38,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let src = args.get(0).unwrap();
     let src_pos = {
         let arg1 = args.get(1).unwrap();
@@ -80,7 +79,7 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     let is_type_ary = {
         let src = src.lock().unwrap();
         match &src.v {
-            Oop::TypeArray(s) => true,
+            Oop::TypeArray(_) => true,
             _ => unreachable!(),
         }
     };
@@ -181,7 +180,7 @@ fn jvm_arraycopy(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     Ok(None)
 }
 
-fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     //fixme:
     let props = vec![
         ("java.specification.version", "1.8"),
@@ -258,7 +257,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     Ok(Some(props_oop.clone()))
 }
 
-fn jvm_setIn0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -267,7 +266,7 @@ fn jvm_setIn0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult 
     Ok(None)
 }
 
-fn jvm_setOut0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -276,7 +275,7 @@ fn jvm_setOut0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_setErr0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -285,7 +284,7 @@ fn jvm_setErr0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
     let s = util::oop::extract_str(v.clone());
 
@@ -314,10 +313,11 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     Ok(Some(v))
 }
 
-fn jvm_loadLibrary(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_loadLibrary(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
+/*
 fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let key = args.get(0).unwrap();
 
@@ -352,3 +352,4 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 
     Ok(Some(v))
 }
+*/

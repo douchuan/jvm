@@ -1,12 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc, OopRef};
-use crate::runtime::JavaCall;
-use crate::runtime::{self, JavaThread};
-use crate::types::BytesRef;
+use crate::oop::OopRef;
+use crate::runtime::JavaThread;
 use crate::util;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -19,11 +16,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_findBuiltinLib(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_findBuiltinLib(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let name = args.get(0).unwrap();
     let name = util::oop::extract_str(name.clone());
     trace!("name = {}", name);

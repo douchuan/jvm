@@ -12,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_floatToRawIntBits(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_floatToRawIntBits(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let f = args.get(0).unwrap();
     let f = f.lock().unwrap();
     match f.v {

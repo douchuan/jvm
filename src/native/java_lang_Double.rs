@@ -3,7 +3,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, OopRef};
 use crate::runtime::JavaThread;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -16,7 +15,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doubleToRawLongBits(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doubleToRawLongBits(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let d = args.get(0).unwrap();
     let d = d.lock().unwrap();
     match d.v {
@@ -29,7 +28,7 @@ fn jvm_doubleToRawLongBits(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) 
     }
 }
 
-fn jvm_longBitsToDouble(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_longBitsToDouble(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let l = args.get(0).unwrap();
     let v = l.lock().unwrap();
     match v.v {

@@ -1,13 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::oop::{Oop, OopDesc, OopRef};
 use crate::runtime::{require_class3, JavaThread};
-use crate::types::BytesRef;
 use crate::util;
-use std::collections::HashMap;
 use std::os::raw::c_void;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -50,25 +47,25 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arrayBaseOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_arrayBaseOffset(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(Some(OopDesc::new_int(0)))
 }
 
-fn jvm_arrayIndexScale(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_arrayIndexScale(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     let v = std::mem::size_of::<*mut u8>();
     Ok(Some(OopDesc::new_int(v as i32)))
 }
 
-fn jvm_addressSize(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_addressSize(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     let v = std::mem::size_of::<*mut u8>();
     Ok(Some(OopDesc::new_int(v as i32)))
 }
 
-fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_objectFieldOffset(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let field = args[1].clone();
 
     {
@@ -99,7 +96,7 @@ fn jvm_objectFieldOffset(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
 }
 
 //fixme: 此处语义上要求是原子操作，这里需要重新实现
-fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = {
         let v = args.get(2).unwrap();
@@ -135,7 +132,7 @@ fn jvm_compareAndSwapObject(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>)
     }
 }
 
-fn jvm_getIntVolatile(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getIntVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = {
         let v = args.get(2).unwrap();
@@ -155,7 +152,7 @@ fn jvm_getIntVolatile(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     Ok(Some(v_at_offset))
 }
 
-fn jvm_compareAndSwapInt(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_compareAndSwapInt(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = {
         let v = args.get(2).unwrap();
@@ -201,7 +198,7 @@ fn jvm_compareAndSwapInt(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) ->
     }
 }
 
-fn jvm_allocateMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_allocateMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let size = {
         let v = args.get(1).unwrap();
         let v = v.lock().unwrap();
@@ -217,7 +214,7 @@ fn jvm_allocateMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     Ok(Some(OopDesc::new_long(v)))
 }
 
-fn jvm_freeMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_freeMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let ptr = {
         let v = args.get(1).unwrap();
         let v = v.lock().unwrap();
@@ -234,7 +231,7 @@ fn jvm_freeMemory(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRes
     Ok(None)
 }
 
-fn jvm_putLong(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_putLong(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let ptr = {
         let v = args.get(1).unwrap();
         let v = v.lock().unwrap();
@@ -260,7 +257,7 @@ fn jvm_putLong(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_getByte(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getByte(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let ptr = {
         let v = args.get(1).unwrap();
         let v = v.lock().unwrap();

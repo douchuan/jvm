@@ -1,10 +1,8 @@
 #![allow(non_snake_case)]
 
-use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::oop::{Oop, OopDesc, OopRef};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::util;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -14,10 +12,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_forOutputStreamWriter(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let os = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
-    let charset_name = args.get(2).unwrap();
+    let _charset_name = args.get(2).unwrap();
 
     let charset_cls = require_class3(None, b"java/nio/charset/Charset").unwrap();
     let default_charset_oop = {
@@ -30,7 +28,7 @@ fn jvm_forOutputStreamWriter(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>
     {
         let v = default_charset_oop.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => (),
+            Oop::Inst(_) => (),
             _ => unreachable!(),
         }
     }

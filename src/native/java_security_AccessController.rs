@@ -4,7 +4,6 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
 use crate::runtime::{Exception, JavaCall, JavaThread, Stack};
 use crate::util;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -26,11 +25,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let mut mir = None;
 
-    {
+    let mir = {
         let v = v.lock().unwrap();
         match &v.v {
             Oop::Null => {
@@ -48,14 +46,15 @@ fn jvm_doPrivileged(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIR
                     let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
                     cls.get_virtual_method(id).unwrap()
                 };
-                mir = Some(m);
+
+                m
             }
             _ => unreachable!(),
         }
-    }
+    };
 
     let args = vec![v.clone()];
-    let mut jc = JavaCall::new_with_args(jt, mir.unwrap(), args);
+    let mut jc = JavaCall::new_with_args(jt, mir, args);
     let mut stack = Stack::new(1);
     jc.invoke(jt, &mut stack, false);
 
@@ -72,9 +71,9 @@ fn jvm_doPrivileged2(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNI
 }
 
 fn jvm_getStackAccessControlContext(
-    jt: &mut JavaThread,
-    env: JNIEnv,
-    args: Vec<OopRef>,
+    _jt: &mut JavaThread,
+    _env: JNIEnv,
+    _args: Vec<OopRef>,
 ) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }

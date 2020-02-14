@@ -1,10 +1,8 @@
 #![allow(non_snake_case)]
 
-use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::oop::{Oop, OopDesc, OopRef};
 use crate::runtime::{self, JavaThread};
-use crate::util;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -14,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_newInstance0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 

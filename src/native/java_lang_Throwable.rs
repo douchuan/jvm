@@ -1,10 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::oop::{self, OopDesc, OopRef};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -14,7 +13,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_fillInStackTrace(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let elm_cls = oop::class::load_and_init(jt, b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 

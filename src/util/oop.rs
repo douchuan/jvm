@@ -1,6 +1,5 @@
 use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::BytesRef;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
@@ -111,6 +110,7 @@ pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
     }
 }
 
+/*
 pub fn new_java_lang_string(jt: &mut JavaThread, v: &[u16]) -> OopRef {
     //build "char value[]"
     let char_ary_cls = require_class3(None, b"[C").unwrap();
@@ -124,10 +124,10 @@ pub fn new_java_lang_string(jt: &mut JavaThread, v: &[u16]) -> OopRef {
 
     string_oop
 }
+*/
 
 pub fn new_java_lang_string2(jt: &mut JavaThread, v: &str) -> OopRef {
     //build "char value[]"
-    let char_ary_cls = require_class3(None, b"[C").unwrap();
     let chars: Vec<u16> = v.as_bytes().iter().map(|v| *v as u16).collect();
     let ary = OopDesc::char_ary_from1(chars.as_slice());
 
@@ -142,7 +142,6 @@ pub fn new_java_lang_string2(jt: &mut JavaThread, v: &str) -> OopRef {
 
 pub fn new_java_lang_string3(jt: &mut JavaThread, v: &[u8]) -> OopRef {
     //build "char value[]"
-    let char_ary_cls = require_class3(None, b"[C").unwrap();
     let v: Vec<u16> = v.iter().map(|v| *v as u16).collect();
     let ary = OopDesc::char_ary_from1(v.as_slice());
 

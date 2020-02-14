@@ -4,7 +4,6 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, OopDesc, OopRef};
 use crate::runtime::{JavaCall, JavaThread, Stack};
 use crate::util::new_method_id;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -20,26 +19,26 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_currentThread(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_currentThread(_jt: &mut JavaThread, env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     let r = env.lock().unwrap().java_thread_obj.clone();
     Ok(r)
 }
 
-fn jvm_setPriority0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setPriority0(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     //todo: set native thread's priority
     Ok(None)
 }
 
-fn jvm_isAlive(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isAlive(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     //todo: impl
     Ok(Some(OopDesc::new_int(0)))
 }
 
-fn jvm_start0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let thread_oop = args.get(0).unwrap();
     let cls = {
         let v = thread_oop.lock().unwrap();

@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, OopDesc, OopRef};
+use crate::oop::{OopDesc, OopRef};
 use crate::runtime::JavaThread;
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -17,11 +16,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 //todo: impl me
-fn jvm_findSignal(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_findSignal(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(Some(OopDesc::new_int(1)))
 }
 
 //todo: impl me
-fn jvm_handle0(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_handle0(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(Some(OopDesc::new_long(0)))
 }

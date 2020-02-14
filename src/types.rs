@@ -1,4 +1,3 @@
-use crate::classfile::checker;
 use crate::classfile::constant_pool::ConstantType;
 
 pub type U1 = u8;

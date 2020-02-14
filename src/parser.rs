@@ -7,10 +7,9 @@ use crate::classfile::{
     ClassFile, Version,
 };
 use crate::types::*;
-use crate::util;
 use bytes::Buf;
 use std::io::{Cursor, Read};
-use std::path::Path;
+//use std::path::Path;
 use std::sync::Arc;
 
 struct Parser {
@@ -911,10 +910,12 @@ impl AttrTypeParserUtils for Parser {
     }
 }
 
+/*
 pub fn parse<P: AsRef<Path>>(path: P) -> std::io::Result<ClassFile> {
     let buf = util::read(path);
     parse_buf(buf)
 }
+*/
 
 pub fn parse_buf(buf: Vec<u8>) -> std::io::Result<ClassFile> {
     let mut parser = Parser::new(buf);

@@ -3,8 +3,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
 use crate::runtime::JavaThread;
-use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -13,12 +11,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_writeBytes(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let os = args.get(0).unwrap();
+fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let _os = args.get(0).unwrap();
     let byte_ary = args.get(1).unwrap();
     let off = {
         let v = args.get(2).unwrap();
@@ -36,7 +34,7 @@ fn jvm_writeBytes(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRes
             _ => unreachable!(),
         }
     };
-    let append = {
+    let _append = {
         let v = args.get(4).unwrap();
         let v = v.lock().unwrap();
         match v.v {
