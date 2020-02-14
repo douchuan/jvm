@@ -1,6 +1,6 @@
-use crate::classfile::types::BytesRef;
 use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{self, require_class3, JavaThread};
+use crate::types::BytesRef;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;

@@ -13,7 +13,8 @@ pub use self::net::*;
 pub use self::sync::*;
 pub use self::sys::*;
 
-use crate::classfile::types::BytesRef;
+use crate::types::BytesRef;
+
 pub fn new_method_id(name: &[u8], desc: &[u8]) -> BytesRef {
     let id = vec![name, desc].join(PATH_DELIMITER);
     new_ref!(id)

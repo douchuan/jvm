@@ -1,4 +1,4 @@
-use crate::classfile::types::BytesRef;
+use crate::types::BytesRef;
 use bytes::Bytes;
 use std::sync::Arc;
 

@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-use crate::classfile::types::BytesRef;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, OopRef};
 use crate::runtime::{self, JavaThread};
 use crate::runtime::{require_class3, JavaCall, Stack};
+use crate::types::BytesRef;
 use crate::util;
 use std::sync::{Arc, Mutex};
 

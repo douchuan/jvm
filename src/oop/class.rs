@@ -1,10 +1,11 @@
-use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts, types::*};
+use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts};
 use crate::oop::method::MethodId;
 use crate::oop::{
     consts as oop_consts, field, method, ClassFileRef, ClassRef, FieldIdRef, MethodIdRef, Oop,
     OopDesc, OopRef, ValueType,
 };
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
+use crate::types::*;
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};

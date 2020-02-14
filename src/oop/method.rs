@@ -1,10 +1,10 @@
 use crate::classfile::attr_info::AnnotationEntry;
 use crate::classfile::{
-    access_flags::*, attr_info::Code, constant_pool, consts, types::*, AttrType, FieldInfo,
-    MethodInfo,
+    access_flags::*, attr_info::Code, constant_pool, consts, AttrType, FieldInfo, MethodInfo,
 };
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
+use crate::types::*;
 use crate::util::{self, PATH_DELIMITER};
 use std::collections::HashMap;
 use std::ops::Deref;

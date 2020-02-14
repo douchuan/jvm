@@ -1,8 +1,9 @@
-use crate::classfile::{constant_pool, types::*};
+use crate::classfile::constant_pool;
 use crate::native;
 use crate::oop::{self, Class, ClassRef, OopDesc, ValueType};
 use crate::parser as class_parser;
 use crate::runtime::{self, ClassPathResult};
+use crate::types::*;
 use crate::util;
 use std::sync::{Arc, Mutex};
 

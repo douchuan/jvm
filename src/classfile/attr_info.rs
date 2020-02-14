@@ -1,4 +1,4 @@
-use crate::classfile::types::*;
+use crate::types::*;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]

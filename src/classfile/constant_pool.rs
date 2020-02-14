@@ -1,10 +1,11 @@
+use crate::classfile::checker::CheckResult;
 use crate::classfile::checker::{self, Checker};
 use crate::classfile::consts::{
     CONSTANT_INTERFACE_METHOD_REF_TAG, CONSTANT_METHOD_REF_TAG, METHOD_NAME_CLINIT,
     METHOD_NAME_INIT,
 };
 use crate::classfile::signature::{MethodSignature, Type as SigType};
-use crate::classfile::types::{BytesRef, CheckResult, ConstantPool};
+use crate::types::{BytesRef, ConstantPool};
 use std::fmt;
 use std::sync::Arc;
 

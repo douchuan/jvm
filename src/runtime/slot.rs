@@ -1,5 +1,5 @@
-use crate::classfile::types::BytesRef;
 use crate::oop::OopRef;
+use crate::types::BytesRef;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]

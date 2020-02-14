@@ -9,13 +9,12 @@ pub mod field_info;
 pub mod method_info;
 pub mod opcode;
 pub mod signature;
-pub mod types;
 
 pub use crate::classfile::attr_info::AttrType;
-use crate::classfile::checker::Checker;
+use crate::classfile::checker::{CheckResult, Checker};
 pub use crate::classfile::field_info::FieldInfo;
 pub use crate::classfile::method_info::MethodInfo;
-use crate::classfile::types::*;
+use crate::types::*;
 
 #[derive(Debug)]
 pub struct ClassFile {

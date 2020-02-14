@@ -1,4 +1,4 @@
-use crate::classfile::types::{CheckResult, ConstantPool};
+use crate::types::ConstantPool;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Err {
@@ -25,6 +25,8 @@ pub enum Err {
     InvalidMethodNameIdx,
     InvalidMethodDescIdx,
 }
+
+pub type CheckResult = Result<(), Err>;
 
 pub trait Checker {
     fn check(&self, cp: &ConstantPool) -> CheckResult;

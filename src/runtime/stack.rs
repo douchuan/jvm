@@ -1,9 +1,9 @@
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
-use crate::classfile::types::*;
 use crate::classfile::ClassFile;
 use crate::oop::{consts, OopDesc, OopRef};
 use crate::runtime::Slot;
+use crate::types::*;
 use std::sync::Arc;
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 use crate::classfile::attr_info;
-use crate::classfile::types::*;
+use crate::types::*;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

@@ -1,5 +1,5 @@
-use crate::classfile::types::BytesRef;
 use crate::oop::OopRef;
+use crate::types::BytesRef;
 
 #[derive(Clone)]
 pub struct Exception {

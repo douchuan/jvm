@@ -4,9 +4,9 @@ use crate::classfile::{
     constant_pool::*,
     field_info::FieldInfo,
     method_info::MethodInfo,
-    types::*,
     ClassFile, Version,
 };
+use crate::types::*;
 use crate::util;
 use bytes::Buf;
 use std::io::{Cursor, Read};
