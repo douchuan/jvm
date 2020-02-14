@@ -47,6 +47,8 @@ todo list
     xx. java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
       会导致抛出Charset.ExtendedProviderHolder.extendedProvider抛出ClassNotFoundException
       但目前，native异常的处理，还不正常，处理不了
+
+  x. 优化String Oop::Array elms OopRef -> elms u8
 */
 
 fn init_vm() {

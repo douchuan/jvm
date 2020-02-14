@@ -171,7 +171,7 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
         ("user.language", "en"),
         ("file.encoding.pkg", "sun.io"),
         ("sun.cpu.isalist", ""),
-        ("sun.cpu.endian", "little"),
+//        ("sun.cpu.endian", "little"),
         ("sun.arch.data.model", "32"),
         ("user.name", "chuan"),
         ("user.home", "/Users/douchuan/"),
@@ -187,6 +187,11 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
     let props: Vec<(OopRef, OopRef)> = props
         .iter()
         .map(|(k, v)| {
+            /*
+            let k = util::oop::new_java_lang_string(jt, k.as_bytes());
+            let v = util::oop::new_java_lang_string(jt, v.as_bytes());
+            */
+
             let k = Vec::from(k.as_bytes());
             let k = new_ref!(k);
             let k = OopDesc::new_str(k);
@@ -194,7 +199,9 @@ fn jvm_initProperties(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JN
             let v = Vec::from(v.as_bytes());
             let v = new_ref!(v);
             let v = OopDesc::new_str(v);
+
             (k, v)
+
         })
         .collect();
 

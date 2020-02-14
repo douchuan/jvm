@@ -3,7 +3,9 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
 use crate::runtime::JavaThread;
+use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
+
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -48,17 +50,6 @@ fn jvm_writeBytes(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRes
         let v = byte_ary.lock().unwrap();
         match &v.v {
             Oop::Array(ary) => {
-                /*
-                ary.elements
-                    .iter()
-                    .map(|v| {
-                        let v = v.lock().unwrap();
-                        match v.v {
-                            Oop::Int(v) => v as u8,
-                            _ => unreachable!()
-                        }
-                    }).collect()
-                */
                 let p1 = off as usize;
                 let p2 = (off + len) as usize;
                 ary.elements[off as usize..(off + len) as usize]
@@ -76,7 +67,11 @@ fn jvm_writeBytes(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRes
         }
     };
 
+//    println!("xxxxxx 1");
     print!("{}", String::from_utf8_lossy(bytes.as_slice()));
+//    print!("{:?}, len={}", bytes.as_slice(), bytes.len());
+//    io::stdout().flush().unwrap();
+//    print!("{}", String::from_utf8_lossy("\n".as_bytes()));
 
     Ok(None)
 }
