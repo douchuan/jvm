@@ -25,12 +25,13 @@ todo list
 
   x. fix warn & fixme
 
-  x. verify class file
+  x. class file parser
+    file_src
+    Type Annotations
   x. java to execute a jar by -jar
   x. 官方的测试用例, TCK
   x. build thread system
     去掉native 函数的jt参数
-  x. impl Type annotations
   x. new Constructor with Exception and Type Annotations
   x. String.intern
   x. refact Exception处理方式
@@ -41,11 +42,8 @@ todo list
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
 
     xx. 按正常流程加载"sun/nio/cs/ext/ExtendedCharsets"，
-        ExtendedCharsets会加载大量的内容，好像陷入死循环，还是需要多等一会？不确定
-
-    xx. java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
-      会导致抛出Charset.ExtendedProviderHolder.extendedProvider抛出ClassNotFoundException
-      但目前，native异常的处理，还不正常，处理不了
+        ExtendedCharsets会长时间加载大量的内容，如何优化？
+        现在，java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
 */
 
 fn init_vm() {
@@ -152,7 +150,7 @@ mod tests {
         ary.push(98);
         ary.push(97);
         ary.push(96);
-        assert_eq!(ary.as_slice(), vec![100, 99, 98, 97, 96]);
+        assert_eq!(ary.as_slice(), vec![100, 99, 98, 97, 96].as_slice());
     }
 
     #[test]
@@ -174,16 +172,15 @@ mod tests {
         assert_eq!(1, Arc::strong_count(&ref_bytes.unwrap()));
 
         use crate::oop::Oop;
-        use crate::runtime::Slot;
         let null1 = Arc::new(Oop::Null);
         let null2 = Arc::new(Oop::Null);
         assert!(!Arc::ptr_eq(&null1, &null2));
         let null11 = null1.clone();
-        assert!(Arc::ptr_eq(&null1, &null1));
+        assert!(Arc::ptr_eq(&null1, &null11));
 
         let str1 = Vec::from("hello, world");
         let str1 = new_ref!(str1);
-        let v1 = Arc::new(Mutex::new(Box::new(OopDesc::new_str(str1))));
+        let v1 = Arc::new(Mutex::new(Box::new(OopDesc::new_const_utf8(str1))));
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));
 
