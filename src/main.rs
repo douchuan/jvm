@@ -27,7 +27,6 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
-  x. reimpl instruction by macro
   x. 如何不用事先初始化vector，就可以对任意位置赋值?
   x. 官方的测试用例
   x. build thread system
@@ -39,7 +38,6 @@ todo list
   x. native 调用，需要构造一个Frame吗？
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. ByteAry, BytesRef 留一个
-  x. 优化arraycopy, 区分是否可嵌套上锁，然后，避免构造新Vec
   x. util::oop::new_string 缓存value fir
 
   x. UTF-8导致的问题

@@ -20,9 +20,23 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -
 }
 
 fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let use_cache = true;
     let v = args.get(0).unwrap();
-    let v = util::oop::hash_code(v.clone());
-    Ok(Some(OopDesc::new_int(v as i32)))
+
+    if use_cache {
+        let hash = { v.lock().unwrap().hash_code.clone() };
+        if hash.is_none() {
+            let hash = util::oop::hash_code(v.clone()) as i32;
+            let mut v = v.lock().unwrap();
+            v.hash_code = Some(hash);
+            Ok(Some(OopDesc::new_int(hash)))
+        } else {
+            Ok(Some(OopDesc::new_int(hash.unwrap())))
+        }
+    } else {
+        let hash = util::oop::hash_code(v.clone()) as i32;
+        Ok(Some(OopDesc::new_int(hash)))
+    }
 }
 
 fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

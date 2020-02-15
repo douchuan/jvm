@@ -100,7 +100,13 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     native::java_lang_Class::create_delayed_ary_mirrors();
 
     let _ = oop::class::load_and_init(jt, J_OBJECT);
-    let _ = oop::class::load_and_init(jt, J_STRING);
+    let string_cls = oop::class::load_and_init(jt, J_STRING);
+    {
+        let cls = string_cls.lock().unwrap();
+        let fir = cls.get_field_id(b"value", b"[C", false);
+        util::oop::set_java_lang_string_value_offset(fir.offset);
+    }
+
     let _ = oop::class::load_and_init(jt, J_CLONEABLE);
     let _ = oop::class::load_and_init(jt, J_SERIALIZABLE);
     let _ = oop::class::load_and_init(jt, J_NPE);

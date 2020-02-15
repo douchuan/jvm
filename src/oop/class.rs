@@ -406,6 +406,18 @@ impl Class {
         }
     }
 
+    pub fn get_field_value2(&self, receiver: OopRef, offset: usize) -> OopRef {
+        let rf = receiver.lock().unwrap();
+        match &rf.v {
+            Oop::Inst(inst) => inst.field_values[offset].clone(),
+            Oop::Mirror(mirror) => match mirror.field_values.get(offset) {
+                Some(v) => v.clone(),
+                _ => unreachable!("mirror = {:?}", mirror),
+            },
+            t => unreachable!("t = {:?}", t),
+        }
+    }
+
     pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: OopRef) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {

@@ -160,6 +160,7 @@ impl Field {
                     //                    此处没有javathread，如何创建String?
                     Some(constant_pool::ConstantType::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
+                            //                            println!("field const value = {}", String::from_utf8_lossy(v.as_slice()));
                             let v = OopDesc::new_const_utf8(v);
                             attr_constant_value = Some(v);
                         }

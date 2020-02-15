@@ -53,6 +53,10 @@ pub enum Oop {
     TypeArray(TypeArrayValue),
     Mirror(MirrorOopDesc),
 
+    /*
+        used by: Throwable.java
+    private static final String NULL_CAUSE_MESSAGE = "Cannot suppress a null exception.";
+        */
     ConstUtf8(BytesRef),
     //used by oop::field::Filed::get_constant_value
     Null,
@@ -63,6 +67,7 @@ pub struct OopDesc {
     pub v: Oop,
     cond: Condvar,
     monitor: Mutex<usize>,
+    pub hash_code: Option<i32>,
 }
 
 impl OopDesc {
@@ -263,11 +268,11 @@ impl OopDesc {
     }
 
     fn new(v: Oop) -> OopRef {
-        //todo: how calc hashcode ?
         let v = Self {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
+            hash_code: None,
         };
         new_sync_ref!(v)
     }
