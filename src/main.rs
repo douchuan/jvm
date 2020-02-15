@@ -39,6 +39,8 @@ todo list
   x. native 调用，需要构造一个Frame吗？
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. ByteAry, BytesRef 留一个
+  x. 优化arraycopy, 区分是否可嵌套上锁，然后，避免构造新Vec
+  x. util::oop::new_string 缓存value fir
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
