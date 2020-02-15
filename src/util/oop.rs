@@ -20,10 +20,6 @@ pub fn is_str(v: OopRef) -> bool {
     match &v.v {
         Oop::Inst(inst) => {
             let cls = inst.class.lock().unwrap();
-            warn!(
-                "is_str_oop name = {}",
-                String::from_utf8_lossy(cls.name.as_slice())
-            );
             cls.name.as_slice() == b"java/lang/String"
         }
         _ => false,
@@ -32,7 +28,24 @@ pub fn is_str(v: OopRef) -> bool {
 
 pub fn extract_str(v: OopRef) -> String {
     let offset: Option<usize> = util::sync_call(&JAVA_LANG_STRING_VALUE_OFFSET, |v| v.clone());
+    let offset = offset.unwrap();
 
+    let cls_string = require_class3(None, b"java/lang/String").unwrap();
+    let value_ary = {
+        let cls = cls_string.lock().unwrap();
+        cls.get_field_value2(v.clone(), offset)
+    };
+
+    let value_ary = value_ary.lock().unwrap();
+    match &value_ary.v {
+        Oop::TypeArray(ary) => match ary {
+            oop::TypeArrayValue::Char(ary) => String::from_utf16_lossy(ary.as_slice()),
+            t => unreachable!("t = {:?}", t),
+        },
+        _ => unreachable!(),
+    }
+
+    /*
     if offset.is_some() {
         let offset = offset.unwrap();
 
@@ -51,7 +64,6 @@ pub fn extract_str(v: OopRef) -> String {
             _ => unreachable!(),
         }
     } else {
-        //todo: 放到静态变量中，避免总获取该值
         let fid = {
             let v = v.lock().unwrap();
             match &v.v {
@@ -63,7 +75,6 @@ pub fn extract_str(v: OopRef) -> String {
             }
         };
 
-        //todo: 放到静态变量中，避免总获取该值
         let cls_string = require_class3(None, b"java/lang/String").unwrap();
         let value_ary = {
             let cls = cls_string.lock().unwrap();
@@ -79,6 +90,7 @@ pub fn extract_str(v: OopRef) -> String {
             _ => unreachable!(),
         }
     }
+    */
 }
 
 pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {

@@ -27,8 +27,7 @@ todo list
 
   x. verify class file
   x. java to execute a jar by -jar
-  x. 如何不用事先初始化vector，就可以对任意位置赋值?
-  x. 官方的测试用例
+  x. 官方的测试用例, TCK
   x. build thread system
     去掉native 函数的jt参数
   x. impl Type annotations
@@ -38,7 +37,6 @@ todo list
   x. native 调用，需要构造一个Frame吗？
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. ByteAry, BytesRef 留一个
-  x. util::oop::new_string 缓存value fir
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容

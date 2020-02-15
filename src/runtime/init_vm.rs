@@ -124,10 +124,8 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
     {
         let mut cls = class_obj.lock().unwrap();
-        //fixme: if useCaches false, cause 'NoSuchFieldException'
-        //  'buf' 是一条线索
         let id = cls.get_field_id(b"useCaches", b"Z", true);
-        cls.put_static_field_value(id, OopDesc::new_int(0));
+        cls.put_static_field_value(id, OopDesc::new_int(1));
     }
 }
 
