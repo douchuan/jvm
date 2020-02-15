@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc, OopRef};
+use crate::oop::{Oop, OopDesc};
 use crate::runtime::{require_class3, JavaThread};
+use crate::types::OopRef;
 use crate::util;
 use std::os::raw::c_void;
 

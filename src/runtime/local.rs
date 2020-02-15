@@ -1,5 +1,6 @@
-use crate::oop::{OopDesc, OopRef};
+use crate::oop::OopDesc;
 use crate::runtime::Slot;
+use crate::types::OopRef;
 use std::sync::Arc;
 
 pub struct Local {

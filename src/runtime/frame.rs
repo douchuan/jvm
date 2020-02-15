@@ -3,10 +3,7 @@ use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
-use crate::oop::{
-    self, consts as oop_consts, field, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, TypeArrayValue,
-    ValueType,
-};
+use crate::oop::{self, consts as oop_consts, field, Oop, OopDesc, TypeArrayValue, ValueType};
 use crate::runtime::{
     self, cmp, require_class, require_class2, require_class3, Exception, JavaCall, JavaThread,
     Local, Stack,

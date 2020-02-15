@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-use crate::oop::{ClassRef, OopRef};
 use crate::runtime::{Exception, JavaThread};
+use crate::types::{ClassRef, OopRef};
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

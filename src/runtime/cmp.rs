@@ -1,6 +1,7 @@
 use crate::classfile;
-use crate::oop::{self, ClassRef};
+use crate::oop;
 use crate::runtime::require_class3;
+use crate::types::ClassRef;
 use std::sync::Arc;
 
 pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {

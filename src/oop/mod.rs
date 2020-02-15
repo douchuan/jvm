@@ -4,7 +4,7 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use crate::classfile::ClassFile;
 use crate::runtime::{require_class3, ClassLoader};
-use crate::types::BytesRef;
+use crate::types::*;
 
 pub mod class;
 pub mod consts;
@@ -12,20 +12,6 @@ pub mod field;
 pub mod method;
 
 pub use self::class::{Class, ClassKind};
-pub use self::field::FieldIdRef;
-pub use self::method::MethodIdRef;
-
-def_ref!(ClassFileRef, ClassFile);
-def_sync_ref!(ClassRef, Class);
-def_sync_ref!(OopRef, OopDesc);
-def_ptr!(ByteAry, Vec<u8>);
-def_ptr!(BoolAry, Vec<u8>);
-def_ptr!(CharAry, Vec<u16>);
-def_ptr!(ShortAry, Vec<i16>);
-def_ptr!(IntAry, Vec<i32>);
-def_ptr!(LongAry, Vec<i64>);
-def_ptr!(FloatAry, Vec<f32>);
-def_ptr!(DoubleAry, Vec<f64>);
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum ValueType {

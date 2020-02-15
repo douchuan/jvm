@@ -1,5 +1,6 @@
-use crate::oop::{self, Oop, OopDesc, OopRef};
+use crate::oop::{self, Oop, OopDesc};
 use crate::runtime::{self, require_class3, JavaThread};
+use crate::types::OopRef;
 use crate::util;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

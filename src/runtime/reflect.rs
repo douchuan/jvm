@@ -3,9 +3,9 @@
 use crate::classfile::consts as cls_const;
 use crate::classfile::signature::{FieldSignature, MethodSignature, Type as ArgType, Type};
 use crate::native::java_lang_Class;
-use crate::oop::{self, ClassRef, FieldIdRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType};
+use crate::oop::{self, Oop, OopDesc, ValueType};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::BytesRef;
+use crate::types::*;
 use crate::util;
 
 pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> OopRef {

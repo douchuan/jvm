@@ -1,8 +1,9 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
-use crate::oop::{self, ClassRef, MethodIdRef, Oop, OopDesc, OopRef, ValueType};
+use crate::oop::{self, Oop, OopDesc, ValueType};
 use crate::runtime::{self, frame::Frame, thread, FrameRef, JavaThread, Stack};
+use crate::types::{ClassRef, MethodIdRef, OopRef};
 use crate::util;
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};

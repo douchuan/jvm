@@ -2,8 +2,9 @@
 
 use crate::classfile::{self, access_flags as acc};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, ClassRef, Oop, OopDesc, OopRef, ValueType};
+use crate::oop::{self, Oop, OopDesc, ValueType};
 use crate::runtime::{self, require_class3, Exception, JavaThread};
+use crate::types::{ClassRef, OopRef};
 use crate::util;
 use std::collections::HashMap;
 use std::sync::Mutex;

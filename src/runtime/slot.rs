@@ -1,5 +1,4 @@
-use crate::oop::OopRef;
-use crate::types::BytesRef;
+use crate::types::{BytesRef, OopRef};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]

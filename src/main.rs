@@ -36,7 +36,6 @@ todo list
   x. refact Exception处理方式
   x. native 调用，需要构造一个Frame吗？
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
-  x. ByteAry, BytesRef 留一个
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容

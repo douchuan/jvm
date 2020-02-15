@@ -10,8 +10,6 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
-pub type MethodIdRef = Arc<MethodId>;
-
 pub fn get_method_ref(
     thread: &mut JavaThread,
     cp: &ConstantPool,

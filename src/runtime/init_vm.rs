@@ -4,7 +4,7 @@ use crate::classfile::consts::{
     J_SECURITY_MANAGER, J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP, J_THROWABLE,
 };
 use crate::native;
-use crate::oop::{self, ClassRef, OopDesc};
+use crate::oop::{self, OopDesc};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
 use std::borrow::BorrowMut;

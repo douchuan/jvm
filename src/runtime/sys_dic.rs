@@ -1,4 +1,4 @@
-use crate::oop::ClassRef;
+use crate::types::ClassRef;
 use crate::util;
 
 use std::{

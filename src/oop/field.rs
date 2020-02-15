@@ -6,8 +6,6 @@ use crate::util::{self, PATH_DELIMITER};
 use std::ops::Deref;
 use std::sync::Arc;
 
-pub type FieldIdRef = Arc<FieldId>;
-
 pub fn get_field_ref(
     thread: &mut JavaThread,
     cp: &ConstantPool,
