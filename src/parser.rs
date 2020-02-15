@@ -86,7 +86,7 @@ impl Parser {
     }
 
     fn get_code_exceptions(&mut self, len: usize) -> Vec<attr_info::CodeException> {
-        let mut exceptions = Vec::new();
+        let mut exceptions = Vec::with_capacity(len);
 
         for _ in 0..len {
             let start_pc = self.get_u2();
@@ -106,7 +106,7 @@ impl Parser {
     }
 
     fn get_line_nums(&mut self, len: usize) -> Vec<LineNumber> {
-        let mut tables = Vec::new();
+        let mut tables = Vec::with_capacity(len);
         for _ in 0..len {
             let start_pc = self.get_u2();
             let number = self.get_u2();
@@ -238,7 +238,7 @@ impl ClassFileParser for Parser {
     }
 
     fn get_interfaces(&mut self, n: U2) -> Vec<U2> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(n as usize);
         for _ in 0..n {
             v.push(self.get_u2())
         }
@@ -250,7 +250,7 @@ impl ClassFileParser for Parser {
     }
 
     fn get_fields(&mut self, n: U2, cp: &ConstantPool) -> Vec<FieldInfo> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(n as usize);
         for _ in 0..n {
             v.push(self.get_field(cp))
         }
@@ -262,7 +262,7 @@ impl ClassFileParser for Parser {
     }
 
     fn get_methods(&mut self, n: U2, cp: &ConstantPool) -> Vec<MethodInfo> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(n as usize);
         for _ in 0..n {
             v.push(self.get_method(cp));
         }
@@ -274,7 +274,7 @@ impl ClassFileParser for Parser {
     }
 
     fn get_attrs(&mut self, n: U2, cp: &ConstantPool) -> Vec<AttrType> {
-        let mut v = Vec::new();
+        let mut v = Vec::with_capacity(n as usize);
         for _ in 0..n {
             v.push(self.get_attr_type(cp));
         }
@@ -545,7 +545,7 @@ impl AttrTypeParser for Parser {
         let exceptions_n = self.get_u2();
         let exceptions = self.get_code_exceptions(exceptions_n as usize);
         let attrs_n = self.get_u2();
-        let mut attrs = Vec::new();
+        let mut attrs = Vec::with_capacity(attrs_n as usize);
         for _ in 0..attrs_n {
             attrs.push(self.get_attr_type(cp));
         }
@@ -627,9 +627,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_exceptions(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let exceptions_n = self.get_u2();
-        let mut exceptions = Vec::new();
-        for _ in 0..exceptions_n {
+        let n = self.get_u2();
+        let mut exceptions = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             exceptions.push(self.get_u2());
         }
         AttrType::Exceptions { exceptions }
@@ -637,9 +637,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_inner_classes(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let classes_n = self.get_u2();
-        let mut classes = Vec::new();
-        for _ in 0..classes_n {
+        let n = self.get_u2();
+        let mut classes = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             let inner_class_info_index = self.get_u2();
             let outer_class_info_index = self.get_u2();
             let inner_name_index = self.get_u2();
@@ -774,7 +774,7 @@ impl AttrTypeParser for Parser {
     fn get_attr_bootstrap_methods(&mut self) -> AttrType {
         let _length = self.get_u4();
         let n = self.get_u2();
-        let mut methods = Vec::new();
+        let mut methods = Vec::with_capacity(n as usize);
         for _ in 0..n {
             let method_ref: U2 = self.get_u2();
             let n_arg: U2 = self.get_u2();
@@ -899,7 +899,7 @@ impl AttrTypeParserUtils for Parser {
             }
             attr_info::ElementValueTag::Array => {
                 let n = self.get_u2();
-                let mut values = Vec::new();
+                let mut values = Vec::with_capacity(n as usize);
                 for _ in 0..n {
                     values.push(self.get_attr_util_get_element_val(cp));
                 }

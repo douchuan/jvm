@@ -13,13 +13,14 @@ pub type U4 = u32;
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
 
-//用于引用".class"中的字符串常量值
+//引用".class"中的字符串常量值
 def_ref!(BytesRef, Vec<u8>);
 def_ref!(ConstantPool, Vec<ConstantType>);
 
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
 def_sync_ref!(OopRef, OopDesc);
+//runtime 字符串分配
 def_ptr!(ByteAry, Vec<u8>);
 def_ptr!(BoolAry, Vec<u8>);
 def_ptr!(CharAry, Vec<u16>);

@@ -75,7 +75,7 @@ impl ClassPathManager {
         let name = name.replace("/", util::PATH_SEP_STR);
         let name = name.replace(".", util::PATH_SEP_STR);
 
-        debug!("search_class name={}", name);
+        //        debug!("search_class name={}", name);
         for it in self.runtime_class_path.iter() {
             match &it.0 {
                 ClassSource::DIR => {

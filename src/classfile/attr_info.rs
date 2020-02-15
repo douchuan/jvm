@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::{BytesRef, U1, U2, U4};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]

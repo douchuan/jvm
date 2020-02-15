@@ -1,5 +1,5 @@
-use crate::classfile::attr_info;
-use crate::types::*;
+use crate::classfile::attr_info::{AttrType, Code};
+use crate::types::U2;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -7,14 +7,14 @@ pub struct MethodInfo {
     pub acc_flags: U2,
     pub name_index: U2,
     pub desc_index: U2,
-    pub attrs: Vec<attr_info::AttrType>,
+    pub attrs: Vec<AttrType>,
 }
 
 impl MethodInfo {
-    pub fn get_code(&self) -> Option<attr_info::Code> {
+    pub fn get_code(&self) -> Option<Code> {
         for it in self.attrs.iter() {
             match it {
-                attr_info::AttrType::Code(code) => return Some(code.clone()),
+                AttrType::Code(code) => return Some(code.clone()),
                 _ => (),
             }
         }
@@ -27,7 +27,7 @@ impl MethodInfo {
 
         for it in self.attrs.iter() {
             match it {
-                attr_info::AttrType::LineNumberTable { tables } => {
+                AttrType::LineNumberTable { tables } => {
                     tables.iter().for_each(|ln| {
                         hm.insert(ln.start_pc, ln.number);
                     });
