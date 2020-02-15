@@ -1,4 +1,4 @@
-use crate::classfile::attr_info::LineNumber;
+use crate::classfile::attr_info::{LineNumber, TargetInfo, TypeAnnotation};
 use crate::classfile::{
     attr_info::{self, AttrTag, AttrType},
     constant_pool::*,
@@ -78,7 +78,6 @@ impl Parser {
 
     fn get_u1s(&mut self, len: usize) -> Vec<U1> {
         let mut bytes = Vec::with_capacity(len);
-        //todo: avoid this?
         unsafe { bytes.set_len(len) }
         let r = self.buf.read_exact(&mut bytes);
         assert!(r.is_ok());
@@ -458,6 +457,7 @@ trait AttrTypeParser {
     fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_rt_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_bootstrap_methods(&mut self) -> AttrType;
     fn get_attr_method_parameters(&mut self) -> AttrType;
@@ -466,6 +466,9 @@ trait AttrTypeParser {
 
 trait AttrTypeParserUtils {
     fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry;
+    fn get_attr_util_get_type_annotation(&mut self, cp: &ConstantPool)
+        -> attr_info::TypeAnnotation;
+    fn get_attr_util_get_target_info(&mut self, target_type: U1) -> attr_info::TargetInfo;
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable;
     fn get_attr_util_get_element_val(&mut self, cp: &ConstantPool) -> attr_info::ElementValueType;
 }
@@ -473,16 +476,8 @@ trait AttrTypeParserUtils {
 impl AttrTypeParser for Parser {
     fn get_attr_type(&mut self, cp: &ConstantPool) -> AttrType {
         let name_index = self.get_u2();
-        let tag = match cp.get(name_index as usize) {
-            Some(v) => match v {
-                ConstantType::Utf8 { length: _, bytes } => {
-                    //                                        trace!("get_attr_type {}", String::from_utf8_lossy(bytes.as_slice()));
-                    AttrTag::from(bytes.as_slice())
-                }
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        };
+        let name = get_utf8(cp, name_index as usize).unwrap();
+        let tag = AttrTag::from(name.as_slice());
 
         match tag {
             AttrTag::Invalid => AttrType::Invalid,
@@ -508,6 +503,7 @@ impl AttrTypeParser for Parser {
             AttrTag::RuntimeInvisibleParameterAnnotations => {
                 self.get_attr_rt_in_vis_parameter_annotations(cp)
             }
+            AttrTag::RuntimeVisibleTypeAnnotations => self.get_attr_rt_vis_type_annotations(cp),
             AttrTag::AnnotationDefault => self.get_attr_annotation_default(cp),
             AttrTag::BootstrapMethods => self.get_attr_bootstrap_methods(),
             AttrTag::MethodParameters => self.get_attr_method_parameters(),
@@ -521,11 +517,11 @@ impl AttrTypeParser for Parser {
         let constant_value_index = self.get_u2();
         match cp.get(constant_value_index as usize) {
             Some(v) => match v {
-                ConstantType::Long { v: _ } => (),
-                ConstantType::Float { v: _ } => (),
-                ConstantType::Double { v: _ } => (),
-                ConstantType::Integer { v: _ } => (),
-                ConstantType::String { string_index: _ } => (),
+                ConstantType::Long { v: _ } => (),              //verify ok
+                ConstantType::Float { v: _ } => (),             //verify ok
+                ConstantType::Double { v: _ } => (),            //verify ok
+                ConstantType::Integer { v: _ } => (),           //verify ok
+                ConstantType::String { string_index: _ } => (), //verify ok
                 _ => unreachable!(),
             },
             _ => unreachable!(),
@@ -539,14 +535,14 @@ impl AttrTypeParser for Parser {
         let _length = self.get_u4();
         let max_stack = self.get_u2();
         let max_locals = self.get_u2();
-        let code_len = self.get_u4();
-        let code = self.get_u1s(code_len as usize);
+        let len = self.get_u4();
+        let code = self.get_u1s(len as usize);
         let code = Arc::new(code);
-        let exceptions_n = self.get_u2();
-        let exceptions = self.get_code_exceptions(exceptions_n as usize);
-        let attrs_n = self.get_u2();
-        let mut attrs = Vec::with_capacity(attrs_n as usize);
-        for _ in 0..attrs_n {
+        let n = self.get_u2();
+        let exceptions = self.get_code_exceptions(n as usize);
+        let n = self.get_u2();
+        let mut attrs = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             attrs.push(self.get_attr_type(cp));
         }
 
@@ -694,16 +690,16 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_line_num_table(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let tables_n = self.get_u2();
-        let tables = self.get_line_nums(tables_n as usize);
+        let n = self.get_u2();
+        let tables = self.get_line_nums(n as usize);
         AttrType::LineNumberTable { tables }
     }
 
     fn get_attr_local_var_table(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let tables_n = self.get_u2();
-        let mut tables = Vec::with_capacity(tables_n as usize);
-        for _ in 0..tables_n {
+        let n = self.get_u2();
+        let mut tables = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             tables.push(self.get_attr_util_get_local_var());
         }
         AttrType::LocalVariableTable { tables }
@@ -711,9 +707,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_local_var_type_table(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let tables_n = self.get_u2();
-        let mut tables = Vec::with_capacity(tables_n as usize);
-        for _ in 0..tables_n {
+        let n = self.get_u2();
+        let mut tables = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             tables.push(self.get_attr_util_get_local_var());
         }
         AttrType::LocalVariableTypeTable { tables }
@@ -727,9 +723,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_rt_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
-        let annotations_n = self.get_u2();
-        let mut annotations = Vec::with_capacity(annotations_n as usize);
-        for _ in 0..annotations_n {
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeVisibleAnnotations { annotations }
@@ -737,9 +733,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
-        let annotations_n = self.get_u2();
-        let mut annotations = Vec::with_capacity(annotations_n as usize);
-        for _ in 0..annotations_n {
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeInvisibleAnnotations { annotations }
@@ -747,9 +743,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
-        let annotations_n = self.get_u2();
-        let mut annotations = Vec::with_capacity(annotations_n as usize);
-        for _ in 0..annotations_n {
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeVisibleParameterAnnotations { annotations }
@@ -757,12 +753,22 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
         let _length = self.get_u4();
-        let annotations_n = self.get_u2();
-        let mut annotations = Vec::with_capacity(annotations_n as usize);
-        for _ in 0..annotations_n {
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             annotations.push(self.get_attr_util_get_annotation(cp));
         }
         AttrType::RuntimeInvisibleParameterAnnotations { annotations }
+    }
+
+    fn get_attr_rt_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType {
+        let _length = self.get_u4();
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            annotations.push(self.get_attr_util_get_type_annotation(cp));
+        }
+        AttrType::RuntimeVisibleTypeAnnotations { annotations }
     }
 
     fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType {
@@ -790,9 +796,9 @@ impl AttrTypeParser for Parser {
 
     fn get_attr_method_parameters(&mut self) -> AttrType {
         let _length = self.get_u4();
-        let parameters_n = self.get_u1();
-        let mut parameters = Vec::with_capacity(parameters_n as usize);
-        for _ in 0..parameters_n {
+        let n = self.get_u1();
+        let mut parameters = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             let name_index = self.get_u2();
             let acc_flags = self.get_u2();
             parameters.push(attr_info::MethodParameter {
@@ -814,15 +820,114 @@ impl AttrTypeParser for Parser {
 impl AttrTypeParserUtils for Parser {
     fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry {
         let type_index = self.get_u2();
-        let pairs_n = self.get_u2();
-        let mut pairs = Vec::with_capacity(pairs_n as usize);
-        for _ in 0..pairs_n {
+        let n = self.get_u2();
+        let mut pairs = Vec::with_capacity(n as usize);
+        for _ in 0..n {
             let name_index = self.get_u2();
             let value = self.get_attr_util_get_element_val(cp);
             pairs.push(attr_info::ElementValuePair { name_index, value });
         }
         let type_name = get_utf8(cp, type_index as usize).unwrap();
         attr_info::AnnotationEntry { type_name, pairs }
+    }
+
+    fn get_attr_util_get_type_annotation(&mut self, cp: &ConstantPool) -> TypeAnnotation {
+        let target_type = self.get_u1();
+        //Table 4.7.20
+        let target_info = self.get_attr_util_get_target_info(target_type);
+        let n = self.get_u1();
+        let mut target_path = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            let type_path_kind = self.get_u1();
+            let type_argument_index = self.get_u1();
+            target_path.push(attr_info::TypePath {
+                type_path_kind,
+                type_argument_index,
+            });
+        }
+        let type_index = self.get_u2();
+        let n = self.get_u2();
+        let mut pairs = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            let name_index = self.get_u2();
+            let value = self.get_attr_util_get_element_val(cp);
+            pairs.push(attr_info::ElementValuePair { name_index, value });
+        }
+        attr_info::TypeAnnotation {
+            target_type,
+            target_info,
+            target_path,
+            type_index,
+            pairs,
+        }
+    }
+
+    fn get_attr_util_get_target_info(&mut self, target_type: U1) -> TargetInfo {
+        match target_type {
+            0x00 | 0x01 => {
+                let type_parameter_index = self.get_u1();
+                attr_info::TargetInfo::TypeParameter {
+                    type_parameter_index,
+                }
+            }
+            0x10 => {
+                let supertype_index = self.get_u2();
+                attr_info::TargetInfo::SuperType { supertype_index }
+            }
+            0x11 | 0x12 => {
+                let type_parameter_index = self.get_u1();
+                let bound_index = self.get_u1();
+                attr_info::TargetInfo::TypeParameterBound {
+                    type_parameter_index,
+                    bound_index,
+                }
+            }
+            0x13 | 0x14 | 0x15 => attr_info::TargetInfo::Empty,
+            0x16 => {
+                let formal_parameter_index = self.get_u1();
+                attr_info::TargetInfo::FormalParameter {
+                    formal_parameter_index,
+                }
+            }
+            0x17 => {
+                let throws_type_index = self.get_u2();
+                attr_info::TargetInfo::Throws { throws_type_index }
+            }
+            0x40 | 0x41 => {
+                let n = self.get_u2();
+                let mut table = Vec::with_capacity(n as usize);
+                for _ in 0..n {
+                    let start_pc = self.get_u2();
+                    let length = self.get_u2();
+                    let index = self.get_u2();
+                    table.push(attr_info::LocalVarTargetTable {
+                        start_pc,
+                        length,
+                        index,
+                    });
+                }
+                attr_info::TargetInfo::LocalVar { table }
+            }
+            0x42 => {
+                let exception_table_index = self.get_u2();
+                attr_info::TargetInfo::Catch {
+                    exception_table_index,
+                }
+            }
+            0x43 | 0x44 | 0x45 | 0x46 => {
+                let offset = self.get_u2();
+                attr_info::TargetInfo::Offset { offset }
+            }
+            0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
+                let offset = self.get_u2();
+                let type_argument_index = self.get_u1();
+                attr_info::TargetInfo::TypeArgument {
+                    offset,
+                    type_argument_index,
+                }
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable {

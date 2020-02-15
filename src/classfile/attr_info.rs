@@ -53,7 +53,9 @@ pub enum AttrType {
     RuntimeInvisibleParameterAnnotations {
         annotations: Vec<AnnotationEntry>,
     },
-    //        RuntimeVisibleTypeAnnotations,
+    RuntimeVisibleTypeAnnotations {
+        annotations: Vec<TypeAnnotation>,
+    },
     //        RuntimeInvisibleTypeAnnotations,
     AnnotationDefault {
         default_value: ElementValueType,
@@ -88,7 +90,7 @@ pub enum AttrTag {
     RuntimeInvisibleAnnotations,
     RuntimeVisibleParameterAnnotations,
     RuntimeInvisibleParameterAnnotations,
-    //    RuntimeVisibleTypeAnnotations,
+    RuntimeVisibleTypeAnnotations,
     //    RuntimeInvisibleTypeAnnotations,
     AnnotationDefault,
     BootstrapMethods,
@@ -119,13 +121,13 @@ impl From<&[u8]> for AttrTag {
             b"RuntimeInvisibleParameterAnnotations" => {
                 AttrTag::RuntimeInvisibleParameterAnnotations
             }
-            //            b"RuntimeVisibleTypeAnnotations" => AttributeTag::RuntimeVisibleTypeAnnotations,
+            b"RuntimeVisibleTypeAnnotations" => AttrTag::RuntimeVisibleTypeAnnotations,
             //            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
             b"AnnotationDefault" => AttrTag::AnnotationDefault,
             b"BootstrapMethods" => AttrTag::BootstrapMethods,
             b"MethodParameters" => AttrTag::MethodParameters,
             _ => {
-                warn!("Unknown attr {}", String::from_utf8_lossy(raw));
+                info!("Unknown attr {}", String::from_utf8_lossy(raw));
                 AttrTag::Unknown
             }
         }
@@ -374,4 +376,60 @@ pub enum StackMapFrame {
         stack: Vec<VerificationTypeInfo>,
     },
     Reserved,
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeAnnotation {
+    pub target_type: U1,
+    pub target_info: TargetInfo,
+    pub target_path: Vec<TypePath>,
+    pub type_index: U2,
+    pub pairs: Vec<ElementValuePair>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TargetInfo {
+    TypeParameter {
+        type_parameter_index: U1,
+    },
+    SuperType {
+        supertype_index: U2,
+    },
+    TypeParameterBound {
+        type_parameter_index: U1,
+        bound_index: U1,
+    },
+    Empty,
+    FormalParameter {
+        formal_parameter_index: U1,
+    },
+    Throws {
+        throws_type_index: U2,
+    },
+    LocalVar {
+        table: Vec<LocalVarTargetTable>,
+    },
+    Catch {
+        exception_table_index: U2,
+    },
+    Offset {
+        offset: U2,
+    },
+    TypeArgument {
+        offset: U2,
+        type_argument_index: U1,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalVarTargetTable {
+    pub start_pc: U2,
+    pub length: U2,
+    pub index: U2,
+}
+
+#[derive(Debug, Clone)]
+pub struct TypePath {
+    pub type_path_kind: U1,
+    pub type_argument_index: U1,
 }
