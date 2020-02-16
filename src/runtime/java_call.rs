@@ -2,7 +2,7 @@ use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
 use crate::oop::{self, Oop, OopDesc, ValueType};
-use crate::runtime::{self, frame::Frame, thread, FrameRef, JavaThread, Stack};
+use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread, Stack};
 use crate::types::{ClassRef, MethodIdRef, OopRef};
 use crate::util;
 use std::borrow::BorrowMut;
@@ -85,7 +85,8 @@ impl JavaCall {
                             String::from_utf8_lossy(mir.method.get_id().as_slice()),
                             v
                         );
-                        jt.throw_ex(consts::J_NPE);
+                        let ex = exception::new(jt, consts::J_NPE, None);
+                        jt.set_ex(ex);
                         return Err(());
                     }
                     _ => (),
@@ -117,8 +118,6 @@ impl JavaCall {
         }
 
         jt.callers.pop();
-
-        jt.handle_ex();
     }
 }
 
@@ -180,7 +179,7 @@ impl JavaCall {
                 //fixme:
                 //把charsets.jar去掉，会让代码走到这里
                 //ex is putted in jt.ex
-                jt.set_ex(Some(ex));
+                jt.set_ex(ex);
             }
         }
 
@@ -215,8 +214,8 @@ impl JavaCall {
 
     fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, ()> {
         if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
-            //todo: test me
-            thread.throw_ex(consts::J_SOE);
+            let ex = exception::new(thread, consts::J_SOE, None);
+            thread.set_ex(ex);
             return Err(());
         }
 

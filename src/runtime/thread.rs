@@ -1,7 +1,7 @@
 use crate::classfile::attr_info::AttrType::Exceptions;
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, InstOopDesc, OopDesc};
-use crate::runtime::{self, init_vm, require_class3, Exception, FrameRef, JavaCall, Local, Stack};
+use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall, Local, Stack};
 use crate::types::{MethodIdRef, OopRef};
 use crate::util;
 use crate::util::new_field_id;
@@ -13,7 +13,7 @@ pub struct JavaThread {
     in_safe_point: bool,
 
     pub java_thread_obj: Option<OopRef>,
-    ex: Option<Exception>,
+    ex: Option<OopRef>,
 
     pub callers: Vec<MethodIdRef>,
 }
@@ -43,83 +43,21 @@ impl JavaThread {
 
 //exception
 impl JavaThread {
-    pub fn throw_ex(&mut self, ex: &'static [u8]) {
-        let ex = Vec::from(ex);
-        let ex = Exception {
-            cls_name: new_ref!(ex),
-            msg: None,
-            ex_oop: None,
-        };
+    pub fn set_ex(&mut self, ex: OopRef) {
         self.ex = Some(ex);
-    }
-
-    pub fn set_ex(&mut self, ex: Option<Exception>) {
-        self.ex = ex;
     }
 
     pub fn is_meet_ex(&self) -> bool {
         self.ex.is_some()
     }
 
-    pub fn handle_ex(&mut self) {
-        if self.is_meet_ex() && self.is_invoke_ended() {
-            //consume the ex
-            let ex = self.ex.take().unwrap();
-            info!(
-                "handle exception = {}, msg = {:?}",
-                String::from_utf8_lossy(ex.cls_name.as_slice()),
-                ex.msg
-            );
-
-            let ex_oop = {
-                if ex.ex_oop.is_none() {
-                    self.build_ex_oop(ex)
-                } else {
-                    ex.ex_oop.clone().unwrap()
-                }
-            };
-
-            Self::debug_ex(ex_oop.clone());
-
-            self.do_handle_ex(ex_oop);
-        }
+    pub fn take_ex(&mut self) -> Option<OopRef> {
+        self.ex.take()
     }
 }
 
+/*
 impl JavaThread {
-    //all frames lock released
-    fn is_invoke_ended(&self) -> bool {
-        self.frames.iter().all(|f| f.try_lock().is_ok())
-    }
-
-    fn build_ex_oop(&mut self, mut ex: Exception) -> OopRef {
-        let cls = require_class3(None, ex.cls_name.as_slice()).unwrap();
-        {
-            let mut class = cls.lock().unwrap();
-            class.init_class(self);
-            //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-        }
-        oop::class::init_class_fully(self, cls.clone());
-
-        let ex_obj = OopDesc::new_inst(cls.clone());
-
-        //invoke ctor
-        match &ex.msg {
-            Some(msg) => {
-                //with 'String' arg ctor
-                let msg = util::oop::new_java_lang_string2(self, msg);
-                let args = vec![ex_obj.clone(), msg];
-                runtime::java_call::invoke_ctor(self, cls.clone(), b"(Ljava/lang/String;)V", args);
-            }
-            None => {
-                //No arg ctor
-                let args = vec![ex_obj.clone()];
-                runtime::java_call::invoke_ctor(self, cls.clone(), b"()V", args);
-            }
-        }
-
-        ex_obj
-    }
 
     fn do_handle_ex(&mut self, ex: OopRef) {
         self.debug_frames();
@@ -259,6 +197,7 @@ impl JavaThread {
         info!("detail={}", detail_msg);
     }
 }
+*/
 
 impl JavaMainThread {
     pub fn run(&self) {

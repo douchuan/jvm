@@ -2,7 +2,7 @@
 use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{Exception, JavaCall, JavaThread, Stack};
+use crate::runtime::{exception, JavaCall, JavaThread, Stack};
 use crate::types::OopRef;
 use crate::util;
 
@@ -33,13 +33,8 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
         let v = v.lock().unwrap();
         match &v.v {
             Oop::Null => {
-                let cls_name = Vec::from(classfile::consts::J_NPE);
-                let exception = Exception {
-                    cls_name: new_ref!(cls_name),
-                    msg: None,
-                    ex_oop: None,
-                };
-                return Err(exception);
+                let ex = exception::new(jt, classfile::consts::J_NPE, None);
+                return Err(ex);
             }
             Oop::Inst(inst) => {
                 let m = {

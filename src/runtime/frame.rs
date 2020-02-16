@@ -5,7 +5,7 @@ use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
 use crate::oop::{self, consts as oop_consts, field, Oop, OopDesc, TypeArrayValue, ValueType};
 use crate::runtime::{
-    self, cmp, require_class, require_class2, require_class3, Exception, JavaCall, JavaThread,
+    self, cmp, exception, require_class, require_class2, require_class3, JavaCall, JavaThread,
     Local, Stack,
 };
 use crate::types::*;
@@ -28,9 +28,6 @@ pub struct Frame {
     pub stack: Stack,
     pub pc: i32,
     pub return_v: Option<OopRef>,
-
-    pub meet_ex_here: bool,
-    pub re_throw_ex: Option<OopRef>,
 }
 
 //new
@@ -60,8 +57,6 @@ impl Frame {
                     stack,
                     pc: 0,
                     return_v: None,
-                    meet_ex_here: false,
-                    re_throw_ex: None,
                 }
             }
 
@@ -75,8 +70,6 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
-                meet_ex_here: false,
-                re_throw_ex: None,
             },
         }
     }
@@ -331,13 +324,14 @@ impl Frame {
 
                     if thread.is_meet_ex() {
                         error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
-                        break;
-                    }
-
-                    if self.re_throw_ex.is_some() {
-                        error!("throw ex, again");
-                        self.meet_ex_here = true;
-                        break;
+                        let ex = thread.take_ex().unwrap();
+                        match self.try_handle_exception(thread, ex) {
+                            Ok(_) => (),
+                            Err(ex) => {
+                                thread.set_ex(ex);
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -347,7 +341,6 @@ impl Frame {
     }
 
     pub fn handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) {
-        self.meet_ex_here = false;
         self.stack.clear();
         self.stack.push_ref(ex);
         self.athrow(jt);
@@ -571,9 +564,6 @@ impl Frame {
                 match runtime::java_call::JavaCall::new(jt, &mut self.stack, mir) {
                     Ok(mut jc) => {
                         jc.invoke(jt, &mut self.stack, force_no_resolve);
-                        if jt.is_meet_ex() && is_native {
-                            self.meet_ex_here = true;
-                        }
                     }
 
                     //ignored, let interp main loop handle exception
@@ -588,88 +578,49 @@ impl Frame {
 //handle exception
 impl Frame {
     fn meet_ex(&mut self, jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
-        let cls_name = Vec::from(cls_name);
-        let ex = Exception {
-            cls_name: new_ref!(cls_name),
-            msg,
-
-            //create Throwable obj, will call Throwable.fillInStackTrace that
-            //need browse all jt.frames to get debug info.
-            //But, 当前和之前的frame，已经被locked，所以会导致失败。
-            //所以，必须使所有JavaCall出栈 并释放了全部的 jt.frames lock,
-            // ex_oop 才能在JavaThread中创建
-            ex_oop: None,
-        };
-
-        self.meet_ex_here = true;
-        jt.set_ex(Some(ex));
+        let ex = exception::new(jt, cls_name, msg);
+        jt.set_ex(ex);
     }
 
-    fn meet_ex2(&mut self, jt: &mut JavaThread, ex: OopRef) {
-        let cls_name = {
+    fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) -> Result<(), OopRef> {
+        let ex_cls = {
             let ex = ex.lock().unwrap();
             match &ex.v {
-                Oop::Inst(inst) => inst.class.lock().unwrap().name.clone(),
+                Oop::Inst(inst) => inst.class.clone(),
                 _ => unreachable!(),
             }
         };
 
-        let ex = Exception {
-            cls_name,
-            msg: None,
-            ex_oop: Some(ex),
-        };
+        let method_cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
+        let method_cls_name = String::from_utf8_lossy(method_cls_name.as_slice());
+        let method_name = self.mir.method.get_id();
+        let method_name = String::from_utf8_lossy(method_name.as_slice());
 
-        self.meet_ex_here = true;
-        jt.set_ex(Some(ex));
-    }
+        let handler = self
+            .mir
+            .method
+            .find_exception_handler(&self.cp, self.pc as u16, ex_cls);
+        match handler {
+            Some(pc) => {
+                self.stack.clear();
+                self.stack.push_ref(ex);
 
-    fn do_handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) {
-        let is_null = {
-            let ex = ex.lock().unwrap();
-            match ex.v {
-                Oop::Null => true,
-                _ => false,
+                info!(
+                    "Found Exception Handler: pc={}, frame_id={}, {}:{}",
+                    pc, self.frame_id, method_cls_name, method_name
+                );
+
+                self.goto_abs(pc as i32);
+                Ok(())
             }
-        };
 
-        if is_null {
-            //todo: should rethrow null
-            self.meet_ex(jt, consts::J_NPE, None);
-            unimplemented!()
-        } else {
-            let ex_cls = {
-                let ex = ex.lock().unwrap();
-                match &ex.v {
-                    Oop::Inst(inst) => inst.class.clone(),
-                    _ => unreachable!(),
-                }
-            };
+            None => {
+                info!(
+                    "NotFound Exception Handler: frame_id={}, {}:{}",
+                    self.frame_id, method_cls_name, method_name
+                );
 
-            let handler = self
-                .mir
-                .method
-                .find_exception_handler(&self.cp, self.pc as u16, ex_cls);
-            match handler {
-                Some(pc) => {
-                    self.stack.clear();
-                    self.stack.push_ref(ex);
-
-                    let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
-                    let cls_name = String::from_utf8_lossy(cls_name.as_slice());
-                    let method = self.mir.method.get_id();
-                    let method = String::from_utf8_lossy(method.as_slice());
-                    info!(
-                        "Found exception handler: pc={}, frame_id={}, {}:{}",
-                        pc, self.frame_id, cls_name, method
-                    );
-
-                    self.goto_abs(pc as i32);
-                }
-
-                None => {
-                    self.re_throw_ex = Some(ex);
-                }
+                Err(ex)
             }
         }
     }
@@ -2450,7 +2401,7 @@ impl Frame {
 
     pub fn athrow(&mut self, jt: &mut JavaThread) {
         let ex = self.stack.pop_ref();
-        self.do_handle_exception(jt, ex);
+        jt.set_ex(ex);
     }
 
     pub fn check_cast(&mut self, thread: &mut JavaThread) {

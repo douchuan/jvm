@@ -3,7 +3,7 @@
 use crate::classfile::{self, access_flags as acc};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc, ValueType};
-use crate::runtime::{self, require_class3, Exception, JavaThread};
+use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::{ClassRef, OopRef};
 use crate::util;
 use std::collections::HashMap;
@@ -363,15 +363,8 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
         }
         None => {
             error!("forName0, NotFound: {}", java_name);
-
-            let cls_name = Vec::from(classfile::consts::J_CLASS_NOT_FOUND);
-            let exception = Exception {
-                cls_name: new_ref!(cls_name),
-                msg: None,
-                ex_oop: None,
-            };
-
-            Err(exception)
+            let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, None);
+            Err(ex)
         }
     }
 }

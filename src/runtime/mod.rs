@@ -4,7 +4,7 @@ mod class_loader;
 mod class_path_manager;
 pub mod cmp;
 mod consts;
-mod exception;
+pub mod exception;
 mod frame;
 mod init_vm;
 pub mod java_call;
@@ -22,7 +22,6 @@ pub use class_path_manager::{
     find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use consts::THREAD_MAX_STACK_FRAMES;
-pub use exception::Exception;
 pub use frame::Frame;
 pub use java_call::JavaCall;
 pub use local::Local;

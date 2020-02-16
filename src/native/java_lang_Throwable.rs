@@ -21,15 +21,13 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     let throwable_oop = args.get(0).unwrap();
     let callers = jt.callers.clone();
 
-    let mut traces= Vec::new();
+    let mut traces = Vec::new();
     for mir in callers.iter().rev() {
         let cls_name = { mir.method.class.lock().unwrap().name.clone() };
         let method_name = mir.method.name.clone();
         let src_file = mir.method.src_file.clone();
         let src_file = match src_file {
-            Some(name) => {
-                util::oop::new_java_lang_string3(jt, name.as_slice())
-            }
+            Some(name) => util::oop::new_java_lang_string3(jt, name.as_slice()),
             None => util::oop::new_java_lang_string2(jt, ""),
         };
 
