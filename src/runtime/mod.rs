@@ -3,7 +3,7 @@
 mod class_loader;
 pub mod cmp;
 mod consts;
-mod cp_manager;
+mod class_path_manager;
 mod exception;
 mod frame;
 mod init_vm;
@@ -18,7 +18,7 @@ pub mod thread;
 pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 
 pub use consts::THREAD_MAX_STACK_FRAMES;
-pub use cp_manager::{
+pub use class_path_manager::{
     add_path as add_class_path, add_paths as add_class_paths,
     find_class as find_class_in_classpath, ClassPathResult,
 };
@@ -35,5 +35,5 @@ def_sync_ref!(FrameRef, Frame);
 
 pub fn init() {
     sys_dic::init();
-    cp_manager::init();
+    class_path_manager::init();
 }

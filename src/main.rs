@@ -27,7 +27,6 @@ todo list
 
   x. class file parser
     file_src
-    Type Annotations
   x. java to execute a jar by -jar
   x. 官方的测试用例, TCK
   x. build thread system

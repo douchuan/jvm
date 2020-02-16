@@ -67,8 +67,7 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> OopRef {
     let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
     let parameter_types = OopDesc::new_ref_ary2(cls, params);
 
-    //fixme:
-    //checkedExceptions
+    //fixme: checkedExceptions
     let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
     let checked_exceptions = OopDesc::new_ref_ary2(cls, vec![]);
 
@@ -78,12 +77,9 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> OopRef {
     let slot = mir.offset;
     //signature
     let signature = util::oop::new_java_lang_string3(jt, mir.method.desc.as_slice());
-
-    //fixme: annotations, parameterAnnotations
-    let cls = require_class3(None, b"[B").unwrap();
-    //fixme: it's a prime array
-    let annotations = OopDesc::new_ref_ary(cls.clone(), 0);
-    let parameter_annotations = OopDesc::new_ref_ary(cls.clone(), 0);
+    //fixme:
+    let annotations = OopDesc::new_byte_ary(0);
+    let parameter_annotations = OopDesc::new_byte_ary(0);
 
     let mut desc = Vec::new();
     desc.push(b'(');
