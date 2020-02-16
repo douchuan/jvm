@@ -35,6 +35,7 @@ todo list
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. BootstrapMethod 有什么用?
   x. .class大量attr没用到，如何起到作用?
+  x. 注意算数运算相关的指令，溢出问题的处理
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容

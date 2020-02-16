@@ -1402,15 +1402,15 @@ impl Frame {
     pub fn iadd(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
-        //        info!("iadd v2={}, v1={}, v={}", v2, v1, (v1 + v2));
-        self.stack.push_int(v1 + v2);
+        let v = v1.wrapping_add(v2);
+        self.stack.push_int(v);
     }
 
     pub fn ladd(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
-        //        trace!("ladd v1 = {}, v2 = {}, r = {}", v1, v2, v1 + v2);
-        self.stack.push_long(v1 + v2);
+        let v = v1.wrapping_add(v2);
+        self.stack.push_long(v);
     }
 
     pub fn fadd(&mut self) {
@@ -1435,7 +1435,8 @@ impl Frame {
     pub fn lsub(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
-        self.stack.push_long(v1 - v2);
+        let v = v1.wrapping_sub(v2);
+        self.stack.push_long(v);
     }
 
     pub fn fsub(&mut self) {
@@ -1453,13 +1454,15 @@ impl Frame {
     pub fn imul(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
-        self.stack.push_int(v1 * v2);
+        let v = v1.wrapping_mul(v2);
+        self.stack.push_int(v);
     }
 
     pub fn lmul(&mut self) {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
-        self.stack.push_long(v1 * v2);
+        let v = v1.wrapping_mul(v2);
+        self.stack.push_long(v);
     }
 
     pub fn fmul(&mut self) {
@@ -1682,7 +1685,7 @@ impl Frame {
         let factor = (self.read_byte() as i8) as i32;
 
         let v = self.local.get_int(pos);
-        let v = v + factor;
+        let v = v.wrapping_add(factor);
         self.local.set_int(pos, v);
     }
 
