@@ -249,4 +249,36 @@ mod tests {
         let v = unsafe { *ptr } as u8;
         assert_eq!(v, 0x01u8);
     }
+
+    #[test]
+    fn t_hash() {
+        use std::collections::hash_map::DefaultHasher;
+        fn calc_hash(s: String) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            s.hash(&mut hasher);
+            hasher.finish()
+        }
+
+        let s1 = String::from_utf8_lossy(b"abcde").to_string();
+        let s2 = String::from_utf8_lossy(b"abcde").to_string();
+        let hash1 = calc_hash(s1);
+        let hash2 = calc_hash(s2);
+        assert_eq!(hash1, hash2);
+
+        let mut s1 = String::from_utf8_lossy(b"abcde").to_string();
+        s1.push_str("1");
+        s1.push_str("12");
+        s1.push_str("123");
+        let mut s2 = String::from_utf8_lossy(b"abcde").to_string();
+        s2.push_str("112123");
+        let hash1 = calc_hash(s1);
+        let hash2 = calc_hash(s2);
+        assert_eq!(hash1, hash2);
+
+        let s1 = String::from_utf8_lossy(b"abcde1").to_string();
+        let s2 = String::from_utf8_lossy(b"abcde2").to_string();
+        let hash1 = calc_hash(s1);
+        let hash2 = calc_hash(s2);
+        assert_ne!(hash1, hash2)
+    }
 }

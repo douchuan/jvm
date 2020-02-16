@@ -1018,13 +1018,13 @@ impl Frame {
         let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
-                let len = ary.get_length();
+                let len = ary.elements.len();
                 //                info!("aaload pos={}, len={}", pos, len);
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-                    let v = ary.get_elm_at(pos as usize);
+                    let v = ary.elements[pos as usize].clone();
                     self.stack.push_ref(v);
                 }
             }
@@ -1347,8 +1347,8 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match &mut rff.v {
             Oop::Array(ary) => {
-                let len = ary.get_length();
-                if (pos < 0) || (pos as usize >= ary.get_length()) {
+                let len = ary.elements.len();
+                if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
@@ -1428,8 +1428,8 @@ impl Frame {
     pub fn isub(&mut self) {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
-        //        info!("isub v2={}, v1={}, v={}", v2, v1, (v1-v2));
-        self.stack.push_int(v1 - v2);
+        let v = v1.wrapping_sub(v2);
+        self.stack.push_int(v);
     }
 
     pub fn lsub(&mut self) {
@@ -2355,7 +2355,7 @@ impl Frame {
         let rf = rf.lock().unwrap();
         match &rf.v {
             Oop::Array(ary) => {
-                let len = ary.get_length();
+                let len = ary.elements.len();
                 self.stack.push_int(len as i32);
             }
             Oop::TypeArray(ary) => match ary {

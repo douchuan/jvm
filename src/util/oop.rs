@@ -27,7 +27,7 @@ pub fn is_str(v: OopRef) -> bool {
     }
 }
 
-pub fn extract_str(v: OopRef) -> String {
+pub fn extract_java_lang_string_value(v: OopRef) -> Vec<u16> {
     let offset: Option<usize> = util::sync_call(&JAVA_LANG_STRING_VALUE_OFFSET, |v| v.clone());
     let offset = offset.unwrap();
 
@@ -40,11 +40,16 @@ pub fn extract_str(v: OopRef) -> String {
     let value_ary = value_ary.lock().unwrap();
     match &value_ary.v {
         Oop::TypeArray(ary) => match ary {
-            oop::TypeArrayValue::Char(ary) => String::from_utf16_lossy(ary.as_slice()),
+            oop::TypeArrayValue::Char(ary) => Vec::from(ary.as_slice()),
             t => unreachable!("t = {:?}", t),
         },
         _ => unreachable!(),
     }
+}
+
+pub fn extract_str(v: OopRef) -> String {
+    let value = extract_java_lang_string_value(v);
+    String::from_utf16_lossy(value.as_slice())
 
     /*
     if offset.is_some() {
@@ -140,7 +145,7 @@ pub fn new_java_lang_string3(jt: &mut JavaThread, v: &[u8]) -> OopRef {
     string_oop
 }
 
-pub fn hash_code(v: OopRef) -> u64 {
+pub fn hash_code(v: OopRef) -> i32 {
     {
         let v = v.lock().unwrap();
         match v.v {
@@ -151,11 +156,18 @@ pub fn hash_code(v: OopRef) -> u64 {
     }
 
     if is_str(v.clone()) {
-        let s = extract_str(v);
-        let mut hasher = DefaultHasher::new();
-        s.hash(&mut hasher);
-        hasher.finish()
+        let value = extract_java_lang_string_value(v);
+        return if value.len() == 0 {
+            0
+        } else {
+            let mut h = 0i32;
+            for v in value {
+                h = h.wrapping_mul(31).wrapping_add(v as i32);
+            }
+            h
+        };
     } else {
-        Arc::into_raw(v) as u64
+        let v = Arc::into_raw(v);
+        v as i32
     }
 }

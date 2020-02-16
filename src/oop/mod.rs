@@ -410,14 +410,6 @@ impl ArrayOopDesc {
         }
     }
 
-    pub fn get_length(&self) -> usize {
-        self.elements.len()
-    }
-
-    pub fn get_elm_at(&self, index: usize) -> OopRef {
-        self.elements[index].clone()
-    }
-
     pub fn set_elm_at(&mut self, index: usize, elm: OopRef) {
         self.elements[index] = elm;
     }

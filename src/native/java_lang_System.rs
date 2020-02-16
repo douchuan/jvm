@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::JavaCall;
 use crate::runtime::{self, JavaThread};
@@ -33,6 +33,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "loadLibrary",
             "(Ljava/lang/String;)V",
             Box::new(jvm_loadLibrary),
+        ),
+        new_fn(
+            "identityHashCode",
+            "(Ljava/lang/Object;)I",
+            Box::new(jvm_identityHashCode),
         ),
         //Note: just for debug
         //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
@@ -235,6 +240,10 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
 
 fn jvm_loadLibrary(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     Ok(None)
+}
+
+fn jvm_identityHashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    native::java_lang_Object::jvm_hashCode(jt, env, args)
 }
 
 /*
