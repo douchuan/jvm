@@ -39,15 +39,21 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
 
                 let cls_name = { mir.method.class.lock().unwrap().name.clone() };
                 let method_name = mir.method.name.clone();
-                //fixme: src_file
-                let src_file = "xxx";
+                let src_file = mir.method.src_file.clone();
+                let src_file = match src_file {
+                    Some(name) => {
+                        //                        println!("src_file = {}", String::from_utf8_lossy(name.as_slice()));
+                        util::oop::new_java_lang_string3(jt, name.as_slice())
+                    }
+                    None => util::oop::new_java_lang_string2(jt, ""),
+                };
 
                 let elm = OopDesc::new_inst(elm_cls.clone());
                 let args = vec![
                     elm.clone(),
                     util::oop::new_java_lang_string3(jt, cls_name.as_slice()),
                     util::oop::new_java_lang_string3(jt, method_name.as_slice()),
-                    util::oop::new_java_lang_string2(jt, src_file),
+                    src_file,
                     OopDesc::new_int(line_number),
                 ];
                 runtime::java_call::invoke_ctor(

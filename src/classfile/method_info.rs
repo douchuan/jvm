@@ -1,5 +1,6 @@
 use crate::classfile::attr_info::{AttrType, Code};
-use crate::types::U2;
+use crate::classfile::constant_pool;
+use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -37,5 +38,18 @@ impl MethodInfo {
         }
 
         hm
+    }
+
+    pub fn get_src_file(&self, cp: &ConstantPool) -> Option<BytesRef> {
+        for it in self.attrs.iter() {
+            match it {
+                AttrType::SourceFile { source_file_index } => {
+                    return constant_pool::get_utf8(cp, *source_file_index as usize);
+                }
+                _ => (),
+            }
+        }
+
+        None
     }
 }

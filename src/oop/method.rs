@@ -65,6 +65,7 @@ pub struct Method {
     pub code: Option<Code>,
     //fixme: more readable name
     pub lnt: HashMap<U2, U2>,
+    pub src_file: Option<BytesRef>,
 
     vis_annos: Vec<AnnotationEntry>,
     vis_param_annos: Vec<AnnotationEntry>,
@@ -86,6 +87,7 @@ impl Method {
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
         let lnt = mi.get_line_number_table();
+        let src_file = mi.get_src_file(cp);
 
         Self {
             class,
@@ -95,6 +97,7 @@ impl Method {
             acc_flags,
             code,
             lnt,
+            src_file,
             vis_annos,
             vis_param_annos,
         }

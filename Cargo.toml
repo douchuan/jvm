@@ -1,6 +1,6 @@
 [package]
 name = "jvm"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["douchuan <1843657913@qq.com>"]
 edition = "2018"
 

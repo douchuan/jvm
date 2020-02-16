@@ -447,7 +447,7 @@ trait AttrTypeParser {
     fn get_attr_enclosing_method(&mut self) -> AttrType;
     fn get_attr_synthetic(&mut self) -> AttrType;
     fn get_attr_signature(&mut self) -> AttrType;
-    fn get_attr_source_file(&mut self) -> AttrType;
+    fn get_attr_source_file(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_source_debug_ext(&mut self) -> AttrType;
     fn get_attr_line_num_table(&mut self) -> AttrType;
     fn get_attr_local_var_table(&mut self) -> AttrType;
@@ -490,7 +490,7 @@ impl AttrTypeParser for Parser {
             AttrTag::EnclosingMethod => self.get_attr_enclosing_method(),
             AttrTag::Synthetic => self.get_attr_synthetic(),
             AttrTag::Signature => self.get_attr_signature(),
-            AttrTag::SourceFile => self.get_attr_source_file(),
+            AttrTag::SourceFile => self.get_attr_source_file(cp),
             AttrTag::SourceDebugExtension => self.get_attr_source_debug_ext(),
             AttrTag::LineNumberTable => self.get_attr_line_num_table(),
             AttrTag::LocalVariableTable => self.get_attr_local_var_table(),
@@ -678,10 +678,12 @@ impl AttrTypeParser for Parser {
         AttrType::Signature { signature_index }
     }
 
-    fn get_attr_source_file(&mut self) -> AttrType {
+    fn get_attr_source_file(&mut self, _cp: &ConstantPool) -> AttrType {
         let length = self.get_u4();
         assert_eq!(length, 2);
         let source_file_index = self.get_u2();
+        //        let name = get_utf8(cp, source_file_index as usize).unwrap();
+        //        println!("src name = {}", String::from_utf8_lossy(name.as_slice()));
         AttrType::SourceFile { source_file_index }
     }
 
