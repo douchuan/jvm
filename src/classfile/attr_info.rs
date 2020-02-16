@@ -155,7 +155,7 @@ pub struct CodeException {
 
 impl CodeException {
     pub fn contains(&self, pc: U2) -> bool {
-        (self.start_pc..self.end_pc).contains(&pc)
+        (self.start_pc..self.end_pc + 1).contains(&pc)
     }
 
     pub fn is_finally(&self) -> bool {

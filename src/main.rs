@@ -25,15 +25,12 @@ todo list
 
   x. fix warn & fixme
 
-  x. class file parser
-    file_src
   x. java to execute a jar by -jar
   x. 官方的测试用例, TCK
   x. build thread system
     去掉native 函数的jt参数
   x. new Constructor with Exception and Type Annotations
   x. String.intern
-  x. refact Exception处理方式
   x. native 调用，需要构造一个Frame吗？
   x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. BootstrapMethod 有什么用?
