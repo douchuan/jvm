@@ -458,6 +458,7 @@ trait AttrTypeParser {
     fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_rt_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType;
+    fn get_attr_rt_in_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType;
     fn get_attr_bootstrap_methods(&mut self) -> AttrType;
     fn get_attr_method_parameters(&mut self) -> AttrType;
@@ -504,6 +505,9 @@ impl AttrTypeParser for Parser {
                 self.get_attr_rt_in_vis_parameter_annotations(cp)
             }
             AttrTag::RuntimeVisibleTypeAnnotations => self.get_attr_rt_vis_type_annotations(cp),
+            AttrTag::RuntimeInvisibleTypeAnnotations => {
+                self.get_attr_rt_in_vis_type_annotations(cp)
+            }
             AttrTag::AnnotationDefault => self.get_attr_annotation_default(cp),
             AttrTag::BootstrapMethods => self.get_attr_bootstrap_methods(),
             AttrTag::MethodParameters => self.get_attr_method_parameters(),
@@ -769,6 +773,16 @@ impl AttrTypeParser for Parser {
             annotations.push(self.get_attr_util_get_type_annotation(cp));
         }
         AttrType::RuntimeVisibleTypeAnnotations { annotations }
+    }
+
+    fn get_attr_rt_in_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType {
+        let _length = self.get_u4();
+        let n = self.get_u2();
+        let mut annotations = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            annotations.push(self.get_attr_util_get_type_annotation(cp));
+        }
+        AttrType::RuntimeInvisibleTypeAnnotations { annotations }
     }
 
     fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType {

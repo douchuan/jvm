@@ -56,7 +56,9 @@ pub enum AttrType {
     RuntimeVisibleTypeAnnotations {
         annotations: Vec<TypeAnnotation>,
     },
-    //        RuntimeInvisibleTypeAnnotations,
+    RuntimeInvisibleTypeAnnotations {
+        annotations: Vec<TypeAnnotation>,
+    },
     AnnotationDefault {
         default_value: ElementValueType,
     },
@@ -91,7 +93,7 @@ pub enum AttrTag {
     RuntimeVisibleParameterAnnotations,
     RuntimeInvisibleParameterAnnotations,
     RuntimeVisibleTypeAnnotations,
-    //    RuntimeInvisibleTypeAnnotations,
+    RuntimeInvisibleTypeAnnotations,
     AnnotationDefault,
     BootstrapMethods,
     MethodParameters,
@@ -122,7 +124,7 @@ impl From<&[u8]> for AttrTag {
                 AttrTag::RuntimeInvisibleParameterAnnotations
             }
             b"RuntimeVisibleTypeAnnotations" => AttrTag::RuntimeVisibleTypeAnnotations,
-            //            b"RuntimeInvisibleTypeAnnotations" => AttributeTag::RuntimeInvisibleTypeAnnotations,
+            b"RuntimeInvisibleTypeAnnotations" => AttrTag::RuntimeInvisibleTypeAnnotations,
             b"AnnotationDefault" => AttrTag::AnnotationDefault,
             b"BootstrapMethods" => AttrTag::BootstrapMethods,
             b"MethodParameters" => AttrTag::MethodParameters,
