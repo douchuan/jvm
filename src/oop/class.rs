@@ -352,6 +352,10 @@ impl Class {
         self.get_virtual_method_inner(id)
     }
 
+    pub fn get_interface_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+        self.get_interface_method_inner(id)
+    }
+
     pub fn get_field_id(&self, name: &[u8], desc: &[u8], is_static: bool) -> FieldIdRef {
         let field_id = util::new_field_id(self.name.as_slice(), name, desc);
         //        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
@@ -837,6 +841,31 @@ impl Class {
         match self.super_class.as_ref() {
             Some(super_class) => {
                 return super_class.lock().unwrap().get_virtual_method_inner(id);
+            }
+            None => return Err(()),
+        }
+    }
+
+    pub fn get_interface_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&id) {
+                Some(m) => return Ok(m.clone()),
+                None => {
+                    for (_, itf) in cls_obj.interfaces.iter() {
+                        let cls = itf.lock().unwrap();
+                        match cls.get_interface_method(id.clone()) {
+                            Ok(m) => return Ok(m.clone()),
+                            _ => (),
+                        }
+                    }
+                }
+            },
+            _ => unreachable!(),
+        }
+
+        match self.super_class.as_ref() {
+            Some(super_class) => {
+                return super_class.lock().unwrap().get_interface_method_inner(id);
             }
             None => return Err(()),
         }

@@ -266,12 +266,11 @@ impl JavaCall {
                 || (self.mir.method.is_public() && !self.mir.method.is_final())
         };
         if resolve_twice {
-            let this = self.args[0].clone();
+            let this = self.args.get(0).unwrap();
             let this = this.lock().unwrap();
             match &this.v {
                 Oop::Inst(inst) => {
-                    let cls = inst.class.clone();
-                    let cls = cls.lock().unwrap();
+                    let cls = inst.class.lock().unwrap();
                     let id = self.mir.method.get_id();
                     self.mir = cls.get_virtual_method(id).unwrap();
                 }

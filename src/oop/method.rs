@@ -50,7 +50,7 @@ pub fn get_method_ref(
         class.get_class_method(id)
     } else {
         // invokeinterface
-        class.get_virtual_method(id)
+        class.get_interface_method(id)
     };
 
     mir
@@ -185,5 +185,9 @@ impl Method {
 
     pub fn is_abstract(&self) -> bool {
         (self.acc_flags & ACC_ABSTRACT) == ACC_ABSTRACT
+    }
+
+    pub fn is_interface(&self) -> bool {
+        (self.acc_flags & ACC_INTERFACE) == ACC_INTERFACE
     }
 }
