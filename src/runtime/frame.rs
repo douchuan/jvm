@@ -1181,7 +1181,16 @@ impl Frame {
                         ary[pos as usize] = v as u8;
                     }
                 }
-                _ => unreachable!(),
+                oop::TypeArrayValue::Bool(ary) => {
+                    let len = ary.len();
+                    if (pos < 0) || (pos as usize >= len) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    } else {
+                        ary[pos as usize] = v as u8;
+                    }
+                }
+                t => unreachable!("t = {:?}", t),
             },
             Oop::Null => {
                 self.meet_ex(thread, consts::J_NPE, None);

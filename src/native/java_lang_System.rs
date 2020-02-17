@@ -1,12 +1,13 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{self, Oop, OopDesc};
 use crate::runtime::JavaCall;
 use crate::runtime::{self, JavaThread};
 use crate::types::OopRef;
 use crate::util;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -39,6 +40,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;)I",
             Box::new(jvm_identityHashCode),
         ),
+        new_fn("nanoTime", "()J", Box::new(jvm_nanoTime)),
         //Note: just for debug
         //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
     ]
@@ -412,4 +414,13 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             _ => unreachable!(),
         }
     }
+}
+
+fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+    let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_nanos(),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    };
+
+    Ok(Some(OopDesc::new_long(v as i64)))
 }

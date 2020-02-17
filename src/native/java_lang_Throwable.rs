@@ -92,7 +92,7 @@ fn jvm_getStackTraceDepth(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
     let v = backtrace.lock().unwrap();
     let v = match &v.v {
         Oop::Array(ary) => {
-//            error!("backtrace len = {}", ary.elements.len());
+            //            error!("backtrace len = {}", ary.elements.len());
             OopDesc::new_int(ary.elements.len() as i32)
         }
         Oop::Null => OopDesc::new_int(0),

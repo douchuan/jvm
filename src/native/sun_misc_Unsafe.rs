@@ -45,6 +45,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("freeMemory", "(J)V", Box::new(jvm_freeMemory)),
         new_fn("putLong", "(JJ)V", Box::new(jvm_putLong)),
         new_fn("getByte", "(J)B", Box::new(jvm_getByte)),
+        new_fn(
+            "compareAndSwapLong",
+            "(Ljava/lang/Object;JJJ)Z",
+            Box::new(jvm_compareAndSwapLong),
+        ),
     ]
 }
 
@@ -269,4 +274,50 @@ fn jvm_getByte(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     };
     let v = unsafe { *ptr };
     Ok(Some(OopDesc::new_int(v as i32)))
+}
+
+fn jvm_compareAndSwapLong(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let owner = args.get(1).unwrap();
+    let offset = {
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let old_data = args.get(3).unwrap();
+    let old_data = {
+        let v = old_data.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let new_data = args.get(4).unwrap();
+
+    let v_at_offset = {
+        let v = owner.lock().unwrap();
+        let v = match &v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize].clone(),
+            _ => unreachable!(),
+        };
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+
+    if v_at_offset == old_data {
+        let mut v = owner.lock().unwrap();
+        match &mut v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
+            _ => unreachable!(),
+        }
+
+        Ok(Some(OopDesc::new_int(1)))
+    } else {
+        Ok(Some(OopDesc::new_int(0)))
+    }
 }

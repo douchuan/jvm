@@ -2,7 +2,7 @@
 
 use crate::classfile::{self, access_flags as acc};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc, ValueType};
+use crate::oop::{self, ClassKind, Oop, OopDesc, ValueType};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::{ClassRef, OopRef};
 use crate::util;
@@ -55,6 +55,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getSuperclass",
             "()Ljava/lang/Class;",
             Box::new(jvm_getSuperclass),
+        ),
+        new_fn("isArray", "()Z", Box::new(jvm_isArray)),
+        new_fn(
+            "getComponentType",
+            "()Ljava/lang/Class;",
+            Box::new(jvm_getComponentType),
         ),
     ]
 }
@@ -501,7 +507,7 @@ pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
     Ok(Some(OopDesc::new_int(v as i32)))
 }
 
-pub fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let v = mirror.lock().unwrap();
     match &v.v {
@@ -521,4 +527,55 @@ pub fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) 
         },
         _ => unreachable!(),
     }
+}
+
+fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let v = args.get(0).unwrap();
+
+    let mirror_cls = {
+        let v = v.lock().unwrap();
+        match &v.v {
+            Oop::Mirror(mirror) => match &mirror.target {
+                Some(target) => target.clone(),
+                None => return Ok(Some(OopDesc::new_int(0))),
+            },
+            _ => unreachable!(),
+        }
+    };
+
+    let cls = mirror_cls.lock().unwrap();
+    let v = match cls.kind {
+        oop::class::ClassKind::Instance(_) => 0,
+        oop::class::ClassKind::TypeArray(_) => 1,
+        ClassKind::ObjectArray(_) => 1,
+    };
+
+    Ok(Some(OopDesc::new_int(v)))
+}
+
+fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let cls_mirror = args.get(0).unwrap();
+    let cls = {
+        let cls = cls_mirror.lock().unwrap();
+        match &cls.v {
+            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!(),
+        }
+    };
+    let cls = cls.lock().unwrap();
+    let v = match &cls.kind {
+        oop::class::ClassKind::TypeArray(type_ary_cls) => {
+            let vt = type_ary_cls.value_type.into();
+            let key = String::from_utf8_lossy(vt).to_string();
+            let key = key.as_str();
+            util::sync_call(&PRIM_MIRROS, |mirros| mirros.get(key).map(|it| it.clone()))
+        }
+        oop::class::ClassKind::ObjectArray(obj_ary_cls) => {
+            let component = obj_ary_cls.component.clone().unwrap();
+            let cls = component.lock().unwrap();
+            Some(cls.get_mirror())
+        }
+        _ => unreachable!(),
+    };
+    Ok(v)
 }

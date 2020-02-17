@@ -301,7 +301,7 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
         .iter()
         .rev()
         .map(|t| match t {
-            ArgType::Boolean | ArgType::Int | ArgType::Char => {
+            ArgType::Byte | ArgType::Boolean | ArgType::Int | ArgType::Char | ArgType::Short => {
                 let v = stack.pop_int();
                 OopDesc::new_int(v)
             }

@@ -14,24 +14,25 @@ vtable，fields信息放入klass中，oop用std::vector<oop> _instanceFieldValue
     fields
 
 
-
-arch
------------------------
-
-    runtime
-    --------
-      oop
-    --------
-    classfile
-
-test
-test push
-
-
 char
 -----------------------
 Java中的char: 16-bit unsigned integers
 Rust中的char: four bytes in size
+
+
+存在的问题
+----------------------
+1. 堆栈信息中代码行数
+2. 堆栈信息，多余的信息
+	at java/lang/Throwable.fillInStackTrace(:0)
+	at java/lang/Throwable.fillInStackTrace(:0)
+	at java/lang/Throwable.<init>(:0)
+	at java/lang/Exception.<init>(:0)
+
+  执行中JavaThread.frames被lock，所以无法获取Frame.pc；
+  由于JavaThread.frames被lock，所以无法获取Fame实例，判断Frame.throw_here在哪里
+  JavaThread.frames被lock write之后，还有办法再上锁读取吗？
+
 
 大事记
 -----------------------
@@ -41,5 +42,6 @@ Rust中的char: four bytes in size
 4. 2020.02.13 成功运行HelloWorld
 5. 2020.02.14 重构，去掉Oop::str，完全用java.lang.String取代
 6. 2020.02.15 github 200 commits, 第一个Watchers, CertainLach, thanks!
+
 
 
