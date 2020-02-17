@@ -36,6 +36,14 @@ pub fn get_method_ref(
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.lock().unwrap();
+
+    trace!(
+        "get_method_ref cls={}, name={}, typ={}",
+        String::from_utf8_lossy(class.name.as_slice()),
+        String::from_utf8_lossy(name.as_slice()),
+        String::from_utf8_lossy(typ.as_slice())
+    );
+
     let id = util::new_method_id(name.as_slice(), typ.as_slice());
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual

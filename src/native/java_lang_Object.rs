@@ -20,7 +20,7 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -
     Ok(None)
 }
 
-pub fn jvm_hashCode(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let use_cache = true;
     let v = args.get(0).unwrap();
 

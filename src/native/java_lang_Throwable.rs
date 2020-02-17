@@ -74,7 +74,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     Ok(Some(throwable_oop.clone()))
 }
 
-fn jvm_getStackTraceDepth(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
         let v = throwable.lock().unwrap();
@@ -102,7 +102,7 @@ fn jvm_getStackTraceDepth(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -
     Ok(Some(v))
 }
 
-fn jvm_getStackTraceElement(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let index = {
         let v = args.get(1).unwrap();
