@@ -10,8 +10,13 @@
 
 #cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/SubOverflow
 
+### jdk test
 #RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Compare
-cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Compare
+#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Compare
+
+### Enum CloneNotSupportedException
+cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/EnumDemo
+#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/EnumDemo
 
 #RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar test/HelloWorld
 #RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar test/Add

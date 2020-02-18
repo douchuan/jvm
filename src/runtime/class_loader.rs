@@ -79,8 +79,13 @@ impl ClassLoader {
                         let elm = &name[2..name.len() - 1];
                         match self.load_class(elm) {
                             Some(elm) => {
-                                let class = Class::new_object_ary(*self, elm, name);
+                                let mut class = Class::new_object_ary(*self, elm, name);
                                 let class = new_sync_ref!(class);
+                                {
+                                    let this_ref = class.clone();
+                                    let mut class = class.lock().unwrap();
+                                    class.link_class(this_ref);
+                                }
                                 match self {
                                     ClassLoader::Base => (),
                                     ClassLoader::Bootstrap => {
@@ -101,6 +106,13 @@ impl ClassLoader {
                         let elm = t.into();
                         let class = Class::new_prime_ary(*self, elm);
                         let class = new_sync_ref!(class);
+
+                        {
+                            let this_ref = class.clone();
+                            let mut class = class.lock().unwrap();
+                            class.link_class(this_ref);
+                        }
+
                         match self {
                             ClassLoader::Base => (),
                             ClassLoader::Bootstrap => {

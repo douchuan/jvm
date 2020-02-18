@@ -801,16 +801,10 @@ impl Class {
                 Some(m) => return Ok(m.clone()),
                 None => (),
             },
-            ClassKind::ObjectArray(ary_obj) => {
-                let cls = ary_obj.component.clone().unwrap();
-                let cls = cls.try_lock();
-                match cls {
-                    Ok(cls) => {
-                        return cls.get_class_method_inner(id.clone(), with_super);
-                    }
-                    _ => unreachable!(),
-                }
-            }
+
+            ClassKind::ObjectArray(ary) => {
+                //use java/lang/Object, methods
+            },
             _ => unreachable!(),
         }
 

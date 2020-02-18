@@ -131,16 +131,16 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
 
 fn hack_classes(jt: &mut JavaThread) {
     let charset_cls = oop::class::load_and_init(jt, b"java/nio/charset/Charset");
-    let utf8_charset_cls = oop::class::load_and_init(jt, b"sun/nio/cs/UTF_8");
+    let ascii_charset_cls = oop::class::load_and_init(jt, b"sun/nio/cs/US_ASCII");
 
-    let utf8_inst = OopDesc::new_inst(utf8_charset_cls.clone());
-    let args = vec![utf8_inst.clone()];
-    runtime::java_call::invoke_ctor(jt, utf8_charset_cls.clone(), b"()V", args);
+    let ascii_inst = OopDesc::new_inst(ascii_charset_cls.clone());
+    let args = vec![ascii_inst.clone()];
+    runtime::java_call::invoke_ctor(jt, ascii_charset_cls.clone(), b"()V", args);
 
     {
         let mut cls = charset_cls.lock().unwrap();
         let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
-        cls.put_static_field_value(id, utf8_inst);
+        cls.put_static_field_value(id, ascii_inst);
     }
 
     let encoder = oop::class::load_and_init(jt, b"sun/nio/cs/StreamEncoder");

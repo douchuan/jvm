@@ -339,12 +339,6 @@ impl Frame {
             }
         }
     }
-
-    pub fn handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) {
-        self.stack.clear();
-        self.stack.push_ref(ex);
-        self.athrow(jt);
-    }
 }
 
 //helper methods
@@ -560,7 +554,6 @@ impl Frame {
             Ok(mir) => {
                 assert_eq!(mir.method.is_static(), is_static);
 
-                let is_native = mir.method.is_native();
                 match runtime::java_call::JavaCall::new(jt, &mut self.stack, mir) {
                     Ok(mut jc) => {
                         jc.invoke(jt, &mut self.stack, force_no_resolve);
