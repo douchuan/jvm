@@ -1,4 +1,6 @@
-use crate::classfile::{access_flags::*, attr_info::AttrType, constant_pool, consts};
+use crate::classfile::{
+    access_flags::*, attr_info::AttrType, attr_info::EnclosingMethod, constant_pool, consts,
+};
 use crate::oop::method::MethodId;
 use crate::oop::{consts as oop_consts, field, method, Oop, OopDesc, ValueType};
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
@@ -69,6 +71,7 @@ pub struct ClassObject {
 
     pub signature: Option<BytesRef>,
     pub source_file: Option<BytesRef>,
+    pub enclosing_method: Option<EnclosingMethod>,
 }
 
 #[derive(Debug)]
@@ -209,35 +212,11 @@ impl Class {
             ClassKind::ObjectArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
-                /*
-                match &ary_class_obj.mirror {
-                    Some(mirror) => {
-                        let mut mirror = mirror.lock().unwrap();
-                        match &mut mirror.v {
-                            Oop::Mirror(mirror) => mirror.target = Some(self_ref),
-                            _ => unreachable!(),
-                        }
-                    }
-                    None => unreachable!(),
-                }
-                */
             }
 
             ClassKind::TypeArray(ary_class_obj) => {
                 let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
                 self.super_class = Some(super_class);
-                /*
-                match &ary_class_obj.mirror {
-                    Some(mirror) => {
-                        let mut mirror = mirror.lock().unwrap();
-                        match &mut mirror.v {
-                            Oop::Mirror(mirror) => mirror.target = Some(self_ref),
-                            _ => unreachable!(),
-                        }
-                    }
-                    None => unreachable!(),
-                }
-                */
             }
         }
 
@@ -529,6 +508,7 @@ impl Class {
             mirror: None,
             signature: None,
             source_file: None,
+            enclosing_method: None,
         };
 
         Self {
@@ -769,7 +749,10 @@ impl ClassObject {
                         self.source_file = Some(s);
                     }
                 }
-                //todo: ATTRIBUTE_InnerClasses, ATTRIBUTE_EnclosingMethod, ATTRIBUTE_BootstrapMethods
+                AttrType::EnclosingMethod { em } => {
+                    self.enclosing_method = Some(em.clone());
+                }
+                //todo: ATTRIBUTE_InnerClasses, ATTRIBUTE_BootstrapMethods
                 _ => (),
             }
         });
@@ -804,7 +787,7 @@ impl Class {
 
             ClassKind::ObjectArray(ary) => {
                 //use java/lang/Object, methods
-            },
+            }
             _ => unreachable!(),
         }
 

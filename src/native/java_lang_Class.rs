@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
-use crate::classfile::{self, access_flags as acc};
+use crate::classfile::{self, access_flags as acc, constant_pool};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, OopDesc, ValueType};
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, OopRef};
 use crate::util;
 use std::collections::HashMap;
@@ -61,6 +61,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getComponentType",
             "()Ljava/lang/Class;",
             Box::new(jvm_getComponentType),
+        ),
+        new_fn(
+            "getEnclosingMethod0",
+            "()[Ljava/lang/Object;",
+            Box::new(jvm_getEnclosingMethod0),
         ),
     ]
 }
@@ -578,4 +583,62 @@ fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
         _ => unreachable!(),
     };
     Ok(v)
+}
+
+fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let mirror = args.get(0).unwrap();
+    let target = {
+        let v = mirror.lock().unwrap();
+        match &v.v {
+            Oop::Mirror(mirror) => mirror.target.clone(),
+            _ => return Ok(Some(oop::consts::get_null())),
+        }
+    };
+
+    let (cls_file, em) = match target {
+        Some(target) => {
+            let cls = target.lock().unwrap();
+            match &cls.kind {
+                ClassKind::Instance(cls) => match &cls.enclosing_method {
+                    Some(em) => (cls.class_file.clone(), em.clone()),
+                    None => return Ok(Some(oop::consts::get_null())),
+                },
+                _ => return Ok(Some(oop::consts::get_null())),
+            }
+        }
+        None => return Ok(Some(oop::consts::get_null())),
+    };
+
+    //push EnclosingMethod class mirror
+    if em.class_index == 0 {
+        panic!();
+    }
+    let em_class = require_class2(em.class_index, &cls_file.cp).unwrap();
+    let em_class_mirror = {
+        let cls = em_class.lock().unwrap();
+        cls.get_mirror()
+    };
+    let mut elms = Vec::with_capacity(3);
+    elms.push(em_class_mirror);
+
+    //push EnclosingMethod name&desc
+    if em.method_index != 0 {
+        let (name, desc) = constant_pool::get_name_and_type(&cls_file.cp, em.method_index as usize);
+        elms.push(util::oop::new_java_lang_string3(
+            jt,
+            name.unwrap().as_slice(),
+        ));
+        elms.push(util::oop::new_java_lang_string3(
+            jt,
+            desc.unwrap().as_slice(),
+        ));
+    } else {
+        elms.push(oop::consts::get_null());
+        elms.push(oop::consts::get_null());
+    }
+
+    let ary = require_class3(None, b"[Ljava/lang/Object;").unwrap();
+    let ary = OopDesc::new_ref_ary2(ary, elms);
+
+    Ok(Some(ary))
 }

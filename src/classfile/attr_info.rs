@@ -18,8 +18,7 @@ pub enum AttrType {
         classes: Vec<InnerClass>,
     },
     EnclosingMethod {
-        class_index: U2,
-        method_index: U2,
+        em: EnclosingMethod,
     },
     Synthetic,
     Signature {
@@ -434,4 +433,10 @@ pub struct LocalVarTargetTable {
 pub struct TypePath {
     pub type_path_kind: U1,
     pub type_argument_index: U1,
+}
+
+#[derive(Debug, Clone)]
+pub struct EnclosingMethod {
+    pub class_index: U2,
+    pub method_index: U2,
 }

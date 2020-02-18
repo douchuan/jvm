@@ -659,10 +659,11 @@ impl AttrTypeParser for Parser {
         assert_eq!(length, 4);
         let class_index = self.get_u2();
         let method_index = self.get_u2();
-        AttrType::EnclosingMethod {
+        let em = attr_info::EnclosingMethod {
             class_index,
             method_index,
-        }
+        };
+        AttrType::EnclosingMethod { em }
     }
 
     fn get_attr_synthetic(&mut self) -> AttrType {
