@@ -605,9 +605,11 @@ impl Frame {
                 self.stack.clear();
                 self.stack.push_ref(ex);
 
+                let line_num = self.mir.method.get_line_num(pc).unwrap_or(0);
+
                 info!(
-                    "Found Exception Handler: pc={}, frame_id={}, {}:{}",
-                    pc, self.frame_id, method_cls_name, method_name
+                    "Found Exception Handler: line={}, frame_id={}, {}:{}",
+                    line_num, self.frame_id, method_cls_name, method_name
                 );
 
                 self.goto_abs(pc as i32);
@@ -615,9 +617,11 @@ impl Frame {
             }
 
             None => {
+                let line_num = self.mir.method.get_line_num(self.pc as u16).unwrap_or(0);
+
                 info!(
-                    "NotFound Exception Handler: frame_id={}, {}:{}",
-                    self.frame_id, method_cls_name, method_name
+                    "NotFound Exception Handler: line={}, frame_id={}, {}:{}",
+                    line_num, self.frame_id, method_cls_name, method_name
                 );
 
                 Err(ex)

@@ -125,6 +125,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("path.separator", util::PATH_SEP_STR),
         ("line.separator", "\n"),
         ("user.language", "en"),
+        ("user.region", "US"),
         ("file.encoding.pkg", "sun.io"),
         ("sun.cpu.isalist", ""),
         //        ("sun.cpu.endian", "little"),

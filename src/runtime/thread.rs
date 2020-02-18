@@ -1,10 +1,10 @@
 use crate::classfile::attr_info::AttrType::Exceptions;
 use crate::classfile::{self, signature};
-use crate::oop::{self, consts, InstOopDesc, OopDesc};
+use crate::oop::{self, consts, InstOopDesc, Oop, OopDesc};
 use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall, Local, Stack};
-use crate::types::{MethodIdRef, OopRef};
+use crate::types::{ClassRef, MethodIdRef, OopRef};
 use crate::util;
-use crate::util::new_field_id;
+use crate::util::{new_field_id, new_method_id};
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
@@ -21,6 +21,7 @@ pub struct JavaThread {
 pub struct JavaMainThread {
     pub class: String,
     pub args: Option<Vec<String>>,
+    dispatch_uncaught_exception_called: bool,
 }
 
 impl JavaThread {
@@ -175,41 +176,28 @@ impl JavaThread {
             count += 1;
         }
     }
-
-    fn debug_ex(ex: OopRef) {
-        let cls = {
-            let v = ex.lock().unwrap();
-            match &v.v {
-                oop::Oop::Inst(inst) => inst.class.clone(),
-                _ => unreachable!(),
-            }
-        };
-        let detail_msg = {
-            let detail_message_oop = {
-                let cls = cls.lock().unwrap();
-                let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
-                cls.get_field_value(ex.clone(), id)
-            };
-
-            util::oop::extract_str(detail_message_oop)
-        };
-
-        info!("detail={}", detail_msg);
-    }
 }
 */
 
 impl JavaMainThread {
-    pub fn run(&self) {
+    pub fn new(class: String, args: Option<Vec<String>>) -> Self {
+        Self {
+            class,
+            args,
+            dispatch_uncaught_exception_called: false,
+        }
+    }
+
+    pub fn run(&mut self) {
         let mut jt = JavaThread::new();
 
         init_vm::initialize_jvm(&mut jt);
 
+        let main_class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
         let mir = {
-            let class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
-            let class = class.lock().unwrap();
+            let cls = main_class.lock().unwrap();
             let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
-            class.get_static_method(id)
+            cls.get_static_method(id)
         };
 
         match mir {
@@ -221,6 +209,10 @@ impl JavaMainThread {
                 }
             }
             _ => unimplemented!(),
+        }
+
+        if jt.ex.is_some() {
+            self.uncaught_ex(&mut jt, main_class);
         }
     }
 }
@@ -244,5 +236,77 @@ impl JavaMainThread {
         stack.push_ref(arg);
 
         stack
+    }
+
+    fn uncaught_ex(&mut self, jt: &mut JavaThread, main_cls: ClassRef) {
+        if self.dispatch_uncaught_exception_called {
+            self.uncaught_ex_internal(jt);
+        } else {
+            self.dispatch_uncaught_exception_called = true;
+            self.call_dispatch_uncaught_exception(jt, main_cls);
+        }
+    }
+
+    fn call_dispatch_uncaught_exception(&mut self, jt: &mut JavaThread, main_cls: ClassRef) {
+        let java_thread_obj = jt.java_thread_obj.clone();
+        match &java_thread_obj {
+            Some(java_thread_oop) => {
+                let cls = {
+                    let v = java_thread_oop.lock().unwrap();
+                    match &v.v {
+                        Oop::Inst(inst) => inst.class.clone(),
+                        _ => unreachable!(),
+                    }
+                };
+
+                let mir = {
+                    let cls = cls.lock().unwrap();
+                    let id =
+                        new_method_id(b"dispatchUncaughtException", b"(Ljava/lang/Throwable;)V");
+                    cls.get_this_class_method(id)
+                };
+
+                match mir {
+                    Ok(mir) => {
+                        let ex = { jt.take_ex().unwrap() };
+                        let args = vec![java_thread_oop.clone(), ex];
+                        let mut stack = Stack::new(0);
+                        let mut jc = JavaCall::new_with_args(jt, mir, args);
+                        jc.invoke(jt, &mut stack, false);
+                    }
+                    _ => self.uncaught_ex_internal(jt),
+                }
+            }
+
+            None => self.uncaught_ex_internal(jt),
+        }
+    }
+
+    fn uncaught_ex_internal(&mut self, jt: &mut JavaThread) {
+        let ex = { jt.take_ex().unwrap() };
+
+        let cls = {
+            let v = ex.lock().unwrap();
+            match &v.v {
+                oop::Oop::Inst(inst) => inst.class.clone(),
+                _ => unreachable!(),
+            }
+        };
+        let detail_message = {
+            let v = {
+                let cls = cls.lock().unwrap();
+                let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
+                cls.get_field_value(ex.clone(), id)
+            };
+
+            util::oop::extract_str(v)
+        };
+        let name = {
+            let cls = cls.lock().unwrap();
+            cls.name.clone()
+        };
+
+        let cls_name = String::from_utf8_lossy(name.as_slice());
+        error!("Name={}, detailMessage={}", cls_name, detail_message);
     }
 }

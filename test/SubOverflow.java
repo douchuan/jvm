@@ -119,5 +119,15 @@ class SubOverflow
         l = Long.MAX_VALUE << 1000;
         System.out.println("overflow long = " + l);
 
+        int leading_zeros = Integer.numberOfLeadingZeros(8);
+        System.out.println("8 leading zeros = " + leading_zeros + ", ASHIFT=" + (31 - leading_zeros));
+        leading_zeros = Integer.numberOfLeadingZeros(4);
+        System.out.println("4 leading zeros = " + leading_zeros + ", ASHIFT=" + (31 - leading_zeros));
+        leading_zeros = Integer.numberOfLeadingZeros(2);
+        System.out.println("2 leading zeros = " + leading_zeros + ", ASHIFT=" + (31 - leading_zeros));
+        leading_zeros = Integer.numberOfLeadingZeros(1);
+        System.out.println("1 leading zeros = " + leading_zeros + ", ASHIFT=" + (31 - leading_zeros));
+
+
     }
 } 

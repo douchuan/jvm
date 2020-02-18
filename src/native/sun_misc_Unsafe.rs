@@ -50,6 +50,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JJJ)Z",
             Box::new(jvm_compareAndSwapLong),
         ),
+        new_fn(
+            "getObjectVolatile",
+            "(Ljava/lang/Object;J)Ljava/lang/Object;",
+            Box::new(jvm_getObjectVolatile),
+        ),
     ]
 }
 
@@ -62,8 +67,9 @@ fn jvm_arrayBaseOffset(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -
 }
 
 fn jvm_arrayIndexScale(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
-    let v = std::mem::size_of::<*mut u8>();
-    Ok(Some(OopDesc::new_int(v as i32)))
+    //    let v = std::mem::size_of::<*mut u8>();
+    //    Ok(Some(OopDesc::new_int(v as i32)))
+    Ok(Some(OopDesc::new_int(1)))
 }
 
 fn jvm_addressSize(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
@@ -119,7 +125,8 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
         let v = owner.lock().unwrap();
         match &v.v {
             Oop::Mirror(mirror) => mirror.field_values[offset as usize].clone(),
-            _ => unreachable!(),
+            Oop::Array(ary) => ary.elements[offset as usize].clone(),
+            t => unreachable!("{:?}", t),
         }
     };
 
@@ -128,6 +135,9 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
         match &mut v.v {
             Oop::Mirror(mirror) => {
                 mirror.field_values[offset as usize] = new_data.clone();
+            }
+            Oop::Array(ary) => {
+                ary.elements[offset as usize] = new_data.clone();
             }
             _ => unreachable!(),
         }
@@ -320,4 +330,25 @@ fn jvm_compareAndSwapLong(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     } else {
         Ok(Some(OopDesc::new_int(0)))
     }
+}
+
+fn jvm_getObjectVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let owner = args.get(1).unwrap();
+    let offset = {
+        let v = args.get(2).unwrap();
+        let v = v.lock().unwrap();
+        match v.v {
+            Oop::Long(v) => v,
+            _ => unreachable!(),
+        }
+    };
+    let v_at_offset = {
+        let v = owner.lock().unwrap();
+        match &v.v {
+            Oop::Inst(inst) => inst.field_values[offset as usize].clone(),
+            Oop::Array(ary) => ary.elements[offset as usize].clone(),
+            t => unreachable!("t = {:?}", t),
+        }
+    };
+    Ok(Some(v_at_offset))
 }

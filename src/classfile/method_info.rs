@@ -1,4 +1,4 @@
-use crate::classfile::attr_info::{AttrType, Code};
+use crate::classfile::attr_info::{AttrType, Code, LineNumber};
 use crate::classfile::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
@@ -23,21 +23,27 @@ impl MethodInfo {
         None
     }
 
-    pub fn get_line_number_table(&self) -> HashMap<U2, U2> {
-        let mut hm = HashMap::new();
+    pub fn get_line_number_table(&self) -> Vec<LineNumber> {
+        let mut line_num_table = Vec::new();
 
         for it in self.attrs.iter() {
             match it {
-                AttrType::LineNumberTable { tables } => {
-                    tables.iter().for_each(|ln| {
-                        hm.insert(ln.start_pc, ln.number);
-                    });
+                AttrType::Code(code) => {
+                    for it in code.attrs.iter() {
+                        match it {
+                            AttrType::LineNumberTable { tables } => {
+                                line_num_table.extend_from_slice(tables.as_slice());
+                            }
+                            _ => (),
+                        }
+                    }
                 }
+
                 _ => (),
             }
         }
 
-        hm
+        line_num_table
     }
 
     pub fn get_src_file(&self, cp: &ConstantPool) -> Option<BytesRef> {

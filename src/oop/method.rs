@@ -1,6 +1,7 @@
 use crate::classfile::attr_info::AnnotationEntry;
 use crate::classfile::{
-    access_flags::*, attr_info::Code, constant_pool, consts, AttrType, FieldInfo, MethodInfo,
+    access_flags::*, attr_info::Code, attr_info::LineNumber, constant_pool, consts, AttrType,
+    FieldInfo, MethodInfo,
 };
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
@@ -72,7 +73,7 @@ pub struct Method {
 
     pub code: Option<Code>,
     //fixme: more readable name
-    pub lnt: HashMap<U2, U2>,
+    pub line_num_table: Vec<LineNumber>,
     pub src_file: Option<BytesRef>,
 
     vis_annos: Vec<AnnotationEntry>,
@@ -94,7 +95,7 @@ impl Method {
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
-        let lnt = mi.get_line_number_table();
+        let line_num_table = mi.get_line_number_table();
         let src_file = mi.get_src_file(cp);
 
         Self {
@@ -104,7 +105,7 @@ impl Method {
             id,
             acc_flags,
             code,
-            lnt,
+            line_num_table,
             src_file,
             vis_annos,
             vis_param_annos,
@@ -137,6 +138,16 @@ impl Method {
         }
 
         None
+    }
+
+    pub fn get_line_num(&self, pc: U2) -> Option<U2> {
+        let mut number = None;
+        for it in self.line_num_table.iter().rev() {
+            if it.start_pc >= pc {
+                number = Some(it.number);
+            }
+        }
+        number
     }
 
     pub fn check_annotation(&self, name: &[u8]) -> bool {
