@@ -4,6 +4,7 @@ CLASS_PATH=.:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar
 #cargo run -- --cp $CLASS_PATH test/Add
 #cargo run -- --cp $CLASS_PATH test/HelloWorld 123 456 789
 #cargo run -- --cp $CLASS_PATH test/Ex
+#cargo run -- --cp $CLASS_PATH test/HashCode
 
 ### Overflow
 #cargo run -- --cp $CLASS_PATH test/SubOverflow

@@ -36,9 +36,11 @@ Rust中的char: four bytes in size
 
 Roadmap
 =============
-1. 把class parser作为一个独立的部分，分离出来，形成一个crate
-2. 通过JDK lang部分的测试用例
-3. support thread & GC
+1. 通过JDK lang部分的测试用例
+2. 把class parser作为一个独立的部分，分离出来，形成一个crate
+3. support thread
+4. support GC
+5. 拆分frame.rs => frame.rs, interp.rs
 
 
 Roadmap(长期)
@@ -55,6 +57,9 @@ Roadmap(长期)
 4. 2020.02.13 成功运行HelloWorld
 5. 2020.02.14 重构，去掉Oop::str，完全用java.lang.String取代
 6. 2020.02.15 github 200 commits, 第一个Watchers, CertainLach, thanks!
+7. 2020.02.19 感谢 Rust语言中文社区(https://rust.cc/)，项目开始涨粉，很受鼓励
+              为项目确立短期和长期目标
+
 
 
 
