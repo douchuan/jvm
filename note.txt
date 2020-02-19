@@ -34,6 +34,19 @@ Rust中的char: four bytes in size
   JavaThread.frames被lock write之后，还有办法再上锁读取吗？
 
 
+Roadmap
+=============
+1. 把class parser作为一个独立的部分，分离出来，形成一个crate
+2. 通过JDK lang部分的测试用例
+3. support thread & GC
+
+
+Roadmap(长期)
+=============
+1. 通过TCK测试
+2. 支持最新版本的The Java® Virtual Machine Specification
+
+
 大事记
 -----------------------
 1. 2020.01.30 Add.java 被顺利执行
