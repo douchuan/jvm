@@ -1,5 +1,6 @@
 use crate::classfile::{
-    access_flags::*, attr_info::AttrType, attr_info::EnclosingMethod, constant_pool, consts,
+    access_flags::*, attr_info::AttrType, attr_info::EnclosingMethod, attr_info::InnerClass,
+    constant_pool, consts,
 };
 use crate::oop::method::MethodId;
 use crate::oop::{consts as oop_consts, field, method, Oop, OopDesc, ValueType};
@@ -72,6 +73,7 @@ pub struct ClassObject {
     pub signature: Option<BytesRef>,
     pub source_file: Option<BytesRef>,
     pub enclosing_method: Option<EnclosingMethod>,
+    pub inner_classes: Option<Vec<InnerClass>>,
 }
 
 #[derive(Debug)]
@@ -509,6 +511,7 @@ impl Class {
             signature: None,
             source_file: None,
             enclosing_method: None,
+            inner_classes: None,
         };
 
         Self {
@@ -752,7 +755,10 @@ impl ClassObject {
                 AttrType::EnclosingMethod { em } => {
                     self.enclosing_method = Some(em.clone());
                 }
-                //todo: ATTRIBUTE_InnerClasses, ATTRIBUTE_BootstrapMethods
+                AttrType::InnerClasses { classes } => {
+                    self.inner_classes = Some(classes.clone());
+                }
+                //todo: ATTRIBUTE_BootstrapMethods
                 _ => (),
             }
         });

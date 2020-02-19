@@ -135,6 +135,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("user.dir", "/Users/douchuan/"),
         ("java.home", "/Users/douchuan/work/prj_rust/jvm/test/"),
         ("file.encoding", "US-ASCII"),
+        ("java.security.manager", ""),
         //        ("sun.jnu.encoding", "UTF-8"),
         //        ("sun.stdout.encoding", "UTF-8"),
         //        ("sun.stderr.encoding", "UTF-8"),

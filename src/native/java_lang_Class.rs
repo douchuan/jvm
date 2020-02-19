@@ -7,7 +7,7 @@ use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, OopRef};
 use crate::util;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 pub fn get_primitive_class_mirror(key: &str) -> Option<OopRef> {
     //todo: avoid mutex lock, it's only read
@@ -66,6 +66,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getEnclosingMethod0",
             "()[Ljava/lang/Object;",
             Box::new(jvm_getEnclosingMethod0),
+        ),
+        new_fn(
+            "getDeclaringClass0",
+            "()Ljava/lang/Class;",
+            Box::new(jvm_getDeclaringClass0),
         ),
     ]
 }
@@ -641,4 +646,53 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     let ary = OopDesc::new_ref_ary2(ary, elms);
 
     Ok(Some(ary))
+}
+
+fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let mirror = args.get(0).unwrap();
+    let target = {
+        let v = mirror.lock().unwrap();
+        match &v.v {
+            Oop::Mirror(mirror) => mirror.target.clone(),
+            _ => return Ok(Some(oop::consts::get_null())),
+        }
+    };
+
+    let (cls_file, target, inner_classes) = match target {
+        Some(target) => {
+            let cls = target.lock().unwrap();
+            match &cls.kind {
+                ClassKind::Instance(cls) => match &cls.inner_classes {
+                    Some(inner_classes) => (
+                        cls.class_file.clone(),
+                        target.clone(),
+                        inner_classes.clone(),
+                    ),
+                    None => return Ok(Some(oop::consts::get_null())),
+                },
+                _ => return Ok(Some(oop::consts::get_null())),
+            }
+        }
+        None => return Ok(Some(oop::consts::get_null())),
+    };
+
+    for it in inner_classes.iter() {
+        if it.inner_class_info_index == 0 {
+            continue;
+        }
+
+        let inner_class = require_class2(it.inner_class_info_index, &cls_file.cp).unwrap();
+
+        if Arc::ptr_eq(&inner_class, &target) {
+            return if it.outer_class_info_index == 0 {
+                Ok(Some(oop::consts::get_null()))
+            } else {
+                let outer_class = require_class2(it.outer_class_info_index, &cls_file.cp).unwrap();
+                let v = outer_class.lock().unwrap();
+                Ok(Some(v.get_mirror()))
+            };
+        }
+    }
+
+    return Ok(Some(oop::consts::get_null()));
 }
