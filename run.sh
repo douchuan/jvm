@@ -1,22 +1,17 @@
+CLASS_PATH=.:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar
 
-###test/HelloWorld 123, with rust RUST_LOG
-#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/HelloWorld 123
+###
+#cargo run -- --cp $CLASS_PATH test/Add
+#cargo run -- --cp $CLASS_PATH test/HelloWorld 123 456 789
+#cargo run -- --cp $CLASS_PATH test/Ex
 
-###test/HelloWorld 123, without RUST_LOG
-#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/HelloWorld 123
-
-#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Ex
-#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Ex
-
-#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/SubOverflow
-
-### jdk test
-RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Compare
-#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/Compare
+### Overflow
+#cargo run -- --cp $CLASS_PATH test/SubOverflow
 
 ### Enum CloneNotSupportedException
-#cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/EnumDemo
-#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar test/EnumDemo
+#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp $CLASS_PATH test/EnumDemo
+#cargo run -- --cp $CLASS_PATH test/EnumDemo
 
-#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar test/HelloWorld
-#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp .:test/:test/zulu8/jre/lib/rt.jar test/Add
+### jdk test
+#RUST_LOG=trace RUST_BACKTRACE=1 cargo run -- --cp $CLASS_PATH test/Compare
+#cargo run -- --cp $CLASS_PATH test/Compare

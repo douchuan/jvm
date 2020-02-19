@@ -430,7 +430,7 @@ fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
     } else {
         let lt = lt.unwrap();
         let rt = rt.unwrap();
-        if runtime::cmp::instance_of(lt, rt) {
+        if runtime::cmp::instance_of(rt, lt) {
             1
         } else {
             0

@@ -22,7 +22,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     let mut callers = jt.callers.clone();
 
-    callers.pop(); //pop cur method
+    let cur = callers.pop().unwrap(); //pop cur method
+    assert_eq!(cur.method.name.as_slice(), b"getCallerClass");
 
     loop {
         let caller = callers.pop().unwrap();
@@ -34,6 +35,7 @@ fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> 
         }
 
         let cls = caller.method.class.lock().unwrap();
+        //        error!("getCallerClass name = {}", String::from_utf8_lossy(cls.name.as_slice()));
         return Ok(Some(cls.get_mirror()));
     }
 }

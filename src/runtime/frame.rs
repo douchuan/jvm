@@ -2460,7 +2460,12 @@ impl Frame {
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
-            _ => unimplemented!(),
+            Oop::Mirror(mirror) => {
+                //java.util.ServiceLoader
+                //service = Objects.requireNonNull(svc, "Service interface cannot be null");
+                self.stack.push_ref(rf_back)
+            }
+            t => unimplemented!("t = {:?}", t),
         }
     }
 

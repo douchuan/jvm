@@ -15,7 +15,11 @@ const _BA_HIDDEN: i32 = 0x08;
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
         new_fn("initIDs", "()V", Box::new(jvm_initIDs)),
-        new_fn("getBooleanAttributes0", "(Ljava/io/File;)I", Box::new(jvm_getBooleanAttributes0)),
+        new_fn(
+            "getBooleanAttributes0",
+            "(Ljava/io/File;)I",
+            Box::new(jvm_getBooleanAttributes0),
+        ),
     ]
 }
 
@@ -30,7 +34,7 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRe
             let v = file.lock().unwrap();
             match &v.v {
                 Oop::Inst(inst) => inst.class.clone(),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         };
 
@@ -51,7 +55,7 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRe
                 r |= BA_DIRECTORY;
             }
         }
-        _ => ()
+        _ => (),
     }
 
     Ok(Some(OopDesc::new_int(r)))
