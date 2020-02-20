@@ -370,6 +370,7 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     let is_type_ary = {
         match &src.v {
             Oop::TypeArray(_) => true,
+            Oop::Array(_) => false,
             _ => unreachable!(),
         }
     };
