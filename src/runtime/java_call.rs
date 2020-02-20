@@ -85,6 +85,10 @@ impl JavaCall {
                             String::from_utf8_lossy(mir.method.get_id().as_slice()),
                             v
                         );
+
+                        //快速失败，避免大量log，不容易定位问题
+                        //                        panic!();
+
                         let ex = exception::new(jt, consts::J_NPE, None);
                         jt.set_ex(ex);
                         return Err(());
@@ -259,13 +263,29 @@ impl JavaCall {
     }
 
     fn resolve_virtual_method(&mut self, force_no_resolve: bool) {
-        let resolve_twice = if force_no_resolve {
+        let resolve_again = if force_no_resolve {
             false
         } else {
+            //todo: acc_flags 的值为什么可能为0
+            /*
+            这种情况出现在:
+            java/util/regex/Matcher.java
+            bool search(int from)
+              boolean result = parentPattern.root.match(this, from, text);
+
+            match方法的acc_flags即为0，导致找到的是java/util/regex/Patter$Node中的match，
+            正确的应该使用java/util/regex/Patter$Start中的match
+            */
             self.mir.method.is_abstract()
                 || (self.mir.method.is_public() && !self.mir.method.is_final())
+                || (self.mir.method.acc_flags == 0)
         };
-        if resolve_twice {
+        trace!(
+            "resolve_virtual_method resolve_twice={}, acc_flags = {}",
+            resolve_again,
+            self.mir.method.acc_flags
+        );
+        if resolve_again {
             let this = self.args.get(0).unwrap();
             let this = this.lock().unwrap();
             match &this.v {
