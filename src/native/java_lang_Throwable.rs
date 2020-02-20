@@ -36,18 +36,23 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     let mut traces = Vec::new();
     for mir in callers.iter().rev() {
         let cls_name = { mir.method.class.lock().unwrap().name.clone() };
+        let cls_name = String::from_utf8_lossy(cls_name.as_slice());
         let method_name = mir.method.name.clone();
+        let method_name = String::from_utf8_lossy(method_name.as_slice());
         let src_file = mir.method.src_file.clone();
         let src_file = match src_file {
-            Some(name) => util::oop::new_java_lang_string3(jt, name.as_slice()),
+            Some(name) => {
+                let name = String::from_utf8_lossy(name.as_slice());
+                util::oop::new_java_lang_string2(jt, &name)
+            }
             None => util::oop::new_java_lang_string2(jt, ""),
         };
 
         let elm = OopDesc::new_inst(elm_cls.clone());
         let args = vec![
             elm.clone(),
-            util::oop::new_java_lang_string3(jt, cls_name.as_slice()),
-            util::oop::new_java_lang_string3(jt, method_name.as_slice()),
+            util::oop::new_java_lang_string2(jt, &cls_name),
+            util::oop::new_java_lang_string2(jt, &method_name),
             src_file,
             OopDesc::new_int(0),
         ];

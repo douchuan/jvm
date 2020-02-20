@@ -379,8 +379,7 @@ impl Frame {
             ConstantType::Double { v } => self.stack.push_double2(*v),
             ConstantType::String { string_index } => {
                 let s = constant_pool::get_utf8(&self.cp, *string_index as usize).unwrap();
-                let s = String::from_utf8_lossy(s.as_slice());
-                let s = util::oop::new_java_lang_string2(thread, &s);
+                let s = util::oop::new_java_lang_string3(thread, s.as_slice());
                 self.stack.push_ref(s);
             }
             ConstantType::Class { name_index } => {
@@ -928,7 +927,16 @@ impl Frame {
                         self.stack.push_int(ary[pos as usize] as i32);
                     }
                 }
-                _ => unreachable!(),
+                oop::TypeArrayValue::Bool(ary) => {
+                    let len = ary.len();
+                    if (pos < 0) || (pos as usize >= len) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    } else {
+                        self.stack.push_int(ary[pos as usize] as i32);
+                    }
+                }
+                t => unreachable!("t = {:?}", t),
             },
             Oop::Null => {
                 self.meet_ex(thread, consts::J_NPE, None);
@@ -2046,21 +2054,21 @@ impl Frame {
             self.code[ptr + 2],
             self.code[ptr + 3],
         ];
-        let default_byte = u32::from_be_bytes(default_byte);
+        let default_byte = i32::from_be_bytes(default_byte);
         let low_byte = [
             self.code[ptr + 4],
             self.code[ptr + 5],
             self.code[ptr + 6],
             self.code[ptr + 7],
         ];
-        let low_byte = u32::from_be_bytes(low_byte);
+        let low_byte = i32::from_be_bytes(low_byte);
         let high_byte = [
             self.code[ptr + 8],
             self.code[ptr + 9],
             self.code[ptr + 10],
             self.code[ptr + 11],
         ];
-        let high_byte = u32::from_be_bytes(high_byte);
+        let high_byte = i32::from_be_bytes(high_byte);
         let num = high_byte - low_byte + 1;
         ptr += 12;
 
@@ -2073,18 +2081,16 @@ impl Frame {
                 self.code[ptr + 2],
                 self.code[ptr + 3],
             ];
-            let pos = u32::from_be_bytes(pos);
-            let jump_pos = pos + origin_bc as u32;
+            let pos = i32::from_be_bytes(pos);
+            let jump_pos = pos + origin_bc;
             ptr += 4;
             jump_table.push(jump_pos);
         }
         // default
-        jump_table.push(default_byte + origin_bc as u32);
+        jump_table.push(default_byte + origin_bc);
 
         let top_value = self.stack.pop_int();
-        if (top_value > (jump_table.len() - 1 + low_byte as usize) as i32)
-            || top_value < low_byte as i32
-        {
+        if (top_value > (jump_table.len() as i32 - 1 + low_byte)) || top_value < low_byte {
             self.goto_abs_with_occupied(*jump_table.last().unwrap() as i32, 1);
         } else {
             self.goto_abs_with_occupied(
@@ -2461,9 +2467,27 @@ impl Frame {
                 }
             }
             Oop::Mirror(mirror) => {
+                //run here codes:
                 //java.util.ServiceLoader
                 //service = Objects.requireNonNull(svc, "Service interface cannot be null");
-                self.stack.push_ref(rf_back)
+
+                let obj_cls = mirror.target.clone().unwrap();
+                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                if r {
+                    self.stack.push_ref(rf_back);
+                } else {
+                    let s_name = { obj_cls.lock().unwrap().name.clone() };
+                    let t_name = { target_cls.lock().unwrap().name.clone() };
+
+                    let s_name = String::from_utf8_lossy(s_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let t_name = String::from_utf8_lossy(t_name.as_slice())
+                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+
+                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    warn!("{}", msg);
+                    self.meet_ex(thread, consts::J_CCE, Some(msg));
+                }
             }
             t => unimplemented!("t = {:?}", t),
         }

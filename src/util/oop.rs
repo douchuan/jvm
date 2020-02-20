@@ -129,10 +129,54 @@ pub fn new_java_lang_string2(jt: &mut JavaThread, v: &str) -> OopRef {
     string_oop
 }
 
-pub fn new_java_lang_string3(jt: &mut JavaThread, v: &[u8]) -> OopRef {
+pub fn new_java_lang_string3(jt: &mut JavaThread, bs: &[u8]) -> OopRef {
+    let length = bs.len();
+    let mut buffer: Vec<u16> = Vec::with_capacity(length);
+    let mut pos = 0;
+    while pos < length {
+        if bs[pos] & 0x80 == 0 {
+            let v = bs[pos] as u16;
+            buffer.push(v);
+            pos += 1;
+        } else if bs[pos] & 0xE0 == 0xC0 && (bs[pos + 1] & 0xC0) == 0x80 {
+            let x = bs[pos] as u16;
+            let y = bs[pos + 1] as u16;
+            let v = ((x & 0x1f) << 6) + (y & 0x3f);
+            buffer.push(v);
+            pos += 2;
+        } else if bs[pos] & 0xF0 == 0xE0
+            && (bs[pos + 1] & 0xC0) == 0x80
+            && (bs[pos + 2] & 0xC0) == 0x80
+        {
+            let x = bs[pos] as u16;
+            let y = bs[pos + 1] as u16;
+            let z = bs[pos + 2] as u16;
+            let v = ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f);
+            buffer.push(v);
+            pos += 3;
+        } else if bs[pos] == 0xED
+            && (bs[pos + 1] & 0xF0 == 0xA0)
+            && (bs[pos + 2] & 0xC0 == 0x80)
+            && (bs[pos + 3] == 0xED)
+            && (bs[pos + 4] & 0xF0 == 0xB0)
+            && (bs[pos + 5] & 0xC0 == 0x80)
+        {
+            let v = bs[pos + 1] as u32;
+            let w = bs[pos + 2] as u32;
+            let y = bs[pos + 4] as u32;
+            let z = bs[pos + 5] as u32;
+            let vv =
+                0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f);
+            buffer.push(vv as u16);
+
+            pos += 6;
+        } else {
+            unreachable!()
+        }
+    }
+
     //build "char value[]"
-    let v: Vec<u16> = v.iter().map(|v| *v as u16).collect();
-    let ary = OopDesc::char_ary_from1(v.as_slice());
+    let ary = OopDesc::char_ary_from1(buffer.as_slice());
 
     //new String(char value[])
     let string_cls = require_class3(None, b"java/lang/String").unwrap();

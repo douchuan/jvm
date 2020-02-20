@@ -191,9 +191,12 @@ impl JavaMainThread {
     pub fn run(&mut self) {
         let mut jt = JavaThread::new();
 
+        info!("init vm start...");
         init_vm::initialize_jvm(&mut jt);
+        info!("init vm end");
 
-        let main_class = runtime::require_class3(None, self.class.as_bytes()).unwrap();
+        let main_class = oop::class::load_and_init(&mut jt, self.class.as_bytes());
+
         let mir = {
             let cls = main_class.lock().unwrap();
             let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
