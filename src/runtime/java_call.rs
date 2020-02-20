@@ -87,7 +87,7 @@ impl JavaCall {
                         );
 
                         //快速失败，避免大量log，不容易定位问题
-//                        panic!();
+                        //                        panic!();
 
                         let ex = exception::new(jt, consts::J_NPE, None);
                         jt.set_ex(ex);

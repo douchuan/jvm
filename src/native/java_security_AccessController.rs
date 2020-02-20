@@ -23,6 +23,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "()Ljava/security/AccessControlContext;",
             Box::new(jvm_getStackAccessControlContext),
         ),
+        new_fn("doPrivileged", "(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", Box::new(jvm_doPrivileged3)),
     ]
 }
 
@@ -62,7 +63,13 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
     }
 }
 
+//todo: re impl
 fn jvm_doPrivileged2(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    jvm_doPrivileged(jt, env, args)
+}
+
+//todo: re impl
+fn jvm_doPrivileged3(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     jvm_doPrivileged(jt, env, args)
 }
 

@@ -1,9 +1,10 @@
 JDK=test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar
 
-JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang/
+JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang
 MY_TEST=.:./test
 
 #export RUST_LOG=trace
+#export RUST_LOG=info
 #export RUST_BACKTRACE=1
 
 ### My Test
@@ -11,16 +12,16 @@ MY_TEST=.:./test
 #cargo run -- --cp $JDK:$MY_TEST test/HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST test/Ex
 
-### Overflow
+### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST test/SubOverflow
 
-### Enum CloneNotSupportedException
+### fix Enum CloneNotSupportedException
 #cargo run -- --cp $JDK:$MY_TEST test/EnumDemo
 
-### Printf
+### fix System.out.printf not work, resolve_again for acc_flags == 0
 #cargo run -- --cp $JDK:$MY_TEST test/Printf
 
-### ThreadLocal
+### fix ThreadLocal not work, resolve_again for protected
 #cargo run -- --cp $JDK:$MY_TEST test/ThreadLocalTest
 
 
@@ -44,7 +45,7 @@ MY_TEST=.:./test
 
 ###
 ##Float.toString(1.0f) crash
-##
+##ThreadLocal.initialValue not called, so NPE happend
 #cargo run -- --cp $JDK:$MY_TEST:./test/float test/float/ToString
 
 ###############################
@@ -53,10 +54,11 @@ MY_TEST=.:./test
 
 #cargo run -- --cp $JDK:$JDK_TEST Compare
 #cargo run -- --cp $JDK:$JDK_TEST HashCode
-###XXX, sun/misc/FloatingDecimal$BinaryToASCIIBuffer:setSign:(Z)V
-cargo run -- --cp $JDK:$JDK_TEST ToString
-#cargo run -- --cp $JDK:$JDK_TEST:JDK_TEST/Math Math/AbsPositiveZero
-
-###passed
+#cargo run -- --cp $JDK:$JDK_TEST ToString
+cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Appendable/Basic
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass Class/asSubclass/BasicUnit
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math Math/AbsPositiveZero
+
+##todo: depend on testng
+##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
 
