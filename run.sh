@@ -20,6 +20,10 @@ MY_TEST=.:./test
 ### Printf
 #cargo run -- --cp $JDK:$MY_TEST test/Printf
 
+### ThreadLocal
+#cargo run -- --cp $JDK:$MY_TEST test/ThreadLocalTest
+
+
 ###regex
 ## System.out.printf not work
 ##
@@ -38,6 +42,10 @@ MY_TEST=.:./test
 ## JVM Spec, 4.4.7 The CONSTANT_Utf8_info Structure 定义
 #cargo run -- --cp $JDK:$MY_TEST:./test/regex test/regex/Printf
 
+###
+##Float.toString(1.0f) crash
+##
+#cargo run -- --cp $JDK:$MY_TEST:./test/float test/float/ToString
 
 ###############################
 ### jdk test
@@ -46,7 +54,7 @@ MY_TEST=.:./test
 #cargo run -- --cp $JDK:$JDK_TEST Compare
 #cargo run -- --cp $JDK:$JDK_TEST HashCode
 ###XXX, sun/misc/FloatingDecimal$BinaryToASCIIBuffer:setSign:(Z)V
-#cargo run -- --cp $JDK:$JDK_TEST ToString
+cargo run -- --cp $JDK:$JDK_TEST ToString
 #cargo run -- --cp $JDK:$JDK_TEST:JDK_TEST/Math Math/AbsPositiveZero
 
 ###passed

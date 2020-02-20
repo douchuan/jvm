@@ -28,6 +28,8 @@ pub struct Frame {
     pub stack: Stack,
     pub pc: i32,
     pub return_v: Option<OopRef>,
+
+    op_widen: bool,
 }
 
 //new
@@ -57,6 +59,7 @@ impl Frame {
                     stack,
                     pc: 0,
                     return_v: None,
+                    op_widen: false,
                 }
             }
 
@@ -70,6 +73,7 @@ impl Frame {
                 stack: Stack::new(0),
                 pc: 0,
                 return_v: None,
+                op_widen: false,
             },
         }
     }
@@ -711,33 +715,63 @@ impl Frame {
     }
 
     pub fn iload(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.local.get_int(pos);
         self.stack.push_int(v);
+
+        self.op_widen = false;
     }
 
     pub fn lload(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.local.get_long(pos);
         self.stack.push_long(v);
+
+        self.op_widen = false;
     }
 
     pub fn fload(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.local.get_float(pos);
         self.stack.push_float(v);
+
+        self.op_widen = false;
     }
 
     pub fn dload(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.local.get_double(pos);
         self.stack.push_double(v);
+
+        self.op_widen = false;
     }
 
     pub fn aload(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.local.get_ref(pos);
         self.stack.push_ref(v);
+
+        self.op_widen = false;
     }
 
     pub fn iload_0(&mut self) {
@@ -1041,33 +1075,63 @@ impl Frame {
     }
 
     pub fn istore(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.stack.pop_int();
         self.local.set_int(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn lstore(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.stack.pop_long();
         self.local.set_long(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn fstore(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.stack.pop_float();
         self.local.set_float(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn dstore(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.stack.pop_double();
         self.local.set_double(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn astore(&mut self) {
-        let pos = self.read_u1();
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
         let v = self.stack.pop_ref();
         self.local.set_ref(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn istore_0(&mut self) {
@@ -1695,12 +1759,22 @@ impl Frame {
     }
 
     pub fn iinc(&mut self) {
-        let pos = self.read_u1();
-        let factor = (self.read_byte() as i8) as i32;
+        let pos = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
+        let factor = if self.op_widen {
+            (self.read_u2() as i16) as i32
+        } else {
+            (self.read_byte() as i8) as i32
+        };
 
         let v = self.local.get_int(pos);
         let v = v.wrapping_add(factor);
         self.local.set_int(pos, v);
+
+        self.op_widen = false;
     }
 
     pub fn i2l(&mut self) {
@@ -2035,8 +2109,14 @@ impl Frame {
     }
 
     pub fn ret(&mut self) {
-        self.pc += 1;
-        panic!("Use of deprecated instruction ret, please check your Java compiler");
+        let pc = if self.op_widen {
+            self.read_u2()
+        } else {
+            self.read_u1()
+        };
+        self.pc = pc as i32;
+
+        self.op_widen = true;
     }
 
     pub fn table_switch(&mut self) {
@@ -2542,7 +2622,8 @@ impl Frame {
     }
 
     pub fn wide(&mut self) {
-        panic!("Use of deprecated instruction wide, please check your Java compiler")
+        info!("opcode wide");
+        self.op_widen = true;
     }
 
     pub fn multi_anew_array(&mut self) {

@@ -87,7 +87,7 @@ impl JavaCall {
                         );
 
                         //快速失败，避免大量log，不容易定位问题
-                        //                        panic!();
+//                        panic!();
 
                         let ex = exception::new(jt, consts::J_NPE, None);
                         jt.set_ex(ex);
@@ -278,10 +278,11 @@ impl JavaCall {
             */
             self.mir.method.is_abstract()
                 || (self.mir.method.is_public() && !self.mir.method.is_final())
+                || (self.mir.method.is_protected() && !self.mir.method.is_final())
                 || (self.mir.method.acc_flags == 0)
         };
         trace!(
-            "resolve_virtual_method resolve_twice={}, acc_flags = {}",
+            "resolve_virtual_method resolve_again={}, acc_flags = {}",
             resolve_again,
             self.mir.method.acc_flags
         );
