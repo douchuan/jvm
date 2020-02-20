@@ -72,6 +72,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "()Ljava/lang/Class;",
             Box::new(jvm_getDeclaringClass0),
         ),
+        new_fn(
+            "isInstance",
+            "(Ljava/lang/Object;)Z",
+            Box::new(jvm_isInstance),
+        ),
     ]
 }
 
@@ -629,14 +634,12 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     //push EnclosingMethod name&desc
     if em.method_index != 0 {
         let (name, desc) = constant_pool::get_name_and_type(&cls_file.cp, em.method_index as usize);
-        elms.push(util::oop::new_java_lang_string3(
-            jt,
-            name.unwrap().as_slice(),
-        ));
-        elms.push(util::oop::new_java_lang_string3(
-            jt,
-            desc.unwrap().as_slice(),
-        ));
+        let name = name.unwrap();
+        let name = String::from_utf8_lossy(name.as_slice());
+        let desc = desc.unwrap();
+        let desc = String::from_utf8_lossy(desc.as_slice());
+        elms.push(util::oop::new_java_lang_string2(jt, &name));
+        elms.push(util::oop::new_java_lang_string2(jt, &desc));
     } else {
         elms.push(oop::consts::get_null());
         elms.push(oop::consts::get_null());
@@ -695,4 +698,33 @@ fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     }
 
     return Ok(Some(oop::consts::get_null()));
+}
+
+fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let target = args.get(0).unwrap();
+    let obj = args.get(1).unwrap();
+
+    let target_cls = {
+        let v = target.lock().unwrap();
+        match &v.v {
+            Oop::Inst(inst) => inst.class.clone(),
+            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!(),
+        }
+    };
+    let obj_cls = {
+        let v = obj.lock().unwrap();
+        match &v.v {
+            Oop::Inst(inst) => inst.class.clone(),
+            _ => unreachable!(),
+        }
+    };
+
+    let v = if runtime::cmp::instance_of(obj_cls, target_cls) {
+        1
+    } else {
+        0
+    };
+
+    Ok(Some(OopDesc::new_int(v)))
 }
