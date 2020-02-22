@@ -67,7 +67,10 @@ impl ClassPathManager {
 
     pub fn add_class_paths(&mut self, path: &str) {
         path.split(util::PATH_DELIMITER_STR).for_each(|p| {
-            self.add_class_path(p);
+            match self.add_class_path(p) {
+                Err(e) => error!("add class path error, path={}, e={:?}", p, e),
+                _ => ()
+            }
         });
     }
 
@@ -75,7 +78,8 @@ impl ClassPathManager {
         let name = name.replace("/", util::PATH_SEP_STR);
         let name = name.replace(".", util::PATH_SEP_STR);
 
-        //        debug!("search_class name={}", name);
+        trace!("search_class: {}", name);
+
         for it in self.runtime_class_path.iter() {
             match &it.0 {
                 ClassSource::DIR => {

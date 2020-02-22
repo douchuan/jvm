@@ -92,6 +92,9 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     jc.invoke(jt, &mut stack, false);
 
     //todo: re-enable sun.security.util.Debug
+
+    //setup security
+    let _ = oop::class::load_and_init(jt, b"sun.security.provider.Sun");
 }
 
 fn initialize_vm_structs(jt: &mut JavaThread) {

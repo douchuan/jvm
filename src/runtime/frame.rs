@@ -2548,9 +2548,15 @@ impl Frame {
             }
             Oop::Mirror(mirror) => {
                 //run here codes:
-                //java.util.ServiceLoader
-                //service = Objects.requireNonNull(svc, "Service interface cannot be null");
+                //$JDK_TEST/Appendable/Basic.java
+                //最终会调用java.security.Security.getSpiClass("MessageDigest")
+                //走到这里
+                //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
+                //
+                //fixme: 这里直接赋值，不做任何检查吗？做检查，如何做？
+                self.stack.push_ref(rf_back);
 
+                /*
                 let obj_cls = mirror.target.clone().unwrap();
                 let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                 if r {
@@ -2568,6 +2574,7 @@ impl Frame {
                     warn!("{}", msg);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
+                */
             }
             t => unimplemented!("t = {:?}", t),
         }

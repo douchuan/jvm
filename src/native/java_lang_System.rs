@@ -133,9 +133,15 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("user.name", "chuan"),
         ("user.home", "/Users/douchuan/"),
         ("user.dir", "/Users/douchuan/"),
-        ("java.home", "/Users/douchuan/work/prj_rust/jvm/test/"),
+        ("java.home", "/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre"),
         ("file.encoding", "US-ASCII"),
         ("java.io.tmpdir", "/tmp"),
+
+        //debug
+        ("java.security.debug", "all"),
+        ("java.security.auth.debug", "all"),
+        ("sun.misc.URLClassPath.debug", "true"),
+        ("sun.misc.URLClassPath.debugLookupCache", "true"),
         //        ("java.security.manager", ""),
         //        ("sun.jnu.encoding", "UTF-8"),
         //        ("sun.stdout.encoding", "UTF-8"),
