@@ -110,13 +110,21 @@ impl JavaCall {
 
 impl JavaCall {
     pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack, force_no_resolve: bool) {
+        /*
+        Do resolve again first, 因为可以用native的方式override
+        比如:
+        UnixFileSystem override FileSystem
+            public abstract boolean checkAccess(File f, int access);
+
+            public native boolean checkAccess(File f, int access);
+        */
+        self.resolve_virtual_method(force_no_resolve);
         self.debug();
 
         if self.mir.method.is_native() {
             jt.callers.push(self.mir.clone());
             self.invoke_native(jt, stack);
         } else {
-            self.resolve_virtual_method(force_no_resolve);
             jt.callers.push(self.mir.clone());
             self.invoke_java(jt, stack);
         }
