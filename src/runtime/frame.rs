@@ -43,9 +43,11 @@ impl Frame {
                 _ => unreachable!(),
             }
         };
+
+        // trace!("method.code.is_some = {}", mir.method.code.is_some());
         match &mir.method.code {
             Some(code) => {
-                //                trace!("local size = {}, stack_size = {}", code.max_locals, code.max_stack);
+                // trace!("max_locals = {}, max_stack = {}", code.max_locals, code.max_stack);
                 let local = Local::new(code.max_locals as usize);
                 let stack = Stack::new(code.max_stack as usize);
                 let code = code.code.clone();
