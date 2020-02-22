@@ -66,12 +66,11 @@ impl ClassPathManager {
     }
 
     pub fn add_class_paths(&mut self, path: &str) {
-        path.split(util::PATH_DELIMITER_STR).for_each(|p| {
-            match self.add_class_path(p) {
+        path.split(util::PATH_DELIMITER_STR)
+            .for_each(|p| match self.add_class_path(p) {
                 Err(e) => error!("add class path error, path={}, e={:?}", p, e),
-                _ => ()
-            }
-        });
+                _ => (),
+            });
     }
 
     pub fn search_class(&self, name: &str) -> Result<ClassPathResult, io::Error> {

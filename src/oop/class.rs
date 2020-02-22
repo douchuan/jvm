@@ -367,7 +367,7 @@ impl Class {
             .get_field_id(name, desc, is_static)
     }
 
-    pub fn put_field_value(&self, mut receiver: OopRef, fir: FieldIdRef, v: OopRef) {
+    pub fn put_field_value(&self, receiver: OopRef, fir: FieldIdRef, v: OopRef) {
         let mut rff = receiver.lock().unwrap();
         match &mut rff.v {
             Oop::Inst(inst) => inst.field_values[fir.offset] = v,

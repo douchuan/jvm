@@ -8,13 +8,13 @@ use crate::util;
 use std::fs;
 
 //FileSystem.java define
-const BA_EXISTS: i32        = 0x01;
-const BA_REGULAR: i32       = 0x02;
-const BA_DIRECTORY: i32     = 0x04;
-const _BA_HIDDEN: i32       = 0x08;
-const ACCESS_READ: i32      = 0x04;
-const ACCESS_WRITE: i32     = 0x02;
-const ACCESS_EXECUTE: i32   = 0x01;
+const BA_EXISTS: i32 = 0x01;
+const BA_REGULAR: i32 = 0x02;
+const BA_DIRECTORY: i32 = 0x04;
+const _BA_HIDDEN: i32 = 0x08;
+const ACCESS_READ: i32 = 0x04;
+const ACCESS_WRITE: i32 = 0x02;
+const ACCESS_EXECUTE: i32 = 0x01;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -24,7 +24,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/io/File;)I",
             Box::new(jvm_getBooleanAttributes0),
         ),
-        new_fn("checkAccess", "(Ljava/io/File;I)Z", Box::new(jvm_checkAccess)),
+        new_fn(
+            "checkAccess",
+            "(Ljava/io/File;I)Z",
+            Box::new(jvm_checkAccess),
+        ),
     ]
 }
 
@@ -87,7 +91,7 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
         let v = access.lock().unwrap();
         match v.v {
             Oop::Int(v) => v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     };
 

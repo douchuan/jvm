@@ -95,6 +95,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     //setup security
     let _ = oop::class::load_and_init(jt, b"sun.security.provider.Sun");
+    let _ = oop::class::load_and_init(jt, b"sun.security.rsa.SunRsaSign");
+    let _ = oop::class::load_and_init(jt, b"com.sun.net.ssl.internal.ssl.Provider");
 }
 
 fn initialize_vm_structs(jt: &mut JavaThread) {
