@@ -53,31 +53,10 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -
 
 fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let src = args.get(0).unwrap();
-    let src_pos = {
-        let arg1 = args.get(1).unwrap();
-        let arg1 = arg1.lock().unwrap();
-        match arg1.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
+    let src_pos = util::oop::extract_int(args.get(1).unwrap().clone());
     let dest = args.get(2).unwrap();
-    let dest_pos = {
-        let arg3 = args.get(3).unwrap();
-        let arg3 = arg3.lock().unwrap();
-        match arg3.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
-    let length = {
-        let arg4 = args.get(4).unwrap();
-        let arg4 = arg4.lock().unwrap();
-        match arg4.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
+    let dest_pos = util::oop::extract_int(args.get(3).unwrap().clone());
+    let length = util::oop::extract_int(args.get(4).unwrap().clone());
 
     //todo: do check & throw exception
 

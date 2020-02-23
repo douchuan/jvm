@@ -109,14 +109,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
 
 fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let throwable = args.get(0).unwrap();
-    let index = {
-        let v = args.get(1).unwrap();
-        let v = v.lock().unwrap();
-        match v.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
+    let index = util::oop::extract_int(args.get(1).unwrap().clone());
     let cls = {
         let v = throwable.lock().unwrap();
         match &v.v {

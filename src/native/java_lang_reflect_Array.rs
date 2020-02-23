@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopDesc};
 use crate::runtime::{require_class3, JavaThread};
 use crate::types::OopRef;
+use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -22,14 +23,7 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
             _ => unreachable!(),
         }
     };
-    let length = {
-        let v = args.get(1).unwrap();
-        let v = v.lock().unwrap();
-        match v.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
+    let length = util::oop::extract_int(args.get(1).unwrap().clone());
 
     //todo: throw NegativeArraySizeException
     let name = {

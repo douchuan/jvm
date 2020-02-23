@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc};
-use crate::runtime::JavaThread;
+use crate::oop::OopDesc;
+use crate::runtime::{require_class3, JavaThread};
 use crate::types::OopRef;
 use crate::util;
 use std::fs;
@@ -38,20 +38,7 @@ fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIRes
 
 fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let file = args.get(1).unwrap();
-    let path = {
-        let cls = {
-            let v = file.lock().unwrap();
-            match &v.v {
-                Oop::Inst(inst) => inst.class.clone(),
-                _ => unreachable!(),
-            }
-        };
-
-        let cls = cls.lock().unwrap();
-        let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
-        cls.get_field_value(file.clone(), fir)
-    };
-    let path = util::oop::extract_str(path);
+    let path = get_File_path(file.clone());
 
     let mut r = 0;
     match fs::metadata(path) {
@@ -72,28 +59,10 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRe
 
 fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let file = args.get(1).unwrap();
-    let path = {
-        let cls = {
-            let v = file.lock().unwrap();
-            match &v.v {
-                Oop::Inst(inst) => inst.class.clone(),
-                _ => unreachable!(),
-            }
-        };
+    let path = get_File_path(file.clone());
 
-        let cls = cls.lock().unwrap();
-        let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
-        cls.get_field_value(file.clone(), fir)
-    };
-    let path = util::oop::extract_str(path);
     let access = args.get(2).unwrap();
-    let access = {
-        let v = access.lock().unwrap();
-        match v.v {
-            Oop::Int(v) => v,
-            _ => unreachable!(),
-        }
-    };
+    let access = util::oop::extract_int(access.clone());
 
     let mut amode = 0;
     if (access & ACCESS_READ) == ACCESS_READ {
@@ -117,4 +86,14 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
     };
 
     Ok(Some(OopDesc::new_int(r)))
+}
+
+fn get_File_path(file: OopRef) -> String {
+    let cls = require_class3(None, b"java/io/File").unwrap();
+    let path = {
+        let cls = cls.lock().unwrap();
+        let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
+        cls.get_field_value(file.clone(), fir)
+    };
+    util::oop::extract_str(path)
 }

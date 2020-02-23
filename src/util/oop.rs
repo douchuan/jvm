@@ -127,6 +127,30 @@ pub fn extract_int(v: OopRef) -> i32 {
     }
 }
 
+pub fn extract_float(v: OopRef) -> f32 {
+    let v = v.lock().unwrap();
+    match v.v {
+        Oop::Float(v) => v,
+        _ => unreachable!(),
+    }
+}
+
+pub fn extract_long(v: OopRef) -> i64 {
+    let v = v.lock().unwrap();
+    match v.v {
+        Oop::Long(v) => v,
+        _ => unreachable!(),
+    }
+}
+
+pub fn extract_double(v: OopRef) -> f64 {
+    let v = v.lock().unwrap();
+    match v.v {
+        Oop::Double(v) => v,
+        _ => unreachable!(),
+    }
+}
+
 pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
     if Arc::ptr_eq(&v1, &v2) {
         true

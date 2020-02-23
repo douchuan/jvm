@@ -274,11 +274,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) 
 
     let public_only = {
         let arg1 = args.get(1).unwrap();
-        let arg1 = arg1.lock().unwrap();
-        match arg1.v {
-            Oop::Int(v) => v == 1,
-            _ => unreachable!(),
-        }
+        util::oop::extract_int(arg1.clone()) == 1
     };
 
     //fixme: super fields
@@ -343,11 +339,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     let java_name = util::oop::extract_str(arg0.clone());
     let _initialize = {
         let arg1 = args.get(1).unwrap();
-        let arg1 = arg1.lock().unwrap();
-        match arg1.v {
-            Oop::Int(v) => v != 0,
-            _ => unreachable!(),
-        }
+        util::oop::extract_int(arg1.clone()) != 0
     };
     let java_cls_loader = args.get(2).unwrap();
     {
@@ -476,14 +468,8 @@ fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop
         }
     };
 
-    let _public_only = {
-        let arg1 = args.get(1).unwrap();
-        let arg1 = arg1.lock().unwrap();
-        match arg1.v {
-            Oop::Int(v) => v == 1,
-            _ => unreachable!(),
-        }
-    };
+    let arg1 = args.get(1).unwrap();
+    let _public_only = util::oop::extract_int(arg1.clone()) == 1;
 
     //fixme: super methods
     let all_methods = {
