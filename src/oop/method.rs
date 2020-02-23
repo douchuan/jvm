@@ -6,7 +6,8 @@ use crate::classfile::{
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
 use crate::types::*;
-use crate::util::{self, PATH_DELIMITER};
+use crate::util;
+use crate::util::PATH_SEP;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -90,7 +91,7 @@ impl Method {
     ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
-        let id = vec![name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
+        let id = vec![name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
         let id = new_ref!(id);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;

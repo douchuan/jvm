@@ -1,23 +1,20 @@
 #![allow(unused)]
 
-pub const PATH_DELIMITER: &[u8] = platform::PATH_DELIMITER;
-pub const PATH_DELIMITER_STR: &str = platform::PATH_DELIMITER_STR;
-pub const PATH_SEP: &[u8] = platform::PATH_SEP;
-pub const PATH_SEP_STR: &str = platform::PATH_SEP_STR;
-pub const DOT_STR: &str = ".";
+pub const FILE_SEP: &str = platform::FILE_SEP;
+pub const PATH_SEP: &str = platform::PATH_SEP;
 
 #[cfg(unix)]
 mod platform {
-    pub const PATH_DELIMITER: &[u8] = b":";
-    pub const PATH_DELIMITER_STR: &str = ":";
-    pub const PATH_SEP: &[u8] = b"/";
-    pub const PATH_SEP_STR: &str = "/";
+    // pub const PATH_DELIMITER: &[u8] = b":";
+    pub const PATH_SEP: &str = ":";
+    // pub const PATH_SEP: &[u8] = b"/";
+    pub const FILE_SEP: &str = "/";
 }
 
 #[cfg(windows)]
 mod platform {
-    pub const PATH_DELIMITER: &[u8] = b";";
-    pub const PATH_DELIMITER_STR: &str = ";";
-    pub const PATH_SEP: &[u8] = b"\\";
-    pub const PATH_SEP_STR: &str = "\\";
+    // pub const PATH_DELIMITER: &[u8] = b";";
+    pub const PATH_SEP: &str = ";";
+    // pub const PATH_SEP: &[u8] = b"\\";
+    pub const FILE_SEP: &str = "\\";
 }

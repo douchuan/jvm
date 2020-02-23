@@ -2,7 +2,8 @@ use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, FieldI
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, OopDesc, OopRef, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
-use crate::util::{self, PATH_DELIMITER};
+use crate::util;
+use crate::util::PATH_SEP;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -119,7 +120,7 @@ impl Field {
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
 
-        let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_DELIMITER);
+        let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let id = new_ref!(id);
         let acc_flags = fi.acc_flags;

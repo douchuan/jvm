@@ -2520,10 +2520,10 @@ impl Frame {
                     let s_name = { obj_cls.lock().unwrap().name.clone() };
                     let t_name = { target_cls.lock().unwrap().name.clone() };
 
-                    let s_name = String::from_utf8_lossy(s_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
-                    let t_name = String::from_utf8_lossy(t_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let s_name =
+                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
+                    let t_name =
+                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
 
                     let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
@@ -2538,10 +2538,10 @@ impl Frame {
                     let s_name = { obj_cls.lock().unwrap().name.clone() };
                     let t_name = { target_cls.lock().unwrap().name.clone() };
 
-                    let s_name = String::from_utf8_lossy(s_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
-                    let t_name = String::from_utf8_lossy(t_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let s_name =
+                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
+                    let t_name =
+                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
 
                     let msg = format!("array {} cannot be cast to {}", s_name, t_name);
                     warn!("{}", msg);
@@ -2568,10 +2568,10 @@ impl Frame {
                 if r || t_name.as_slice() == b"java/lang/Class" {
                     self.stack.push_ref(rf_back);
                 } else {
-                    let s_name = String::from_utf8_lossy(s_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
-                    let t_name = String::from_utf8_lossy(t_name.as_slice())
-                        .replace(util::PATH_SEP_STR, util::DOT_STR);
+                    let s_name =
+                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
+                    let t_name =
+                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
 
                     let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
                     error!("{}", msg);

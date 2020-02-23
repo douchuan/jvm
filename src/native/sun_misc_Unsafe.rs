@@ -312,7 +312,7 @@ fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 
 fn jvm_putChar(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let dest= util::oop::extract_long(args.get(1).unwrap().clone()) as *mut libc::c_void;
+    let dest = util::oop::extract_long(args.get(1).unwrap().clone()) as *mut libc::c_void;
     let value = util::oop::extract_int(args.get(2).unwrap().clone());
 
     unsafe {

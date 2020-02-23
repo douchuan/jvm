@@ -66,7 +66,7 @@ impl ClassPathManager {
     }
 
     pub fn add_class_paths(&mut self, path: &str) {
-        path.split(util::PATH_DELIMITER_STR)
+        path.split(util::PATH_SEP)
             .for_each(|p| match self.add_class_path(p) {
                 Err(e) => error!("add class path error, path={}, e={:?}", p, e),
                 _ => (),
@@ -74,8 +74,8 @@ impl ClassPathManager {
     }
 
     pub fn search_class(&self, name: &str) -> Result<ClassPathResult, io::Error> {
-        let name = name.replace("/", util::PATH_SEP_STR);
-        let name = name.replace(".", util::PATH_SEP_STR);
+        let name = name.replace("/", util::FILE_SEP);
+        let name = name.replace(".", util::FILE_SEP);
 
         trace!("search_class: {}", name);
 
@@ -83,7 +83,7 @@ impl ClassPathManager {
             match &it.0 {
                 ClassSource::DIR => {
                     let mut p = String::from(&it.1);
-                    p.push_str(util::PATH_SEP_STR);
+                    p.push_str(util::FILE_SEP);
                     p.push_str(&name);
                     p.push_str(".class");
                     match File::open(&p) {

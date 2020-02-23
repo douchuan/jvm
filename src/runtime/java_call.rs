@@ -312,8 +312,8 @@ impl JavaCall {
         let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
         let name = self.mir.method.name.clone();
         let desc = self.mir.method.desc.clone();
-        let id =
-            vec![cls_name.as_slice(), name.as_slice(), desc.as_slice()].join(util::PATH_DELIMITER);
+        let id = vec![cls_name.as_slice(), name.as_slice(), desc.as_slice()]
+            .join(util::PATH_SEP.as_bytes());
         info!(
             "invoke method = {} static={} native={}",
             String::from_utf8_lossy(&id),

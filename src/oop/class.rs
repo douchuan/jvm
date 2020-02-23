@@ -6,7 +6,7 @@ use crate::oop::method::MethodId;
 use crate::oop::{consts as oop_consts, field, method, Oop, OopDesc, ValueType};
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
 use crate::types::*;
-use crate::util::{self, PATH_DELIMITER};
+use crate::util;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
@@ -116,8 +116,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 }
 
 pub fn load_and_init(jt: &mut JavaThread, name: &[u8]) -> ClassRef {
-    let class = runtime::require_class3(None, name);
-    let class = class.unwrap();
+    let class = runtime::require_class3(None, name).expect(String::from_utf8_lossy(name).as_ref());
     {
         let mut class = class.lock().unwrap();
         class.init_class(jt);
