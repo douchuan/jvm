@@ -100,7 +100,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("java.class.version", "52.0"),
         ("os.name", "Mac OS X"),
         ("os.version", "18.7.0"),
-        ("os.arch", "x86"),
+        ("os.arch", "x86_64"),
         ("file.separator", util::PATH_DELIMITER_STR),
         ("path.separator", util::PATH_SEP_STR),
         ("line.separator", "\n"),

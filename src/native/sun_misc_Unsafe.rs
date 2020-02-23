@@ -66,6 +66,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JJB)V",
             Box::new(jvm_setMemory),
         ),
+        new_fn("putChar", "(JC)V", Box::new(jvm_putChar)),
     ]
 }
 
@@ -287,6 +288,35 @@ fn jvm_getLongVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     Ok(Some(v_at_offset))
 }
 
-fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let obj = args.get(1).unwrap();
+    let offset = util::oop::extract_long(args.get(2).unwrap().clone());
+    let size = util::oop::extract_long(args.get(3).unwrap().clone());
+    let value = util::oop::extract_int(args.get(4).unwrap().clone());
+
+    let dest = {
+        let v = obj.lock().unwrap();
+        match &v.v {
+            Oop::Null => offset as *mut libc::c_void,
+            Oop::Inst(inst) => unimplemented!("inst"),
+            _ => unimplemented!(),
+        }
+    };
+    unsafe {
+        libc::memset(dest, value, size as usize);
+    }
+
+    Ok(None)
+}
+
+fn jvm_putChar(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let addr = util::oop::extract_long(args.get(1).unwrap().clone()) as *mut libc::c_void;
+    let x = util::oop::extract_int(args.get(2).unwrap().clone());
+
+    unsafe {
+        libc::memset(addr, x, 1);
+    }
+
     Ok(None)
 }
