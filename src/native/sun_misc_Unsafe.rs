@@ -289,7 +289,7 @@ fn jvm_getLongVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
 }
 
 fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let this = args.get(0).unwrap();
+    let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let offset = util::oop::extract_long(args.get(2).unwrap().clone());
     let size = util::oop::extract_long(args.get(3).unwrap().clone());
@@ -299,10 +299,11 @@ fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
         let v = obj.lock().unwrap();
         match &v.v {
             Oop::Null => offset as *mut libc::c_void,
-            Oop::Inst(inst) => unimplemented!("inst"),
+            Oop::Inst(_inst) => unimplemented!("inst"),
             _ => unimplemented!(),
         }
     };
+
     unsafe {
         libc::memset(dest, value, size as usize);
     }
@@ -311,11 +312,11 @@ fn jvm_setMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 
 fn jvm_putChar(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let addr = util::oop::extract_long(args.get(1).unwrap().clone()) as *mut libc::c_void;
-    let x = util::oop::extract_int(args.get(2).unwrap().clone());
+    let dest= util::oop::extract_long(args.get(1).unwrap().clone()) as *mut libc::c_void;
+    let value = util::oop::extract_int(args.get(2).unwrap().clone());
 
     unsafe {
-        libc::memset(addr, x, 1);
+        libc::memset(dest, value, 1);
     }
 
     Ok(None)

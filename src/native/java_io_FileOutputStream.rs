@@ -29,7 +29,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
         let v = args.get(3).unwrap();
         util::oop::extract_int(v.clone())
     };
-    let is_append = {
+    let _is_append = {
         let v = args.get(4).unwrap();
         util::oop::extract_int(v.clone()) == 1
     };
