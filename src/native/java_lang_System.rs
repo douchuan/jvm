@@ -41,6 +41,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             Box::new(jvm_identityHashCode),
         ),
         new_fn("nanoTime", "()J", Box::new(jvm_nanoTime)),
+        new_fn("currentTimeMillis", "()J", Box::new(jvm_currentTimeMillis)),
         //Note: just for debug
         //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
     ]
@@ -432,6 +433,15 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_nanos(),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    };
+
+    Ok(Some(OopDesc::new_long(v as i64)))
+}
+
+fn jvm_currentTimeMillis(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+    let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_millis(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     };
 
