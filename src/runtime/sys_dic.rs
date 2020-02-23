@@ -13,6 +13,7 @@ lazy_static! {
 }
 
 pub fn put(key: &[u8], klass: ClassRef) {
+    assert!(!key.contains(&b'.'));
     util::sync_call_ctx(&SYS_DIC, |dic| {
         let key = String::from_utf8_lossy(key);
         dic.insert(key.to_string(), klass);
@@ -21,6 +22,7 @@ pub fn put(key: &[u8], klass: ClassRef) {
 
 //key style: "sun.security.provider.Sun"
 pub fn find(key: &[u8]) -> Option<ClassRef> {
+    assert!(!key.contains(&b'.'));
     let key = std::str::from_utf8(key).unwrap();
     util::sync_call(&SYS_DIC, |dic| dic.get(key).map(|it| it.clone()))
 }

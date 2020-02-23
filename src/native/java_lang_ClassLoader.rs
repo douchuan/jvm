@@ -42,6 +42,7 @@ fn jvm_findLoadedClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
     let name = args.get(1).unwrap();
     let name = util::oop::extract_str(name.clone());
     info!("findLoadedClass0: {}", name);
+    let name = name.replace(".", util::PATH_SEP_STR);
     let v = match runtime::sys_dic_find(name.as_bytes()) {
         Some(cls) => {
             let cls = cls.lock().unwrap();

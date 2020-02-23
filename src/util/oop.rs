@@ -25,6 +25,28 @@ pub fn is_str(v: OopRef) -> bool {
     }
 }
 
+/*
+pub fn is_mirror(v: OopRef) -> bool {
+    let v = v.lock().unwrap();
+    match &v.v {
+        Oop::Mirror(_) => true,
+        _ => false,
+    }
+}
+
+pub fn extract_mirror_target(v: OopRef) -> OopRef {
+    let v = v.lock().unwrap();
+    match &v.v {
+        Oop::Mirror(mirror) => {
+            let cls = mirror.target.clone().unwrap();
+            let cls = cls.lock().unwrap();
+            cls.get_mirror()
+        }
+        _ => unreachable!(),
+    }
+}
+*/
+
 pub fn extract_java_lang_string_value(v: OopRef) -> Vec<u16> {
     let offset: Option<usize> = util::sync_call(&JAVA_LANG_STRING_VALUE_OFFSET, |v| v.clone());
     let offset = offset.unwrap();
@@ -97,6 +119,14 @@ pub fn extract_str(v: OopRef) -> String {
     */
 }
 
+pub fn extract_int(v: OopRef) -> i32 {
+    let v = v.lock().unwrap();
+    match v.v {
+        Oop::Int(v) => v,
+        _ => unreachable!(),
+    }
+}
+
 pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
     if Arc::ptr_eq(&v1, &v2) {
         true
@@ -111,6 +141,29 @@ pub fn if_acmpeq(v1: OopRef, v2: OopRef) -> bool {
             }
         } else {
             false
+
+            // let is_v1_mirror = is_mirror(v1.clone());
+            // let is_v2_mirror = is_mirror(v2.clone());
+            // if is_v1_mirror && is_v2_mirror {
+            //     error!("if_acmpeq mirror");
+            //     let v1_target = {
+            //         let v = v1.lock().unwrap();
+            //         match &v.v {
+            //             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            //             _ => unreachable!()
+            //         }
+            //     };
+            //     let v2_target = {
+            //         let v = v2.lock().unwrap();
+            //         match &v.v {
+            //             Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            //             _ => unreachable!()
+            //         }
+            //     };
+            //     Arc::ptr_eq(&v1_target, &v2_target)
+            // } else {
+            //     false
+            // }
         }
     }
 }

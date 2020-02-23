@@ -2525,7 +2525,7 @@ impl Frame {
                     let t_name = String::from_utf8_lossy(t_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
 
-                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
@@ -2543,7 +2543,7 @@ impl Frame {
                     let t_name = String::from_utf8_lossy(t_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
 
-                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
+                    let msg = format!("array {} cannot be cast to {}", s_name, t_name);
                     warn!("{}", msg);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
@@ -2554,29 +2554,29 @@ impl Frame {
                 //最终会调用java.security.Security.getSpiClass("MessageDigest")
                 //走到这里
                 //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
-                //
-                //fixme: 这里直接赋值，不做任何检查吗？做检查，如何做？
-                self.stack.push_ref(rf_back);
 
-                /*
-                let obj_cls = mirror.target.clone().unwrap();
-                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                if r {
+                let mirror_target = mirror.target.clone().unwrap();
+                let s_name = { mirror_target.lock().unwrap().name.clone() };
+                let t_name = { target_cls.lock().unwrap().name.clone() };
+                trace!(
+                    "mirror checkcast {} to {}",
+                    String::from_utf8_lossy(s_name.as_slice()),
+                    String::from_utf8_lossy(t_name.as_slice())
+                );
+
+                let r = cmp::instance_of(mirror_target.clone(), target_cls.clone());
+                if r || t_name.as_slice() == b"java/lang/Class" {
                     self.stack.push_ref(rf_back);
                 } else {
-                    let s_name = { obj_cls.lock().unwrap().name.clone() };
-                    let t_name = { target_cls.lock().unwrap().name.clone() };
-
                     let s_name = String::from_utf8_lossy(s_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
                     let t_name = String::from_utf8_lossy(t_name.as_slice())
                         .replace(util::PATH_SEP_STR, util::DOT_STR);
 
-                    let msg = format!("{} cannot be cast to {}", s_name, t_name);
-                    warn!("{}", msg);
+                    let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
+                    error!("{}", msg);
                     self.meet_ex(thread, consts::J_CCE, Some(msg));
                 }
-                */
             }
             t => unimplemented!("t = {:?}", t),
         }

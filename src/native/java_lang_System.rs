@@ -139,6 +139,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ),
         ("file.encoding", "US-ASCII"),
         ("java.io.tmpdir", "/tmp"),
+        ("java.security.egd", "file:/dev/random"),
         //debug
         ("java.security.debug", "all"),
         ("java.security.auth.debug", "all"),

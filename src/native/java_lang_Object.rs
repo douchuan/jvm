@@ -51,6 +51,7 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
     let v = args.get(0).unwrap();
     let mirror = {
         // let v_clone = v.clone();
+        let v_back = v.clone();
         let v = v.lock().unwrap();
         match &v.v {
             Oop::Inst(inst) => {
@@ -58,7 +59,17 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
                 cls.get_mirror()
             }
             Oop::Array(ary) => ary.class.lock().unwrap().get_mirror(),
-            Oop::Mirror(_mirror) => unimplemented!(),
+            Oop::Mirror(_mirror) => {
+                v_back
+
+                /*
+                let cls = mirror.target.clone().unwrap();
+                let cls = cls.lock().unwrap();
+                let name = String::from_utf8_lossy(cls.name.as_slice());
+                error!("target cls = {}", name);
+                cls.get_mirror()
+                */
+            }
             t => unimplemented!("t = {:?}", t),
         }
     };
