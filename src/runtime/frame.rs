@@ -329,7 +329,7 @@ impl Frame {
                     }
 
                     if thread.is_meet_ex() {
-                        error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
+                        // error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
                         let ex = thread.take_ex().unwrap();
                         match self.try_handle_exception(thread, ex) {
                             Ok(_) => (),
