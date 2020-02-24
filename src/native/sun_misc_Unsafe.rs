@@ -128,6 +128,7 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
         match &v.v {
             Oop::Mirror(mirror) => mirror.field_values[offset as usize].clone(),
             Oop::Array(ary) => ary.elements[offset as usize].clone(),
+            Oop::Inst(inst) => inst.field_values[offset as usize].clone(),
             t => unreachable!("{:?}", t),
         }
     };
@@ -141,6 +142,7 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
             Oop::Array(ary) => {
                 ary.elements[offset as usize] = new_data.clone();
             }
+            Oop::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
             _ => unreachable!(),
         }
 
