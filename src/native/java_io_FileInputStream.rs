@@ -11,6 +11,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("initIDs", "()V", Box::new(jvm_initIDs)),
         new_fn("open0", "(Ljava/lang/String;)V", Box::new(jvm_open0)),
         new_fn("readBytes", "([BII)I", Box::new(jvm_readBytes)),
+        new_fn("available0", "()I", Box::new(jvm_available0)),
+        new_fn("close0", "()V", Box::new(jvm_close0)),
     ]
 }
 
@@ -61,6 +63,63 @@ fn jvm_readBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
     };
 
     Ok(Some(OopDesc::new_int(n as i32)))
+}
+
+fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let fd = get_file_descriptor_fd(this.clone());
+
+    if fd == -1 {
+        unimplemented!("Stream Closed");
+    }
+
+    let mut size = -1i64;
+    let mut current = -1i64;
+
+    unsafe {
+        let mut stat: libc::stat = std::mem::zeroed();
+        if libc::fstat(fd, &mut stat) != -1 {
+            let mode = stat.st_mode;
+            if (mode & libc::S_IFIFO == libc::S_IFIFO)
+                || (mode & libc::S_IFCHR == libc::S_IFCHR)
+                || (mode & libc::S_IFSOCK == libc::S_IFSOCK)
+            {
+                let mut n = 0;
+                if libc::ioctl(fd, libc::FIONREAD, &mut n) >= 0 {
+                    return Ok(Some(OopDesc::new_int(n)));
+                }
+            } else if mode & libc::S_IFREG == libc::S_IFREG {
+                size = stat.st_size;
+            }
+        }
+
+        current = libc::lseek(fd, 0, libc::SEEK_CUR);
+        if current == -1 {
+            return Ok(Some(OopDesc::new_int(0)));
+        }
+
+        if size < current {
+            size = libc::lseek(fd, 0, libc::SEEK_END);
+            if size == -1 {
+                return Ok(Some(OopDesc::new_int(0)));
+            }
+
+            if libc::lseek(fd, current, libc::SEEK_SET) == -1 {
+                return Ok(Some(OopDesc::new_int(0)));
+            }
+        }
+    }
+
+    return Ok(Some(OopDesc::new_int((size - current) as i32)));
+}
+
+fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let fd = get_file_descriptor_fd(this.clone());
+    unsafe {
+        libc::close(fd);
+    }
+    Ok(None)
 }
 
 fn set_file_descriptor_fd(fin: OopRef, fd: i32) {
