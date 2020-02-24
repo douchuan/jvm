@@ -95,11 +95,6 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("file.separator", util::FILE_SEP),
         ("java.class.path", "."),
         ("java.class.version", "52.0"),
-        (
-            "java.home",
-            "/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre",
-        ),
-        ("java.io.tmpdir", "/tmp"),
         ("java.security.egd", "file:/dev/random"),
         ("java.security.debug", "all"),
         ("java.security.auth.debug", "all"),
@@ -110,7 +105,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("java.vendor.url", "https://github.com/douchuan/jvm"),
         ("java.vendor.url.bug", "https://github.com/douchuan/jvm"),
         ("java.version", "1.8"),
-        ("line.separator", "\n"),
+        ("line.separator", util::LINE_SEP),
         ("os.arch", "x86_64"),
         ("os.name", "Mac OS X"),
         ("os.version", "18.7.0"),
@@ -120,8 +115,6 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         ("sun.cpu.isalist", ""),
         ("sun.misc.URLClassPath.debug", "true"),
         ("sun.misc.URLClassPath.debugLookupCache", "true"),
-        ("user.dir", "/Users/douchuan/"),
-        ("user.home", "/Users/douchuan/"),
         ("user.language", "en"),
         ("user.name", "chuan"),
         ("user.region", "US"),
@@ -132,19 +125,41 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         //        ("sun.io.unicode.encoding", "UnicodeBig"),
     ];
 
-    let props: Vec<(OopRef, OopRef)> = props
-        .iter()
-        .map(|(k, v)| {
-            let k = util::oop::new_java_lang_string2(jt, k);
-            let v = util::oop::new_java_lang_string2(jt, v);
-
-            (k, v)
-        })
-        .collect();
-
     let props_oop = args.get(0).unwrap();
+    for (k, v) in props.iter() {
+        put_props_kv(jt, props_oop.clone(), k, v);
+
+        if jt.is_meet_ex() {
+            unreachable!("jvm_initProperties meet ex");
+        }
+    }
+
+    //user.dir
+    let v = std::env::current_dir().expect("current_dir failed");
+    let v = v.to_str().expect("current_dir to_str faield");
+    put_props_kv(jt, props_oop.clone(), "user.dir", v);
+
+    //java.io.tmpdir
+    let v = std::env::temp_dir();
+    let v = v.to_str().expect("temp_dir to_str failed");
+    put_props_kv(jt, props_oop.clone(), "java.io.tmpdir", v);
+
+    //user.home
+    let v = std::env::home_dir().expect("home_dir failed");
+    let v = v.to_str().expect("home_dir to_str failed");
+    put_props_kv(jt, props_oop.clone(), "user.home", v);
+
+    //JAVA_HOME
+    let v = std::env::var("JAVA_HOME").expect("Please Setup JAVA_HOME env");
+    put_props_kv(jt, props_oop.clone(), "java.home", v.as_str());
+
+    Ok(Some(props_oop.clone()))
+}
+
+fn put_props_kv(jt: &mut JavaThread, props: OopRef, k: &str, v: &str) {
+    //todo: optimize me
     let cls = {
-        let v = props_oop.lock().unwrap();
+        let v = props.lock().unwrap();
         match &v.v {
             Oop::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
@@ -160,20 +175,14 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
         cls.get_virtual_method(id).unwrap()
     };
 
-    for it in props.iter() {
-        let args = vec![props_oop.clone(), it.0.clone(), it.1.clone()];
+    let k = util::oop::new_java_lang_string2(jt, k);
+    let v = util::oop::new_java_lang_string2(jt, v);
 
-        let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
-        let mut stack = runtime::Stack::new(1);
-        jc.invoke(jt, &mut stack, false);
+    let args = vec![props, k, v];
 
-        //fixme: should be removed
-        if jt.is_meet_ex() {
-            unreachable!("jvm_initProperties meet ex");
-        }
-    }
-
-    Ok(Some(props_oop.clone()))
+    let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
+    let mut stack = runtime::Stack::new(1);
+    jc.invoke(jt, &mut stack, false);
 }
 
 fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
