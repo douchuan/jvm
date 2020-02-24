@@ -34,6 +34,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/String;)Ljava/lang/String;",
             Box::new(jvm_canonicalize0),
         ),
+        new_fn(
+            "createFileExclusively",
+            "(Ljava/lang/String;)Z",
+            Box::new(jvm_createFileExclusively),
+        ),
     ]
 }
 
@@ -101,6 +106,16 @@ fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JN
     let path = util::oop::new_java_lang_string2(jt, path);
 
     Ok(Some(path))
+}
+
+fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let path = args.get(1).unwrap();
+    let path = util::oop::extract_str(path.clone());
+    let v = match std::fs::OpenOptions::new().create(true).open(path) {
+        Ok(_) => 1,
+        Err(_) => 0,
+    };
+    Ok(Some(OopDesc::new_int(v)))
 }
 
 fn get_File_path(file: OopRef) -> String {
