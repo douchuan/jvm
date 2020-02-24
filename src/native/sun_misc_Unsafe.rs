@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc};
+use crate::oop::{self, Oop, OopDesc};
 use crate::runtime::{require_class3, JavaThread};
 use crate::types::OopRef;
 use crate::util;
@@ -67,6 +67,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             Box::new(jvm_setMemory),
         ),
         new_fn("putChar", "(JC)V", Box::new(jvm_putChar)),
+        new_fn(
+            "copyMemory",
+            "(Ljava/lang/Object;JLjava/lang/Object;JJ)V",
+            Box::new(jvm_copyMemory),
+        ),
     ]
 }
 
@@ -319,6 +324,58 @@ fn jvm_putChar(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
 
     unsafe {
         libc::memset(dest, value, 1);
+    }
+
+    Ok(None)
+}
+
+fn jvm_copyMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let src_obj = args.get(1).unwrap();
+    let src_offset = util::oop::extract_long(args.get(2).unwrap().clone()) as usize;
+    let dest_obj = args.get(3).unwrap();
+    let dest_offset = util::oop::extract_long(args.get(4).unwrap().clone()) as usize;
+    let size = util::oop::extract_long(args.get(5).unwrap().clone()) as usize;
+
+    let src_obj = src_obj.lock().unwrap();
+    match &src_obj.v {
+        Oop::Null => {
+            let mut dest_obj = dest_obj.lock().unwrap();
+            match &mut dest_obj.v {
+                Oop::TypeArray(dest_ary) => match dest_ary {
+                    oop::TypeArrayValue::Char(dest_ary) => {
+                        let dest_ptr = dest_ary.as_mut_ptr() as usize + dest_offset;
+                        let dest_ptr = dest_ptr as *mut libc::c_void;
+
+                        let src_ptr = src_offset as *const libc::c_void;
+                        unsafe {
+                            libc::memcpy(dest_ptr, src_ptr, size);
+                        }
+                    }
+                    t => unimplemented!("t={:?}", t),
+                },
+                _ => unimplemented!(),
+            }
+        }
+        /*
+        Oop::TypeArray(ary) => match ary {
+            oop::TypeArrayValue::Byte(src_ary) => {
+                let mut dest_obj = dest_obj.lock().unwrap();
+                match &mut dest_obj.v {
+                    Oop::TypeArray(dest_ary) => match dest_ary {
+                        oop::TypeArrayValue::Byte(dest_ary) => {
+                            dest_ary[dest_offset..(dest_offset + size)]
+                                .clone_from_slice(&src_ary[src_offset..(src_offset + size)]);
+                        }
+                        _ => unimplemented!(),
+                    },
+                    _ => unimplemented!(),
+                }
+            }
+            _ => unimplemented!(),
+        },
+        */
+        t => unimplemented!("{:?}", t),
     }
 
     Ok(None)
