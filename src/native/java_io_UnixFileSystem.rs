@@ -29,6 +29,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/io/File;I)Z",
             Box::new(jvm_checkAccess),
         ),
+        new_fn(
+            "canonicalize0",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            Box::new(jvm_canonicalize0),
+        ),
     ]
 }
 
@@ -86,6 +91,14 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
     };
 
     Ok(Some(OopDesc::new_int(r)))
+}
+
+fn jvm_canonicalize0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+    let path = util::oop::extract_str(args.get(1).unwrap().clone());
+
+    unreachable!("path = {}", path);
+
+    Ok(None)
 }
 
 fn get_File_path(file: OopRef) -> String {
