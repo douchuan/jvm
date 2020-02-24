@@ -93,12 +93,14 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
     Ok(Some(OopDesc::new_int(r)))
 }
 
-fn jvm_canonicalize0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let path = util::oop::extract_str(args.get(1).unwrap().clone());
+    let path = std::path::Path::new(&path);
+    let path = path.canonicalize().expect("path={}, canonicalize failed");
+    let path = path.to_str().expect("path to_str failed");
+    let path = util::oop::new_java_lang_string2(jt, path);
 
-    unreachable!("path = {}", path);
-
-    Ok(None)
+    Ok(Some(path))
 }
 
 fn get_File_path(file: OopRef) -> String {
