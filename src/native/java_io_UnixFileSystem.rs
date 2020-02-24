@@ -101,7 +101,7 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
 fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let path = util::oop::extract_str(args.get(1).unwrap().clone());
     let path = std::path::Path::new(&path);
-    let path = path.canonicalize().expect("path={}, canonicalize failed");
+    let path = path.canonicalize().expect("path canonicalize failed");
     let path = path.to_str().expect("path to_str failed");
     let path = util::oop::new_java_lang_string2(jt, path);
 
@@ -111,9 +111,17 @@ fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JN
 fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let path = args.get(1).unwrap();
     let path = util::oop::extract_str(path.clone());
-    let v = match std::fs::OpenOptions::new().create(true).open(path) {
+    let v = match std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&path)
+    {
         Ok(_) => 1,
-        Err(_) => 0,
+        Err(e) => {
+            error!("open {}, error = {:?}", path, e);
+            0
+        }
     };
     Ok(Some(OopDesc::new_int(v)))
 }
