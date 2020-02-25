@@ -288,12 +288,15 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 
 /*
 同一个对象不可同时lock，需要tmp buf做中转
+
+todo optimize: 如何做到不用中转，就达到copy的目的
 */
 fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
     let is_type_ary = {
         let src = src.lock().unwrap();
         match &src.v {
             Oop::TypeArray(_) => true,
+            Oop::Array(_) => false,
             _ => unreachable!(),
         }
     };
@@ -303,16 +306,22 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             let src = src.lock().unwrap();
 
             let mut tmp = Vec::with_capacity(length);
+            for _ in 0..length {
+                tmp.push(0);
+            }
+
             //just choose the needed region
             match &src.v {
                 Oop::TypeArray(s) => match s {
                     oop::TypeArrayValue::Char(ary) => {
-                        ary[src_pos..(src_pos + length)].iter().for_each(|v| {
+                        let (_, ary) = ary.split_at(src_pos);
+                        ary[..length].iter().for_each(|v| {
                             tmp.push(*v);
                         });
                     }
                     oop::TypeArrayValue::Byte(ary) => {
-                        ary[src_pos..(src_pos + length)].iter().for_each(|v| {
+                        let (_, ary) = ary.split_at(src_pos);
+                        ary[..length].iter().for_each(|v| {
                             tmp.push(*v as u16);
                         });
                     }
@@ -328,11 +337,13 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
         match &mut dest.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(dest) => {
-                    dest[dest_pos..(dest_pos + length)].clone_from_slice(&tmp[..]);
+                    let (_, dest) = dest.split_at_mut(dest_pos);
+                    dest[..length].clone_from_slice(&tmp[..]);
                 }
                 oop::TypeArrayValue::Byte(dest) => {
                     let src: Vec<u8> = tmp.iter().map(|v| *v as u8).collect();
-                    dest[dest_pos..(dest_pos + length)].clone_from_slice(&src[..]);
+                    let (_, dest) = dest.split_at_mut(dest_pos);
+                    dest[..length].clone_from_slice(&src[..]);
                 }
                 t => unreachable!("t = {:?}", t),
             },
@@ -345,7 +356,12 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             match &ary.v {
                 Oop::Array(ary) => {
                     let mut tmp = Vec::with_capacity(length);
-                    tmp.clone_from_slice(&ary.elements[src_pos..(src_pos + length)]);
+                    for _ in 0..length {
+                        tmp.push(oop::consts::get_null());
+                    }
+
+                    let (_, ary) = ary.elements.split_at(src_pos);
+                    tmp.clone_from_slice(&ary[..length]);
                     tmp
                 }
                 _ => unreachable!(),
@@ -355,7 +371,8 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
         let mut dest = dest.lock().unwrap();
         match &mut dest.v {
             Oop::Array(ary) => {
-                ary.elements[dest_pos..(dest_pos + length)].clone_from_slice(&tmp[..]);
+                let (_, ary) = ary.elements.split_at_mut(dest_pos);
+                ary[..length].clone_from_slice(&tmp[..]);
             }
             _ => unreachable!(),
         }
