@@ -32,10 +32,12 @@ todo list
   x. new Constructor with Exception and Type Annotations
   x. String.intern
   x. native 调用，需要构造一个Frame吗？
-  x. writeBytes实现完整, 获取fd，用write写到标准输出中
   x. BootstrapMethod 有什么用?
   x. .class大量attr没用到，如何起到作用?
   x. 注意算数运算相关的指令，溢出问题的处理
+  x. When & Who invoke Runtime.exit
+  x. 检查一遍，全部native的实现 & args, 看实现是否完整
+  x. 运行Basic, java_call::prepare_frame 嵌套太深正常吗？
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
@@ -101,7 +103,11 @@ fn main() {
 
     实际，这时两个是同一个类，只允许加载1次
     */
-    assert!(!class.contains(util::FILE_SEP), "should not contain \"{}\"", util::FILE_SEP);
+    assert!(
+        !class.contains(util::FILE_SEP),
+        "should not contain \"{}\"",
+        util::FILE_SEP
+    );
 
     let args = matches.values_of_lossy("ARGS");
     println!("main class: {}, args: {:?}", class, args);

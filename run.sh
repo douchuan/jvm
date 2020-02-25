@@ -1,28 +1,34 @@
-JDK=test/zulu8/jre/lib/rt.jar:test/zulu8/jre/lib/charsets.jar
+
+JDK_PATH=test/zulu8/jre/lib
+JDK=$JDK_PATH/resources.jar:$JDK_PATH/rt.jar:$JDK_PATH/jsse.jar:$JDK_PATH/jce.jar:$JDK_PATH/charsets.jar:$JDK_PATH/jfr.jar
 
 JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang
 MY_TEST=.:./test
 
 #export RUST_LOG=trace
-#export RUST_LOG=info
-#export RUST_BACKTRACE=1
+export RUST_LOG=info
+#export RUST_LOG=warn
+export RUST_BACKTRACE=full
+export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 
 ### My Test
-#cargo run -- --cp $JDK:$MY_TEST test/Add
-#cargo run -- --cp $JDK:$MY_TEST test/HelloWorld 123 456 789
-#cargo run -- --cp $JDK:$MY_TEST test/Ex
+#cargo run -- --cp $JDK:$MY_TEST Add
+#cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
+#cargo run -- --cp $JDK:$MY_TEST Ex
+#cargo run -- --cp $JDK:$MY_TEST Basic
+#cargo run -- --cp $JDK:$MY_TEST MyFile
 
 ### fix Overflow
-#cargo run -- --cp $JDK:$MY_TEST test/SubOverflow
+#cargo run -- --cp $JDK:$MY_TEST SubOverflow
 
 ### fix Enum CloneNotSupportedException
-#cargo run -- --cp $JDK:$MY_TEST test/EnumDemo
+#cargo run -- --cp $JDK:$MY_TEST EnumDemo
 
 ### fix System.out.printf not work, resolve_again for acc_flags == 0
-#cargo run -- --cp $JDK:$MY_TEST test/Printf
+#cargo run -- --cp $JDK:$MY_TEST Printf
 
 ### fix ThreadLocal not work, resolve_again for protected
-#cargo run -- --cp $JDK:$MY_TEST test/ThreadLocalTest
+#cargo run -- --cp $JDK:$MY_TEST ThreadLocalTest
 
 
 ###regex
@@ -41,12 +47,12 @@ MY_TEST=.:./test
 ##
 ## Modified UTF-8 strings 编码定义:
 ## JVM Spec, 4.4.7 The CONSTANT_Utf8_info Structure 定义
-#cargo run -- --cp $JDK:$MY_TEST:./test/regex test/regex/Printf
+#cargo run -- --cp $JDK:$MY_TEST:./test/regex Printf
 
 ###
 ##Float.toString(1.0f) crash
 ##ThreadLocal.initialValue not called, so NPE happend
-#cargo run -- --cp $JDK:$MY_TEST:./test/float test/float/ToString
+#cargo run -- --cp $JDK:$MY_TEST:./test/float ToString
 
 ###############################
 ### jdk test
@@ -55,9 +61,9 @@ MY_TEST=.:./test
 #cargo run -- --cp $JDK:$JDK_TEST Compare
 #cargo run -- --cp $JDK:$JDK_TEST HashCode
 #cargo run -- --cp $JDK:$JDK_TEST ToString
-cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Appendable/Basic
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass Class/asSubclass/BasicUnit
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math Math/AbsPositiveZero
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
