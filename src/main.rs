@@ -37,7 +37,6 @@ todo list
   x. 注意算数运算相关的指令，溢出问题的处理
   x. When & Who invoke Runtime.exit
   x. 检查一遍，全部native的实现 & args, 看实现是否完整
-  x. 运行Basic, java_call::prepare_frame 嵌套太深正常吗？
 
   x. UTF-8导致的问题
     java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容

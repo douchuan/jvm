@@ -127,6 +127,7 @@ impl JavaCall {
         } else {
             jt.callers.push(self.mir.clone());
             self.invoke_java(jt, stack);
+            let _ = jt.frames.pop();
         }
 
         jt.callers.pop();
@@ -147,9 +148,6 @@ impl JavaCall {
 
                         if !jt.is_meet_ex() {
                             set_return(stack, self.return_type.clone(), frame.return_v.clone());
-                            let _ = jt.frames.pop();
-                        } else {
-                            info!("ignored pop frame_id = {}", frame.frame_id);
                         }
                     }
                     _ => unreachable!(),
@@ -229,10 +227,6 @@ impl JavaCall {
             let ex = exception::new(thread, consts::J_SOE, None);
             thread.set_ex(ex);
             return Err(());
-        }
-
-        if thread.frames.len() >= runtime::consts::WARN_THREAD_MAX_STACK_FRAMES {
-            warn!("recurses too deeply: {}", thread.frames.len());
         }
 
         let frame_id = thread.frames.len() + 1;
