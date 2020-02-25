@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-
+use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Oop, OopDesc, TypeArrayValue};
-use crate::runtime::{require_class3, JavaThread};
+use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::OopRef;
 use crate::util;
 
@@ -37,7 +37,7 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_readBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this.clone());
     let byte_ary = args.get(1).unwrap();
@@ -55,14 +55,29 @@ fn jvm_readBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
         Oop::TypeArray(ary) => match ary {
             TypeArrayValue::Byte(ary) => {
                 let (_, ptr) = ary.split_at_mut(off as usize);
-                unsafe { libc::read(fd, ptr.as_mut_ptr() as *mut libc::c_void, len as usize) }
+                let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
+                let n = unsafe { libc::read(fd, ptr, len as usize) };
+                // error!("readBytes n = {}", n);
+                if n > 0 {
+                    n as i32
+                } else if n == -1 {
+                    let ex = runtime::exception::new(
+                        jt,
+                        classfile::consts::J_IOEXCEPTION,
+                        Some(String::from("Read Error")),
+                    );
+                    error!("read error");
+                    return Err(ex);
+                } else {
+                    -1
+                }
             }
             _ => unreachable!(),
         },
         _ => unreachable!(),
     };
 
-    Ok(Some(OopDesc::new_int(n as i32)))
+    Ok(Some(OopDesc::new_int(n)))
 }
 
 fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {

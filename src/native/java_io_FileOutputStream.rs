@@ -30,14 +30,12 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
         let v = args.get(3).unwrap();
         util::oop::extract_int(v.clone())
     };
-    let is_append = {
+    let append = {
         let v = args.get(4).unwrap();
-        util::oop::extract_int(v.clone()) == 1
+        util::oop::extract_int(v.clone())
     };
 
-    if is_append {
-        warn!("writeBytes append true");
-    }
+    trace!("append = {}", append);
 
     let v = byte_ary.lock().unwrap();
     match &v.v {
@@ -47,7 +45,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
                 let len = len as usize;
 
                 unsafe {
-                    if is_append {
+                    if append == 1 {
                         libc::lseek(fd, 0, libc::SEEK_END);
                     }
 
