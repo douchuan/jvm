@@ -45,10 +45,15 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
             oop::TypeArrayValue::Byte(ary) => {
                 let (_, ary) = ary.split_at(off as usize);
                 let len = len as usize;
-                let ary = &ary[..len];
 
                 unsafe {
-                    libc::write(fd, ary.as_ptr() as *const libc::c_void, len);
+                    if is_append {
+                        libc::lseek(fd, 0, libc::SEEK_END);
+                    }
+
+                    if -1 == libc::write(fd, ary.as_ptr() as *const libc::c_void, len) {
+                        panic!("write failed");
+                    }
                 }
             }
             t => unreachable!("t = {:?}", t),

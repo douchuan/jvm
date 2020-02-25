@@ -105,7 +105,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 
         match mir {
             Ok(mir) => {
-                info!("call <clinit>/{}", String::from_utf8_lossy(name.as_slice()));
+                info!("call {}:<clinit>", String::from_utf8_lossy(name.as_slice()));
                 let mut stack = Stack::new(0);
                 let jc = JavaCall::new(thread, &mut stack, mir);
                 jc.unwrap().invoke(thread, &mut stack, true);
@@ -116,15 +116,19 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 }
 
 pub fn load_and_init(jt: &mut JavaThread, name: &[u8]) -> ClassRef {
+    // trace!("load_and_init 1 name={}", String::from_utf8_lossy(name));
     let class = runtime::require_class3(None, name).expect(String::from_utf8_lossy(name).as_ref());
+    // trace!("load_and_init 2 name={}", String::from_utf8_lossy(name));
     {
         let mut class = class.lock().unwrap();
         class.init_class(jt);
         //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
     }
 
+    // trace!("load_and_init 3, name={}", String::from_utf8_lossy(name));
     init_class_fully(jt, class.clone());
     //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
+    // trace!("load_and_init 4, name={}", String::from_utf8_lossy(name));
 
     class
 }
