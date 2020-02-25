@@ -105,6 +105,10 @@ impl Frame {
                     );
 
                     match op_code {
+                        OpCode::athrow => {
+                            self.athrow(thread);
+                            break;
+                        }
                         OpCode::ireturn => {
                             self.ireturn();
                             break;
@@ -314,7 +318,6 @@ impl Frame {
                         OpCode::newarray => self.new_array(thread),
                         OpCode::anewarray => self.anew_array(thread),
                         OpCode::arraylength => self.array_length(thread),
-                        OpCode::athrow => self.athrow(thread),
                         OpCode::checkcast => self.check_cast(thread),
                         OpCode::instanceof => self.instance_of(),
                         OpCode::monitorenter => self.monitor_enter(thread),
