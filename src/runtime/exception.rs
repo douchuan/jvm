@@ -4,7 +4,11 @@ use crate::types::{BytesRef, OopRef};
 use crate::util;
 
 pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> OopRef {
-    let cls = require_class3(None, name).unwrap();
+    let cls = match require_class3(None, name) {
+        Some(cls) => cls,
+        None => panic!("ClassNotFound: {}", String::from_utf8_lossy(name)),
+    };
+
     {
         let mut cls = cls.lock().unwrap();
         cls.init_class(jt);

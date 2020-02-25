@@ -54,7 +54,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResul
         cls.name.clone()
     };
 
-    if String::from_utf8_lossy(name.as_slice()) == "java/lang/ref/Reference$ReferenceHandler" {
+    if name.as_slice() == "java/lang/ref/Reference$ReferenceHandler".as_bytes() {
         Ok(None)
     } else {
         //todo: impl threads manager

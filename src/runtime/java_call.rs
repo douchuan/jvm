@@ -231,6 +231,10 @@ impl JavaCall {
             return Err(());
         }
 
+        if thread.frames.len() >= runtime::consts::WARN_THREAD_MAX_STACK_FRAMES {
+            warn!("recurses too deeply: {}", thread.frames.len());
+        }
+
         let frame_id = thread.frames.len() + 1;
         let mut frame = Frame::new(self.mir.clone(), frame_id);
 
