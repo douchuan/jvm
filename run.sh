@@ -6,7 +6,7 @@ JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjd
 MY_TEST=.:./test
 
 #export RUST_LOG=trace
-export RUST_LOG=info
+#export RUST_LOG=info
 #export RUST_LOG=warn
 export RUST_BACKTRACE=full
 export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
@@ -15,7 +15,6 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 #cargo run -- --cp $JDK:$MY_TEST Add
 #cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST Ex
-#cargo run -- --cp $JDK:$MY_TEST Basic
 #cargo run -- --cp $JDK:$MY_TEST MyFile
 
 ### fix Overflow
@@ -62,6 +61,12 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 #cargo run -- --cp $JDK:$JDK_TEST HashCode
 #cargo run -- --cp $JDK:$JDK_TEST ToString
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/AssertionError Cause
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean Factory
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean GetBoolean
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean MakeBooleanComparable
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean ParseBoolean
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Byte Decode
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
 
