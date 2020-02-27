@@ -41,9 +41,9 @@ pub fn get_method_ref(
 
     trace!(
         "get_method_ref cls={}, name={}, typ={}",
-        String::from_utf8_lossy(class.name.as_slice()),
-        String::from_utf8_lossy(name.as_slice()),
-        String::from_utf8_lossy(typ.as_slice())
+        unsafe { std::str::from_utf8_unchecked(class.name.as_slice()) },
+        unsafe { std::str::from_utf8_unchecked(name.as_slice()) },
+        unsafe { std::str::from_utf8_unchecked(typ.as_slice()) },
     );
 
     let id = util::new_method_id(name.as_slice(), typ.as_slice());

@@ -20,10 +20,10 @@ pub fn put(key: &[u8], klass: ClassRef) {
     })
 }
 
-//key style: "sun.security.provider.Sun"
+//key style: "sun/security/provider/Sun"
 pub fn find(key: &[u8]) -> Option<ClassRef> {
     assert!(!key.contains(&b'.'));
-    let key = std::str::from_utf8(key).unwrap();
+    let key = unsafe { std::str::from_utf8_unchecked(key) };
     util::sync_call(&SYS_DIC, |dic| dic.get(key).map(|it| it.clone()))
 }
 

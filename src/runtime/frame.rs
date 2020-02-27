@@ -123,9 +123,9 @@ impl Frame {
         let frame_id = self.frame_id;
         //for debug
         let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
-        let cls_name = String::from_utf8_lossy(cls_name.as_slice());
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
         let method = self.mir.method.get_id();
-        let method = String::from_utf8_lossy(method.as_slice());
+        let method = unsafe { std::str::from_utf8_unchecked(method.as_slice()) };
 
         loop {
             let code = self.read_opcode();
@@ -430,13 +430,10 @@ impl Frame {
             }
             ConstantType::Class { name_index } => {
                 let name = constant_pool::get_utf8(&self.cp, *name_index as usize).unwrap();
+                let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
                 let cl = { self.class.lock().unwrap().class_loader.clone() };
-                trace!(
-                    "load_constant name={}, cl={:?}",
-                    String::from_utf8_lossy(name.as_slice()),
-                    cl
-                );
-                let class = runtime::require_class(cl, name).unwrap();
+                trace!("load_constant name={}, cl={:?}", name, cl);
+                let class = runtime::require_class3(cl, name.as_bytes()).unwrap();
 
                 {
                     let mut class = class.lock().unwrap();
@@ -493,9 +490,10 @@ impl Frame {
 
         assert_eq!(fir.field.is_static(), is_static);
 
+        let fid = fir.field.get_id();
         trace!(
             "get_field_helper = {}, is_static = {}",
-            String::from_utf8_lossy(fir.field.get_id().as_slice()),
+            unsafe { std::str::from_utf8_unchecked(fid.as_slice()) },
             is_static
         );
 
@@ -540,9 +538,10 @@ impl Frame {
 
         assert_eq!(fir.field.is_static(), is_static);
 
+        let fid = fir.field.get_id();
         trace!(
             "put_field_helper={}, is_static={}",
-            String::from_utf8_lossy(fir.field.get_id().as_slice()),
+            unsafe { std::str::from_utf8_unchecked(fid.as_slice()) },
             is_static
         );
 
@@ -2385,10 +2384,9 @@ impl Frame {
                 (name, class.class_loader.clone())
             };
 
-            trace!(
-                "anew_array name={}",
-                String::from_utf8_lossy(name.as_slice())
-            );
+            trace!("anew_array name={}", unsafe {
+                std::str::from_utf8_unchecked(name.as_slice())
+            });
             match runtime::require_class(cl, name) {
                 Some(ary_cls_obj) => {
                     {
@@ -2491,8 +2489,8 @@ impl Frame {
                 let t_name = { target_cls.lock().unwrap().name.clone() };
                 trace!(
                     "mirror checkcast {} to {}",
-                    String::from_utf8_lossy(s_name.as_slice()),
-                    String::from_utf8_lossy(t_name.as_slice())
+                    unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
+                    unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
                 );
 
                 let r = cmp::instance_of(mirror_target.clone(), target_cls.clone());

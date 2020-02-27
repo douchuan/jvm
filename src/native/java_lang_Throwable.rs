@@ -36,14 +36,14 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     let mut traces = Vec::new();
     for mir in callers.iter().rev() {
         let cls_name = { mir.method.class.lock().unwrap().name.clone() };
-        let cls_name = String::from_utf8_lossy(cls_name.as_slice());
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
         let method_name = mir.method.name.clone();
-        let method_name = String::from_utf8_lossy(method_name.as_slice());
+        let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
         let src_file = mir.method.src_file.clone();
         let src_file = match src_file {
             Some(name) => {
-                let name = String::from_utf8_lossy(name.as_slice());
-                util::oop::new_java_lang_string2(jt, &name)
+                let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
+                util::oop::new_java_lang_string2(jt, name)
             }
             None => util::oop::new_java_lang_string2(jt, ""),
         };

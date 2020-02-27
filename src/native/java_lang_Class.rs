@@ -138,10 +138,9 @@ pub fn create_mirror(cls: ClassRef) {
     if is_fixed {
         let mirror = OopDesc::new_mirror(cls.clone());
         let mut cls = cls.lock().unwrap();
-        trace!(
-            "mirror created: {}",
-            String::from_utf8_lossy(cls.name.as_slice())
-        );
+        trace!("mirror created: {}", unsafe {
+            std::str::from_utf8_unchecked(cls.name.as_slice())
+        });
         cls.set_mirror(mirror);
     } else {
         let cls_back = cls.clone();
@@ -568,8 +567,7 @@ fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
     let v = match &cls.kind {
         oop::class::ClassKind::TypeArray(type_ary_cls) => {
             let vt = type_ary_cls.value_type.into();
-            let key = String::from_utf8_lossy(vt).to_string();
-            let key = key.as_str();
+            let key = unsafe { std::str::from_utf8_unchecked(vt) };
             util::sync_call(&PRIM_MIRROS, |mirros| mirros.get(key).map(|it| it.clone()))
         }
         oop::class::ClassKind::ObjectArray(obj_ary_cls) => {
@@ -622,11 +620,11 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     if em.method_index != 0 {
         let (name, desc) = constant_pool::get_name_and_type(&cls_file.cp, em.method_index as usize);
         let name = name.unwrap();
-        let name = String::from_utf8_lossy(name.as_slice());
+        let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
         let desc = desc.unwrap();
-        let desc = String::from_utf8_lossy(desc.as_slice());
-        elms.push(util::oop::new_java_lang_string2(jt, &name));
-        elms.push(util::oop::new_java_lang_string2(jt, &desc));
+        let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
+        elms.push(util::oop::new_java_lang_string2(jt, name));
+        elms.push(util::oop::new_java_lang_string2(jt, desc));
     } else {
         elms.push(oop::consts::get_null());
         elms.push(oop::consts::get_null());

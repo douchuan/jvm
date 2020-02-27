@@ -33,11 +33,8 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
 
     let signature = runtime::reflect::get_Constructor_signature(ctor.clone());
 
-    info!(
-        "newInstance0 {}:{}",
-        String::from_utf8_lossy(name.as_slice()),
-        signature
-    );
+    let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
+    info!("newInstance0 {}:{}", name, signature);
 
     let mut ctor_args = Vec::new();
     {

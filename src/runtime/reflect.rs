@@ -15,10 +15,10 @@ pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> OopRef {
 
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
-    let desc = String::from_utf8_lossy(fir.field.desc.as_slice());
-    let signature = util::oop::new_java_lang_string2(jt, &desc);
+    let desc = unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) };
+    let signature = util::oop::new_java_lang_string2(jt, desc);
 
-    let field_name = String::from_utf8_lossy(fir.field.name.as_slice());
+    let field_name = unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) };
     let mut desc = Vec::new();
     desc.push(b'(');
     let mut args: Vec<OopRef> = vec![
@@ -26,7 +26,7 @@ pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> OopRef {
         (
             "name",
             "Ljava/lang/String;",
-            util::oop::new_java_lang_string2(jt, &field_name),
+            util::oop::new_java_lang_string2(jt, field_name),
         ),
         ("type", "Ljava/lang/Class;", typ_mirror),
         (
@@ -78,8 +78,8 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> OopRef {
     //slot
     let slot = mir.offset;
     //signature
-    let desc = String::from_utf8_lossy(mir.method.desc.as_slice());
-    let signature = util::oop::new_java_lang_string2(jt, &desc);
+    let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
+    let signature = util::oop::new_java_lang_string2(jt, desc);
     //fixme:
     let annotations = OopDesc::new_byte_ary(0);
     let parameter_annotations = OopDesc::new_byte_ary(0);

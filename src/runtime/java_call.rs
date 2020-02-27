@@ -310,11 +310,14 @@ impl JavaCall {
         let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
         let name = self.mir.method.name.clone();
         let desc = self.mir.method.desc.clone();
-        let id = vec![cls_name.as_slice(), name.as_slice(), desc.as_slice()]
-            .join(util::PATH_SEP.as_bytes());
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
+        let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
+        let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
         info!(
-            "invoke method = {} static={} native={}",
-            String::from_utf8_lossy(&id),
+            "invoke method = {}:{}:{} static={} native={}",
+            cls_name,
+            name,
+            desc,
             self.mir.method.is_static(),
             self.mir.method.is_native()
         );
