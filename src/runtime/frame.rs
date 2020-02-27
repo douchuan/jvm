@@ -1254,22 +1254,12 @@ impl Frame {
         match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Byte(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v as u8;
-                    }
+                    let v = v as u8;
+                    array_store!(thread, ary, pos, v);
                 }
                 oop::TypeArrayValue::Bool(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v as u8;
-                    }
+                    let v = v as u8;
+                    array_store!(thread, ary, pos, v);
                 }
                 t => unreachable!("t = {:?}", t),
             },
@@ -1288,13 +1278,8 @@ impl Frame {
         match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v as u16;
-                    }
+                    let v = v as u16;
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
@@ -1313,13 +1298,8 @@ impl Frame {
         match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Short(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v as i16;
-                    }
+                    let v = v as i16;
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
@@ -2436,40 +2416,10 @@ impl Frame {
                 let len = ary.elements.len();
                 self.stack.push_int(len as i32);
             }
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Byte(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Bool(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Short(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Float(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Double(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Int(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-                TypeArrayValue::Long(ary) => {
-                    let len = ary.len();
-                    self.stack.push_int(len as i32);
-                }
-            },
+            Oop::TypeArray(ary) => {
+                let len = ary.len();
+                self.stack.push_int(len as i32);
+            }
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }

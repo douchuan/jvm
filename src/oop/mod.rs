@@ -417,6 +417,21 @@ impl MirrorOopDesc {
     }
 }
 
+impl TypeArrayValue {
+    pub fn len(&self) -> usize {
+        match self {
+            TypeArrayValue::Char(ary) => ary.len(),
+            TypeArrayValue::Byte(ary) => ary.len(),
+            TypeArrayValue::Bool(ary) => ary.len(),
+            TypeArrayValue::Short(ary) => ary.len(),
+            TypeArrayValue::Float(ary) => ary.len(),
+            TypeArrayValue::Double(ary) => ary.len(),
+            TypeArrayValue::Int(ary) => ary.len(),
+            TypeArrayValue::Long(ary) => ary.len(),
+        }
+    }
+}
+
 pub fn init() {
     consts::init();
 }
