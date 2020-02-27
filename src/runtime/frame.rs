@@ -16,6 +16,43 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
+fn meet_ex(jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
+    let ex = exception::new(jt, cls_name, msg);
+    jt.set_ex(ex);
+}
+
+macro_rules! array_store {
+    ($thread:ident, $ary:ident, $pos:ident, $v:ident) => {
+        let len = $ary.len();
+        if ($pos < 0) || ($pos as usize >= len) {
+            let msg = format!("length is {}, but index is {}", len, $pos);
+            meet_ex(
+                $thread,
+                crate::classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                Some(msg),
+            );
+        } else {
+            $ary[$pos as usize] = $v;
+        }
+    };
+}
+
+macro_rules! iarray_load {
+    ($thread:ident, $stack:ident, $ary:ident, $pos:ident) => {
+        let len = $ary.len();
+        if ($pos < 0) || ($pos as usize >= len) {
+            let msg = format!("length is {}, but index is {}", len, $pos);
+            meet_ex(
+                $thread,
+                crate::classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                Some(msg),
+            );
+        } else {
+            $stack.push_int($ary[$pos as usize] as i32);
+        }
+    };
+}
+
 pub struct Frame {
     pub frame_id: usize, //for debug
     class: ClassRef,
@@ -542,7 +579,7 @@ impl Frame {
         } else {
             let receiver = self.stack.pop_ref();
             if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             } else {
                 class.put_field_value(receiver, fir.clone(), v);
             }
@@ -578,11 +615,6 @@ impl Frame {
 
 //handle exception
 impl Frame {
-    fn meet_ex(&mut self, jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
-        let ex = exception::new(jt, cls_name, msg);
-        jt.set_ex(ex);
-    }
-
     fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) -> Result<(), OopRef> {
         let ex_cls = {
             let ex = ex.lock().unwrap();
@@ -886,18 +918,13 @@ impl Frame {
         match &rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Int(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_int(ary[pos as usize]);
-                    }
+                    let stack = &mut self.stack;
+                    iarray_load!(thread, stack, ary, pos);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -910,18 +937,13 @@ impl Frame {
         match &rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Short(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_int(ary[pos as usize] as i32);
-                    }
+                    let stack = &mut self.stack;
+                    iarray_load!(thread, stack, ary, pos);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -934,18 +956,13 @@ impl Frame {
         match &rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_int(ary[pos as usize] as i32);
-                    }
+                    let stack = &mut self.stack;
+                    iarray_load!(thread, stack, ary, pos);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -958,27 +975,17 @@ impl Frame {
         match &rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Byte(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_int(ary[pos as usize] as i32);
-                    }
+                    let stack = &mut self.stack;
+                    iarray_load!(thread, stack, ary, pos);
                 }
                 oop::TypeArrayValue::Bool(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_int(ary[pos as usize] as i32);
-                    }
+                    let stack = &mut self.stack;
+                    iarray_load!(thread, stack, ary, pos);
                 }
                 t => unreachable!("t = {:?}", t),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -994,7 +1001,7 @@ impl Frame {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         self.stack.push_long(ary[pos as usize]);
                     }
@@ -1002,7 +1009,7 @@ impl Frame {
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1018,7 +1025,7 @@ impl Frame {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         self.stack.push_float(ary[pos as usize]);
                     }
@@ -1026,7 +1033,7 @@ impl Frame {
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1042,7 +1049,7 @@ impl Frame {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         self.stack.push_double(ary[pos as usize]);
                     }
@@ -1050,7 +1057,7 @@ impl Frame {
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1066,14 +1073,14 @@ impl Frame {
                 //                info!("aaload pos={}, len={}", pos, len);
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary.elements[pos as usize].clone();
                     self.stack.push_ref(v);
                 }
             }
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1242,15 +1249,15 @@ impl Frame {
     pub fn bastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Byte(ary) => {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         ary[pos as usize] = v as u8;
                     }
@@ -1259,7 +1266,7 @@ impl Frame {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         ary[pos as usize] = v as u8;
                     }
@@ -1267,7 +1274,7 @@ impl Frame {
                 t => unreachable!("t = {:?}", t),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1276,15 +1283,15 @@ impl Frame {
     pub fn castore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(ary) => {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         ary[pos as usize] = v as u16;
                     }
@@ -1292,7 +1299,7 @@ impl Frame {
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1301,15 +1308,15 @@ impl Frame {
     pub fn sastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Short(ary) => {
                     let len = ary.len();
                     if (pos < 0) || (pos as usize >= len) {
                         let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                     } else {
                         ary[pos as usize] = v as i16;
                     }
@@ -1317,7 +1324,7 @@ impl Frame {
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1326,23 +1333,17 @@ impl Frame {
     pub fn iastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Int(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v as i32;
-                    }
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1351,23 +1352,17 @@ impl Frame {
     pub fn lastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_long();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Long(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v;
-                    }
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1376,23 +1371,17 @@ impl Frame {
     pub fn fastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_float();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Float(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v;
-                    }
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1401,23 +1390,17 @@ impl Frame {
     pub fn dastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_double();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Double(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        ary[pos as usize] = v;
-                    }
+                    array_store!(thread, ary, pos, v);
                 }
                 _ => unreachable!(),
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1426,20 +1409,15 @@ impl Frame {
     pub fn aastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_ref();
         let pos = self.stack.pop_int();
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match &mut rff.v {
+        let rf = self.stack.pop_ref();
+        let mut rf = rf.lock().unwrap();
+        match &mut rf.v {
             Oop::Array(ary) => {
-                let len = ary.elements.len();
-                if (pos < 0) || (pos as usize >= len) {
-                    let msg = format!("length is {}, but index is {}", len, pos);
-                    self.meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                } else {
-                    ary.set_elm_at(pos as usize, v);
-                }
+                let ary = &mut ary.elements;
+                array_store!(thread, ary, pos, v);
             }
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -1564,7 +1542,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1578,7 +1556,7 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1592,7 +1570,7 @@ impl Frame {
         let v2 = self.stack.pop_float();
         let v1 = self.stack.pop_float();
         if v2 == 0.0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1606,7 +1584,7 @@ impl Frame {
         let v2 = self.stack.pop_double();
         let v1 = self.stack.pop_double();
         if v2 == 0.0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1620,7 +1598,7 @@ impl Frame {
         let v2 = self.stack.pop_int();
         let v1 = self.stack.pop_int();
         if v2 == 0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1634,7 +1612,7 @@ impl Frame {
         let v2 = self.stack.pop_long();
         let v1 = self.stack.pop_long();
         if v2 == 0 {
-            self.meet_ex(
+            meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -2285,7 +2263,7 @@ impl Frame {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
         if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
-            self.meet_ex(thread, consts::J_NPE, None);
+            meet_ex(thread, consts::J_NPE, None);
         } else {
             self.get_field_helper(thread, rf, cp_idx, false);
         }
@@ -2355,7 +2333,7 @@ impl Frame {
         let t = self.read_byte();
         let len = self.stack.pop_int();
         if len < 0 {
-            self.meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
+            meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let len = len as usize;
             let ary = match t {
@@ -2387,7 +2365,7 @@ impl Frame {
         let length = self.stack.pop_int();
         //        info!("anew_array length={}", length);
         if length < 0 {
-            self.meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
+            meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let class = match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => class,
@@ -2493,7 +2471,7 @@ impl Frame {
                 }
             },
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => unreachable!(),
         }
@@ -2529,7 +2507,7 @@ impl Frame {
                         String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
 
                     let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
-                    self.meet_ex(thread, consts::J_CCE, Some(msg));
+                    meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
             Oop::Array(ary) => {
@@ -2548,7 +2526,7 @@ impl Frame {
 
                     let msg = format!("array {} cannot be cast to {}", s_name, t_name);
                     warn!("{}", msg);
-                    self.meet_ex(thread, consts::J_CCE, Some(msg));
+                    meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
             Oop::Mirror(mirror) => {
@@ -2578,7 +2556,7 @@ impl Frame {
 
                     let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
                     error!("{}", msg);
-                    self.meet_ex(thread, consts::J_CCE, Some(msg));
+                    meet_ex(thread, consts::J_CCE, Some(msg));
                 }
             }
             t => unimplemented!("t = {:?}", t),
@@ -2612,7 +2590,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_enter();
@@ -2625,7 +2603,7 @@ impl Frame {
         let mut rff = rf.lock().unwrap();
         match rff.v {
             Oop::Null => {
-                self.meet_ex(thread, consts::J_NPE, None);
+                meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 rff.monitor_exit();

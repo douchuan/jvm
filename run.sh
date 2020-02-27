@@ -56,20 +56,30 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 ###############################
 ### jdk test
 ###############################
-
 #cargo run -- --cp $JDK:$JDK_TEST Compare
 #cargo run -- --cp $JDK:$JDK_TEST HashCode
 #cargo run -- --cp $JDK:$JDK_TEST ToString
+
+###todo: optimize
+###init vm，初始化安全模块慢。
+### File.createTempFile，会使用SecureRandom，导致一系列安全相关的类被加载
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
+
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/AssertionError Cause
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean Factory
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean GetBoolean
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean MakeBooleanComparable
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean ParseBoolean
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Byte Decode
+
+##todo: optimize
+#export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang/Character
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
+
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
+##CharSequence/DefaultTest.java
 

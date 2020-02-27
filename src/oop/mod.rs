@@ -409,10 +409,6 @@ impl ArrayOopDesc {
             _ => unreachable!(),
         }
     }
-
-    pub fn set_elm_at(&mut self, index: usize, elm: OopRef) {
-        self.elements[index] = elm;
-    }
 }
 
 impl MirrorOopDesc {
