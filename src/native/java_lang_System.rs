@@ -153,6 +153,14 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
     let v = std::env::var("JAVA_HOME").expect("Please Setup JAVA_HOME env");
     put_props_kv(jt, props_oop.clone(), "java.home", v.as_str());
 
+    //test.src for jdk/test/java/lang/Character/CheckProp.java
+    match std::env::var("TEST_SRC") {
+        Ok(v) => {
+            put_props_kv(jt, props_oop.clone(), "test.src", v.as_str());
+        }
+        _ => (),
+    }
+
     Ok(Some(props_oop.clone()))
 }
 
