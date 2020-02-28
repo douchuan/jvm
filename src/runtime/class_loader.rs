@@ -55,10 +55,12 @@ impl ClassLoader {
                     ClassLoader::Bootstrap => {
                         runtime::sys_dic_put(name, class.clone());
                         let this_ref = class.clone();
-                        util::sync_call_ctx(&class, move |it| {
-                            it.set_class_state(oop::class::State::Loaded);
-                            it.link_class(this_ref);
-                        });
+
+                        {
+                            let mut cls = class.lock().unwrap();
+                            cls.set_class_state(oop::class::State::Loaded);
+                            cls.link_class(this_ref);
+                        }
 
                         native::java_lang_Class::create_mirror(class.clone());
                     }

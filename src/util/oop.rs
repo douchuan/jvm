@@ -9,9 +9,8 @@ lazy_static! {
 }
 
 pub fn set_java_lang_string_value_offset(offset: usize) {
-    util::sync_call_ctx(&JAVA_LANG_STRING_VALUE_OFFSET, |v| {
-        *v = Some(offset);
-    });
+    let mut v = JAVA_LANG_STRING_VALUE_OFFSET.lock().unwrap();
+    *v = Some(offset);
 }
 
 pub fn is_str(v: OopRef) -> bool {
@@ -26,8 +25,10 @@ pub fn is_str(v: OopRef) -> bool {
 }
 
 pub fn extract_java_lang_string_value(v: OopRef) -> Vec<u16> {
-    let offset: Option<usize> = util::sync_call(&JAVA_LANG_STRING_VALUE_OFFSET, |v| v.clone());
-    let offset = offset.unwrap();
+    let offset = {
+        let v = JAVA_LANG_STRING_VALUE_OFFSET.lock().unwrap();
+        v.clone().unwrap()
+    };
 
     let cls_string = require_class3(None, b"java/lang/String").unwrap();
     let value_ary = {

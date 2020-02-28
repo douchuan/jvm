@@ -36,6 +36,20 @@ Rust中的char: four bytes in size
   即使单线程环境下, 要修改内容, 也需要lock，影响效率(Arc<Mutex>)
   Java有monitor_enter/monitor_exit指令，锁由用户管理。
   有没有可能在rust中实现: 锁独立出来(交用户控制, monitor enter/exit)，自由的在线程间 共享&修改 对象。
+4. System.arraycopy
+  执行类似这样的代码($JDK_TEST/Character/CheckProp.java)：
+   ArrayList<Integer> list = new ArrayList<Integer>();
+   int start = 0;
+   while (start < 50000) {
+       list.add(start++);
+   }
+
+   会导致
+     a. 大量的Integer对象被创建
+     b. ArrayList内部会不断分配内存，并调用System.arraycopy执行copy操作；
+        jvm内部会:
+          a. 创建Vec，执行一次初始化（元素量大，会耗时）
+          b. arraycopy_diff_obj 针对对象会调用耗时的clone操作
 
 
 Roadmap

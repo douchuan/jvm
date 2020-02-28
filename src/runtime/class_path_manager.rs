@@ -15,15 +15,18 @@ pub fn init() {
 }
 
 pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
-    util::sync_call_ctx(&CPM, |cpm| cpm.search_class(name))
+    let cpm = CPM.lock().unwrap();
+    cpm.search_class(name)
 }
 
 pub fn add_path(path: &str) {
-    util::sync_call_ctx(&CPM, |cpm| cpm.add_class_path(path));
+    let mut cpm = CPM.lock().unwrap();
+    cpm.add_class_path(path);
 }
 
 pub fn add_paths(path: &str) {
-    util::sync_call_ctx(&CPM, |cpm| cpm.add_class_paths(path));
+    let mut cpm = CPM.lock().unwrap();
+    cpm.add_class_paths(path);
 }
 
 #[derive(Debug)]

@@ -11,7 +11,8 @@ use std::sync::{Arc, Mutex};
 
 pub fn get_primitive_class_mirror(key: &str) -> Option<OopRef> {
     //todo: avoid mutex lock, it's only read
-    util::sync_call(&PRIM_MIRROS, |mirros| mirros.get(key).map(|it| it.clone()))
+    let mirrors = PRIM_MIRROS.lock().unwrap();
+    mirrors.get(key).map(|it| it.clone())
 }
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -133,7 +134,10 @@ pub fn init() {
 }
 
 pub fn create_mirror(cls: ClassRef) {
-    let is_fixed = util::sync_call_ctx(&MIRROR_STATE, |s| *s == ClassMirrorState::Fixed);
+    let is_fixed = {
+        let s = MIRROR_STATE.lock().unwrap();
+        *s == ClassMirrorState::Fixed
+    };
 
     if is_fixed {
         let mirror = OopDesc::new_mirror(cls.clone());
@@ -149,14 +153,12 @@ pub fn create_mirror(cls: ClassRef) {
         warn!("mirror create delayed: {}", name);
         match cls.kind {
             oop::class::ClassKind::Instance(_) => {
-                util::sync_call_ctx(&DELAYED_MIRROS, |mirros| {
-                    mirros.push(name);
-                });
+                let mut mirrors = DELAYED_MIRROS.lock().unwrap();
+                mirrors.push(name);
             }
             _ => {
-                util::sync_call_ctx(&DELAYED_ARY_MIRROS, |mirros| {
-                    mirros.push(cls_back);
-                });
+                let mut mirrors = DELAYED_ARY_MIRROS.lock().unwrap();
+                mirrors.push(cls_back);
             }
         }
     }
@@ -171,9 +173,10 @@ pub fn create_delayed_mirrors() {
         mirros.clone()
     };
 
-    util::sync_call_ctx(&MIRROR_STATE, |s| {
+    {
+        let mut s = MIRROR_STATE.lock().unwrap();
         *s = ClassMirrorState::Fixed;
-    });
+    }
 
     for name in names {
         if name.len() > 2 {
@@ -208,9 +211,8 @@ pub fn create_delayed_mirrors() {
                 cls.set_mirror(mirror.clone());
             }
 
-            util::sync_call_ctx(&PRIM_MIRROS, |mirrors| {
-                mirrors.insert(name.to_string(), mirror);
-            });
+            let mut mirrors = PRIM_MIRROS.lock().unwrap();
+            mirrors.insert(name.to_string(), mirror);
         }
     }
 }
@@ -568,7 +570,8 @@ fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
         oop::class::ClassKind::TypeArray(type_ary_cls) => {
             let vt = type_ary_cls.value_type.into();
             let key = unsafe { std::str::from_utf8_unchecked(vt) };
-            util::sync_call(&PRIM_MIRROS, |mirros| mirros.get(key).map(|it| it.clone()))
+            let mirrors = PRIM_MIRROS.lock().unwrap();
+            mirrors.get(key).map(|it| it.clone())
         }
         oop::class::ClassKind::ObjectArray(obj_ary_cls) => {
             let component = obj_ary_cls.component.clone().unwrap();

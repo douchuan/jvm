@@ -78,7 +78,8 @@ pub fn new_jni_env(jt: &mut JavaThread, class: ClassRef) -> JNIEnv {
 pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {
     let id = vec![package, name, desc].join(util::PATH_SEP.as_bytes());
     let id = String::from_utf8(id).unwrap();
-    util::sync_call_ctx(&NATIVES, |h| h.get(&id).map(|it| it.clone()))
+    let natives = NATIVES.lock().unwrap();
+    natives.get(&id).map(|it| it.clone())
 }
 
 pub fn init() {
@@ -150,15 +151,15 @@ pub fn init() {
         ),
     ];
 
-    util::sync_call_ctx(&NATIVES, |h| {
+    {
+        let mut dict = NATIVES.lock().unwrap();
         natives.iter().for_each(|(package, methods)| {
             methods.iter().for_each(|it| {
                 let id = vec![package.as_ref(), it.name, it.signature].join(util::PATH_SEP);
-
-                h.insert(id, it.clone());
+                dict.insert(id, it.clone());
             });
         });
-    });
+    }
 
     java_lang_Class::init();
 }

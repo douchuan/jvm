@@ -644,10 +644,11 @@ impl ClassObject {
             let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
             let super_class = runtime::require_class(class_loader, name).unwrap();
 
-            util::sync_call_ctx(&super_class, |c| {
+            {
+                let c = super_class.lock().unwrap();
                 assert!(c.is_instance());
                 assert!(!c.is_final(), "should not final");
-            });
+            }
 
             Some(super_class)
         }
