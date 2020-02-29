@@ -364,9 +364,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             match &ary.v {
                 oop::RefKind::Array(ary) => {
                     let mut tmp = Vec::with_capacity(length);
-                    for _ in 0..length {
-                        tmp.push(oop::consts::get_null());
-                    }
+                    tmp.resize(length, oop::consts::get_null());
 
                     let (_, ary) = ary.elements.split_at(src_pos);
                     tmp.clone_from_slice(&ary[..length]);

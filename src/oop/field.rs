@@ -46,9 +46,7 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     };
 
     let mut field_values = Vec::with_capacity(n);
-    for _ in 0..n {
-        field_values.push(oop::consts::get_null());
-    }
+    field_values.resize(n, oop::consts::get_null());
 
     let mut cur_cls = class.clone();
     loop {
