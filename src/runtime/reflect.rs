@@ -11,7 +11,7 @@ use crate::util;
 pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();
 
-    let clazz = { fir.field.class.lock().unwrap().get_mirror() };
+    let clazz = { fir.field.class.read().unwrap().get_mirror() };
 
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
@@ -53,7 +53,7 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD_CTOR).unwrap();
 
     //declaringClass
-    let declaring_cls = { mir.method.class.lock().unwrap().get_mirror() };
+    let declaring_cls = { mir.method.class.read().unwrap().get_mirror() };
 
     //parameterTypes
     let signature = MethodSignature::new(mir.method.desc.as_slice());
@@ -115,7 +115,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     //todo: optimize, avoid obtain class
     let cls = {
         let v = util::oop::extract_ref(ctor);
-        let v = v.lock().unwrap();
+        let v = v.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
@@ -123,7 +123,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     };
 
     //todo: optimize, avoid obtain id
-    let cls = cls.lock().unwrap();
+    let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"clazz", b"Ljava/lang/Class;", false);
     cls.get_field_value(ctor, id)
 }
@@ -131,14 +131,14 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
 pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
     let cls = {
         let v = util::oop::extract_ref(ctor);
-        let v = v.lock().unwrap();
+        let v = v.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
 
-    let cls = cls.lock().unwrap();
+    let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"slot", b"I", false);
     let v = cls.get_field_value(ctor, id);
     util::oop::extract_int(&v)
@@ -148,7 +148,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
     //todo: optimisze, cache Constructor cls, avoid obtain class
     let cls = {
         let v = util::oop::extract_ref(ctor);
-        let v = v.lock().unwrap();
+        let v = v.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
@@ -156,7 +156,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
     };
 
     //todo: optimize, cache id
-    let cls = cls.lock().unwrap();
+    let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
     let v = cls.get_field_value(ctor, id);
     util::oop::extract_str(&v)
@@ -174,14 +174,14 @@ fn create_value_type(t: ArgType) -> Oop {
             let len = desc.len();
             let name = &desc.as_slice()[1..len - 1];
             let cls = require_class3(None, name).unwrap();
-            let cls = cls.lock().unwrap();
+            let cls = cls.read().unwrap();
             cls.get_mirror()
         }
         Type::Short => java_lang_Class::get_primitive_class_mirror("S").unwrap(),
         Type::Boolean => java_lang_Class::get_primitive_class_mirror("Z").unwrap(),
         Type::Array(desc) => {
             let cls = require_class3(None, desc.as_slice()).unwrap();
-            let cls = cls.lock().unwrap();
+            let cls = cls.read().unwrap();
             cls.get_mirror()
         }
         Type::Void => java_lang_Class::get_primitive_class_mirror("V").unwrap(),

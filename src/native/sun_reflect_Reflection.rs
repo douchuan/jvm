@@ -34,7 +34,7 @@ fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNI
             continue;
         }
 
-        let cls = caller.method.class.lock().unwrap();
+        let cls = caller.method.class.read().unwrap();
         //        error!("getCallerClass name = {}", String::from_utf8_lossy(cls.name.as_slice()));
         return Ok(Some(cls.get_mirror()));
     }

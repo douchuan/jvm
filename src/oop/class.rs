@@ -91,11 +91,11 @@ pub struct ArrayClassObject {
 
 //invoke "<clinit>"
 pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
-    let need = { class.lock().unwrap().state == State::BeingIni };
+    let need = { class.read().unwrap().state == State::BeingIni };
 
     if need {
         let (mir, name) = {
-            let mut class = class.lock().unwrap();
+            let mut class = class.write().unwrap();
             class.state = State::FullyIni;
 
             let id = util::new_method_id(b"<clinit>", b"()V");
@@ -121,7 +121,7 @@ pub fn load_and_init(jt: &mut JavaThread, name: &[u8]) -> ClassRef {
     let class = runtime::require_class3(None, name).expect(cls_name);
     // trace!("load_and_init 2 name={}", String::from_utf8_lossy(name));
     {
-        let mut class = class.lock().unwrap();
+        let mut class = class.write().unwrap();
         class.init_class(jt);
         //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
     }
@@ -198,7 +198,7 @@ impl Class {
                 let n_super_inst = {
                     match &self.super_class {
                         Some(super_cls) => {
-                            let super_cls = super_cls.lock().unwrap();
+                            let super_cls = super_cls.read().unwrap();
                             match &super_cls.kind {
                                 ClassKind::Instance(cls) => cls.n_inst_fields,
                                 _ => 0,
@@ -237,7 +237,7 @@ impl Class {
 
                     if let Some(super_class) = self.super_class.as_ref() {
                         {
-                            super_class.lock().unwrap().init_class(thread);
+                            super_class.write().unwrap().init_class(thread);
                         }
 
                         init_class_fully(thread, super_class.clone());
@@ -305,7 +305,7 @@ impl ArrayClassObject {
     pub fn get_dimension(&self) -> usize {
         match self.down_type.as_ref() {
             Some(down_type) => {
-                let down_type = down_type.lock().unwrap();
+                let down_type = down_type.read().unwrap();
                 let n = match &down_type.kind {
                     ClassKind::Instance(_) => unreachable!(),
                     ClassKind::ObjectArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
@@ -366,7 +366,7 @@ impl Class {
         let super_class = self.super_class.clone();
         super_class
             .unwrap()
-            .lock()
+            .read()
             .unwrap()
             .get_field_id(name, desc, is_static)
     }
@@ -374,7 +374,7 @@ impl Class {
     pub fn put_field_value(&self, receiver: Oop, fir: FieldIdRef, v: Oop) {
         match receiver {
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::Inst(inst) => inst.field_values[fir.offset] = v,
                     oop::RefKind::Mirror(mirror) => mirror.field_values[fir.offset] = v,
@@ -388,7 +388,7 @@ impl Class {
     pub fn get_field_value(&self, receiver: &Oop, fid: FieldIdRef) -> Oop {
         match receiver {
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::Inst(inst) => inst.field_values[fid.offset].clone(),
                     oop::RefKind::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
@@ -405,7 +405,7 @@ impl Class {
     pub fn get_field_value2(&self, receiver: &Oop, offset: usize) -> Oop {
         match receiver {
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::Inst(inst) => inst.field_values[offset].clone(),
                     oop::RefKind::Mirror(mirror) => match mirror.field_values.get(offset) {
@@ -429,7 +429,7 @@ impl Class {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
-                        .lock()
+                        .write()
                         .unwrap()
                         .put_static_field_value(field_id, v);
                 }
@@ -448,7 +448,7 @@ impl Class {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
-                        .lock()
+                        .read()
                         .unwrap()
                         .get_static_field_value(field_id)
                 }
@@ -465,7 +465,7 @@ impl Class {
                         return true;
                     }
 
-                    let e = e.lock().unwrap();
+                    let e = e.read().unwrap();
                     if e.check_interface(intf.clone()) {
                         return true;
                     }
@@ -476,7 +476,7 @@ impl Class {
 
         match &self.super_class {
             Some(super_cls) => {
-                let super_cls = super_cls.lock().unwrap();
+                let super_cls = super_cls.read().unwrap();
                 super_cls.check_interface(intf)
             }
             None => false,
@@ -592,7 +592,7 @@ impl Class {
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
         let (name, cls_kind) = {
-            let cls = down_type.lock().unwrap();
+            let cls = down_type.read().unwrap();
             assert!(cls.is_array());
             (cls.name.clone(), cls.get_class_kind_type())
         };
@@ -612,7 +612,7 @@ impl Class {
             }),
             ClassKindType::ObjectAry => {
                 let component = {
-                    let cls = down_type.lock().unwrap();
+                    let cls = down_type.read().unwrap();
                     match &cls.kind {
                         ClassKind::ObjectArray(ary_cls) => ary_cls.component.clone(),
                         _ => unreachable!(),
@@ -660,7 +660,7 @@ impl ClassObject {
             let super_class = runtime::require_class(class_loader, name).unwrap();
 
             {
-                let c = super_class.lock().unwrap();
+                let c = super_class.read().unwrap();
                 assert!(c.is_instance());
                 assert!(!c.is_final(), "should not final");
             }
@@ -715,7 +715,7 @@ impl ClassObject {
             .iter()
             .for_each(|it| match runtime::require_class2(*it, cp) {
                 Some(class) => {
-                    let name = class.lock().unwrap().name.clone();
+                    let name = class.read().unwrap().name.clone();
                     self.interfaces.insert(name, class);
                 }
                 None => {
@@ -821,7 +821,7 @@ impl Class {
             match self.super_class.as_ref() {
                 Some(super_class) => {
                     return super_class
-                        .lock()
+                        .read()
                         .unwrap()
                         .get_class_method_inner(id, with_super);
                 }
@@ -843,7 +843,7 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.lock().unwrap().get_virtual_method_inner(id);
+                return super_class.read().unwrap().get_virtual_method_inner(id);
             }
             None => return Err(()),
         }
@@ -855,7 +855,7 @@ impl Class {
                 Some(m) => return Ok(m.clone()),
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
-                        let cls = itf.lock().unwrap();
+                        let cls = itf.read().unwrap();
                         match cls.get_interface_method(id.clone()) {
                             Ok(m) => return Ok(m.clone()),
                             _ => (),
@@ -868,7 +868,7 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.lock().unwrap().get_interface_method_inner(id);
+                return super_class.read().unwrap().get_interface_method_inner(id);
             }
             None => return Err(()),
         }

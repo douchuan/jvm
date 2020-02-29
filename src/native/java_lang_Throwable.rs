@@ -34,7 +34,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 
     let mut traces = Vec::new();
     for mir in callers.iter().rev() {
-        let cls_name = { mir.method.class.lock().unwrap().name.clone() };
+        let cls_name = { mir.method.class.read().unwrap().name.clone() };
         let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
         let method_name = mir.method.name.clone();
         let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
@@ -68,7 +68,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     let stack_trace_ary = Oop::new_ref_ary2(ary_cls, traces);
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
-        let cls = throwable_cls.lock().unwrap();
+        let cls = throwable_cls.read().unwrap();
         let id = cls.get_field_id(b"stackTrace", b"[Ljava/lang/StackTraceElement;", false);
         cls.put_field_value(throwable_oop.clone(), id, oop::consts::get_null());
         let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
@@ -82,14 +82,14 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     let throwable = args.get(0).unwrap();
     let cls = {
         let throwable = util::oop::extract_ref(throwable);
-        let v = throwable.lock().unwrap();
+        let v = throwable.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
     let backtrace = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
         cls.get_field_value(throwable, id)
     };
@@ -97,7 +97,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     let v = match backtrace {
         Oop::Null => Oop::new_int(0),
         Oop::Ref(rf) => {
-            let rf = rf.lock().unwrap();
+            let rf = rf.read().unwrap();
             match &rf.v {
                 oop::RefKind::Array(ary) => Oop::new_int(ary.elements.len() as i32),
                 _ => unreachable!(),
@@ -114,20 +114,20 @@ fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
     let index = util::oop::extract_int(args.get(1).unwrap());
     let cls = {
         let throwable = util::oop::extract_ref(throwable);
-        let v = throwable.lock().unwrap();
+        let v = throwable.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
     let backtrace = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
         cls.get_field_value(throwable, id)
     };
 
     let backtrace = util::oop::extract_ref(&backtrace);
-    let v = backtrace.lock().unwrap();
+    let v = backtrace.read().unwrap();
     let v = match &v.v {
         oop::RefKind::Array(ary) => {
             if index >= 0 && (index as usize) < ary.elements.len() {

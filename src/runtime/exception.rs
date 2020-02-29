@@ -10,7 +10,7 @@ pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> Oop {
     };
 
     {
-        let mut cls = cls.lock().unwrap();
+        let mut cls = cls.write().unwrap();
         cls.init_class(jt);
         //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
     }

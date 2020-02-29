@@ -128,7 +128,7 @@ fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>)
 fn get_File_path(file: &Oop) -> String {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let path = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
         cls.get_field_value(file, fir)
     };

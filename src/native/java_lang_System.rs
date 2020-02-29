@@ -170,7 +170,7 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
         let props = util::oop::extract_ref(props);
-        let v = props.lock().unwrap();
+        let v = props.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
@@ -178,7 +178,7 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
     };
 
     let mir = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = util::new_method_id(
             b"put",
             b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
@@ -198,8 +198,8 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
 
 fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls = { env.lock().unwrap().class.clone() };
-    let mut cls = cls.lock().unwrap();
+    let cls = { env.read().unwrap().class.clone() };
+    let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"in", b"Ljava/io/InputStream;", true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -207,8 +207,8 @@ fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls = { env.lock().unwrap().class.clone() };
-    let mut cls = cls.lock().unwrap();
+    let cls = { env.read().unwrap().class.clone() };
+    let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"out", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -216,8 +216,8 @@ fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls = { env.lock().unwrap().class.clone() };
-    let mut cls = cls.lock().unwrap();
+    let cls = { env.read().unwrap().class.clone() };
+    let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"err", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -304,7 +304,7 @@ todo optimize: 如何做到不用中转，就达到copy的目的
 */
 fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
     let is_type_ary = {
-        let src = src.lock().unwrap();
+        let src = src.read().unwrap();
         match &src.v {
             oop::RefKind::TypeArray(_) => true,
             oop::RefKind::Array(_) => false,
@@ -314,7 +314,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 
     if is_type_ary {
         let tmp = {
-            let src = src.lock().unwrap();
+            let src = src.read().unwrap();
 
             let mut tmp = Vec::with_capacity(length);
 
@@ -341,7 +341,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             tmp
         };
 
-        let mut dest = dest.lock().unwrap();
+        let mut dest = dest.write().unwrap();
         match &mut dest.v {
             oop::RefKind::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(dest) => {
@@ -360,7 +360,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
         }
     } else {
         let tmp = {
-            let ary = src.lock().unwrap();
+            let ary = src.read().unwrap();
             match &ary.v {
                 oop::RefKind::Array(ary) => {
                     let mut tmp = Vec::with_capacity(length);
@@ -374,7 +374,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             }
         };
 
-        let mut dest = dest.lock().unwrap();
+        let mut dest = dest.write().unwrap();
         match &mut dest.v {
             oop::RefKind::Array(ary) => {
                 let (_, ary) = ary.elements.split_at_mut(dest_pos);
@@ -386,8 +386,8 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 }
 
 fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
-    let src = src.lock().unwrap();
-    let mut dest = dest.lock().unwrap();
+    let src = src.read().unwrap();
+    let mut dest = dest.write().unwrap();
 
     let is_type_ary = {
         match &src.v {

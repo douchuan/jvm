@@ -18,7 +18,7 @@ pub fn get_field_ref(
     //load Field's Class, then init it
     let class = require_class2(class_index, cp).unwrap();
     let (name, desc) = {
-        let mut class = class.lock().unwrap();
+        let mut class = class.write().unwrap();
         class.init_class(thread);
 
         let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
@@ -32,13 +32,13 @@ pub fn get_field_ref(
 
     oop::class::init_class_fully(thread, class.clone());
 
-    let class = class.lock().unwrap();
+    let class = class.read().unwrap();
     class.get_field_id(name.as_slice(), desc.as_slice(), is_static)
 }
 
 pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let n = {
-        let class = class.lock().unwrap();
+        let class = class.read().unwrap();
         match &class.kind {
             oop::class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
             _ => unreachable!(),
@@ -51,7 +51,7 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let mut cur_cls = class.clone();
     loop {
         let cls = cur_cls.clone();
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         match &cls.kind {
             oop::class::ClassKind::Instance(cls_obj) => {
                 cls_obj.inst_fields.iter().for_each(|(_, fir)| {

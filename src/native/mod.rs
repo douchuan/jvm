@@ -5,7 +5,7 @@ use crate::runtime::JavaThread;
 use crate::types::ClassRef;
 use crate::util;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
@@ -32,7 +32,7 @@ mod sun_nio_cs_StreamEncoder;
 mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_Reflection;
 
-pub type JNIEnv = Arc<Mutex<Box<JNIEnvStruct>>>;
+pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
 pub type NativeMethodPtr =
     Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
@@ -51,9 +51,9 @@ pub struct JNIEnvStruct {
 }
 
 lazy_static! {
-    static ref NATIVES: Mutex<HashMap<String, JNINativeMethod>> = {
+    static ref NATIVES: RwLock<HashMap<String, JNINativeMethod>> = {
         let hm = HashMap::new();
-        Mutex::new(hm)
+        RwLock::new(hm)
     };
 }
 
@@ -70,7 +70,7 @@ pub fn new_fn(
 }
 
 pub fn new_jni_env(jt: &mut JavaThread, class: ClassRef) -> JNIEnv {
-    Arc::new(Mutex::new(Box::new(JNIEnvStruct {
+    Arc::new(RwLock::new(Box::new(JNIEnvStruct {
         java_thread_obj: jt.java_thread_obj.clone(),
         class,
     })))
@@ -79,7 +79,7 @@ pub fn new_jni_env(jt: &mut JavaThread, class: ClassRef) -> JNIEnv {
 pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {
     let id = vec![package, name, desc].join(util::PATH_SEP.as_bytes());
     let id = String::from_utf8(id).unwrap();
-    let natives = NATIVES.lock().unwrap();
+    let natives = NATIVES.read().unwrap();
     natives.get(&id).map(|it| it.clone())
 }
 
@@ -153,7 +153,7 @@ pub fn init() {
     ];
 
     {
-        let mut dict = NATIVES.lock().unwrap();
+        let mut dict = NATIVES.write().unwrap();
         natives.iter().for_each(|(package, methods)| {
             methods.iter().for_each(|it| {
                 let id = vec![package.as_ref(), it.name, it.signature].join(util::PATH_SEP);

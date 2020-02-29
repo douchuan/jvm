@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 
 use crate::classfile::ClassFile;
 use crate::runtime::{require_class3, ClassLoader};
@@ -252,7 +252,7 @@ impl Oop {
             hash_code: None,
         };
 
-        let v = Arc::new(Mutex::new(Box::new(v)));
+        let v = Arc::new(RwLock::new(Box::new(v)));
         Oop::Ref(v)
     }
 }
@@ -388,14 +388,14 @@ impl InstOopDesc {
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
-            assert!(class.lock().unwrap().is_array());
+            assert!(class.read().unwrap().is_array());
         }
 
         Self { class, elements }
     }
 
     pub fn get_dimension(&self) -> usize {
-        let class = self.class.lock().unwrap();
+        let class = self.class.read().unwrap();
         match &class.kind {
             class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
             class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),

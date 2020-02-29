@@ -24,12 +24,12 @@ pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRe
     let v = match v {
         Oop::Null => Oop::new_int(0),
         Oop::Ref(rf) => {
-            let hash = { rf.lock().unwrap().hash_code.clone() };
+            let hash = { rf.read().unwrap().hash_code.clone() };
             match hash {
                 Some(hash) => Oop::new_int(hash),
                 None => {
                     let hash = util::oop::hash_code(v);
-                    let mut v = rf.lock().unwrap();
+                    let mut v = rf.write().unwrap();
                     v.hash_code = Some(hash);
                     Oop::new_int(hash)
                 }
@@ -51,13 +51,13 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let v = args.get(0).unwrap();
     let mirror = {
         let rf = util::oop::extract_ref(v);
-        let rf = rf.lock().unwrap();
+        let rf = rf.read().unwrap();
         match &rf.v {
             oop::RefKind::Inst(inst) => {
-                let cls = inst.class.lock().unwrap();
+                let cls = inst.class.read().unwrap();
                 cls.get_mirror()
             }
-            oop::RefKind::Array(ary) => ary.class.lock().unwrap().get_mirror(),
+            oop::RefKind::Array(ary) => ary.class.read().unwrap().get_mirror(),
             oop::RefKind::Mirror(_mirror) => {
                 v.clone()
 

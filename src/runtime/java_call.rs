@@ -16,7 +16,7 @@ pub struct JavaCall {
 
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = util::new_method_id(b"<init>", desc);
         cls.get_this_class_method(id).unwrap()
     };
@@ -72,7 +72,7 @@ impl JavaCall {
             match this {
                 Oop::Null => {
                     let cls_name = {
-                        let cls = mir.method.class.lock().unwrap();
+                        let cls = mir.method.class.read().unwrap();
                         cls.name.clone()
                     };
 
@@ -137,7 +137,7 @@ impl JavaCall {
             Ok(frame) => {
                 jt.frames.push(frame.clone());
 
-                match frame.try_lock() {
+                match frame.try_write() {
                     Ok(mut frame) => {
                         frame.interp(jt);
 
@@ -159,7 +159,7 @@ impl JavaCall {
         self.prepare_sync();
 
         let package = {
-            let cls = self.mir.method.class.lock().unwrap();
+            let cls = self.mir.method.class.read().unwrap();
             cls.name.clone()
         };
         let desc = self.mir.method.desc.clone();
@@ -194,12 +194,12 @@ impl JavaCall {
     fn prepare_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let mut class = self.mir.method.class.lock().unwrap();
+                let mut class = self.mir.method.class.write().unwrap();
                 class.monitor_enter();
             } else {
                 let mut v = self.args.first().unwrap();
                 let v = util::oop::extract_ref(v);
-                let mut v = v.lock().unwrap();
+                let mut v = v.write().unwrap();
                 v.monitor_enter();
             }
         }
@@ -208,12 +208,12 @@ impl JavaCall {
     fn fin_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let mut class = self.mir.method.class.lock().unwrap();
+                let mut class = self.mir.method.class.write().unwrap();
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first().unwrap();
                 let v = util::oop::extract_ref(v);
-                let mut v = v.lock().unwrap();
+                let mut v = v.write().unwrap();
                 v.monitor_exit();
             }
         }
@@ -290,10 +290,10 @@ impl JavaCall {
         if resolve_again {
             let this = self.args.get(0).unwrap();
             let this = util::oop::extract_ref(this);
-            let this = this.lock().unwrap();
+            let this = this.read().unwrap();
             match &this.v {
                 oop::RefKind::Inst(inst) => {
-                    let cls = inst.class.lock().unwrap();
+                    let cls = inst.class.read().unwrap();
                     let id = self.mir.method.get_id();
                     self.mir = cls.get_virtual_method(id).unwrap();
                 }
@@ -303,7 +303,7 @@ impl JavaCall {
     }
 
     fn debug(&self) {
-        let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
+        let cls_name = { self.mir.method.class.read().unwrap().name.clone() };
         let name = self.mir.method.name.clone();
         let desc = self.mir.method.desc.clone();
         let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };

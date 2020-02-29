@@ -99,11 +99,11 @@ fn jvm_objectFieldOffset(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 
     {
         let field = util::oop::extract_ref(field);
-        let v = field.lock().unwrap();
+        let v = field.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => {
                 let cls = inst.class.clone();
-                let cls = cls.lock().unwrap();
+                let cls = cls.read().unwrap();
                 assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
             }
             _ => unreachable!(),
@@ -112,7 +112,7 @@ fn jvm_objectFieldOffset(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let v = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"slot", b"I", false);
         cls.get_field_value(field, id)
     };
@@ -131,7 +131,7 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
 
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         match &v.v {
             oop::RefKind::Mirror(mirror) => mirror.field_values[offset as usize].clone(),
             oop::RefKind::Array(ary) => ary.elements[offset as usize].clone(),
@@ -142,7 +142,7 @@ fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
 
     if util::oop::if_acmpeq(&v_at_offset, old_data) {
         let owner = util::oop::extract_ref(owner);
-        let mut v = owner.lock().unwrap();
+        let mut v = owner.write().unwrap();
         match &mut v.v {
             oop::RefKind::Mirror(mirror) => {
                 mirror.field_values[offset as usize] = new_data.clone();
@@ -165,7 +165,7 @@ fn jvm_getIntVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNI
     let offset = util::oop::extract_long(args.get(2).unwrap());
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
             _ => unreachable!(),
@@ -182,7 +182,7 @@ fn jvm_compareAndSwapInt(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         let v = match &v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
             _ => unreachable!(),
@@ -193,7 +193,7 @@ fn jvm_compareAndSwapInt(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 
     if v_at_offset == old_data {
         let owner = util::oop::extract_ref(owner);
-        let mut v = owner.lock().unwrap();
+        let mut v = owner.write().unwrap();
         match &mut v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
             _ => unreachable!(),
@@ -249,7 +249,7 @@ fn jvm_compareAndSwapLong(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
 
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         let v = match &v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
             _ => unreachable!(),
@@ -260,7 +260,7 @@ fn jvm_compareAndSwapLong(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
 
     if v_at_offset == old_data {
         let owner = util::oop::extract_ref(owner);
-        let mut v = owner.lock().unwrap();
+        let mut v = owner.write().unwrap();
         match &mut v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
             _ => unreachable!(),
@@ -277,7 +277,7 @@ fn jvm_getObjectVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
     let offset = util::oop::extract_long(args.get(2).unwrap());
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
             oop::RefKind::Array(ary) => ary.elements[offset as usize].clone(),
@@ -296,7 +296,7 @@ fn jvm_getLongVolatile(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     let offset = util::oop::extract_long(args.get(2).unwrap());
     let v_at_offset = {
         let owner = util::oop::extract_ref(owner);
-        let v = owner.lock().unwrap();
+        let v = owner.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
             _ => unreachable!(),
@@ -346,7 +346,7 @@ fn jvm_copyMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     match src_obj {
         Oop::Null => {
             let v = util::oop::extract_ref(dest_obj);
-            let mut v = v.lock().unwrap();
+            let mut v = v.write().unwrap();
             match &mut v.v {
                 oop::RefKind::TypeArray(dest_ary) => match dest_ary {
                     oop::TypeArrayValue::Char(dest_ary) => {

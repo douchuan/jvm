@@ -57,7 +57,7 @@ impl ClassLoader {
                         let this_ref = class.clone();
 
                         {
-                            let mut cls = class.lock().unwrap();
+                            let mut cls = class.write().unwrap();
                             cls.set_class_state(oop::class::State::Loaded);
                             cls.link_class(this_ref);
                         }
@@ -87,7 +87,7 @@ impl ClassLoader {
                                 let class = new_sync_ref!(class);
                                 {
                                     let this_ref = class.clone();
-                                    let mut class = class.lock().unwrap();
+                                    let mut class = class.write().unwrap();
                                     class.link_class(this_ref);
                                 }
                                 match self {
@@ -113,7 +113,7 @@ impl ClassLoader {
 
                         {
                             let this_ref = class.clone();
-                            let mut class = class.lock().unwrap();
+                            let mut class = class.write().unwrap();
                             class.link_class(this_ref);
                         }
 

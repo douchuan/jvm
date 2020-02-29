@@ -16,6 +16,8 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 #cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
+#cargo run -- --cp $JDK:$MY_TEST MyInteger
+#cargo run -- --cp $JDK:$MY_TEST MyArrayCopy
 
 ### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST SubOverflow
@@ -64,6 +66,7 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 ###init vm，初始化安全模块慢。
 ### File.createTempFile，会使用SecureRandom，导致一系列安全相关的类被加载
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
+#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
 
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/AssertionError Cause
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean Factory
@@ -71,13 +74,37 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean MakeBooleanComparable
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean ParseBoolean
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Byte Decode
-
-##todo: optimize
-#export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang/Character
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
-
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
+
+##todo: optimize
+################################
+### oracle java
+#sum_t_list_add = 16
+#sum_t_map_get = 1
+#sum_t_map_put = 1
+#sum_t_parse_int = 3
+#sum_t_println = 26
+#sum_t_int2integer = 13
+#################################
+### mine debug mode
+#sum_t_list_add = 45778
+#sum_t_map_get = 867
+#sum_t_map_put = 63
+#sum_t_parse_int = 4502
+#sum_t_println = 21181
+#sum_t_int2integer = 27745
+### mine release mode
+#sum_t_list_add = 5494
+#sum_t_map_get = 123
+#sum_t_map_put = 8
+#sum_t_parse_int = 626
+#sum_t_println = 3059
+#sum_t_int2integer = 3201
+export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang/Character
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
+#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
+#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java

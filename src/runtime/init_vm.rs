@@ -18,7 +18,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     let init_thread_oop = oop::Oop::new_inst(thread_cls.clone());
     {
-        let mut cls = thread_cls.lock().unwrap();
+        let mut cls = thread_cls.write().unwrap();
         //todo: getNativeHandler
         //        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
         //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
@@ -39,7 +39,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
     {
-        let mut cls = thread_cls.lock().unwrap();
+        let mut cls = thread_cls.write().unwrap();
         let id = cls.get_field_id(b"group", b"Ljava/lang/ThreadGroup;", false);
         cls.put_field_value(init_thread_oop.clone(), id, main_thread_group.clone());
     }
@@ -82,7 +82,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = util::new_method_id(b"initializeSystemClass", b"()V");
         cls.get_static_method(id).unwrap()
     };
@@ -107,7 +107,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     let _ = oop::class::load_and_init(jt, J_OBJECT);
     let string_cls = oop::class::load_and_init(jt, J_STRING);
     {
-        let cls = string_cls.lock().unwrap();
+        let cls = string_cls.read().unwrap();
         let fir = cls.get_field_id(b"value", b"[C", false);
         util::oop::set_java_lang_string_value_offset(fir.offset);
     }
@@ -128,7 +128,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     //java::lang::reflect::Method::initialize
 
     {
-        let mut cls = class_obj.lock().unwrap();
+        let mut cls = class_obj.write().unwrap();
         let id = cls.get_field_id(b"useCaches", b"Z", true);
         cls.put_static_field_value(id, oop::Oop::new_int(1));
     }
@@ -143,14 +143,14 @@ fn hack_classes(jt: &mut JavaThread) {
     runtime::java_call::invoke_ctor(jt, ascii_charset_cls.clone(), b"()V", args);
 
     {
-        let mut cls = charset_cls.lock().unwrap();
+        let mut cls = charset_cls.write().unwrap();
         let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
         cls.put_static_field_value(id, ascii_inst);
     }
 
     let encoder = oop::class::load_and_init(jt, b"sun/nio/cs/StreamEncoder");
     {
-        let mut cls = encoder.lock().unwrap();
+        let mut cls = encoder.write().unwrap();
         let id = util::new_method_id(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
         cls.hack_as_native(id);
     }
@@ -158,7 +158,7 @@ fn hack_classes(jt: &mut JavaThread) {
     let system = oop::class::load_and_init(jt, b"java/lang/System");
 
     {
-        let mut cls = system.lock().unwrap();
+        let mut cls = system.write().unwrap();
         let id = util::new_method_id(b"load", b"(Ljava/lang/String;)V");
         cls.hack_as_native(id);
 

@@ -24,7 +24,7 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> J
 }
 
 fn jvm_currentThread(_jt: &mut JavaThread, env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    let r = env.lock().unwrap().java_thread_obj.clone();
+    let r = env.read().unwrap().java_thread_obj.clone();
     Ok(r)
 }
 
@@ -42,7 +42,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap();
     let cls = {
         let thread_oop = util::oop::extract_ref(thread_oop);
-        let v = thread_oop.lock().unwrap();
+        let v = thread_oop.read().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
@@ -50,7 +50,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     };
 
     let name = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         cls.name.clone()
     };
 
@@ -60,7 +60,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         //todo: impl threads manager
 
         let mir = {
-            let cls = cls.lock().unwrap();
+            let cls = cls.read().unwrap();
             let id = new_method_id(b"run", b"()V");
             cls.get_virtual_method(id).unwrap()
         };

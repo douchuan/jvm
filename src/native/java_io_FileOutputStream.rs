@@ -37,7 +37,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     trace!("append = {}", append);
 
     let v = util::oop::extract_ref(byte_ary);
-    let v = v.lock().unwrap();
+    let v = v.read().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Byte(ary) => {
@@ -89,14 +89,14 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn get_file_descriptor_fd(fos: &Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
         cls.get_field_value(fos, id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let fd = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"I", false);
         cls.get_field_value(&fd_this, id)
     };
@@ -107,13 +107,13 @@ fn get_file_descriptor_fd(fos: &Oop) -> i32 {
 fn set_file_descriptor_fd(fos: &Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
-        let cls = cls.lock().unwrap();
+        let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
         cls.get_field_value(fos, id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
-    let cls = cls.lock().unwrap();
+    let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"fd", b"I", false);
     cls.put_field_value(fd_this, id, Oop::new_int(fd));
 }

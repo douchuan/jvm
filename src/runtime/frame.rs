@@ -74,7 +74,7 @@ impl Frame {
     pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
         let class = mir.method.class.clone();
         let cp = {
-            let class = class.lock().unwrap();
+            let class = class.read().unwrap();
             match &class.kind {
                 oop::ClassKind::Instance(cls_obj) => cls_obj.class_file.cp.clone(),
                 _ => unreachable!(),
@@ -122,7 +122,7 @@ impl Frame {
     pub fn interp(&mut self, thread: &mut JavaThread) {
         let frame_id = self.frame_id;
         //for debug
-        let cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
+        let cls_name = { self.mir.method.class.read().unwrap().name.clone() };
         let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
         let method = self.mir.method.get_id();
         let method = unsafe { std::str::from_utf8_unchecked(method.as_slice()) };
@@ -431,18 +431,18 @@ impl Frame {
             ConstantType::Class { name_index } => {
                 let name = constant_pool::get_utf8(&self.cp, *name_index as usize).unwrap();
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                let cl = { self.class.lock().unwrap().class_loader.clone() };
+                let cl = { self.class.read().unwrap().class_loader.clone() };
                 trace!("load_constant name={}, cl={:?}", name, cl);
                 let class = runtime::require_class3(cl, name.as_bytes()).unwrap();
 
                 {
-                    let mut class = class.lock().unwrap();
+                    let mut class = class.write().unwrap();
                     class.init_class(thread);
                 }
 
                 oop::class::init_class_fully(thread, class.clone());
 
-                let mirror = { class.lock().unwrap().get_mirror() };
+                let mirror = { class.read().unwrap().get_mirror() };
 
                 self.stack.push_ref(mirror);
             }
@@ -498,7 +498,7 @@ impl Frame {
         );
 
         let value_type = fir.field.value_type.clone();
-        let class = fir.field.class.lock().unwrap();
+        let class = fir.field.class.read().unwrap();
         let v = if is_static {
             class.get_static_field_value(fir.clone())
         } else {
@@ -570,7 +570,7 @@ impl Frame {
             _ => unreachable!(),
         };
 
-        let mut class = fir.field.class.lock().unwrap();
+        let mut class = fir.field.class.write().unwrap();
         if is_static {
             class.put_static_field_value(fir.clone(), v);
         } else {
@@ -616,14 +616,14 @@ impl Frame {
     fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
             let ex = util::oop::extract_ref(&ex);
-            let v = ex.lock().unwrap();
+            let v = ex.read().unwrap();
             match &v.v {
                 oop::RefKind::Inst(inst) => inst.class.clone(),
                 _ => unreachable!(),
             }
         };
 
-        let method_cls_name = { self.mir.method.class.lock().unwrap().name.clone() };
+        let method_cls_name = { self.mir.method.class.read().unwrap().name.clone() };
         let method_cls_name = String::from_utf8_lossy(method_cls_name.as_slice());
         let method_name = self.mir.method.get_id();
         let method_name = String::from_utf8_lossy(method_name.as_slice());
@@ -916,7 +916,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Int(ary) => {
@@ -938,7 +938,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Short(ary) => {
@@ -960,7 +960,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Char(ary) => {
@@ -982,7 +982,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Byte(ary) => {
@@ -1008,7 +1008,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Long(ary) => {
@@ -1035,7 +1035,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Float(ary) => {
@@ -1062,7 +1062,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Double(ary) => {
@@ -1089,7 +1089,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::Array(ary) => {
                         let len = ary.elements.len();
@@ -1276,7 +1276,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Byte(ary) => {
@@ -1303,7 +1303,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Char(ary) => {
@@ -1326,7 +1326,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Short(ary) => {
@@ -1349,7 +1349,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Int(ary) => {
@@ -1371,7 +1371,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Long(ary) => {
@@ -1393,7 +1393,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Float(ary) => {
@@ -1416,7 +1416,7 @@ impl Frame {
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Double(ary) => {
@@ -1438,7 +1438,7 @@ impl Frame {
         match ary_rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.lock().unwrap();
+                let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::Array(ary) => {
                         let ary = &mut ary.elements;
@@ -2344,7 +2344,7 @@ impl Frame {
             match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => {
                     {
-                        let mut class = class.lock().unwrap();
+                        let mut class = class.write().unwrap();
                         class.init_class(thread);
                     }
 
@@ -2404,14 +2404,14 @@ impl Frame {
             };
 
             {
-                let mut class = class.lock().unwrap();
+                let mut class = class.write().unwrap();
                 class.init_class(thread);
             }
 
             oop::class::init_class_fully(thread, class.clone());
 
             let (name, cl) = {
-                let class = class.lock().unwrap();
+                let class = class.read().unwrap();
                 let t = class.get_class_kind_type();
                 let name = match t {
                     oop::class::ClassKindType::Instance | oop::class::ClassKindType::ObjectAry => {
@@ -2443,7 +2443,7 @@ impl Frame {
                 Some(ary_cls_obj) => {
                     {
                         {
-                            let mut class = ary_cls_obj.lock().unwrap();
+                            let mut class = ary_cls_obj.write().unwrap();
                             class.init_class(thread);
                         }
 
@@ -2463,7 +2463,7 @@ impl Frame {
         match v {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
-                let v = rf.lock().unwrap();
+                let v = rf.read().unwrap();
                 match &v.v {
                     oop::RefKind::Array(ary) => {
                         let len = ary.elements.len();
@@ -2495,7 +2495,7 @@ impl Frame {
         match v {
             Oop::Null => self.stack.push_ref(v),
             Oop::Ref(rf) => {
-                let rf = rf.lock().unwrap();
+                let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::Inst(inst) => {
                         let obj_cls = inst.class.clone();
@@ -2503,8 +2503,8 @@ impl Frame {
                         if r {
                             self.stack.push_ref(rf_back);
                         } else {
-                            let s_name = { obj_cls.lock().unwrap().name.clone() };
-                            let t_name = { target_cls.lock().unwrap().name.clone() };
+                            let s_name = { obj_cls.read().unwrap().name.clone() };
+                            let t_name = { target_cls.read().unwrap().name.clone() };
 
                             let s_name = String::from_utf8_lossy(s_name.as_slice())
                                 .replace(util::FILE_SEP, ".");
@@ -2521,8 +2521,8 @@ impl Frame {
                         if r {
                             self.stack.push_ref(rf_back);
                         } else {
-                            let s_name = { obj_cls.lock().unwrap().name.clone() };
-                            let t_name = { target_cls.lock().unwrap().name.clone() };
+                            let s_name = { obj_cls.read().unwrap().name.clone() };
+                            let t_name = { target_cls.read().unwrap().name.clone() };
 
                             let s_name = String::from_utf8_lossy(s_name.as_slice())
                                 .replace(util::FILE_SEP, ".");
@@ -2542,8 +2542,8 @@ impl Frame {
                         //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
 
                         let mirror_target = mirror.target.clone().unwrap();
-                        let s_name = { mirror_target.lock().unwrap().name.clone() };
-                        let t_name = { target_cls.lock().unwrap().name.clone() };
+                        let s_name = { mirror_target.read().unwrap().name.clone() };
+                        let t_name = { target_cls.read().unwrap().name.clone() };
                         trace!(
                             "mirror checkcast {} to {}",
                             unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
@@ -2579,7 +2579,7 @@ impl Frame {
         let result = match v {
             Oop::Null => false,
             Oop::Ref(v) => {
-                let v = v.lock().unwrap();
+                let v = v.read().unwrap();
                 match &v.v {
                     oop::RefKind::Inst(inst) => {
                         let obj_cls = inst.class.clone();
@@ -2605,7 +2605,7 @@ impl Frame {
                 meet_ex(thread, consts::J_NPE, None);
             }
             Oop::Ref(v) => {
-                let mut v = v.lock().unwrap();
+                let mut v = v.write().unwrap();
                 v.monitor_enter();
             }
             _ => unreachable!(),
@@ -2619,7 +2619,7 @@ impl Frame {
                 meet_ex(thread, consts::J_NPE, None);
             }
             Oop::Ref(v) => {
-                let mut v = v.lock().unwrap();
+                let mut v = v.write().unwrap();
                 v.monitor_exit();
             }
             _ => unreachable!(),

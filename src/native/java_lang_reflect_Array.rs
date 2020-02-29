@@ -17,7 +17,7 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let mirror = args.get(0).unwrap();
     let component_cls = {
         let mirror = util::oop::extract_ref(mirror);
-        let v = mirror.lock().unwrap();
+        let v = mirror.read().unwrap();
         match &v.v {
             oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
@@ -30,7 +30,7 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let name = {
         let mut new_name = Vec::new();
 
-        let cls = component_cls.lock().unwrap();
+        let cls = component_cls.read().unwrap();
         new_name.extend_from_slice("[".as_bytes());
         match cls.kind {
             oop::ClassKind::Instance(_) => {

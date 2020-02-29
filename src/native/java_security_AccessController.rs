@@ -36,11 +36,11 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
                 return Err(ex);
             }
             Oop::Ref(v) => {
-                let v = v.lock().unwrap();
+                let v = v.read().unwrap();
                 match &v.v {
                     oop::RefKind::Inst(inst) => {
                         let m = {
-                            let cls = inst.class.lock().unwrap();
+                            let cls = inst.class.read().unwrap();
                             let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
                             cls.get_virtual_method(id).unwrap()
                         };

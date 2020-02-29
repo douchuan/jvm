@@ -23,7 +23,7 @@ pub fn get_method_ref(
     let class = require_class2(class_index, cp).unwrap();
 
     {
-        let mut class = class.lock().unwrap();
+        let mut class = class.write().unwrap();
         class.init_class(thread);
     }
 
@@ -37,7 +37,7 @@ pub fn get_method_ref(
 
     oop::class::init_class_fully(thread, class.clone());
 
-    let class = class.lock().unwrap();
+    let class = class.read().unwrap();
 
     trace!(
         "get_method_ref cls={}, name={}, typ={}",

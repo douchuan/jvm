@@ -19,7 +19,7 @@ fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
 
     let charset_cls = require_class3(None, b"java/nio/charset/Charset").unwrap();
     let default_charset_oop = {
-        let cls = charset_cls.lock().unwrap();
+        let cls = charset_cls.read().unwrap();
         let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
         cls.get_static_field_value(id)
     };

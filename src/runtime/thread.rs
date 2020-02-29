@@ -197,7 +197,7 @@ impl JavaMainThread {
         let main_class = oop::class::load_and_init(&mut jt, self.class.as_bytes());
 
         let mir = {
-            let cls = main_class.lock().unwrap();
+            let cls = main_class.read().unwrap();
             let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
             cls.get_static_method(id)
         };
@@ -255,7 +255,7 @@ impl JavaMainThread {
             Some(v) => {
                 let cls = {
                     let v = util::oop::extract_ref(&v);
-                    let v = v.lock().unwrap();
+                    let v = v.read().unwrap();
                     match &v.v {
                         oop::RefKind::Inst(inst) => inst.class.clone(),
                         _ => unreachable!(),
@@ -263,7 +263,7 @@ impl JavaMainThread {
                 };
 
                 let mir = {
-                    let cls = cls.lock().unwrap();
+                    let cls = cls.read().unwrap();
                     let id =
                         new_method_id(b"dispatchUncaughtException", b"(Ljava/lang/Throwable;)V");
                     cls.get_this_class_method(id)
@@ -291,7 +291,7 @@ impl JavaMainThread {
         let cls = {
             match &ex {
                 Oop::Ref(v) => {
-                    let v = v.lock().unwrap();
+                    let v = v.read().unwrap();
                     match &v.v {
                         oop::RefKind::Inst(inst) => inst.class.clone(),
                         _ => unreachable!(),
@@ -302,7 +302,7 @@ impl JavaMainThread {
         };
         let detail_message = {
             let v = {
-                let cls = cls.lock().unwrap();
+                let cls = cls.read().unwrap();
                 let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
                 cls.get_field_value(&ex, id)
             };
@@ -310,7 +310,7 @@ impl JavaMainThread {
             util::oop::extract_str(&v)
         };
         let name = {
-            let cls = cls.lock().unwrap();
+            let cls = cls.read().unwrap();
             cls.name.clone()
         };
 

@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! def_sync_ref {
     ($name:ident, $t:ty) => {
-        pub type $name = std::sync::Arc<std::sync::Mutex<Box<$t>>>;
+        pub type $name = std::sync::Arc<std::sync::RwLock<Box<$t>>>;
     };
 }
 
@@ -22,7 +22,7 @@ macro_rules! def_ptr {
 #[macro_export]
 macro_rules! new_sync_ref {
     ($name:ident) => {
-        std::sync::Arc::new(std::sync::Mutex::new(Box::new($name)));
+        std::sync::Arc::new(std::sync::RwLock::new(Box::new($name)));
     };
 }
 

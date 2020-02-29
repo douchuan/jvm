@@ -1,14 +1,14 @@
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::OopRef;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 lazy_static! {
-    static ref JAVA_LANG_STRING_VALUE_OFFSET: Mutex<Option<usize>> = { Mutex::new(None) };
+    static ref JAVA_LANG_STRING_VALUE_OFFSET: RwLock<Option<usize>> = { RwLock::new(None) };
 }
 
 pub fn set_java_lang_string_value_offset(offset: usize) {
-    let mut v = JAVA_LANG_STRING_VALUE_OFFSET.lock().unwrap();
+    let mut v = JAVA_LANG_STRING_VALUE_OFFSET.write().unwrap();
     *v = Some(offset);
 }
 
@@ -27,10 +27,10 @@ pub fn is_null(v: &Oop) -> bool {
 }
 
 fn is_str(v: &OopRef) -> bool {
-    let v = v.lock().unwrap();
+    let v = v.read().unwrap();
     match &v.v {
         oop::RefKind::Inst(inst) => {
-            let cls = inst.class.lock().unwrap();
+            let cls = inst.class.read().unwrap();
             cls.name.as_slice() == b"java/lang/String"
         }
         _ => false,
@@ -39,18 +39,18 @@ fn is_str(v: &OopRef) -> bool {
 
 pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
     let offset = {
-        let v = JAVA_LANG_STRING_VALUE_OFFSET.lock().unwrap();
+        let v = JAVA_LANG_STRING_VALUE_OFFSET.read().unwrap();
         v.clone().unwrap()
     };
 
     let cls_string = require_class3(None, b"java/lang/String").unwrap();
     let v = {
-        let cls = cls_string.lock().unwrap();
+        let cls = cls_string.read().unwrap();
         cls.get_field_value2(v, offset)
     };
 
     let v = extract_ref(&v);
-    let v = v.lock().unwrap();
+    let v = v.read().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Char(ary) => ary.to_vec(),
