@@ -19,7 +19,7 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
         let mirror = util::oop::extract_ref(mirror.clone());
         let v = mirror.lock().unwrap();
         match &v.v {
-            oop::OopRef::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::RefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };

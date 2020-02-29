@@ -84,7 +84,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
         let throwable = util::oop::extract_ref(throwable.clone());
         let v = throwable.lock().unwrap();
         match &v.v {
-            oop::OopRef::Inst(inst) => inst.class.clone(),
+            oop::RefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -99,7 +99,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
         Oop::Ref(rf) => {
             let rf = rf.lock().unwrap();
             match &rf.v {
-                oop::OopRef::Array(ary) => Oop::new_int(ary.elements.len() as i32),
+                oop::RefDesc::Array(ary) => Oop::new_int(ary.elements.len() as i32),
                 _ => unreachable!(),
             }
         }
@@ -116,7 +116,7 @@ fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
         let throwable = util::oop::extract_ref(throwable.clone());
         let v = throwable.lock().unwrap();
         match &v.v {
-            oop::OopRef::Inst(inst) => inst.class.clone(),
+            oop::RefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -129,7 +129,7 @@ fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
     let backtrace = util::oop::extract_ref(backtrace);
     let v = backtrace.lock().unwrap();
     let v = match &v.v {
-        oop::OopRef::Array(ary) => {
+        oop::RefDesc::Array(ary) => {
             if index >= 0 && (index as usize) < ary.elements.len() {
                 ary.elements[index as usize].clone()
             } else {

@@ -52,7 +52,7 @@ fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let v = util::oop::extract_ref(byte_ary.clone());
     let mut v = v.lock().unwrap();
     let n = match &mut v.v {
-        oop::OopRef::TypeArray(ary) => match ary {
+        oop::RefDesc::TypeArray(ary) => match ary {
             TypeArrayValue::Byte(ary) => {
                 let (_, ptr) = ary.split_at_mut(off as usize);
                 let ptr = ptr.as_mut_ptr() as *mut libc::c_void;

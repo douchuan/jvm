@@ -117,7 +117,7 @@ pub fn get_Constructor_clazz(ctor: Oop) -> Oop {
         let v = util::oop::extract_ref(ctor.clone());
         let v = v.lock().unwrap();
         match &v.v {
-            oop::OopRef::Inst(inst) => inst.class.clone(),
+            oop::RefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -133,7 +133,7 @@ pub fn get_Constructor_slot(ctor: Oop) -> i32 {
         let v = util::oop::extract_ref(ctor.clone());
         let v = v.lock().unwrap();
         match &v.v {
-            oop::OopRef::Inst(inst) => inst.class.clone(),
+            oop::RefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -150,7 +150,7 @@ pub fn get_Constructor_signature(ctor: Oop) -> String {
         let v = util::oop::extract_ref(ctor.clone());
         let v = v.lock().unwrap();
         match &v.v {
-            oop::OopRef::Inst(inst) => inst.class.clone(),
+            oop::RefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };

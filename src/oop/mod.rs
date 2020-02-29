@@ -29,7 +29,7 @@ pub enum ValueType {
 }
 
 #[derive(Debug)]
-pub enum OopRef {
+pub enum RefDesc {
     Inst(InstOopDesc),
     Array(ArrayOopDesc),
     TypeArray(TypeArrayValue),
@@ -38,7 +38,7 @@ pub enum OopRef {
 
 #[derive(Debug)]
 pub struct OopRefDesc {
-    pub v: OopRef,
+    pub v: RefDesc,
     pub hash_code: Option<i32>,
 
     //这两个所相关的field，有意义吗？本身操作，就隐含了lock
@@ -90,7 +90,7 @@ impl Oop {
 
     pub fn new_inst(cls_obj: ClassRef) -> Oop {
         let v = InstOopDesc::new(cls_obj);
-        Self::new(OopRef::Inst(v))
+        Self::new_ref(RefDesc::Inst(v))
     }
 
     pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
@@ -104,7 +104,7 @@ impl Oop {
 
     pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<Oop>) -> Oop {
         let v = ArrayOopDesc::new(ary_cls_obj, elms);
-        Self::new(OopRef::Array(v))
+        Self::new_ref(RefDesc::Array(v))
     }
 
     pub fn new_mirror(target: ClassRef) -> Oop {
@@ -116,7 +116,7 @@ impl Oop {
             value_type: ValueType::OBJECT,
         };
 
-        Self::new(OopRef::Mirror(v))
+        Self::new_ref(RefDesc::Mirror(v))
     }
 
     pub fn new_prim_mirror(value_type: ValueType) -> Oop {
@@ -128,7 +128,7 @@ impl Oop {
             value_type,
         };
 
-        Self::new(OopRef::Mirror(v))
+        Self::new_ref(RefDesc::Mirror(v))
     }
 
     pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> Oop {
@@ -140,7 +140,7 @@ impl Oop {
             value_type: value_type,
         };
 
-        Self::new(OopRef::Mirror(v))
+        Self::new_ref(RefDesc::Mirror(v))
     }
 
     pub fn char_ary_from1(v: &[u16]) -> Oop {
@@ -215,52 +215,52 @@ impl Oop {
     pub fn new_byte_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Byte(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_bool_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Bool(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_char_ary2(elms: Vec<u16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Char(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_short_ary2(elms: Vec<i16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Short(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_int_ary2(elms: Vec<i32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Int(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_float_ary2(elms: Vec<f32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Float(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_double_ary2(elms: Vec<f64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Double(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
     pub fn new_long_ary2(elms: Vec<i64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Long(ary);
-        Self::new(OopRef::TypeArray(v))
+        Self::new_ref(RefDesc::TypeArray(v))
     }
 
-    fn new(v: OopRef) -> Oop {
+    fn new_ref(v: RefDesc) -> Oop {
         let v = OopRefDesc {
             v,
             cond: Condvar::new(),

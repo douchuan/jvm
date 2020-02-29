@@ -22,7 +22,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
         let clazz = util::oop::extract_ref(clazz);
         let v = clazz.lock().unwrap();
         match &v.v {
-            oop::OopRef::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::RefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -44,7 +44,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
             Oop::Ref(rf) => {
                 let v = rf.lock().unwrap();
                 match &v.v {
-                    oop::OopRef::Array(ary) => {
+                    oop::RefDesc::Array(ary) => {
                         ctor_args.extend_from_slice(ary.elements.as_slice());
                     }
                     _ => unreachable!(),

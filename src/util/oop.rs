@@ -28,7 +28,7 @@ pub fn is_null(v: Oop) -> bool {
 fn is_str(v: Arc<Mutex<OopRefDesc>>) -> bool {
     let v = v.lock().unwrap();
     match &v.v {
-        oop::OopRef::Inst(inst) => {
+        oop::RefDesc::Inst(inst) => {
             let cls = inst.class.lock().unwrap();
             cls.name.as_slice() == b"java/lang/String"
         }
@@ -51,7 +51,7 @@ pub fn extract_java_lang_string_value(v: Oop) -> Vec<u16> {
     let v = extract_ref(v);
     let v = v.lock().unwrap();
     match &v.v {
-        oop::OopRef::TypeArray(ary) => match ary {
+        oop::RefDesc::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Char(ary) => ary.to_vec(),
             _ => unreachable!(),
         },
