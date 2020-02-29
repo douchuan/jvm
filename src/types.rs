@@ -3,7 +3,6 @@ use crate::classfile::ClassFile;
 use crate::oop::class::Class;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
-use crate::oop::OopDesc;
 use std::sync::Arc;
 
 pub type U1 = u8;
@@ -19,7 +18,6 @@ def_ref!(ConstantPool, Vec<ConstantType>);
 
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
-def_sync_ref!(OopRef, OopDesc);
 //runtime 字符串分配
 def_ptr!(ByteAry, Vec<u8>);
 def_ptr!(BoolAry, Vec<u8>);

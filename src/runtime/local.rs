@@ -1,6 +1,5 @@
-use crate::oop::OopDesc;
+use crate::oop::Oop;
 use crate::runtime::Slot;
-use crate::types::OopRef;
 use std::sync::Arc;
 
 pub struct Local {
@@ -39,7 +38,7 @@ impl Local {
         self.set_primitive3(pos, v);
     }
 
-    pub fn set_ref(&mut self, pos: usize, v: OopRef) {
+    pub fn set_ref(&mut self, pos: usize, v: Oop) {
         self.locals[pos] = Slot::Ref(v);
     }
 
@@ -77,7 +76,7 @@ impl Local {
         }
     }
 
-    pub fn get_ref(&self, pos: usize) -> OopRef {
+    pub fn get_ref(&self, pos: usize) -> Oop {
         match self.locals.get(pos) {
             Some(Slot::Ref(v)) => v.clone(),
             t => panic!("Illegal type = {:?}", t),

@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::OopDesc;
+use crate::oop::Oop;
 use crate::runtime::{require_class3, JavaThread};
-use crate::types::OopRef;
 use crate::util;
 use std::fs;
 
@@ -42,11 +41,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file.clone());
 
@@ -64,10 +63,10 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRe
         _ => (),
     }
 
-    Ok(Some(OopDesc::new_int(r)))
+    Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file.clone());
 
@@ -95,10 +94,10 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
         }
     };
 
-    Ok(Some(OopDesc::new_int(r)))
+    Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = util::oop::extract_str(args.get(1).unwrap().clone());
     let path = std::path::Path::new(&path);
     let path = path.canonicalize().expect("path canonicalize failed");
@@ -108,7 +107,7 @@ fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JN
     Ok(Some(path))
 }
 
-fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
     let path = util::oop::extract_str(path.clone());
     let v = match std::fs::OpenOptions::new()
@@ -123,10 +122,10 @@ fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRe
             0
         }
     };
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }
 
-fn get_File_path(file: OopRef) -> String {
+fn get_File_path(file: Oop) -> String {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let path = {
         let cls = cls.lock().unwrap();

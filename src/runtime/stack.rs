@@ -1,7 +1,7 @@
 use crate::classfile::constant_pool::ConstantType;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::ClassFile;
-use crate::oop::{consts, OopDesc};
+use crate::oop::{consts, Oop};
 use crate::runtime::Slot;
 use crate::types::*;
 use std::sync::Arc;
@@ -100,7 +100,7 @@ impl Stack {
         self.inner.push(Slot::Const5);
     }
 
-    pub fn push_ref(&mut self, v: OopRef) {
+    pub fn push_ref(&mut self, v: Oop) {
         self.inner.push(Slot::Ref(v));
     }
 
@@ -167,7 +167,7 @@ impl Stack {
         }
     }
 
-    pub fn pop_ref(&mut self) -> OopRef {
+    pub fn pop_ref(&mut self) -> Oop {
         match self.inner.pop() {
             Some(Slot::Ref(v)) => v,
             t => panic!("Illegal type = {:?}", t),

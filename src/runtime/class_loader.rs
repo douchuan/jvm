@@ -1,6 +1,6 @@
 use crate::classfile::constant_pool;
 use crate::native;
-use crate::oop::{self, Class, OopDesc, ValueType};
+use crate::oop::{self, Class, ValueType};
 use crate::parser as class_parser;
 use crate::runtime::{self, ClassPathResult};
 use crate::types::*;

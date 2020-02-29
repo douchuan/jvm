@@ -1,4 +1,5 @@
-use crate::types::{BytesRef, OopRef};
+use crate::oop::Oop;
+use crate::types::BytesRef;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -11,6 +12,6 @@ pub enum Slot {
     Const4,
     Const5,
     Primitive(Vec<u8>),
-    Ref(OopRef),
+    Ref(Oop),
     Nop, //for long, double
 }

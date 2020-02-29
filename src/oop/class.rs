@@ -3,7 +3,7 @@ use crate::classfile::{
     constant_pool, consts,
 };
 use crate::oop::method::MethodId;
-use crate::oop::{consts as oop_consts, field, method, Oop, OopDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, field, method, Oop, ValueType};
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
 use crate::types::*;
 use crate::util;
@@ -64,11 +64,11 @@ pub struct ClassObject {
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
     pub inst_fields: HashMap<BytesRef, FieldIdRef>,
 
-    static_field_values: Vec<OopRef>,
+    static_field_values: Vec<Oop>,
 
     interfaces: HashMap<BytesRef, ClassRef>,
 
-    mirror: Option<OopRef>,
+    mirror: Option<Oop>,
 
     pub signature: Option<BytesRef>,
     pub source_file: Option<BytesRef>,
@@ -86,7 +86,7 @@ pub struct ArrayClassObject {
     //valid when it's not TypeArray
     pub component: Option<ClassRef>,
 
-    pub mirror: Option<OopRef>,
+    pub mirror: Option<Oop>,
 }
 
 //invoke "<clinit>"
@@ -281,7 +281,7 @@ impl Class {
         }
     }
 
-    pub fn get_mirror(&self) -> OopRef {
+    pub fn get_mirror(&self) -> Oop {
         match &self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.mirror.clone().unwrap(),
             //[J
@@ -292,7 +292,7 @@ impl Class {
         }
     }
 
-    pub fn set_mirror(&mut self, mirror: OopRef) {
+    pub fn set_mirror(&mut self, mirror: Oop) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.mirror = Some(mirror),
             ClassKind::ObjectArray(obj_ary) => obj_ary.mirror = Some(mirror),
@@ -371,40 +371,55 @@ impl Class {
             .get_field_id(name, desc, is_static)
     }
 
-    pub fn put_field_value(&self, receiver: OopRef, fir: FieldIdRef, v: OopRef) {
-        let mut rff = receiver.lock().unwrap();
-        match &mut rff.v {
-            Oop::Inst(inst) => inst.field_values[fir.offset] = v,
-            Oop::Mirror(mirror) => mirror.field_values[fir.offset] = v,
-            t => unreachable!("t = {:?}", t),
+    pub fn put_field_value(&self, receiver: Oop, fir: FieldIdRef, v: Oop) {
+        match receiver {
+            Oop::Ref(rf) => {
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::Inst(inst) => inst.field_values[fir.offset] = v,
+                    oop::OopRefDesc::Mirror(mirror) => mirror.field_values[fir.offset] = v,
+                    t => unreachable!("t = {:?}", t),
+                }
+            }
+            _ => unreachable!(),
         }
     }
 
-    pub fn get_field_value(&self, receiver: OopRef, fid: FieldIdRef) -> OopRef {
-        let rf = receiver.lock().unwrap();
-        match &rf.v {
-            Oop::Inst(inst) => inst.field_values[fid.offset].clone(),
-            Oop::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
-                Some(v) => v.clone(),
-                _ => unreachable!("mirror = {:?}", mirror),
-            },
-            t => unreachable!("t = {:?}", t),
+    pub fn get_field_value(&self, receiver: Oop, fid: FieldIdRef) -> Oop {
+        match receiver {
+            Oop::Ref(rf) => {
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::Inst(inst) => inst.field_values[fid.offset].clone(),
+                    oop::OopRefDesc::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
+                        Some(v) => v.clone(),
+                        _ => unreachable!("mirror = {:?}", mirror),
+                    },
+                    t => unreachable!("t = {:?}", t),
+                }
+            }
+            _ => unreachable!(),
         }
     }
 
-    pub fn get_field_value2(&self, receiver: OopRef, offset: usize) -> OopRef {
-        let rf = receiver.lock().unwrap();
-        match &rf.v {
-            Oop::Inst(inst) => inst.field_values[offset].clone(),
-            Oop::Mirror(mirror) => match mirror.field_values.get(offset) {
-                Some(v) => v.clone(),
-                _ => unreachable!("mirror = {:?}", mirror),
-            },
-            t => unreachable!("t = {:?}", t),
+    pub fn get_field_value2(&self, receiver: Oop, offset: usize) -> Oop {
+        match receiver {
+            Oop::Ref(rf) => {
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::Inst(inst) => inst.field_values[offset].clone(),
+                    oop::OopRefDesc::Mirror(mirror) => match mirror.field_values.get(offset) {
+                        Some(v) => v.clone(),
+                        _ => unreachable!("mirror = {:?}", mirror),
+                    },
+                    t => unreachable!("t = {:?}", t),
+                }
+            }
+            _ => unreachable!(),
         }
     }
 
-    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: OopRef) {
+    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Oop) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();
@@ -423,7 +438,7 @@ impl Class {
         }
     }
 
-    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> OopRef {
+    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> Oop {
         match &self.kind {
             ClassKind::Instance(cls_obj) => {
                 let id = field_id.field.get_id();

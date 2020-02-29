@@ -1,12 +1,11 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc};
+use crate::oop::{self, Oop, OopRef, OopRefDesc};
 use crate::runtime::JavaCall;
 use crate::runtime::{self, JavaThread};
-use crate::types::OopRef;
 use crate::util;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -47,11 +46,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let src = args.get(0).unwrap();
     let src_pos = util::oop::extract_int(args.get(1).unwrap().clone());
     let dest = args.get(2).unwrap();
@@ -64,20 +63,23 @@ fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
         return Ok(None);
     }
 
-    let is_same_obj = Arc::ptr_eq(src, dest);
+    let src_ref = util::oop::extract_ref(src.clone());
+    let dest_ref = util::oop::extract_ref(dest.clone());
+    let is_same_obj = Arc::ptr_eq(&src_ref, &dest_ref);
+
     if is_same_obj {
         arraycopy_same_obj(
-            src.clone(),
+            src_ref,
             src_pos as usize,
-            dest.clone(),
+            dest_ref,
             dest_pos as usize,
             length as usize,
         );
     } else {
         arraycopy_diff_obj(
-            src.clone(),
+            src_ref,
             src_pos as usize,
-            dest.clone(),
+            dest_ref,
             dest_pos as usize,
             length as usize,
         );
@@ -86,7 +88,7 @@ fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRe
     Ok(None)
 }
 
-fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //fixme:
     let props = vec![
         ("file.encoding.pkg", "sun.io"),
@@ -163,12 +165,13 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
     Ok(Some(props_oop.clone()))
 }
 
-fn put_props_kv(jt: &mut JavaThread, props: OopRef, k: &str, v: &str) {
+fn put_props_kv(jt: &mut JavaThread, props: Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
+        let props = util::oop::extract_ref(props.clone());
         let v = props.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => inst.class.clone(),
+            oop::OopRefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -192,7 +195,7 @@ fn put_props_kv(jt: &mut JavaThread, props: OopRef, k: &str, v: &str) {
     jc.invoke(jt, &mut stack, false);
 }
 
-fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -201,7 +204,7 @@ fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -210,7 +213,7 @@ fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     Ok(None)
 }
 
-fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = { env.lock().unwrap().class.clone() };
     let mut cls = cls.lock().unwrap();
@@ -219,7 +222,7 @@ fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     Ok(None)
 }
 
-fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let s = util::oop::extract_str(v.clone());
 
@@ -248,11 +251,11 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
     Ok(Some(v))
 }
 
-fn jvm_loadLibrary(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_loadLibrary(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_identityHashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_identityHashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     native::java_lang_Object::jvm_hashCode(jt, env, args)
 }
 
@@ -298,12 +301,18 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 
 todo optimize: 如何做到不用中转，就达到copy的目的
 */
-fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
+fn arraycopy_same_obj(
+    src: Arc<Mutex<OopRef>>,
+    src_pos: usize,
+    dest: Arc<Mutex<OopRef>>,
+    dest_pos: usize,
+    length: usize,
+) {
     let is_type_ary = {
         let src = src.lock().unwrap();
         match &src.v {
-            Oop::TypeArray(_) => true,
-            Oop::Array(_) => false,
+            oop::OopRefDesc::TypeArray(_) => true,
+            oop::OopRefDesc::Array(_) => false,
             _ => unreachable!(),
         }
     };
@@ -313,13 +322,10 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             let src = src.lock().unwrap();
 
             let mut tmp = Vec::with_capacity(length);
-            for _ in 0..length {
-                tmp.push(0);
-            }
 
             //just choose the needed region
             match &src.v {
-                Oop::TypeArray(s) => match s {
+                oop::OopRefDesc::TypeArray(s) => match s {
                     oop::TypeArrayValue::Char(ary) => {
                         let (_, ary) = ary.split_at(src_pos);
                         ary[..length].iter().for_each(|v| {
@@ -342,7 +348,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 
         let mut dest = dest.lock().unwrap();
         match &mut dest.v {
-            Oop::TypeArray(ary) => match ary {
+            oop::OopRefDesc::TypeArray(ary) => match ary {
                 oop::TypeArrayValue::Char(dest) => {
                     let (_, dest) = dest.split_at_mut(dest_pos);
                     dest[..length].copy_from_slice(&tmp[..]);
@@ -361,7 +367,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
         let tmp = {
             let ary = src.lock().unwrap();
             match &ary.v {
-                Oop::Array(ary) => {
+                oop::OopRefDesc::Array(ary) => {
                     let mut tmp = Vec::with_capacity(length);
                     for _ in 0..length {
                         tmp.push(oop::consts::get_null());
@@ -377,7 +383,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 
         let mut dest = dest.lock().unwrap();
         match &mut dest.v {
-            Oop::Array(ary) => {
+            oop::OopRefDesc::Array(ary) => {
                 let (_, ary) = ary.elements.split_at_mut(dest_pos);
                 ary[..length].clone_from_slice(&tmp[..]);
             }
@@ -386,14 +392,20 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     }
 }
 
-fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
+fn arraycopy_diff_obj(
+    src: Arc<Mutex<OopRef>>,
+    src_pos: usize,
+    dest: Arc<Mutex<OopRef>>,
+    dest_pos: usize,
+    length: usize,
+) {
     let src = src.lock().unwrap();
     let mut dest = dest.lock().unwrap();
 
     let is_type_ary = {
         match &src.v {
-            Oop::TypeArray(_) => true,
-            Oop::Array(_) => false,
+            oop::OopRefDesc::TypeArray(_) => true,
+            oop::OopRefDesc::Array(_) => false,
             _ => unreachable!(),
         }
     };
@@ -402,9 +414,9 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
 
     if is_type_ary {
         match &src.v {
-            Oop::TypeArray(src_ary) => match src_ary {
+            oop::OopRefDesc::TypeArray(src_ary) => match src_ary {
                 oop::TypeArrayValue::Char(src_ary) => match &mut dest.v {
-                    Oop::TypeArray(dest_ary) => match dest_ary {
+                    OopRefDesc::TypeArray(dest_ary) => match dest_ary {
                         oop::TypeArrayValue::Char(dest_ary) => {
                             let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                             let (_, src_ptr) = src_ary.split_at(src_pos);
@@ -415,7 +427,7 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
                     _ => unreachable!(),
                 },
                 oop::TypeArrayValue::Byte(src_ary) => match &mut dest.v {
-                    Oop::TypeArray(dest_ary) => match dest_ary {
+                    OopRefDesc::TypeArray(dest_ary) => match dest_ary {
                         oop::TypeArrayValue::Byte(dest_ary) => {
                             let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                             let (_, src_ptr) = src_ary.split_at(src_pos);
@@ -432,8 +444,8 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
         }
     } else {
         match &src.v {
-            Oop::Array(src) => match &mut dest.v {
-                Oop::Array(dest) => {
+            oop::OopRefDesc::Array(src) => match &mut dest.v {
+                oop::OopRefDesc::Array(dest) => {
                     let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
                     let (_, src_ptr) = src.elements.split_at(src_pos);
                     dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
@@ -445,20 +457,20 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     }
 }
 
-fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_nanos(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     };
 
-    Ok(Some(OopDesc::new_long(v as i64)))
+    Ok(Some(Oop::new_long(v as i64)))
 }
 
-fn jvm_currentTimeMillis(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_currentTimeMillis(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_millis(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     };
 
-    Ok(Some(OopDesc::new_long(v as i64)))
+    Ok(Some(Oop::new_long(v as i64)))
 }

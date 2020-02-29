@@ -1,5 +1,5 @@
 use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, FieldInfo};
-use crate::oop::{self, consts as oop_consts, ClassRef, Oop, OopDesc, OopRef, ValueType};
+use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
 use crate::util;
@@ -36,7 +36,7 @@ pub fn get_field_ref(
     class.get_field_id(name.as_slice(), desc.as_slice(), is_static)
 }
 
-pub fn build_inited_field_values(class: ClassRef) -> Vec<OopRef> {
+pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let n = {
         let class = class.lock().unwrap();
         match &class.kind {
@@ -63,16 +63,16 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<OopRef> {
                         | ValueType::CHAR
                         | ValueType::SHORT
                         | ValueType::INT => {
-                            field_values[fir.offset] = OopDesc::new_int(0);
+                            field_values[fir.offset] = Oop::new_int(0);
                         }
                         ValueType::LONG => {
-                            field_values[fir.offset] = OopDesc::new_long(0);
+                            field_values[fir.offset] = Oop::new_long(0);
                         }
                         ValueType::FLOAT => {
-                            field_values[fir.offset] = OopDesc::new_float(0.0);
+                            field_values[fir.offset] = Oop::new_float(0.0);
                         }
                         ValueType::DOUBLE => {
-                            field_values[fir.offset] = OopDesc::new_double(0.0);
+                            field_values[fir.offset] = Oop::new_double(0.0);
                         }
                         ValueType::OBJECT | ValueType::ARRAY => {
                             //ignore, has been inited by NULL
@@ -111,7 +111,7 @@ pub struct Field {
 
     pub value_type: ValueType,
 
-    pub attr_constant_value: Option<OopRef>,
+    pub attr_constant_value: Option<Oop>,
 }
 
 impl Field {
@@ -135,32 +135,32 @@ impl Field {
                     Some(constant_pool::ConstantType::Long { v }) => {
                         let v =
                             i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                        let v = OopDesc::new_long(v);
+                        let v = Oop::new_long(v);
                         attr_constant_value = Some(v);
                     }
                     Some(constant_pool::ConstantType::Float { v }) => {
                         let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = f32::from_bits(v);
-                        let v = OopDesc::new_float(v);
+                        let v = Oop::new_float(v);
                         attr_constant_value = Some(v);
                     }
                     Some(constant_pool::ConstantType::Double { v }) => {
                         let v =
                             u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = f64::from_bits(v);
-                        let v = OopDesc::new_double(v);
+                        let v = Oop::new_double(v);
                         attr_constant_value = Some(v);
                     }
                     Some(constant_pool::ConstantType::Integer { v }) => {
                         let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                        let v = OopDesc::new_int(v);
+                        let v = Oop::new_int(v);
                         attr_constant_value = Some(v);
                     }
                     //                    此处没有javathread，如何创建String?
                     Some(constant_pool::ConstantType::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
                             //                            println!("field const value = {}", String::from_utf8_lossy(v.as_slice()));
-                            let v = OopDesc::new_const_utf8(v);
+                            let v = Oop::new_const_utf8(v);
                             attr_constant_value = Some(v);
                         }
                     }
@@ -217,7 +217,7 @@ impl Field {
         (self.acc_flags & ACC_VOLATILE) == ACC_VOLATILE
     }
 
-    pub fn get_constant_value(&self) -> OopRef {
+    pub fn get_constant_value(&self) -> Oop {
         match self.value_type {
             ValueType::BYTE
             | ValueType::BOOLEAN
@@ -232,7 +232,7 @@ impl Field {
         }
     }
 
-    pub fn get_attr_constant_value(&self) -> Option<OopRef> {
+    pub fn get_attr_constant_value(&self) -> Option<Oop> {
         self.attr_constant_value.clone()
     }
 }

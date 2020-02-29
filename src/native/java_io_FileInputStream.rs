@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc, TypeArrayValue};
+use crate::oop::{self, Oop, TypeArrayValue};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -16,11 +15,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
@@ -37,7 +36,7 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this.clone());
     let byte_ary = args.get(1).unwrap();
@@ -50,9 +49,10 @@ fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
         util::oop::extract_int(v.clone())
     };
 
-    let mut byte_ary = byte_ary.lock().unwrap();
-    let n = match &mut byte_ary.v {
-        Oop::TypeArray(ary) => match ary {
+    let v = util::oop::extract_ref(byte_ary.clone());
+    let mut v = v.lock().unwrap();
+    let n = match &mut v.v {
+        oop::OopRefDesc::TypeArray(ary) => match ary {
             TypeArrayValue::Byte(ary) => {
                 let (_, ptr) = ary.split_at_mut(off as usize);
                 let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
@@ -77,10 +77,10 @@ fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
         _ => unreachable!(),
     };
 
-    Ok(Some(OopDesc::new_int(n)))
+    Ok(Some(Oop::new_int(n)))
 }
 
-fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this.clone());
 
@@ -101,7 +101,7 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
             {
                 let mut n = 0;
                 if libc::ioctl(fd, libc::FIONREAD, &mut n) >= 0 {
-                    return Ok(Some(OopDesc::new_int(n)));
+                    return Ok(Some(Oop::new_int(n)));
                 }
             } else if mode & libc::S_IFREG == libc::S_IFREG {
                 size = stat.st_size;
@@ -110,25 +110,25 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
 
         current = libc::lseek(fd, 0, libc::SEEK_CUR);
         if current == -1 {
-            return Ok(Some(OopDesc::new_int(0)));
+            return Ok(Some(Oop::new_int(0)));
         }
 
         if size < current {
             size = libc::lseek(fd, 0, libc::SEEK_END);
             if size == -1 {
-                return Ok(Some(OopDesc::new_int(0)));
+                return Ok(Some(Oop::new_int(0)));
             }
 
             if libc::lseek(fd, current, libc::SEEK_SET) == -1 {
-                return Ok(Some(OopDesc::new_int(0)));
+                return Ok(Some(Oop::new_int(0)));
             }
         }
     }
 
-    return Ok(Some(OopDesc::new_int((size - current) as i32)));
+    return Ok(Some(Oop::new_int((size - current) as i32)));
 }
 
-fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this.clone());
     unsafe {
@@ -137,7 +137,7 @@ fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResul
     Ok(None)
 }
 
-fn set_file_descriptor_fd(fin: OopRef, fd: i32) {
+fn set_file_descriptor_fd(fin: Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();
@@ -148,10 +148,10 @@ fn set_file_descriptor_fd(fin: OopRef, fd: i32) {
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"fd", b"I", false);
-    cls.put_field_value(fd_this, id, OopDesc::new_int(fd));
+    cls.put_field_value(fd_this, id, Oop::new_int(fd));
 }
 
-fn get_file_descriptor_fd(fin: OopRef) -> i32 {
+fn get_file_descriptor_fd(fin: Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();

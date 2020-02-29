@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::oop::Oop;
 use crate::runtime::JavaThread;
-use crate::types::OopRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -19,7 +19,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     let mut callers = jt.callers.clone();
 
     let cur = callers.pop().unwrap(); //pop cur method
@@ -40,6 +40,6 @@ fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> 
     }
 }
 
-fn jvm_getClassAccessFlags(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getClassAccessFlags(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     native::java_lang_Class::jvm_getModifiers(jt, env, args)
 }

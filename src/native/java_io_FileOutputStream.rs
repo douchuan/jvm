@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::{require_class3, JavaThread};
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -14,11 +13,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let os = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(os.clone());
     let byte_ary = args.get(1).unwrap();
@@ -37,9 +36,10 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
 
     trace!("append = {}", append);
 
-    let v = byte_ary.lock().unwrap();
+    let v = util::oop::extract_ref(byte_ary.clone());
+    let v = v.lock().unwrap();
     match &v.v {
-        Oop::TypeArray(ary) => match ary {
+        oop::OopRefDesc::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Byte(ary) => {
                 let (_, ary) = ary.split_at(off as usize);
                 let len = len as usize;
@@ -62,7 +62,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
     Ok(None)
 }
 
-fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = util::oop::extract_str(args.get(1).unwrap().clone());
     let append = {
@@ -86,7 +86,7 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult
     Ok(None)
 }
 
-fn get_file_descriptor_fd(fos: OopRef) -> i32 {
+fn get_file_descriptor_fd(fos: Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();
@@ -104,7 +104,7 @@ fn get_file_descriptor_fd(fos: OopRef) -> i32 {
     util::oop::extract_int(fd)
 }
 
-fn set_file_descriptor_fd(fos: OopRef, fd: i32) {
+fn set_file_descriptor_fd(fos: Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();
@@ -115,5 +115,5 @@ fn set_file_descriptor_fd(fos: OopRef, fd: i32) {
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"fd", b"I", false);
-    cls.put_field_value(fd_this, id, OopDesc::new_int(fd));
+    cls.put_field_value(fd_this, id, Oop::new_int(fd));
 }

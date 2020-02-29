@@ -4,7 +4,7 @@ use crate::classfile::consts::{
     J_SECURITY_MANAGER, J_SERIALIZABLE, J_STRING, J_SYSTEM, J_THREAD, J_THREAD_GROUP, J_THROWABLE,
 };
 use crate::native;
-use crate::oop::{self, OopDesc};
+use crate::oop;
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
 use std::borrow::BorrowMut;
@@ -16,7 +16,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let thread_cls = oop::class::load_and_init(jt, J_THREAD);
     let thread_group_cls = oop::class::load_and_init(jt, J_THREAD_GROUP);
 
-    let init_thread_oop = OopDesc::new_inst(thread_cls.clone());
+    let init_thread_oop = oop::Oop::new_inst(thread_cls.clone());
     {
         let mut cls = thread_cls.lock().unwrap();
         //todo: getNativeHandler
@@ -24,7 +24,7 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
         let id = cls.get_field_id(b"priority", b"I", false);
-        cls.put_field_value(init_thread_oop.clone(), id, oop::OopDesc::new_int(5));
+        cls.put_field_value(init_thread_oop.clone(), id, oop::Oop::new_int(5));
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -32,11 +32,11 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     jt.set_java_thread_obj(init_thread_oop.clone());
 
     // Create and construct the system thread group.
-    let system_thread_group = OopDesc::new_inst(thread_group_cls.clone());
+    let system_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
     let args = vec![system_thread_group.clone()];
     runtime::java_call::invoke_ctor(jt, thread_group_cls.clone(), b"()V", args);
 
-    let main_thread_group = OopDesc::new_inst(thread_group_cls.clone());
+    let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
     {
         let mut cls = thread_cls.lock().unwrap();
@@ -130,7 +130,7 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     {
         let mut cls = class_obj.lock().unwrap();
         let id = cls.get_field_id(b"useCaches", b"Z", true);
-        cls.put_static_field_value(id, OopDesc::new_int(1));
+        cls.put_static_field_value(id, oop::Oop::new_int(1));
     }
 }
 
@@ -138,7 +138,7 @@ fn hack_classes(jt: &mut JavaThread) {
     let charset_cls = oop::class::load_and_init(jt, b"java/nio/charset/Charset");
     let ascii_charset_cls = oop::class::load_and_init(jt, b"sun/nio/cs/US_ASCII");
 
-    let ascii_inst = OopDesc::new_inst(ascii_charset_cls.clone());
+    let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
     let args = vec![ascii_inst.clone()];
     runtime::java_call::invoke_ctor(jt, ascii_charset_cls.clone(), b"()V", args);
 

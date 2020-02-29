@@ -1,20 +1,20 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
-use crate::oop::{self, Oop, OopDesc, ValueType};
+use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread, Stack};
-use crate::types::{ClassRef, MethodIdRef, OopRef};
+use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
 use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 pub struct JavaCall {
     pub mir: MethodIdRef,
-    pub args: Vec<OopRef>,
+    pub args: Vec<Oop>,
     pub return_type: ArgType,
 }
 
-pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<OopRef>) {
+pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
         let cls = cls.lock().unwrap();
         let id = util::new_method_id(b"<init>", desc);
@@ -27,7 +27,7 @@ pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oo
 }
 
 impl JavaCall {
-    pub fn new_with_args(jt: &mut JavaThread, mir: MethodIdRef, args: Vec<OopRef>) -> Self {
+    pub fn new_with_args(jt: &mut JavaThread, mir: MethodIdRef, args: Vec<Oop>) -> Self {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         Self {
@@ -67,34 +67,29 @@ impl JavaCall {
         let has_this = !mir.method.is_static();
         if has_this {
             let this = stack.pop_ref();
-            let this_back = this.clone();
 
             //check NPE
-            {
-                let v = this.lock().unwrap();
-                match &v.v {
-                    Oop::Null => {
-                        let cls_name = {
-                            let cls = mir.method.class.lock().unwrap();
-                            cls.name.clone()
-                        };
+            match this {
+                Oop::Null => {
+                    let cls_name = {
+                        let cls = mir.method.class.lock().unwrap();
+                        cls.name.clone()
+                    };
 
-                        error!(
-                            "Java new failed, null this: {}:{}, this={:?}",
-                            String::from_utf8_lossy(cls_name.as_slice()),
-                            String::from_utf8_lossy(mir.method.get_id().as_slice()),
-                            v
-                        );
+                    error!(
+                        "Java new failed, null this: {}:{}",
+                        String::from_utf8_lossy(cls_name.as_slice()),
+                        String::from_utf8_lossy(mir.method.get_id().as_slice())
+                    );
 
-                        //快速失败，避免大量log，不容易定位问题
-                        //                        panic!();
+                    //快速失败，避免大量log，不容易定位问题
+                    //                        panic!();
 
-                        let ex = exception::new(jt, consts::J_NPE, None);
-                        jt.set_ex(ex);
-                        return Err(());
-                    }
-                    _ => (),
+                    let ex = exception::new(jt, consts::J_NPE, None);
+                    jt.set_ex(ex);
+                    return Err(());
                 }
+                _ => (),
             }
 
             args.insert(0, this);
@@ -202,7 +197,8 @@ impl JavaCall {
                 let mut class = self.mir.method.class.lock().unwrap();
                 class.monitor_enter();
             } else {
-                let mut v = self.args.first_mut().unwrap();
+                let mut v = self.args.first().unwrap();
+                let v = util::oop::extract_ref(v.clone());
                 let mut v = v.lock().unwrap();
                 v.monitor_enter();
             }
@@ -215,7 +211,8 @@ impl JavaCall {
                 let mut class = self.mir.method.class.lock().unwrap();
                 class.monitor_exit();
             } else {
-                let mut v = self.args.first_mut().unwrap();
+                let mut v = self.args.first().unwrap();
+                let v = util::oop::extract_ref(v.clone());
                 let mut v = v.lock().unwrap();
                 v.monitor_exit();
             }
@@ -236,9 +233,7 @@ impl JavaCall {
         let locals = &mut frame.local;
         let mut slot_pos: usize = 0;
         self.args.iter().for_each(|v| {
-            let v_ref = v.clone();
-            let v = v.lock().unwrap();
-            let step = match &v.v {
+            let step = match v {
                 Oop::Int(v) => {
                     locals.set_int(slot_pos, *v);
                     1
@@ -256,7 +251,7 @@ impl JavaCall {
                     2
                 }
                 _ => {
-                    locals.set_ref(slot_pos, v_ref);
+                    locals.set_ref(slot_pos, v.clone());
                     1
                 }
             };
@@ -294,9 +289,10 @@ impl JavaCall {
         );
         if resolve_again {
             let this = self.args.get(0).unwrap();
+            let this = util::oop::extract_ref(this.clone());
             let this = this.lock().unwrap();
             match &this.v {
-                Oop::Inst(inst) => {
+                oop::OopRefDesc::Inst(inst) => {
                     let cls = inst.class.lock().unwrap();
                     let id = self.mir.method.get_id();
                     self.mir = cls.get_virtual_method(id).unwrap();
@@ -324,7 +320,7 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
+fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<Oop> {
     //Note: iter args by reverse, because of stack
     sig.args
         .iter()
@@ -332,19 +328,19 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
         .map(|t| match t {
             ArgType::Byte | ArgType::Boolean | ArgType::Int | ArgType::Char | ArgType::Short => {
                 let v = stack.pop_int();
-                OopDesc::new_int(v)
+                Oop::new_int(v)
             }
             ArgType::Long => {
                 let v = stack.pop_long();
-                OopDesc::new_long(v)
+                Oop::new_long(v)
             }
             ArgType::Float => {
                 let v = stack.pop_float();
-                OopDesc::new_float(v)
+                Oop::new_float(v)
             }
             ArgType::Double => {
                 let v = stack.pop_double();
-                OopDesc::new_double(v)
+                Oop::new_double(v)
             }
             ArgType::Object(_) | ArgType::Array(_) => stack.pop_ref(),
             t => unreachable!("t = {:?}", t),
@@ -352,39 +348,27 @@ fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<OopRef> {
         .collect()
 }
 
-pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<OopRef>) {
+pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<Oop>) {
     match return_type {
         ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Int(v) => stack.push_int(v),
-                _ => unreachable!(),
-            }
+            let v = util::oop::extract_int(v);
+            stack.push_int(v);
         }
         ArgType::Long => {
             let v = v.unwrap();
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Long(v) => stack.push_long(v),
-                _ => unreachable!(),
-            }
+            let v = util::oop::extract_long(v);
+            stack.push_long(v);
         }
         ArgType::Float => {
             let v = v.unwrap();
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Float(v) => stack.push_float(v),
-                _ => unreachable!(),
-            }
+            let v = util::oop::extract_float(v);
+            stack.push_float(v);
         }
         ArgType::Double => {
             let v = v.unwrap();
-            let v = v.lock().unwrap();
-            match v.v {
-                Oop::Double(v) => stack.push_double(v),
-                _ => unreachable!(),
-            }
+            let v = util::oop::extract_double(v);
+            stack.push_double(v);
         }
         ArgType::Object(_) | ArgType::Array(_) => {
             let v = v.unwrap();

@@ -3,7 +3,6 @@ use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{exception, JavaCall, JavaThread, Stack};
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -27,24 +26,29 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let mir = {
-        let v = v.lock().unwrap();
-        match &v.v {
+        match v {
             Oop::Null => {
                 let ex = exception::new(jt, classfile::consts::J_NPE, None);
                 return Err(ex);
             }
-            Oop::Inst(inst) => {
-                let m = {
-                    let cls = inst.class.lock().unwrap();
-                    let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
-                    cls.get_virtual_method(id).unwrap()
-                };
+            Oop::Ref(v) => {
+                let v = v.lock().unwrap();
+                match &v.v {
+                    oop::OopRefDesc::Inst(inst) => {
+                        let m = {
+                            let cls = inst.class.lock().unwrap();
+                            let id = util::new_method_id(b"run", b"()Ljava/lang/Object;");
+                            cls.get_virtual_method(id).unwrap()
+                        };
 
-                m
+                        m
+                    }
+                    _ => unreachable!(),
+                }
             }
             _ => unreachable!(),
         }
@@ -64,19 +68,19 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
 }
 
 //todo: re impl
-fn jvm_doPrivileged2(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doPrivileged2(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(jt, env, args)
 }
 
 //todo: re impl
-fn jvm_doPrivileged3(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_doPrivileged3(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(jt, env, args)
 }
 
 fn jvm_getStackAccessControlContext(
     _jt: &mut JavaThread,
     _env: JNIEnv,
-    _args: Vec<OopRef>,
+    _args: Vec<Oop>,
 ) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }

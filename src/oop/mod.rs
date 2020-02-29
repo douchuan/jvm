@@ -28,17 +28,30 @@ pub enum ValueType {
     ARRAY,
 }
 
+#[derive(Debug)]
+pub enum OopRefDesc {
+    Inst(InstOopDesc),
+    Array(ArrayOopDesc),
+    TypeArray(TypeArrayValue),
+    Mirror(MirrorOopDesc),
+}
+
+#[derive(Debug)]
+pub struct OopRef {
+    pub v: OopRefDesc,
+    pub hash_code: Option<i32>,
+
+    //这两个所相关的field，有意义吗？本身操作，就隐含了lock
+    cond: Condvar,
+    monitor: Mutex<usize>,
+}
+
 #[derive(Debug, Clone)]
 pub enum Oop {
     Int(i32),
     Long(i64),
     Float(f32),
     Double(f64),
-    Inst(InstOopDesc),
-    Array(ArrayOopDesc),
-    TypeArray(TypeArrayValue),
-    Mirror(MirrorOopDesc),
-
     /*
         used by: Throwable.java
     private static final String NULL_CAUSE_MESSAGE = "Cannot suppress a null exception.";
@@ -46,43 +59,41 @@ pub enum Oop {
     ConstUtf8(BytesRef),
     //used by oop::field::Filed::get_constant_value
     Null,
+
+    Ref(Arc<Mutex<OopRef>>),
 }
 
-#[derive(Debug)]
-pub struct OopDesc {
-    pub v: Oop,
-    cond: Condvar,
-    monitor: Mutex<usize>,
-    pub hash_code: Option<i32>,
-}
-
-impl OopDesc {
-    pub fn new_int(v: i32) -> OopRef {
-        Self::new(Oop::Int(v))
+impl Oop {
+    pub fn new_int(v: i32) -> Self {
+        Oop::Int(v)
     }
 
-    pub fn new_long(v: i64) -> OopRef {
-        Self::new(Oop::Long(v))
+    pub fn new_long(v: i64) -> Self {
+        Oop::Long(v)
     }
 
-    pub fn new_float(v: f32) -> OopRef {
-        Self::new(Oop::Float(v))
+    pub fn new_float(v: f32) -> Self {
+        Oop::Float(v)
     }
 
-    pub fn new_double(v: f64) -> OopRef {
-        Self::new(Oop::Double(v))
+    pub fn new_double(v: f64) -> Self {
+        Oop::Double(v)
     }
 
-    pub fn new_const_utf8(v: BytesRef) -> OopRef {
-        Self::new(Oop::ConstUtf8(v))
+    pub fn new_const_utf8(v: BytesRef) -> Self {
+        Oop::ConstUtf8(v)
     }
 
-    pub fn new_inst(cls_obj: ClassRef) -> OopRef {
+    pub fn new_null() -> Self {
+        Oop::Null
+    }
+
+    pub fn new_inst(cls_obj: ClassRef) -> Oop {
         let v = InstOopDesc::new(cls_obj);
-        Self::new(Oop::Inst(v))
+        Self::new(OopRefDesc::Inst(v))
     }
 
-    pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> OopRef {
+    pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
         let mut elements = Vec::with_capacity(len);
         for _ in 0..len {
             elements.push(consts::get_null());
@@ -91,12 +102,12 @@ impl OopDesc {
         Self::new_ref_ary2(ary_cls_obj, elements)
     }
 
-    pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<OopRef>) -> OopRef {
+    pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<Oop>) -> Oop {
         let v = ArrayOopDesc::new(ary_cls_obj, elms);
-        Self::new(Oop::Array(v))
+        Self::new(OopRefDesc::Array(v))
     }
 
-    pub fn new_mirror(target: ClassRef) -> OopRef {
+    pub fn new_mirror(target: ClassRef) -> Oop {
         let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
         let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
@@ -105,10 +116,10 @@ impl OopDesc {
             value_type: ValueType::OBJECT,
         };
 
-        Self::new(Oop::Mirror(v))
+        Self::new(OopRefDesc::Mirror(v))
     }
 
-    pub fn new_prim_mirror(value_type: ValueType) -> OopRef {
+    pub fn new_prim_mirror(value_type: ValueType) -> Oop {
         let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
         let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
@@ -117,10 +128,10 @@ impl OopDesc {
             value_type,
         };
 
-        Self::new(Oop::Mirror(v))
+        Self::new(OopRefDesc::Mirror(v))
     }
 
-    pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> OopRef {
+    pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> Oop {
         let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
         let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
@@ -129,19 +140,15 @@ impl OopDesc {
             value_type: value_type,
         };
 
-        Self::new(Oop::Mirror(v))
+        Self::new(OopRefDesc::Mirror(v))
     }
 
-    pub fn new_null() -> OopRef {
-        Self::new(Oop::Null)
-    }
-
-    pub fn char_ary_from1(v: &[u16]) -> OopRef {
+    pub fn char_ary_from1(v: &[u16]) -> Oop {
         let elms = Vec::from(v);
         Self::new_char_ary2(elms)
     }
 
-    pub fn new_byte_ary(len: usize) -> OopRef {
+    pub fn new_byte_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -149,7 +156,7 @@ impl OopDesc {
         Self::new_byte_ary2(elms)
     }
 
-    pub fn new_bool_ary(len: usize) -> OopRef {
+    pub fn new_bool_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -157,7 +164,7 @@ impl OopDesc {
         Self::new_bool_ary2(elms)
     }
 
-    pub fn new_char_ary(len: usize) -> OopRef {
+    pub fn new_char_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -165,7 +172,7 @@ impl OopDesc {
         Self::new_char_ary2(elms)
     }
 
-    pub fn new_short_ary(len: usize) -> OopRef {
+    pub fn new_short_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -173,7 +180,7 @@ impl OopDesc {
         Self::new_short_ary2(elms)
     }
 
-    pub fn new_int_ary(len: usize) -> OopRef {
+    pub fn new_int_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -181,7 +188,7 @@ impl OopDesc {
         Self::new_int_ary2(elms)
     }
 
-    pub fn new_float_ary(len: usize) -> OopRef {
+    pub fn new_float_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0.0);
@@ -189,7 +196,7 @@ impl OopDesc {
         Self::new_float_ary2(elms)
     }
 
-    pub fn new_double_ary(len: usize) -> OopRef {
+    pub fn new_double_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0.0);
@@ -197,7 +204,7 @@ impl OopDesc {
         Self::new_double_ary2(elms)
     }
 
-    pub fn new_long_ary(len: usize) -> OopRef {
+    pub fn new_long_ary(len: usize) -> Oop {
         let mut elms = Vec::with_capacity(len);
         for _ in 0..len {
             elms.push(0);
@@ -205,66 +212,68 @@ impl OopDesc {
         Self::new_long_ary2(elms)
     }
 
-    pub fn new_byte_ary2(elms: Vec<u8>) -> OopRef {
+    pub fn new_byte_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Byte(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_bool_ary2(elms: Vec<u8>) -> OopRef {
+    pub fn new_bool_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Bool(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_char_ary2(elms: Vec<u16>) -> OopRef {
+    pub fn new_char_ary2(elms: Vec<u16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Char(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_short_ary2(elms: Vec<i16>) -> OopRef {
+    pub fn new_short_ary2(elms: Vec<i16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Short(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_int_ary2(elms: Vec<i32>) -> OopRef {
+    pub fn new_int_ary2(elms: Vec<i32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Int(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_float_ary2(elms: Vec<f32>) -> OopRef {
+    pub fn new_float_ary2(elms: Vec<f32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Float(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_double_ary2(elms: Vec<f64>) -> OopRef {
+    pub fn new_double_ary2(elms: Vec<f64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Double(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    pub fn new_long_ary2(elms: Vec<i64>) -> OopRef {
+    pub fn new_long_ary2(elms: Vec<i64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Long(ary);
-        Self::new(Oop::TypeArray(v))
+        Self::new(OopRefDesc::TypeArray(v))
     }
 
-    fn new(v: Oop) -> OopRef {
-        let v = Self {
+    fn new(v: OopRefDesc) -> Oop {
+        let v = OopRef {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
             hash_code: None,
         };
-        new_sync_ref!(v)
+
+        let v = Arc::new(Mutex::new(v));
+        Oop::Ref(v)
     }
 }
 
-impl OopDesc {
+impl OopRef {
     pub fn monitor_enter(&mut self) {
         let mut v = self.monitor.lock().unwrap();
         *v += 1;
@@ -353,13 +362,13 @@ impl ValueType {
 #[derive(Debug, Clone)]
 pub struct InstOopDesc {
     pub class: ClassRef,
-    pub field_values: Vec<OopRef>,
+    pub field_values: Vec<Oop>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ArrayOopDesc {
     pub class: ClassRef,
-    pub elements: Vec<OopRef>,
+    pub elements: Vec<Oop>,
 }
 
 #[derive(Debug, Clone)]
@@ -377,7 +386,7 @@ pub enum TypeArrayValue {
 #[derive(Debug, Clone)]
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
-    pub field_values: Vec<OopRef>,
+    pub field_values: Vec<Oop>,
     pub value_type: ValueType,
 }
 
@@ -393,7 +402,7 @@ impl InstOopDesc {
 }
 
 impl ArrayOopDesc {
-    pub fn new(class: ClassRef, elements: Vec<OopRef>) -> Self {
+    pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
             assert!(class.lock().unwrap().is_array());
         }

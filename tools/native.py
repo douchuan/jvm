@@ -19,9 +19,8 @@ if __name__ == '__main__':
 	print("#![allow(non_snake_case)]")
 	print()
 	print("use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};")
-	print("use crate::oop::{Oop, OopDesc};")
+	print("use crate::oop::{self, Oop};")
 	print("use crate::runtime::JavaThread;")
-	print("use crate::types::OopRef;")
 	print("use crate::util;")
 	print()
 	print("pub fn get_native_methods() -> Vec<JNINativeMethod> {")
@@ -34,6 +33,6 @@ if __name__ == '__main__':
 	print("new_fn(\"" + name + "\", " + "\"" + signature + "\", " + "Box::new(jvm_" + name + ")),")
 	print()
 	
-	print("fn jvm_" + name + "(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {")
+	print("fn jvm_" + name + "(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {")
 	print("\tOk(None)")
 	print("}")

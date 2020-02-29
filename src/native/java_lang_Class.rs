@@ -2,14 +2,14 @@
 
 use crate::classfile::{self, access_flags as acc, constant_pool};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, ClassKind, Oop, OopDesc, ValueType};
+use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
-use crate::types::{ClassRef, OopRef};
+use crate::types::ClassRef;
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-pub fn get_primitive_class_mirror(key: &str) -> Option<OopRef> {
+pub fn get_primitive_class_mirror(key: &str) -> Option<Oop> {
     //todo: avoid mutex lock, it's only read
     let mirrors = PRIM_MIRROS.lock().unwrap();
     mirrors.get(key).map(|it| it.clone())
@@ -89,7 +89,7 @@ enum ClassMirrorState {
 
 lazy_static! {
     static ref MIRROR_STATE: Mutex<ClassMirrorState> = { Mutex::new(ClassMirrorState::NotFixed) };
-    static ref PRIM_MIRROS: Mutex<HashMap<String, OopRef>> = {
+    static ref PRIM_MIRROS: Mutex<HashMap<String, Oop>> = {
         let hm = HashMap::new();
         Mutex::new(hm)
     };
@@ -140,7 +140,7 @@ pub fn create_mirror(cls: ClassRef) {
     };
 
     if is_fixed {
-        let mirror = OopDesc::new_mirror(cls.clone());
+        let mirror = Oop::new_mirror(cls.clone());
         let mut cls = cls.lock().unwrap();
         trace!("mirror created: {}", unsafe {
             std::str::from_utf8_unchecked(cls.name.as_slice())
@@ -191,15 +191,16 @@ pub fn create_delayed_mirrors() {
                 ValueType::from(&name.as_bytes()[0])
             };
 
-            let mirror = OopDesc::new_prim_mirror(vt);
+            let mirror = Oop::new_prim_mirror(vt);
             if is_prim_ary {
                 let target = require_class3(None, name.as_bytes()).unwrap();
 
                 //set mirror's target
                 {
+                    let mirror = util::oop::extract_ref(mirror.clone());
                     let mut mirror = mirror.lock().unwrap();
                     match &mut mirror.v {
-                        Oop::Mirror(mirror) => {
+                        oop::OopRefDesc::Mirror(mirror) => {
                             mirror.target = Some(target.clone());
                         }
                         _ => unreachable!(),
@@ -235,25 +236,21 @@ pub fn create_delayed_ary_mirrors() {
                 _ => unreachable!(),
             }
         };
-        let mirror = OopDesc::new_ary_mirror(cls.clone(), value_type);
+        let mirror = Oop::new_ary_mirror(cls.clone(), value_type);
         let mut cls = cls.lock().unwrap();
         cls.set_mirror(mirror);
     }
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_desiredAssertionStatus0(
-    _jt: &mut JavaThread,
-    _env: JNIEnv,
-    _args: Vec<OopRef>,
-) -> JNIResult {
-    Ok(Some(OopDesc::new_int(0)))
+fn jvm_desiredAssertionStatus0(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    Ok(Some(Oop::new_int(0)))
 }
 
-fn jvm_getPrimitiveClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getPrimitiveClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = util::oop::extract_str(v.clone());
     match SIGNATURE_DIC.get(v.as_str()) {
@@ -262,13 +259,14 @@ fn jvm_getPrimitiveClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) 
     }
 }
 
-fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();
+        let arg0 = util::oop::extract_ref(arg0.clone());
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -312,15 +310,16 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) 
 
     //build oop field ar
     let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Field;").unwrap();
-    Ok(Some(OopDesc::new_ref_ary2(ary_cls, fields)))
+    Ok(Some(Oop::new_ref_ary2(ary_cls, fields)))
 }
 
-fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let target = {
         let arg0 = args.get(0).unwrap();
+        let arg0 = util::oop::extract_ref(arg0.clone());
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -335,7 +334,7 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     Ok(Some(v))
 }
 
-fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let java_name = util::oop::extract_str(arg0.clone());
     let _initialize = {
@@ -344,8 +343,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     };
     let java_cls_loader = args.get(2).unwrap();
     {
-        let v = java_cls_loader.lock().unwrap();
-        match &v.v {
+        match java_cls_loader {
             Oop::Null => (),
             _ => unimplemented!("app class loader, unimpl"),
         }
@@ -384,11 +382,12 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
     }
 }
 
-fn jvm_isPrimitive(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isPrimitive(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
+    let v = util::oop::extract_ref(v.clone());
     let v = v.lock().unwrap();
     let v = match &v.v {
-        Oop::Mirror(mirror) => {
+        oop::OopRefDesc::Mirror(mirror) => {
             if mirror.target.is_none() {
                 1
             } else {
@@ -397,25 +396,27 @@ fn jvm_isPrimitive(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
         }
         _ => unreachable!(),
     };
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let l = args.get(0).unwrap();
     let r = args.get(1).unwrap();
 
     let (lt, ltyp) = {
+        let l = util::oop::extract_ref(l.clone());
         let v = l.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
+            oop::OopRefDesc::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
             _ => unreachable!(),
         }
     };
 
     let (rt, rtyp) = {
+        let r = util::oop::extract_ref(r.clone());
         let v = r.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
+            oop::OopRefDesc::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
             _ => unreachable!(),
         }
     };
@@ -436,14 +437,15 @@ fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
         }
     };
 
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
+    let v = util::oop::extract_ref(v.clone());
     let v = v.lock().unwrap();
     let v = match &v.v {
-        Oop::Mirror(mirror) => match &mirror.target {
+        oop::OopRefDesc::Mirror(mirror) => match &mirror.target {
             Some(target) => {
                 if target.lock().unwrap().is_interface() {
                     1
@@ -455,16 +457,17 @@ fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNI
         },
         _ => unreachable!(),
     };
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();
+        let arg0 = util::oop::extract_ref(arg0.clone());
         let arg0 = arg0.lock().unwrap();
         match &arg0.v {
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -493,28 +496,30 @@ fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop
     //build oop methods ary
     let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Constructor;").unwrap();
 
-    Ok(Some(OopDesc::new_ref_ary2(ary_cls, methods)))
+    Ok(Some(Oop::new_ref_ary2(ary_cls, methods)))
 }
 
-pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
+    let v = util::oop::extract_ref(v.clone());
     let v = v.lock().unwrap();
     let v = match &v.v {
-        Oop::Mirror(mirror) => match &mirror.target {
+        oop::OopRefDesc::Mirror(mirror) => match &mirror.target {
             Some(target) => target.lock().unwrap().acc_flags,
             None => acc::ACC_ABSTRACT | acc::ACC_FINAL | acc::ACC_PUBLIC,
         },
         _ => unreachable!(),
     };
 
-    Ok(Some(OopDesc::new_int(v as i32)))
+    Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
+    let mirror = util::oop::extract_ref(mirror.clone());
     let v = mirror.lock().unwrap();
     match &v.v {
-        Oop::Mirror(mirror) => match &mirror.target {
+        oop::OopRefDesc::Mirror(mirror) => match &mirror.target {
             Some(target) => {
                 let cls = target.lock().unwrap();
                 match &cls.super_class {
@@ -532,15 +537,16 @@ fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> J
     }
 }
 
-fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let mirror_cls = {
+        let v = util::oop::extract_ref(v.clone());
         let v = v.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => match &mirror.target {
+            oop::OopRefDesc::Mirror(mirror) => match &mirror.target {
                 Some(target) => target.clone(),
-                None => return Ok(Some(OopDesc::new_int(0))),
+                None => return Ok(Some(Oop::new_int(0))),
             },
             _ => unreachable!(),
         }
@@ -553,15 +559,16 @@ fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResu
         ClassKind::ObjectArray(_) => 1,
     };
 
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cls_mirror = args.get(0).unwrap();
     let cls = {
+        let cls_mirror = util::oop::extract_ref(cls_mirror.clone());
         let cls = cls_mirror.lock().unwrap();
         match &cls.v {
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -583,12 +590,13 @@ fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -
     Ok(v)
 }
 
-fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let target = {
+        let mirror = util::oop::extract_ref(mirror.clone());
         let v = mirror.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => mirror.target.clone(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone(),
             _ => return Ok(Some(oop::consts::get_null())),
         }
     };
@@ -634,17 +642,18 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     }
 
     let ary = require_class3(None, b"[Ljava/lang/Object;").unwrap();
-    let ary = OopDesc::new_ref_ary2(ary, elms);
+    let ary = Oop::new_ref_ary2(ary, elms);
 
     Ok(Some(ary))
 }
 
-fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let target = {
+        let mirror = util::oop::extract_ref(mirror.clone());
         let v = mirror.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => mirror.target.clone(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone(),
             _ => return Ok(Some(oop::consts::get_null())),
         }
     };
@@ -688,22 +697,24 @@ fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
     return Ok(Some(oop::consts::get_null()));
 }
 
-fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let target = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
 
     let target_cls = {
-        let v = target.lock().unwrap();
+        let v = util::oop::extract_ref(target.clone());
+        let v = v.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => inst.class.clone(),
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Inst(inst) => inst.class.clone(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
     let obj_cls = {
+        let obj = util::oop::extract_ref(obj.clone());
         let v = obj.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => inst.class.clone(),
+            oop::OopRefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -714,5 +725,5 @@ fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIR
         0
     };
 
-    Ok(Some(OopDesc::new_int(v)))
+    Ok(Some(Oop::new_int(v)))
 }

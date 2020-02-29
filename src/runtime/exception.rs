@@ -1,9 +1,9 @@
-use crate::oop::{self, OopDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::{BytesRef, OopRef};
+use crate::types::BytesRef;
 use crate::util;
 
-pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> OopRef {
+pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> Oop {
     let cls = match require_class3(None, name) {
         Some(cls) => cls,
         None => panic!("ClassNotFound: {}", String::from_utf8_lossy(name)),
@@ -16,7 +16,7 @@ pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> OopRef {
     }
     oop::class::init_class_fully(jt, cls.clone());
 
-    let ex = OopDesc::new_inst(cls.clone());
+    let ex = Oop::new_inst(cls.clone());
 
     //invoke ctor
     match &msg {

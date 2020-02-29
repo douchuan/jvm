@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc};
+use crate::oop::Oop;
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::OopRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -13,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let os = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let _charset_name = args.get(2).unwrap();
@@ -26,16 +25,13 @@ fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
     };
 
     //check defaultCharset
-    {
-        let v = default_charset_oop.lock().unwrap();
-        match &v.v {
-            Oop::Inst(_) => (),
-            _ => unreachable!(),
-        }
+    match default_charset_oop {
+        Oop::Ref(_) => (),
+        _ => unreachable!(),
     }
 
     let encoder = require_class3(None, b"sun/nio/cs/StreamEncoder").unwrap();
-    let encoder_oop = OopDesc::new_inst(encoder.clone());
+    let encoder_oop = Oop::new_inst(encoder.clone());
     let args = vec![
         encoder_oop.clone(),
         os.clone(),

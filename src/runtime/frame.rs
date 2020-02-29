@@ -3,7 +3,7 @@ use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, field, Oop, OopDesc, TypeArrayValue, ValueType};
+use crate::oop::{self, consts as oop_consts, field, Oop, TypeArrayValue, ValueType};
 use crate::runtime::{
     self, cmp, exception, require_class, require_class2, require_class3, JavaCall, JavaThread,
     Local, Stack,
@@ -64,7 +64,7 @@ pub struct Frame {
     pub local: Local,
     pub stack: Stack,
     pub pc: i32,
-    pub return_v: Option<OopRef>,
+    pub return_v: Option<Oop>,
 
     op_widen: bool,
 }
@@ -475,14 +475,14 @@ impl Frame {
         self.goto_by_offset(-(occupied - 1));
     }
 
-    fn set_return(&mut self, v: Option<OopRef>) {
+    fn set_return(&mut self, v: Option<Oop>) {
         self.return_v = v;
     }
 
     fn get_field_helper(
         &mut self,
         thread: &mut JavaThread,
-        receiver: OopRef,
+        receiver: Oop,
         idx: i32,
         is_static: bool,
     ) {
@@ -505,30 +505,28 @@ impl Frame {
             class.get_field_value(receiver, fir.clone())
         };
 
-        let v_ref = v.clone();
-        let v = v.lock().unwrap();
         match value_type {
             ValueType::INT
             | ValueType::SHORT
             | ValueType::CHAR
             | ValueType::BOOLEAN
-            | ValueType::BYTE => match &v.v {
-                Oop::Int(v) => self.stack.push_int(*v),
+            | ValueType::BYTE => match v {
+                Oop::Int(v) => self.stack.push_int(v),
                 t => unreachable!("t = {:?}", t),
             },
-            ValueType::FLOAT => match &v.v {
-                Oop::Float(v) => self.stack.push_float(*v),
+            ValueType::FLOAT => match v {
+                Oop::Float(v) => self.stack.push_float(v),
                 _ => unreachable!(),
             },
-            ValueType::DOUBLE => match &v.v {
-                Oop::Double(v) => self.stack.push_double(*v),
+            ValueType::DOUBLE => match v {
+                Oop::Double(v) => self.stack.push_double(v),
                 _ => unreachable!(),
             },
-            ValueType::LONG => match &v.v {
-                Oop::Long(v) => self.stack.push_long(*v),
+            ValueType::LONG => match v {
+                Oop::Long(v) => self.stack.push_long(v),
                 _ => unreachable!(),
             },
-            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v_ref),
+            ValueType::OBJECT | ValueType::ARRAY => self.stack.push_ref(v),
             _ => unreachable!(),
         }
     }
@@ -554,19 +552,19 @@ impl Frame {
             | ValueType::BOOLEAN
             | ValueType::BYTE => {
                 let v = self.stack.pop_int();
-                OopDesc::new_int(v)
+                Oop::new_int(v)
             }
             ValueType::FLOAT => {
                 let v = self.stack.pop_float();
-                OopDesc::new_float(v)
+                Oop::new_float(v)
             }
             ValueType::DOUBLE => {
                 let v = self.stack.pop_double();
-                OopDesc::new_double(v)
+                Oop::new_double(v)
             }
             ValueType::LONG => {
                 let v = self.stack.pop_long();
-                OopDesc::new_long(v)
+                Oop::new_long(v)
             }
             ValueType::ARRAY | ValueType::OBJECT => self.stack.pop_ref(),
             _ => unreachable!(),
@@ -577,10 +575,11 @@ impl Frame {
             class.put_static_field_value(fir.clone(), v);
         } else {
             let receiver = self.stack.pop_ref();
-            if Arc::ptr_eq(&receiver, &oop_consts::get_null()) {
-                meet_ex(thread, consts::J_NPE, None);
-            } else {
-                class.put_field_value(receiver, fir.clone(), v);
+            match receiver {
+                Oop::Null => meet_ex(thread, consts::J_NPE, None),
+                _ => {
+                    class.put_field_value(receiver, fir.clone(), v);
+                }
             }
         }
     }
@@ -614,11 +613,12 @@ impl Frame {
 
 //handle exception
 impl Frame {
-    fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: OopRef) -> Result<(), OopRef> {
+    fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
-            let ex = ex.lock().unwrap();
-            match &ex.v {
-                Oop::Inst(inst) => inst.class.clone(),
+            let ex = util::oop::extract_ref(ex.clone());
+            let v = ex.lock().unwrap();
+            match &v.v {
+                oop::OopRefDesc::Inst(inst) => inst.class.clone(),
                 _ => unreachable!(),
             }
         };
@@ -913,175 +913,199 @@ impl Frame {
     pub fn iaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Int(ary) => {
-                    let stack = &mut self.stack;
-                    iarray_load!(thread, stack, ary, pos);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Int(ary) => {
+                            let stack = &mut self.stack;
+                            iarray_load!(thread, stack, ary, pos);
+                        }
+                        t => unreachable!("t = {:?}", t),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn saload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Short(ary) => {
-                    let stack = &mut self.stack;
-                    iarray_load!(thread, stack, ary, pos);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Short(ary) => {
+                            let stack = &mut self.stack;
+                            iarray_load!(thread, stack, ary, pos);
+                        }
+                        t => unreachable!("t = {:?}", t),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn caload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(ary) => {
-                    let stack = &mut self.stack;
-                    iarray_load!(thread, stack, ary, pos);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Char(ary) => {
+                            let stack = &mut self.stack;
+                            iarray_load!(thread, stack, ary, pos);
+                        }
+                        t => unreachable!("t = {:?}", t),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn baload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Byte(ary) => {
-                    let stack = &mut self.stack;
-                    iarray_load!(thread, stack, ary, pos);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Byte(ary) => {
+                            let stack = &mut self.stack;
+                            iarray_load!(thread, stack, ary, pos);
+                        }
+                        oop::TypeArrayValue::Bool(ary) => {
+                            let stack = &mut self.stack;
+                            iarray_load!(thread, stack, ary, pos);
+                        }
+                        t => unreachable!("t = {:?}", t),
+                    },
+                    _ => unreachable!(),
                 }
-                oop::TypeArrayValue::Bool(ary) => {
-                    let stack = &mut self.stack;
-                    iarray_load!(thread, stack, ary, pos);
-                }
-                t => unreachable!("t = {:?}", t),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn laload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Long(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_long(ary[pos as usize]);
-                    }
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Long(ary) => {
+                            let len = ary.len();
+                            if (pos < 0) || (pos as usize >= len) {
+                                let msg = format!("length is {}, but index is {}", len, pos);
+                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                            } else {
+                                self.stack.push_long(ary[pos as usize]);
+                            }
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn faload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Float(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_float(ary[pos as usize]);
-                    }
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Float(ary) => {
+                            let len = ary.len();
+                            if (pos < 0) || (pos as usize >= len) {
+                                let msg = format!("length is {}, but index is {}", len, pos);
+                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                            } else {
+                                self.stack.push_float(ary[pos as usize]);
+                            }
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn daload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Double(ary) => {
-                    let len = ary.len();
-                    if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                    } else {
-                        self.stack.push_double(ary[pos as usize]);
-                    }
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Double(ary) => {
+                            let len = ary.len();
+                            if (pos < 0) || (pos as usize >= len) {
+                                let msg = format!("length is {}, but index is {}", len, pos);
+                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                            } else {
+                                self.stack.push_double(ary[pos as usize]);
+                            }
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn aaload(&mut self, thread: &mut JavaThread) {
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::Array(ary) => {
-                let len = ary.elements.len();
-                //                info!("aaload pos={}, len={}", pos, len);
-                if (pos < 0) || (pos as usize >= len) {
-                    let msg = format!("length is {}, but index is {}", len, pos);
-                    meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                } else {
-                    let v = ary.elements[pos as usize].clone();
-                    self.stack.push_ref(v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::Array(ary) => {
+                        let len = ary.elements.len();
+                        //                info!("aaload pos={}, len={}", pos, len);
+                        if (pos < 0) || (pos as usize >= len) {
+                            let msg = format!("length is {}, but index is {}", len, pos);
+                            meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        } else {
+                            let v = ary.elements[pos as usize].clone();
+                            self.stack.push_ref(v);
+                        }
+                    }
+                    _ => unreachable!(),
                 }
             }
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
-            }
-            _ => unreachable!(),
         }
     }
 
@@ -1249,23 +1273,26 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Byte(ary) => {
-                    let v = v as u8;
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Byte(ary) => {
+                            let v = v as u8;
+                            array_store!(thread, ary, pos, v);
+                        }
+                        oop::TypeArrayValue::Bool(ary) => {
+                            let v = v as u8;
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                oop::TypeArrayValue::Bool(ary) => {
-                    let v = v as u8;
-                    array_store!(thread, ary, pos, v);
-                }
-                t => unreachable!("t = {:?}", t),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1273,19 +1300,22 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(ary) => {
-                    let v = v as u16;
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Char(ary) => {
+                            let v = v as u16;
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1293,19 +1323,22 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Short(ary) => {
-                    let v = v as i16;
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Short(ary) => {
+                            let v = v as i16;
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1313,18 +1346,21 @@ impl Frame {
         let v = self.stack.pop_int();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Int(ary) => {
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Int(ary) => {
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1332,18 +1368,21 @@ impl Frame {
         let v = self.stack.pop_long();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Long(ary) => {
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Long(ary) => {
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1351,18 +1390,21 @@ impl Frame {
         let v = self.stack.pop_float();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Float(ary) => {
-                    array_store!(thread, ary, pos, v);
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Float(ary) => {
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
@@ -1370,35 +1412,42 @@ impl Frame {
         let v = self.stack.pop_double();
         let pos = self.stack.pop_int();
         let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Double(ary) => {
-                    array_store!(thread, ary, pos, v);
+
+        match rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let rf = util::oop::extract_ref(rf);
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
+                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                        oop::TypeArrayValue::Double(ary) => {
+                            array_store!(thread, ary, pos, v);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
                 }
-                _ => unreachable!(),
-            },
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
         }
     }
 
     pub fn aastore(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_ref();
         let pos = self.stack.pop_int();
-        let rf = self.stack.pop_ref();
-        let mut rf = rf.lock().unwrap();
-        match &mut rf.v {
-            Oop::Array(ary) => {
-                let ary = &mut ary.elements;
-                array_store!(thread, ary, pos, v);
+        let ary_rf = self.stack.pop_ref();
+        match ary_rf {
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            _ => {
+                let ary_rf = util::oop::extract_ref(ary_rf);
+                let mut ary_rf = ary_rf.lock().unwrap();
+                match &mut ary_rf.v {
+                    oop::OopRefDesc::Array(ary) => {
+                        let ary = &mut ary.elements;
+                        array_store!(thread, ary, pos, v);
+                    }
+                    _ => unreachable!(),
+                }
             }
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
-            }
-            _ => unreachable!(),
         }
     }
 
@@ -2197,25 +2246,25 @@ impl Frame {
 
     pub fn ireturn(&mut self) {
         let v = self.stack.pop_int();
-        let v = OopDesc::new_int(v);
+        let v = Oop::new_int(v);
         self.set_return(Some(v));
     }
 
     pub fn lreturn(&mut self) {
         let v = self.stack.pop_long();
-        let v = OopDesc::new_long(v);
+        let v = Oop::new_long(v);
         self.set_return(Some(v));
     }
 
     pub fn freturn(&mut self) {
         let v = self.stack.pop_float();
-        let v = OopDesc::new_float(v);
+        let v = Oop::new_float(v);
         self.set_return(Some(v));
     }
 
     pub fn dreturn(&mut self) {
         let v = self.stack.pop_double();
-        let v = OopDesc::new_double(v);
+        let v = Oop::new_double(v);
         self.set_return(Some(v));
     }
 
@@ -2241,10 +2290,13 @@ impl Frame {
     pub fn get_field(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
         let rf = self.stack.pop_ref();
-        if Arc::ptr_eq(&rf, &oop_consts::get_null()) {
-            meet_ex(thread, consts::J_NPE, None);
-        } else {
-            self.get_field_helper(thread, rf, cp_idx, false);
+        match rf {
+            Oop::Null => {
+                meet_ex(thread, consts::J_NPE, None);
+            }
+            _ => {
+                self.get_field_helper(thread, rf, cp_idx, false);
+            }
         }
     }
 
@@ -2304,7 +2356,7 @@ impl Frame {
             }
         };
 
-        let v = oop::OopDesc::new_inst(class);
+        let v = oop::Oop::new_inst(class);
         self.stack.push_ref(v);
     }
 
@@ -2317,21 +2369,21 @@ impl Frame {
             let len = len as usize;
             let ary = match t {
                 //boolean
-                4 => OopDesc::new_bool_ary(len),
+                4 => Oop::new_bool_ary(len),
                 //char
-                5 => OopDesc::new_char_ary(len),
+                5 => Oop::new_char_ary(len),
                 //float
-                6 => OopDesc::new_float_ary(len),
+                6 => Oop::new_float_ary(len),
                 //double
-                7 => OopDesc::new_double_ary(len),
+                7 => Oop::new_double_ary(len),
                 //byte
-                8 => OopDesc::new_byte_ary(len),
+                8 => Oop::new_byte_ary(len),
                 //short
-                9 => OopDesc::new_short_ary(len),
+                9 => Oop::new_short_ary(len),
                 //int
-                10 => OopDesc::new_int_ary(len),
+                10 => Oop::new_int_ary(len),
                 //long
-                11 => OopDesc::new_long_ary(len),
+                11 => Oop::new_long_ary(len),
                 _ => unreachable!(),
             };
 
@@ -2398,7 +2450,7 @@ impl Frame {
                         oop::class::init_class_fully(thread, ary_cls_obj.clone());
                     }
 
-                    let ary = OopDesc::new_ref_ary(ary_cls_obj, length as usize);
+                    let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);
                     self.stack.push_ref(ary);
                 }
                 None => unreachable!(),
@@ -2407,21 +2459,26 @@ impl Frame {
     }
 
     pub fn array_length(&mut self, thread: &mut JavaThread) {
-        let rf = self.stack.pop_ref();
-        let rf = rf.lock().unwrap();
-        match &rf.v {
-            Oop::Array(ary) => {
-                let len = ary.elements.len();
-                self.stack.push_int(len as i32);
-            }
-            Oop::TypeArray(ary) => {
-                let len = ary.len();
-                self.stack.push_int(len as i32);
-            }
+        let v = self.stack.pop_ref();
+        match v {
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }
-            _ => unreachable!(),
+            _ => {
+                let rf = util::oop::extract_ref(v);
+                let v = rf.lock().unwrap();
+                match &v.v {
+                    oop::OopRefDesc::Array(ary) => {
+                        let len = ary.elements.len();
+                        self.stack.push_int(len as i32);
+                    }
+                    oop::OopRefDesc::TypeArray(ary) => {
+                        let len = ary.len();
+                        self.stack.push_int(len as i32);
+                    }
+                    _ => unreachable!(),
+                }
+            }
         }
     }
 
@@ -2432,82 +2489,87 @@ impl Frame {
 
     pub fn check_cast(&mut self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
-        let rf = self.stack.pop_ref();
+        let v = self.stack.pop_ref();
+        let rf_back = v.clone();
 
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
-        let rf_back = rf.clone();
-        let rff = rf.lock().unwrap();
-        match &rff.v {
-            Oop::Null => self.stack.push_ref(rf_back),
-            Oop::Inst(inst) => {
-                let obj_cls = inst.class.clone();
-                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                if r {
-                    self.stack.push_ref(rf_back);
-                } else {
-                    let s_name = { obj_cls.lock().unwrap().name.clone() };
-                    let t_name = { target_cls.lock().unwrap().name.clone() };
+        match v {
+            Oop::Null => self.stack.push_ref(v),
+            _ => {
+                let rf = util::oop::extract_ref(v);
+                let rf = rf.lock().unwrap();
+                match &rf.v {
+                    oop::OopRefDesc::Inst(inst) => {
+                        let obj_cls = inst.class.clone();
+                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                        if r {
+                            self.stack.push_ref(rf_back);
+                        } else {
+                            let s_name = { obj_cls.lock().unwrap().name.clone() };
+                            let t_name = { target_cls.lock().unwrap().name.clone() };
 
-                    let s_name =
-                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
-                    let t_name =
-                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
+                            let s_name = String::from_utf8_lossy(s_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
+                            let t_name = String::from_utf8_lossy(t_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
 
-                    let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
-                    meet_ex(thread, consts::J_CCE, Some(msg));
+                            let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
+                            meet_ex(thread, consts::J_CCE, Some(msg));
+                        }
+                    }
+                    oop::OopRefDesc::Array(ary) => {
+                        let obj_cls = ary.class.clone();
+                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                        if r {
+                            self.stack.push_ref(rf_back);
+                        } else {
+                            let s_name = { obj_cls.lock().unwrap().name.clone() };
+                            let t_name = { target_cls.lock().unwrap().name.clone() };
+
+                            let s_name = String::from_utf8_lossy(s_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
+                            let t_name = String::from_utf8_lossy(t_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
+
+                            let msg = format!("array {} cannot be cast to {}", s_name, t_name);
+                            warn!("{}", msg);
+                            meet_ex(thread, consts::J_CCE, Some(msg));
+                        }
+                    }
+                    oop::OopRefDesc::Mirror(mirror) => {
+                        //run here codes:
+                        //$JDK_TEST/Appendable/Basic.java
+                        //最终会调用java.security.Security.getSpiClass("MessageDigest")
+                        //走到这里
+                        //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
+
+                        let mirror_target = mirror.target.clone().unwrap();
+                        let s_name = { mirror_target.lock().unwrap().name.clone() };
+                        let t_name = { target_cls.lock().unwrap().name.clone() };
+                        trace!(
+                            "mirror checkcast {} to {}",
+                            unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
+                            unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
+                        );
+
+                        let r = cmp::instance_of(mirror_target.clone(), target_cls.clone());
+                        if r || t_name.as_slice() == b"java/lang/Class" {
+                            self.stack.push_ref(rf_back);
+                        } else {
+                            let s_name = String::from_utf8_lossy(s_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
+                            let t_name = String::from_utf8_lossy(t_name.as_slice())
+                                .replace(util::FILE_SEP, ".");
+
+                            let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
+                            error!("{}", msg);
+                            meet_ex(thread, consts::J_CCE, Some(msg));
+                        }
+                    }
+                    _ => unreachable!(),
                 }
             }
-            Oop::Array(ary) => {
-                let obj_cls = ary.class.clone();
-                let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                if r {
-                    self.stack.push_ref(rf_back);
-                } else {
-                    let s_name = { obj_cls.lock().unwrap().name.clone() };
-                    let t_name = { target_cls.lock().unwrap().name.clone() };
-
-                    let s_name =
-                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
-                    let t_name =
-                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
-
-                    let msg = format!("array {} cannot be cast to {}", s_name, t_name);
-                    warn!("{}", msg);
-                    meet_ex(thread, consts::J_CCE, Some(msg));
-                }
-            }
-            Oop::Mirror(mirror) => {
-                //run here codes:
-                //$JDK_TEST/Appendable/Basic.java
-                //最终会调用java.security.Security.getSpiClass("MessageDigest")
-                //走到这里
-                //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
-
-                let mirror_target = mirror.target.clone().unwrap();
-                let s_name = { mirror_target.lock().unwrap().name.clone() };
-                let t_name = { target_cls.lock().unwrap().name.clone() };
-                trace!(
-                    "mirror checkcast {} to {}",
-                    unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
-                    unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
-                );
-
-                let r = cmp::instance_of(mirror_target.clone(), target_cls.clone());
-                if r || t_name.as_slice() == b"java/lang/Class" {
-                    self.stack.push_ref(rf_back);
-                } else {
-                    let s_name =
-                        String::from_utf8_lossy(s_name.as_slice()).replace(util::FILE_SEP, ".");
-                    let t_name =
-                        String::from_utf8_lossy(t_name.as_slice()).replace(util::FILE_SEP, ".");
-
-                    let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
-                    error!("{}", msg);
-                    meet_ex(thread, consts::J_CCE, Some(msg));
-                }
-            }
-            t => unimplemented!("t = {:?}", t),
         }
     }
 
@@ -2515,15 +2577,20 @@ impl Frame {
         let cp_idx = self.read_i2();
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
-        let rf = self.stack.pop_ref();
-        let rff = rf.lock().unwrap();
-        let result = match &rff.v {
+        let v = self.stack.pop_ref();
+        let result = match v {
             Oop::Null => false,
-            Oop::Inst(inst) => {
-                let obj_cls = inst.class.clone();
-                cmp::instance_of(obj_cls, target_cls)
+            _ => {
+                let v = util::oop::extract_ref(v);
+                let v = v.lock().unwrap();
+                match &v.v {
+                    oop::OopRefDesc::Inst(inst) => {
+                        let obj_cls = inst.class.clone();
+                        cmp::instance_of(obj_cls, target_cls)
+                    }
+                    _ => unreachable!(),
+                }
             }
-            _ => unimplemented!(),
         };
 
         if result {
@@ -2534,27 +2601,29 @@ impl Frame {
     }
 
     pub fn monitor_enter(&mut self, thread: &mut JavaThread) {
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match rff.v {
+        let mut v = self.stack.pop_ref();
+        match v {
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
-                rff.monitor_enter();
+                let v = util::oop::extract_ref(v);
+                let mut v = v.lock().unwrap();
+                v.monitor_enter();
             }
         }
     }
 
     pub fn monitor_exit(&mut self, thread: &mut JavaThread) {
-        let mut rf = self.stack.pop_ref();
-        let mut rff = rf.lock().unwrap();
-        match rff.v {
+        let mut v = self.stack.pop_ref();
+        match v {
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
-                rff.monitor_exit();
+                let v = util::oop::extract_ref(v);
+                let mut v = v.lock().unwrap();
+                v.monitor_exit();
             }
         }
     }
@@ -2571,8 +2640,7 @@ impl Frame {
 
     pub fn if_null(&mut self) {
         let v = self.stack.pop_ref();
-        let v = v.lock().unwrap();
-        match v.v {
+        match v {
             Oop::Null => self.goto_by_offset_hardcoded(2),
             _ => self.pc += 2,
         }
@@ -2580,8 +2648,7 @@ impl Frame {
 
     pub fn if_non_null(&mut self) {
         let v = self.stack.pop_ref();
-        let v = v.lock().unwrap();
-        match v.v {
+        match v {
             Oop::Null => self.pc += 2,
             _ => self.goto_by_offset_hardcoded(2),
         }

@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -26,7 +25,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let elm_cls = oop::class::load_and_init(jt, b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
@@ -48,13 +47,13 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
             None => util::oop::new_java_lang_string2(jt, ""),
         };
 
-        let elm = OopDesc::new_inst(elm_cls.clone());
+        let elm = Oop::new_inst(elm_cls.clone());
         let args = vec![
             elm.clone(),
             util::oop::new_java_lang_string2(jt, &cls_name),
             util::oop::new_java_lang_string2(jt, &method_name),
             src_file,
-            OopDesc::new_int(0),
+            Oop::new_int(0),
         ];
         runtime::java_call::invoke_ctor(
             jt,
@@ -66,7 +65,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
         traces.push(elm);
     }
 
-    let stack_trace_ary = OopDesc::new_ref_ary2(ary_cls, traces);
+    let stack_trace_ary = Oop::new_ref_ary2(ary_cls, traces);
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
         let cls = throwable_cls.lock().unwrap();
@@ -79,12 +78,13 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) ->
     Ok(Some(throwable_oop.clone()))
 }
 
-fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
+        let throwable = util::oop::extract_ref(throwable.clone());
         let v = throwable.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => inst.class.clone(),
+            oop::OopRefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -94,26 +94,29 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>)
         cls.get_field_value(throwable.clone(), id)
     };
 
-    let v = backtrace.lock().unwrap();
-    let v = match &v.v {
-        Oop::Array(ary) => {
-            //            error!("backtrace len = {}", ary.elements.len());
-            OopDesc::new_int(ary.elements.len() as i32)
+    let v = match backtrace {
+        Oop::Null => Oop::new_int(0),
+        Oop::Ref(rf) => {
+            let rf = rf.lock().unwrap();
+            match &rf.v {
+                oop::OopRefDesc::Array(ary) => Oop::new_int(ary.elements.len() as i32),
+                _ => unreachable!(),
+            }
         }
-        Oop::Null => OopDesc::new_int(0),
         _ => unreachable!(),
     };
 
     Ok(Some(v))
 }
 
-fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let index = util::oop::extract_int(args.get(1).unwrap().clone());
     let cls = {
+        let throwable = util::oop::extract_ref(throwable.clone());
         let v = throwable.lock().unwrap();
         match &v.v {
-            Oop::Inst(inst) => inst.class.clone(),
+            oop::OopRefDesc::Inst(inst) => inst.class.clone(),
             _ => unreachable!(),
         }
     };
@@ -123,9 +126,10 @@ fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef
         cls.get_field_value(throwable.clone(), id)
     };
 
+    let backtrace = util::oop::extract_ref(backtrace);
     let v = backtrace.lock().unwrap();
     let v = match &v.v {
-        Oop::Array(ary) => {
+        oop::OopRefDesc::Array(ary) => {
             if index >= 0 && (index as usize) < ary.elements.len() {
                 ary.elements[index as usize].clone()
             } else {

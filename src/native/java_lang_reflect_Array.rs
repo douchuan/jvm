@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::{require_class3, JavaThread};
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -14,12 +13,13 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let component_cls = {
+        let mirror = util::oop::extract_ref(mirror.clone());
         let v = mirror.lock().unwrap();
         match &v.v {
-            Oop::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::OopRefDesc::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
@@ -49,6 +49,6 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
 
     let ary_cls = require_class3(None, name.as_slice()).unwrap();
 
-    let v = OopDesc::new_ref_ary(ary_cls, length as usize);
+    let v = Oop::new_ref_ary(ary_cls, length as usize);
     Ok(Some(v))
 }

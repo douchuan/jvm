@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Oop, OopDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::JavaThread;
-use crate::types::OopRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -16,51 +15,55 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let use_cache = true;
     let v = args.get(0).unwrap();
-
-    if use_cache {
-        let hash = { v.lock().unwrap().hash_code.clone() };
-        match hash {
-            Some(hash) => Ok(Some(OopDesc::new_int(hash))),
-            None => {
-                let hash = util::oop::hash_code(v.clone()) as i32;
-                let mut v = v.lock().unwrap();
-                v.hash_code = Some(hash);
-                Ok(Some(OopDesc::new_int(hash)))
+    match v {
+        Oop::Null => Ok(Some(Oop::new_int(0))),
+        Oop::Ref(rf) => {
+            if use_cache {
+                let hash = { rf.lock().unwrap().hash_code.clone() };
+                match hash {
+                    Some(hash) => Ok(Some(Oop::new_int(hash))),
+                    None => {
+                        let hash = util::oop::hash_code(rf.clone());
+                        let mut v = rf.lock().unwrap();
+                        v.hash_code = Some(hash);
+                        Ok(Some(Oop::new_int(hash)))
+                    }
+                }
+            } else {
+                let hash = util::oop::hash_code(rf.clone());
+                Ok(Some(Oop::new_int(hash)))
             }
         }
-    } else {
-        let hash = util::oop::hash_code(v.clone()) as i32;
-        Ok(Some(OopDesc::new_int(hash)))
+        _ => unreachable!(),
     }
 }
 
-fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //    let java_lang_Cloneable = require_class3(None, b"java/lang/Cloneable").unwrap();
     let this_obj = args.get(0).unwrap();
     Ok(Some(this_obj.clone()))
 }
 
-fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
+fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let mirror = {
-        // let v_clone = v.clone();
-        let v_back = v.clone();
-        let v = v.lock().unwrap();
-        match &v.v {
-            Oop::Inst(inst) => {
+        let rf = util::oop::extract_ref(v.clone());
+        let rf = rf.lock().unwrap();
+        match &rf.v {
+            oop::OopRefDesc::Inst(inst) => {
                 let cls = inst.class.lock().unwrap();
                 cls.get_mirror()
             }
-            Oop::Array(ary) => ary.class.lock().unwrap().get_mirror(),
-            Oop::Mirror(_mirror) => {
-                v_back
+            oop::OopRefDesc::Array(ary) => ary.class.lock().unwrap().get_mirror(),
+            oop::OopRefDesc::Mirror(_mirror) => {
+                v.clone()
 
                 /*
                 let cls = mirror.target.clone().unwrap();
@@ -76,6 +79,6 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<OopRef>) -> JNIRes
     Ok(Some(mirror))
 }
 
-fn jvm_notifyAll(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<OopRef>) -> JNIResult {
+fn jvm_notifyAll(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
