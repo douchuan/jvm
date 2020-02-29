@@ -376,8 +376,8 @@ impl Class {
             Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::Inst(inst) => inst.field_values[fir.offset] = v,
-                    oop::OopRefDesc::Mirror(mirror) => mirror.field_values[fir.offset] = v,
+                    oop::OopRef::Inst(inst) => inst.field_values[fir.offset] = v,
+                    oop::OopRef::Mirror(mirror) => mirror.field_values[fir.offset] = v,
                     t => unreachable!("t = {:?}", t),
                 }
             }
@@ -390,8 +390,8 @@ impl Class {
             Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::Inst(inst) => inst.field_values[fid.offset].clone(),
-                    oop::OopRefDesc::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
+                    oop::OopRef::Inst(inst) => inst.field_values[fid.offset].clone(),
+                    oop::OopRef::Mirror(mirror) => match mirror.field_values.get(fid.offset) {
                         Some(v) => v.clone(),
                         _ => unreachable!("mirror = {:?}", mirror),
                     },
@@ -407,8 +407,8 @@ impl Class {
             Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::Inst(inst) => inst.field_values[offset].clone(),
-                    oop::OopRefDesc::Mirror(mirror) => match mirror.field_values.get(offset) {
+                    oop::OopRef::Inst(inst) => inst.field_values[offset].clone(),
+                    oop::OopRef::Mirror(mirror) => match mirror.field_values.get(offset) {
                         Some(v) => v.clone(),
                         _ => unreachable!("mirror = {:?}", mirror),
                     },

@@ -618,7 +618,7 @@ impl Frame {
             let ex = util::oop::extract_ref(ex.clone());
             let v = ex.lock().unwrap();
             match &v.v {
-                oop::OopRefDesc::Inst(inst) => inst.class.clone(),
+                oop::OopRef::Inst(inst) => inst.class.clone(),
                 _ => unreachable!(),
             }
         };
@@ -919,7 +919,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Int(ary) => {
                             let stack = &mut self.stack;
                             iarray_load!(thread, stack, ary, pos);
@@ -941,7 +941,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Short(ary) => {
                             let stack = &mut self.stack;
                             iarray_load!(thread, stack, ary, pos);
@@ -963,7 +963,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Char(ary) => {
                             let stack = &mut self.stack;
                             iarray_load!(thread, stack, ary, pos);
@@ -985,7 +985,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Byte(ary) => {
                             let stack = &mut self.stack;
                             iarray_load!(thread, stack, ary, pos);
@@ -1011,7 +1011,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Long(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
@@ -1038,7 +1038,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Float(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
@@ -1065,7 +1065,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Double(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
@@ -1092,7 +1092,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::Array(ary) => {
+                    oop::OopRef::Array(ary) => {
                         let len = ary.elements.len();
                         //                info!("aaload pos={}, len={}", pos, len);
                         if (pos < 0) || (pos as usize >= len) {
@@ -1279,7 +1279,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Byte(ary) => {
                             let v = v as u8;
                             array_store!(thread, ary, pos, v);
@@ -1306,7 +1306,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Char(ary) => {
                             let v = v as u16;
                             array_store!(thread, ary, pos, v);
@@ -1329,7 +1329,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Short(ary) => {
                             let v = v as i16;
                             array_store!(thread, ary, pos, v);
@@ -1352,7 +1352,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Int(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
@@ -1374,7 +1374,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Long(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
@@ -1396,7 +1396,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Float(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
@@ -1419,7 +1419,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(rf);
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
-                    oop::OopRefDesc::TypeArray(ary) => match ary {
+                    oop::OopRef::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Double(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
@@ -1441,7 +1441,7 @@ impl Frame {
                 let ary_rf = util::oop::extract_ref(ary_rf);
                 let mut ary_rf = ary_rf.lock().unwrap();
                 match &mut ary_rf.v {
-                    oop::OopRefDesc::Array(ary) => {
+                    oop::OopRef::Array(ary) => {
                         let ary = &mut ary.elements;
                         array_store!(thread, ary, pos, v);
                     }
@@ -2468,11 +2468,11 @@ impl Frame {
                 let rf = util::oop::extract_ref(v);
                 let v = rf.lock().unwrap();
                 match &v.v {
-                    oop::OopRefDesc::Array(ary) => {
+                    oop::OopRef::Array(ary) => {
                         let len = ary.elements.len();
                         self.stack.push_int(len as i32);
                     }
-                    oop::OopRefDesc::TypeArray(ary) => {
+                    oop::OopRef::TypeArray(ary) => {
                         let len = ary.len();
                         self.stack.push_int(len as i32);
                     }
@@ -2500,7 +2500,7 @@ impl Frame {
                 let rf = util::oop::extract_ref(v);
                 let rf = rf.lock().unwrap();
                 match &rf.v {
-                    oop::OopRefDesc::Inst(inst) => {
+                    oop::OopRef::Inst(inst) => {
                         let obj_cls = inst.class.clone();
                         let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                         if r {
@@ -2518,7 +2518,7 @@ impl Frame {
                             meet_ex(thread, consts::J_CCE, Some(msg));
                         }
                     }
-                    oop::OopRefDesc::Array(ary) => {
+                    oop::OopRef::Array(ary) => {
                         let obj_cls = ary.class.clone();
                         let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                         if r {
@@ -2537,7 +2537,7 @@ impl Frame {
                             meet_ex(thread, consts::J_CCE, Some(msg));
                         }
                     }
-                    oop::OopRefDesc::Mirror(mirror) => {
+                    oop::OopRef::Mirror(mirror) => {
                         //run here codes:
                         //$JDK_TEST/Appendable/Basic.java
                         //最终会调用java.security.Security.getSpiClass("MessageDigest")
@@ -2584,7 +2584,7 @@ impl Frame {
                 let v = util::oop::extract_ref(v);
                 let v = v.lock().unwrap();
                 match &v.v {
-                    oop::OopRefDesc::Inst(inst) => {
+                    oop::OopRef::Inst(inst) => {
                         let obj_cls = inst.class.clone();
                         cmp::instance_of(obj_cls, target_cls)
                     }

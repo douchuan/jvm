@@ -57,12 +57,12 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
         let rf = util::oop::extract_ref(v.clone());
         let rf = rf.lock().unwrap();
         match &rf.v {
-            oop::OopRefDesc::Inst(inst) => {
+            oop::OopRef::Inst(inst) => {
                 let cls = inst.class.lock().unwrap();
                 cls.get_mirror()
             }
-            oop::OopRefDesc::Array(ary) => ary.class.lock().unwrap().get_mirror(),
-            oop::OopRefDesc::Mirror(_mirror) => {
+            oop::OopRef::Array(ary) => ary.class.lock().unwrap().get_mirror(),
+            oop::OopRef::Mirror(_mirror) => {
                 v.clone()
 
                 /*
