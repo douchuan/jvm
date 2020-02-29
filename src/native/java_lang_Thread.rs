@@ -41,7 +41,7 @@ fn jvm_isAlive(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult
 fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap();
     let cls = {
-        let thread_oop = util::oop::extract_ref(thread_oop.clone());
+        let thread_oop = util::oop::extract_ref(thread_oop);
         let v = thread_oop.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),

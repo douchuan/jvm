@@ -12,21 +12,21 @@ pub fn set_java_lang_string_value_offset(offset: usize) {
     *v = Some(offset);
 }
 
-pub fn is_ref(v: Oop) -> bool {
+pub fn is_ref(v: &Oop) -> bool {
     match v {
         Oop::Ref(_) => true,
         _ => false,
     }
 }
 
-pub fn is_null(v: Oop) -> bool {
+pub fn is_null(v: &Oop) -> bool {
     match v {
         Oop::Null => true,
         _ => false,
     }
 }
 
-fn is_str(v: OopRef) -> bool {
+fn is_str(v: &OopRef) -> bool {
     let v = v.lock().unwrap();
     match &v.v {
         oop::RefKind::Inst(inst) => {
@@ -37,7 +37,7 @@ fn is_str(v: OopRef) -> bool {
     }
 }
 
-pub fn extract_java_lang_string_value(v: Oop) -> Vec<u16> {
+pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
     let offset = {
         let v = JAVA_LANG_STRING_VALUE_OFFSET.lock().unwrap();
         v.clone().unwrap()
@@ -46,10 +46,10 @@ pub fn extract_java_lang_string_value(v: Oop) -> Vec<u16> {
     let cls_string = require_class3(None, b"java/lang/String").unwrap();
     let v = {
         let cls = cls_string.lock().unwrap();
-        cls.get_field_value2(v.clone(), offset)
+        cls.get_field_value2(v, offset)
     };
 
-    let v = extract_ref(v);
+    let v = extract_ref(&v);
     let v = v.lock().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
@@ -60,49 +60,49 @@ pub fn extract_java_lang_string_value(v: Oop) -> Vec<u16> {
     }
 }
 
-pub fn extract_str(v: Oop) -> String {
+pub fn extract_str(v: &Oop) -> String {
     let value = extract_java_lang_string_value(v);
     String::from_utf16_lossy(value.as_slice())
 }
 
-pub fn extract_int(v: Oop) -> i32 {
+pub fn extract_int(v: &Oop) -> i32 {
     match v {
-        Oop::Int(v) => v,
+        Oop::Int(v) => *v,
         _ => unreachable!(),
     }
 }
 
-pub fn extract_float(v: Oop) -> f32 {
+pub fn extract_float(v: &Oop) -> f32 {
     match v {
-        Oop::Float(v) => v,
+        Oop::Float(v) => *v,
         _ => unreachable!(),
     }
 }
 
-pub fn extract_long(v: Oop) -> i64 {
+pub fn extract_long(v: &Oop) -> i64 {
     match v {
-        Oop::Long(v) => v,
+        Oop::Long(v) => *v,
         _ => unreachable!(),
     }
 }
 
-pub fn extract_double(v: Oop) -> f64 {
+pub fn extract_double(v: &Oop) -> f64 {
     match v {
-        Oop::Double(v) => v,
+        Oop::Double(v) => *v,
         _ => unreachable!(),
     }
 }
 
-pub fn extract_ref(v: Oop) -> OopRef {
+pub fn extract_ref(v: &Oop) -> OopRef {
     match v {
-        Oop::Ref(v) => v,
+        Oop::Ref(v) => v.clone(),
         t => unreachable!("t = {:?}", t),
     }
 }
 
-pub fn if_acmpeq(v1: Oop, v2: Oop) -> bool {
-    let v1_is_null = is_null(v1.clone());
-    let v2_is_null = is_null(v2.clone());
+pub fn if_acmpeq(v1: &Oop, v2: &Oop) -> bool {
+    let v1_is_null = is_null(v1);
+    let v2_is_null = is_null(v2);
 
     match (v1_is_null, v2_is_null) {
         (true, true) => return true,
@@ -111,14 +111,14 @@ pub fn if_acmpeq(v1: Oop, v2: Oop) -> bool {
         (false, false) => (),
     }
 
-    let v1_ref = extract_ref(v1.clone());
-    let v2_ref = extract_ref(v2.clone());
+    let v1_ref = extract_ref(v1);
+    let v2_ref = extract_ref(v2);
     if Arc::ptr_eq(&v1_ref, &v2_ref) {
         true
     } else {
-        if is_str(v1_ref) && is_str(v2_ref) {
-            let v1 = extract_str(v1.clone());
-            let v2 = extract_str(v2.clone());
+        if is_str(&v1_ref) && is_str(&v2_ref) {
+            let v1 = extract_str(v1);
+            let v2 = extract_str(v2);
             if v1 == v2 {
                 true
             } else {
@@ -202,20 +202,26 @@ pub fn new_java_lang_string3(jt: &mut JavaThread, bs: &[u8]) -> Oop {
     string_oop
 }
 
-pub fn hash_code(rf: OopRef) -> i32 {
-    if is_str(rf.clone()) {
-        let value = extract_java_lang_string_value(oop::Oop::Ref(rf));
-        return if value.len() == 0 {
-            0
-        } else {
-            let mut h = 0i32;
-            for v in value {
-                h = h.wrapping_mul(31).wrapping_add(v as i32);
+pub fn hash_code(v: &Oop) -> i32 {
+    match v {
+        Oop::Ref(rf) => {
+            if is_str(rf) {
+                let value = extract_java_lang_string_value(v);
+                return if value.len() == 0 {
+                    0
+                } else {
+                    let mut h = 0i32;
+                    for v in value {
+                        h = h.wrapping_mul(31).wrapping_add(v as i32);
+                    }
+                    h
+                };
+            } else {
+                let v = Arc::into_raw(rf.clone());
+                v as i32
             }
-            h
-        };
-    } else {
-        let v = Arc::into_raw(rf);
-        v as i32
+        }
+        Oop::Null => 0,
+        _ => unreachable!(),
     }
 }

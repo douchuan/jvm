@@ -502,7 +502,7 @@ impl Frame {
         let v = if is_static {
             class.get_static_field_value(fir.clone())
         } else {
-            class.get_field_value(receiver, fir.clone())
+            class.get_field_value(&receiver, fir.clone())
         };
 
         match value_type {
@@ -615,7 +615,7 @@ impl Frame {
 impl Frame {
     fn try_handle_exception(&mut self, jt: &mut JavaThread, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
-            let ex = util::oop::extract_ref(ex.clone());
+            let ex = util::oop::extract_ref(&ex);
             let v = ex.lock().unwrap();
             match &v.v {
                 oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -915,8 +915,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -929,6 +928,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -937,8 +937,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -951,6 +950,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -959,8 +959,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -973,6 +972,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -981,8 +981,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -999,6 +998,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1007,8 +1007,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1026,6 +1025,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1034,8 +1034,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1053,6 +1052,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1061,8 +1061,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1080,6 +1079,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1088,8 +1088,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::Array(ary) => {
@@ -1106,6 +1105,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1275,8 +1275,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1293,6 +1292,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1302,8 +1302,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1316,6 +1315,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1325,8 +1325,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1339,6 +1338,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1348,8 +1348,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1361,6 +1360,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1370,8 +1370,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1383,6 +1382,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1392,8 +1392,7 @@ impl Frame {
         let rf = self.stack.pop_ref();
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1405,6 +1404,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1415,8 +1415,7 @@ impl Frame {
 
         match rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let rf = util::oop::extract_ref(rf);
+            Oop::Ref(rf) => {
                 let mut rf = rf.lock().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
@@ -1428,6 +1427,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -1437,10 +1437,9 @@ impl Frame {
         let ary_rf = self.stack.pop_ref();
         match ary_rf {
             Oop::Null => meet_ex(thread, consts::J_NPE, None),
-            _ => {
-                let ary_rf = util::oop::extract_ref(ary_rf);
-                let mut ary_rf = ary_rf.lock().unwrap();
-                match &mut ary_rf.v {
+            Oop::Ref(rf) => {
+                let mut rf = rf.lock().unwrap();
+                match &mut rf.v {
                     oop::RefKind::Array(ary) => {
                         let ary = &mut ary.elements;
                         array_store!(thread, ary, pos, v);
@@ -1448,6 +1447,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -2092,7 +2092,7 @@ impl Frame {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
 
-        if util::oop::if_acmpeq(v1, v2) {
+        if util::oop::if_acmpeq(&v1, &v2) {
             self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
@@ -2103,7 +2103,7 @@ impl Frame {
         let v2 = self.stack.pop_ref();
         let v1 = self.stack.pop_ref();
 
-        if !util::oop::if_acmpeq(v1, v2) {
+        if !util::oop::if_acmpeq(&v1, &v2) {
             self.goto_by_offset_hardcoded(2);
         } else {
             self.pc += 2;
@@ -2461,11 +2461,8 @@ impl Frame {
     pub fn array_length(&mut self, thread: &mut JavaThread) {
         let v = self.stack.pop_ref();
         match v {
-            Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
-            }
-            _ => {
-                let rf = util::oop::extract_ref(v);
+            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Ref(rf) => {
                 let v = rf.lock().unwrap();
                 match &v.v {
                     oop::RefKind::Array(ary) => {
@@ -2479,6 +2476,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -2496,8 +2494,7 @@ impl Frame {
 
         match v {
             Oop::Null => self.stack.push_ref(v),
-            _ => {
-                let rf = util::oop::extract_ref(v);
+            Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
                 match &rf.v {
                     oop::RefKind::Inst(inst) => {
@@ -2570,6 +2567,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         }
     }
 
@@ -2580,8 +2578,7 @@ impl Frame {
         let v = self.stack.pop_ref();
         let result = match v {
             Oop::Null => false,
-            _ => {
-                let v = util::oop::extract_ref(v);
+            Oop::Ref(v) => {
                 let v = v.lock().unwrap();
                 match &v.v {
                     oop::RefKind::Inst(inst) => {
@@ -2591,6 +2588,7 @@ impl Frame {
                     _ => unreachable!(),
                 }
             }
+            _ => unreachable!(),
         };
 
         if result {
@@ -2606,11 +2604,11 @@ impl Frame {
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }
-            _ => {
-                let v = util::oop::extract_ref(v);
+            Oop::Ref(v) => {
                 let mut v = v.lock().unwrap();
                 v.monitor_enter();
             }
+            _ => unreachable!(),
         }
     }
 
@@ -2620,11 +2618,11 @@ impl Frame {
             Oop::Null => {
                 meet_ex(thread, consts::J_NPE, None);
             }
-            _ => {
-                let v = util::oop::extract_ref(v);
+            Oop::Ref(v) => {
                 let mut v = v.lock().unwrap();
                 v.monitor_exit();
             }
+            _ => unreachable!(),
         }
     }
 

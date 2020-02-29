@@ -53,10 +53,10 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> J
 
 fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let src = args.get(0).unwrap();
-    let src_pos = util::oop::extract_int(args.get(1).unwrap().clone());
+    let src_pos = util::oop::extract_int(args.get(1).unwrap());
     let dest = args.get(2).unwrap();
-    let dest_pos = util::oop::extract_int(args.get(3).unwrap().clone());
-    let length = util::oop::extract_int(args.get(4).unwrap().clone());
+    let dest_pos = util::oop::extract_int(args.get(3).unwrap());
+    let length = util::oop::extract_int(args.get(4).unwrap());
 
     //todo: do check & throw exception
 
@@ -64,8 +64,8 @@ fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
         return Ok(None);
     }
 
-    let src_ref = util::oop::extract_ref(src.clone());
-    let dest_ref = util::oop::extract_ref(dest.clone());
+    let src_ref = util::oop::extract_ref(src);
+    let dest_ref = util::oop::extract_ref(dest);
     let is_same_obj = Arc::ptr_eq(&src_ref, &dest_ref);
 
     if is_same_obj {
@@ -129,7 +129,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
 
     let props_oop = args.get(0).unwrap();
     for (k, v) in props.iter() {
-        put_props_kv(jt, props_oop.clone(), k, v);
+        put_props_kv(jt, props_oop, k, v);
 
         if jt.is_meet_ex() {
             unreachable!("jvm_initProperties meet ex");
@@ -139,26 +139,26 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     //user.dir
     let v = std::env::current_dir().expect("current_dir failed");
     let v = v.to_str().expect("current_dir to_str faield");
-    put_props_kv(jt, props_oop.clone(), "user.dir", v);
+    put_props_kv(jt, props_oop, "user.dir", v);
 
     //java.io.tmpdir
     let v = std::env::temp_dir();
     let v = v.to_str().expect("temp_dir to_str failed");
-    put_props_kv(jt, props_oop.clone(), "java.io.tmpdir", v);
+    put_props_kv(jt, props_oop, "java.io.tmpdir", v);
 
     //user.home
     let v = std::env::home_dir().expect("home_dir failed");
     let v = v.to_str().expect("home_dir to_str failed");
-    put_props_kv(jt, props_oop.clone(), "user.home", v);
+    put_props_kv(jt, props_oop, "user.home", v);
 
     //JAVA_HOME
     let v = std::env::var("JAVA_HOME").expect("Please Setup JAVA_HOME env");
-    put_props_kv(jt, props_oop.clone(), "java.home", v.as_str());
+    put_props_kv(jt, props_oop, "java.home", v.as_str());
 
     //test.src for jdk/test/java/lang/Character/CheckProp.java
     match std::env::var("TEST_SRC") {
         Ok(v) => {
-            put_props_kv(jt, props_oop.clone(), "test.src", v.as_str());
+            put_props_kv(jt, props_oop, "test.src", v.as_str());
         }
         _ => (),
     }
@@ -166,10 +166,10 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     Ok(Some(props_oop.clone()))
 }
 
-fn put_props_kv(jt: &mut JavaThread, props: Oop, k: &str, v: &str) {
+fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
-        let props = util::oop::extract_ref(props.clone());
+        let props = util::oop::extract_ref(props);
         let v = props.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -189,7 +189,7 @@ fn put_props_kv(jt: &mut JavaThread, props: Oop, k: &str, v: &str) {
     let k = util::oop::new_java_lang_string2(jt, k);
     let v = util::oop::new_java_lang_string2(jt, v);
 
-    let args = vec![props, k, v];
+    let args = vec![props.clone(), k, v];
 
     let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
     let mut stack = runtime::Stack::new(1);
@@ -225,7 +225,7 @@ fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let s = util::oop::extract_str(v.clone());
+    let s = util::oop::extract_str(v);
 
     trace!("mapLibraryName libname = {}", s);
     let mut name = String::new();
@@ -302,13 +302,7 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 
 todo optimize: 如何做到不用中转，就达到copy的目的
 */
-fn arraycopy_same_obj(
-    src: OopRef,
-    src_pos: usize,
-    dest: OopRef,
-    dest_pos: usize,
-    length: usize,
-) {
+fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
     let is_type_ary = {
         let src = src.lock().unwrap();
         match &src.v {
@@ -393,13 +387,7 @@ fn arraycopy_same_obj(
     }
 }
 
-fn arraycopy_diff_obj(
-    src: OopRef,
-    src_pos: usize,
-    dest: OopRef,
-    dest_pos: usize,
-    length: usize,
-) {
+fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
     let src = src.lock().unwrap();
     let mut dest = dest.lock().unwrap();
 

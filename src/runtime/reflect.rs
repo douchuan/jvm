@@ -111,10 +111,10 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     oop
 }
 
-pub fn get_Constructor_clazz(ctor: Oop) -> Oop {
+pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     //todo: optimize, avoid obtain class
     let cls = {
-        let v = util::oop::extract_ref(ctor.clone());
+        let v = util::oop::extract_ref(ctor);
         let v = v.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -128,9 +128,9 @@ pub fn get_Constructor_clazz(ctor: Oop) -> Oop {
     cls.get_field_value(ctor, id)
 }
 
-pub fn get_Constructor_slot(ctor: Oop) -> i32 {
+pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
     let cls = {
-        let v = util::oop::extract_ref(ctor.clone());
+        let v = util::oop::extract_ref(ctor);
         let v = v.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -141,13 +141,13 @@ pub fn get_Constructor_slot(ctor: Oop) -> i32 {
     let cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"slot", b"I", false);
     let v = cls.get_field_value(ctor, id);
-    util::oop::extract_int(v)
+    util::oop::extract_int(&v)
 }
 
-pub fn get_Constructor_signature(ctor: Oop) -> String {
+pub fn get_Constructor_signature(ctor: &Oop) -> String {
     //todo: optimisze, cache Constructor cls, avoid obtain class
     let cls = {
-        let v = util::oop::extract_ref(ctor.clone());
+        let v = util::oop::extract_ref(ctor);
         let v = v.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -159,7 +159,7 @@ pub fn get_Constructor_signature(ctor: Oop) -> String {
     let cls = cls.lock().unwrap();
     let id = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
     let v = cls.get_field_value(ctor, id);
-    util::oop::extract_str(v)
+    util::oop::extract_str(&v)
 }
 
 fn create_value_type(t: ArgType) -> Oop {

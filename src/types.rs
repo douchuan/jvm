@@ -21,7 +21,6 @@ def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
 def_sync_ref!(OopRef, RefKindDesc);
 
-
 //runtime 字符串分配
 def_ptr!(ByteAry, Vec<u8>);
 def_ptr!(BoolAry, Vec<u8>);

@@ -198,7 +198,7 @@ impl JavaCall {
                 class.monitor_enter();
             } else {
                 let mut v = self.args.first().unwrap();
-                let v = util::oop::extract_ref(v.clone());
+                let v = util::oop::extract_ref(v);
                 let mut v = v.lock().unwrap();
                 v.monitor_enter();
             }
@@ -212,7 +212,7 @@ impl JavaCall {
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first().unwrap();
-                let v = util::oop::extract_ref(v.clone());
+                let v = util::oop::extract_ref(v);
                 let mut v = v.lock().unwrap();
                 v.monitor_exit();
             }
@@ -289,7 +289,7 @@ impl JavaCall {
         );
         if resolve_again {
             let this = self.args.get(0).unwrap();
-            let this = util::oop::extract_ref(this.clone());
+            let this = util::oop::extract_ref(this);
             let this = this.lock().unwrap();
             match &this.v {
                 oop::RefKind::Inst(inst) => {
@@ -352,22 +352,22 @@ pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<Oop>) {
     match return_type {
         ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
-            let v = util::oop::extract_int(v);
+            let v = util::oop::extract_int(&v);
             stack.push_int(v);
         }
         ArgType::Long => {
             let v = v.unwrap();
-            let v = util::oop::extract_long(v);
+            let v = util::oop::extract_long(&v);
             stack.push_long(v);
         }
         ArgType::Float => {
             let v = v.unwrap();
-            let v = util::oop::extract_float(v);
+            let v = util::oop::extract_float(&v);
             stack.push_float(v);
         }
         ArgType::Double => {
             let v = v.unwrap();
-            let v = util::oop::extract_double(v);
+            let v = util::oop::extract_double(&v);
             stack.push_double(v);
         }
         ArgType::Object(_) | ArgType::Array(_) => {

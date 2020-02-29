@@ -17,9 +17,9 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 
-    let clazz = runtime::reflect::get_Constructor_clazz(ctor.clone());
+    let clazz = runtime::reflect::get_Constructor_clazz(ctor);
     let target_cls = {
-        let clazz = util::oop::extract_ref(clazz);
+        let clazz = util::oop::extract_ref(&clazz);
         let v = clazz.lock().unwrap();
         match &v.v {
             oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
@@ -32,7 +32,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
         cls.name.clone()
     };
 
-    let signature = runtime::reflect::get_Constructor_signature(ctor.clone());
+    let signature = runtime::reflect::get_Constructor_signature(ctor);
 
     let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
     info!("newInstance0 {}:{}", name, signature);

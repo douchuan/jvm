@@ -20,29 +20,25 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> J
 }
 
 pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let use_cache = true;
     let v = args.get(0).unwrap();
-    match v {
-        Oop::Null => Ok(Some(Oop::new_int(0))),
+    let v = match v {
+        Oop::Null => Oop::new_int(0),
         Oop::Ref(rf) => {
-            if use_cache {
-                let hash = { rf.lock().unwrap().hash_code.clone() };
-                match hash {
-                    Some(hash) => Ok(Some(Oop::new_int(hash))),
-                    None => {
-                        let hash = util::oop::hash_code(rf.clone());
-                        let mut v = rf.lock().unwrap();
-                        v.hash_code = Some(hash);
-                        Ok(Some(Oop::new_int(hash)))
-                    }
+            let hash = { rf.lock().unwrap().hash_code.clone() };
+            match hash {
+                Some(hash) => Oop::new_int(hash),
+                None => {
+                    let hash = util::oop::hash_code(v);
+                    let mut v = rf.lock().unwrap();
+                    v.hash_code = Some(hash);
+                    Oop::new_int(hash)
                 }
-            } else {
-                let hash = util::oop::hash_code(rf.clone());
-                Ok(Some(Oop::new_int(hash)))
             }
         }
         _ => unreachable!(),
-    }
+    };
+
+    Ok(Some(v))
 }
 
 fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
@@ -54,7 +50,7 @@ fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let mirror = {
-        let rf = util::oop::extract_ref(v.clone());
+        let rf = util::oop::extract_ref(v);
         let rf = rf.lock().unwrap();
         match &rf.v {
             oop::RefKind::Inst(inst) => {

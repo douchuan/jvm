@@ -119,11 +119,11 @@ impl Oop {
         Self::new_ref(RefKind::Mirror(v))
     }
 
-    pub fn new_prim_mirror(value_type: ValueType) -> Oop {
+    pub fn new_prim_mirror(value_type: ValueType, target: Option<ClassRef>) -> Oop {
         let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
         let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
-            target: None,
+            target,
             field_values: vec![],
             value_type,
         };

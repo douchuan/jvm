@@ -16,14 +16,15 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let component_cls = {
-        let mirror = util::oop::extract_ref(mirror.clone());
+        let mirror = util::oop::extract_ref(mirror);
         let v = mirror.lock().unwrap();
         match &v.v {
             oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
             _ => unreachable!(),
         }
     };
-    let length = util::oop::extract_int(args.get(1).unwrap().clone());
+    let length = args.get(1).unwrap();
+    let length = util::oop::extract_int(length);
 
     //todo: throw NegativeArraySizeException
     let name = {

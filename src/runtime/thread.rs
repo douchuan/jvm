@@ -254,7 +254,7 @@ impl JavaMainThread {
         match v {
             Some(v) => {
                 let cls = {
-                    let v = util::oop::extract_ref(v.clone());
+                    let v = util::oop::extract_ref(&v);
                     let v = v.lock().unwrap();
                     match &v.v {
                         oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -304,10 +304,10 @@ impl JavaMainThread {
             let v = {
                 let cls = cls.lock().unwrap();
                 let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
-                cls.get_field_value(ex, id)
+                cls.get_field_value(&ex, id)
             };
 
-            util::oop::extract_str(v)
+            util::oop::extract_str(&v)
         };
         let name = {
             let cls = cls.lock().unwrap();

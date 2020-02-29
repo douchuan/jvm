@@ -19,24 +19,24 @@ fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult
 
 fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let os = args.get(0).unwrap();
-    let fd = get_file_descriptor_fd(os.clone());
+    let fd = get_file_descriptor_fd(os);
     let byte_ary = args.get(1).unwrap();
     let off = {
         let v = args.get(2).unwrap();
-        util::oop::extract_int(v.clone())
+        util::oop::extract_int(v)
     };
     let len = {
         let v = args.get(3).unwrap();
-        util::oop::extract_int(v.clone())
+        util::oop::extract_int(v)
     };
     let append = {
         let v = args.get(4).unwrap();
-        util::oop::extract_int(v.clone())
+        util::oop::extract_int(v)
     };
 
     trace!("append = {}", append);
 
-    let v = util::oop::extract_ref(byte_ary.clone());
+    let v = util::oop::extract_ref(byte_ary);
     let v = v.lock().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
@@ -64,10 +64,10 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
 
 fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
-    let name = util::oop::extract_str(args.get(1).unwrap().clone());
+    let name = util::oop::extract_str(args.get(1).unwrap());
     let append = {
         let v = args.get(2).unwrap();
-        util::oop::extract_int(v.clone()) == 1
+        util::oop::extract_int(v) == 1
     };
     let fd = unsafe {
         use std::ffi::CString;
@@ -81,35 +81,35 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         libc::open(name.as_ptr(), flag)
     };
 
-    set_file_descriptor_fd(this.clone(), fd);
+    set_file_descriptor_fd(this, fd);
 
     Ok(None)
 }
 
-fn get_file_descriptor_fd(fos: Oop) -> i32 {
+fn get_file_descriptor_fd(fos: &Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
-        cls.get_field_value(fos.clone(), id)
+        cls.get_field_value(fos, id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let fd = {
         let cls = cls.lock().unwrap();
         let id = cls.get_field_id(b"fd", b"I", false);
-        cls.get_field_value(fd_this, id)
+        cls.get_field_value(&fd_this, id)
     };
 
-    util::oop::extract_int(fd)
+    util::oop::extract_int(&fd)
 }
 
-fn set_file_descriptor_fd(fos: Oop, fd: i32) {
+fn set_file_descriptor_fd(fos: &Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let fd_this = {
         let cls = cls.lock().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
-        cls.get_field_value(fos.clone(), id)
+        cls.get_field_value(fos, id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();

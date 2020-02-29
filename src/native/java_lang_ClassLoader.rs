@@ -32,14 +32,14 @@ fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> J
 
 fn jvm_findBuiltinLib(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(0).unwrap();
-    let name = util::oop::extract_str(name.clone());
+    let name = util::oop::extract_str(name);
     info!("findBuiltinLib: {}", name);
     Ok(None)
 }
 
 fn jvm_findLoadedClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(1).unwrap();
-    let name = util::oop::extract_str(name.clone());
+    let name = util::oop::extract_str(name);
     info!("findLoadedClass0: {}", name);
     let name = name.replace(".", util::FILE_SEP);
     let v = match runtime::sys_dic_find(name.as_bytes()) {

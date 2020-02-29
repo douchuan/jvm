@@ -81,7 +81,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
-        let throwable = util::oop::extract_ref(throwable.clone());
+        let throwable = util::oop::extract_ref(throwable);
         let v = throwable.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -91,7 +91,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     let backtrace = {
         let cls = cls.lock().unwrap();
         let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
-        cls.get_field_value(throwable.clone(), id)
+        cls.get_field_value(throwable, id)
     };
 
     let v = match backtrace {
@@ -111,9 +111,9 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
 
 fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
-    let index = util::oop::extract_int(args.get(1).unwrap().clone());
+    let index = util::oop::extract_int(args.get(1).unwrap());
     let cls = {
-        let throwable = util::oop::extract_ref(throwable.clone());
+        let throwable = util::oop::extract_ref(throwable);
         let v = throwable.lock().unwrap();
         match &v.v {
             oop::RefKind::Inst(inst) => inst.class.clone(),
@@ -123,10 +123,10 @@ fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) 
     let backtrace = {
         let cls = cls.lock().unwrap();
         let id = cls.get_field_id(b"backtrace", b"Ljava/lang/Object;", false);
-        cls.get_field_value(throwable.clone(), id)
+        cls.get_field_value(throwable, id)
     };
 
-    let backtrace = util::oop::extract_ref(backtrace);
+    let backtrace = util::oop::extract_ref(&backtrace);
     let v = backtrace.lock().unwrap();
     let v = match &v.v {
         oop::RefKind::Array(ary) => {

@@ -47,7 +47,7 @@ fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult
 
 fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
-    let path = get_File_path(file.clone());
+    let path = get_File_path(file);
 
     let mut r = 0;
     match fs::metadata(path) {
@@ -68,10 +68,10 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>)
 
 fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
-    let path = get_File_path(file.clone());
+    let path = get_File_path(file);
 
     let access = args.get(2).unwrap();
-    let access = util::oop::extract_int(access.clone());
+    let access = util::oop::extract_int(access);
 
     let mut amode = 0;
     if (access & ACCESS_READ) == ACCESS_READ {
@@ -98,7 +98,7 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
 }
 
 fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let path = util::oop::extract_str(args.get(1).unwrap().clone());
+    let path = util::oop::extract_str(args.get(1).unwrap());
     let path = std::path::Path::new(&path);
     let path = path.canonicalize().expect("path canonicalize failed");
     let path = path.to_str().expect("path to_str failed");
@@ -109,7 +109,7 @@ fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRe
 
 fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
-    let path = util::oop::extract_str(path.clone());
+    let path = util::oop::extract_str(path);
     let v = match std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -125,12 +125,12 @@ fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>)
     Ok(Some(Oop::new_int(v)))
 }
 
-fn get_File_path(file: Oop) -> String {
+fn get_File_path(file: &Oop) -> String {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let path = {
         let cls = cls.lock().unwrap();
         let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
-        cls.get_field_value(file.clone(), fir)
+        cls.get_field_value(file, fir)
     };
-    util::oop::extract_str(path)
+    util::oop::extract_str(&path)
 }

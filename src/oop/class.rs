@@ -385,7 +385,7 @@ impl Class {
         }
     }
 
-    pub fn get_field_value(&self, receiver: Oop, fid: FieldIdRef) -> Oop {
+    pub fn get_field_value(&self, receiver: &Oop, fid: FieldIdRef) -> Oop {
         match receiver {
             Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
@@ -402,7 +402,7 @@ impl Class {
         }
     }
 
-    pub fn get_field_value2(&self, receiver: Oop, offset: usize) -> Oop {
+    pub fn get_field_value2(&self, receiver: &Oop, offset: usize) -> Oop {
         match receiver {
             Oop::Ref(rf) => {
                 let rf = rf.lock().unwrap();
