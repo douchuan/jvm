@@ -39,7 +39,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     let v = util::oop::extract_ref(byte_ary.clone());
     let v = v.lock().unwrap();
     match &v.v {
-        oop::RefDesc::TypeArray(ary) => match ary {
+        oop::RefKind::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Byte(ary) => {
                 let (_, ary) = ary.split_at(off as usize);
                 let len = len as usize;

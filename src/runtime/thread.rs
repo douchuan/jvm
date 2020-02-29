@@ -257,7 +257,7 @@ impl JavaMainThread {
                     let v = util::oop::extract_ref(v.clone());
                     let v = v.lock().unwrap();
                     match &v.v {
-                        oop::RefDesc::Inst(inst) => inst.class.clone(),
+                        oop::RefKind::Inst(inst) => inst.class.clone(),
                         _ => unreachable!(),
                     }
                 };
@@ -293,7 +293,7 @@ impl JavaMainThread {
                 Oop::Ref(v) => {
                     let v = v.lock().unwrap();
                     match &v.v {
-                        oop::RefDesc::Inst(inst) => inst.class.clone(),
+                        oop::RefKind::Inst(inst) => inst.class.clone(),
                         _ => unreachable!(),
                     }
                 }

@@ -292,7 +292,7 @@ impl JavaCall {
             let this = util::oop::extract_ref(this.clone());
             let this = this.lock().unwrap();
             match &this.v {
-                oop::RefDesc::Inst(inst) => {
+                oop::RefKind::Inst(inst) => {
                     let cls = inst.class.lock().unwrap();
                     let id = self.mir.method.get_id();
                     self.mir = cls.get_virtual_method(id).unwrap();

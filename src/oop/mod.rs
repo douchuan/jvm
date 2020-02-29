@@ -29,7 +29,7 @@ pub enum ValueType {
 }
 
 #[derive(Debug)]
-pub enum RefDesc {
+pub enum RefKind {
     Inst(InstOopDesc),
     Array(ArrayOopDesc),
     TypeArray(TypeArrayValue),
@@ -37,8 +37,8 @@ pub enum RefDesc {
 }
 
 #[derive(Debug)]
-pub struct OopRefDesc {
-    pub v: RefDesc,
+pub struct RefKindDesc {
+    pub v: RefKind,
     pub hash_code: Option<i32>,
 
     //这两个所相关的field，有意义吗？本身操作，就隐含了lock
@@ -60,7 +60,7 @@ pub enum Oop {
     //used by oop::field::Filed::get_constant_value
     Null,
 
-    Ref(Arc<Mutex<OopRefDesc>>),
+    Ref(OopRef),
 }
 
 impl Oop {
@@ -90,7 +90,7 @@ impl Oop {
 
     pub fn new_inst(cls_obj: ClassRef) -> Oop {
         let v = InstOopDesc::new(cls_obj);
-        Self::new_ref(RefDesc::Inst(v))
+        Self::new_ref(RefKind::Inst(v))
     }
 
     pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
@@ -104,7 +104,7 @@ impl Oop {
 
     pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<Oop>) -> Oop {
         let v = ArrayOopDesc::new(ary_cls_obj, elms);
-        Self::new_ref(RefDesc::Array(v))
+        Self::new_ref(RefKind::Array(v))
     }
 
     pub fn new_mirror(target: ClassRef) -> Oop {
@@ -116,7 +116,7 @@ impl Oop {
             value_type: ValueType::OBJECT,
         };
 
-        Self::new_ref(RefDesc::Mirror(v))
+        Self::new_ref(RefKind::Mirror(v))
     }
 
     pub fn new_prim_mirror(value_type: ValueType) -> Oop {
@@ -128,7 +128,7 @@ impl Oop {
             value_type,
         };
 
-        Self::new_ref(RefDesc::Mirror(v))
+        Self::new_ref(RefKind::Mirror(v))
     }
 
     pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> Oop {
@@ -140,7 +140,7 @@ impl Oop {
             value_type: value_type,
         };
 
-        Self::new_ref(RefDesc::Mirror(v))
+        Self::new_ref(RefKind::Mirror(v))
     }
 
     pub fn char_ary_from1(v: &[u16]) -> Oop {
@@ -215,65 +215,65 @@ impl Oop {
     pub fn new_byte_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Byte(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_bool_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Bool(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_char_ary2(elms: Vec<u16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Char(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_short_ary2(elms: Vec<i16>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Short(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_int_ary2(elms: Vec<i32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Int(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_float_ary2(elms: Vec<f32>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Float(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_double_ary2(elms: Vec<f64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Double(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_long_ary2(elms: Vec<i64>) -> Oop {
         let ary = Box::new(elms);
         let v = TypeArrayValue::Long(ary);
-        Self::new_ref(RefDesc::TypeArray(v))
+        Self::new_ref(RefKind::TypeArray(v))
     }
 
-    fn new_ref(v: RefDesc) -> Oop {
-        let v = OopRefDesc {
+    fn new_ref(v: RefKind) -> Oop {
+        let v = RefKindDesc {
             v,
             cond: Condvar::new(),
             monitor: Mutex::new(0),
             hash_code: None,
         };
 
-        let v = Arc::new(Mutex::new(v));
+        let v = Arc::new(Mutex::new(Box::new(v)));
         Oop::Ref(v)
     }
 }
 
-impl OopRefDesc {
+impl RefKindDesc {
     pub fn monitor_enter(&mut self) {
         let mut v = self.monitor.lock().unwrap();
         *v += 1;

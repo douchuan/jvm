@@ -1,5 +1,6 @@
-use crate::oop::{self, Oop, OopRefDesc};
+use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
+use crate::types::OopRef;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -25,10 +26,10 @@ pub fn is_null(v: Oop) -> bool {
     }
 }
 
-fn is_str(v: Arc<Mutex<OopRefDesc>>) -> bool {
+fn is_str(v: OopRef) -> bool {
     let v = v.lock().unwrap();
     match &v.v {
-        oop::RefDesc::Inst(inst) => {
+        oop::RefKind::Inst(inst) => {
             let cls = inst.class.lock().unwrap();
             cls.name.as_slice() == b"java/lang/String"
         }
@@ -51,7 +52,7 @@ pub fn extract_java_lang_string_value(v: Oop) -> Vec<u16> {
     let v = extract_ref(v);
     let v = v.lock().unwrap();
     match &v.v {
-        oop::RefDesc::TypeArray(ary) => match ary {
+        oop::RefKind::TypeArray(ary) => match ary {
             oop::TypeArrayValue::Char(ary) => ary.to_vec(),
             _ => unreachable!(),
         },
@@ -92,7 +93,7 @@ pub fn extract_double(v: Oop) -> f64 {
     }
 }
 
-pub fn extract_ref(v: Oop) -> Arc<Mutex<OopRefDesc>> {
+pub fn extract_ref(v: Oop) -> OopRef {
     match v {
         Oop::Ref(v) => v,
         t => unreachable!("t = {:?}", t),
@@ -201,7 +202,7 @@ pub fn new_java_lang_string3(jt: &mut JavaThread, bs: &[u8]) -> Oop {
     string_oop
 }
 
-pub fn hash_code(rf: Arc<Mutex<OopRefDesc>>) -> i32 {
+pub fn hash_code(rf: OopRef) -> i32 {
     if is_str(rf.clone()) {
         let value = extract_java_lang_string_value(oop::Oop::Ref(rf));
         return if value.len() == 0 {
