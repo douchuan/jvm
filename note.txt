@@ -22,21 +22,11 @@ Rust中的char: four bytes in size
 
 存在的问题
 ----------------------
-1. 堆栈信息中代码行数
-2. 堆栈信息，多余的信息
-	at java/lang/Throwable.fillInStackTrace(:0)
-	at java/lang/Throwable.fillInStackTrace(:0)
-	at java/lang/Throwable.<init>(:0)
-	at java/lang/Exception.<init>(:0)
-
-  执行中JavaThread.frames被lock，所以无法获取Frame.pc；
-  由于JavaThread.frames被lock，所以无法获取Fame实例，判断Frame.throw_here在哪里
-  JavaThread.frames被lock write之后，还有办法再上锁读取吗？
-3. OopRef优化
+1. OopRef优化
   即使单线程环境下, 要修改内容, 也需要lock，影响效率(Arc<Mutex>)
   Java有monitor_enter/monitor_exit指令，锁由用户管理。
   有没有可能在rust中实现: 锁独立出来(交用户控制, monitor enter/exit)，自由的在线程间 共享&修改 对象。
-4. System.arraycopy
+2. System.arraycopy
   执行类似这样的代码($JDK_TEST/Character/CheckProp.java)：
    ArrayList<Integer> list = new ArrayList<Integer>();
    int start = 0;
@@ -77,6 +67,10 @@ Roadmap(长期)
 6. 2020.02.15 github 200 commits, 第一个Watchers, CertainLach, thanks!
 7. 2020.02.19 感谢 Rust语言中文社区(https://rust.cc/)，项目开始涨粉，很受鼓励
               为项目确立短期和长期目标
+8. 2020.03.01 Oop分离出ref，访问prime类型(bool/int...)的值，不再需要lock
+              从Frame分离DataArea，实现了异常堆栈打印line number
+              本项目录入 科技爱好者周刊 96期，谢谢一峰
+              http://www.ruanyifeng.com/blog/2020/02/weekly-issue-96.html
 
 
 
