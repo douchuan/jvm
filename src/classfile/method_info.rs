@@ -45,17 +45,4 @@ impl MethodInfo {
 
         line_num_table
     }
-
-    pub fn get_src_file(&self, cp: &ConstantPool) -> Option<BytesRef> {
-        for it in self.attrs.iter() {
-            match it {
-                AttrType::SourceFile { source_file_index } => {
-                    return constant_pool::get_utf8(cp, *source_file_index as usize);
-                }
-                _ => (),
-            }
-        }
-
-        None
-    }
 }

@@ -74,7 +74,6 @@ pub struct Method {
 
     pub code: Option<Code>,
     pub line_num_table: Vec<LineNumber>,
-    pub src_file: Option<BytesRef>,
 
     vis_annos: Vec<AnnotationEntry>,
     vis_param_annos: Vec<AnnotationEntry>,
@@ -96,7 +95,6 @@ impl Method {
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
         let line_num_table = mi.get_line_number_table();
-        let src_file = mi.get_src_file(cp);
 
         Self {
             class,
@@ -106,7 +104,6 @@ impl Method {
             acc_flags,
             code,
             line_num_table,
-            src_file,
             vis_annos,
             vis_param_annos,
         }
@@ -172,6 +169,14 @@ impl Method {
         }
 
         false
+    }
+
+    pub fn get_source_file(&self) -> Option<BytesRef> {
+        let cls = self.class.read().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(inst) => inst.source_file.clone(),
+            _ => unreachable!(),
+        }
     }
 
     pub fn is_public(&self) -> bool {
