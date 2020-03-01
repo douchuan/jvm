@@ -4,6 +4,8 @@ use crate::oop::class::Class;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
 use crate::oop::RefKindDesc;
+use crate::runtime::DataArea;
+use std::cell::RefCell;
 use std::sync::Arc;
 
 pub type U1 = u8;
@@ -12,6 +14,7 @@ pub type U4 = u32;
 
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
+pub type DataAreaRef = RefCell<DataArea>;
 
 //引用".class"中的字符串常量值
 def_ref!(BytesRef, Vec<u8>);

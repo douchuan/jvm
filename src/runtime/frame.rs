@@ -3,13 +3,13 @@ use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
-use crate::runtime::DataArea;
 use crate::oop::{self, consts as oop_consts, field, Oop, TypeArrayValue, ValueType};
-use crate::runtime::{
-    self, cmp, exception, require_class, require_class2, require_class3, JavaCall, JavaThread,
-};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
+use crate::runtime::{
+    self, cmp, exception, require_class, require_class2, require_class3, DataArea, JavaCall,
+    JavaThread,
+};
 use crate::types::*;
 use crate::util;
 use bytes::Bytes;
@@ -65,7 +65,7 @@ pub struct Frame {
     pub mir: MethodIdRef,
     code: Arc<Vec<U1>>,
 
-    pub area: RefCell<DataArea>,
+    pub area: DataAreaRef,
 }
 
 //new

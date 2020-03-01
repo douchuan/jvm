@@ -1,6 +1,6 @@
+use crate::oop::Oop;
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use crate::oop::Oop;
 use std::cell::RefCell;
 
 /*

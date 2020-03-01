@@ -1,12 +1,9 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
-use crate::runtime::DataArea;
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{
-    self, exception, frame::Frame, thread, FrameRef, JavaThread,
-};
-use crate::types::{ClassRef, MethodIdRef};
+use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread};
+use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
 use crate::util;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
@@ -42,7 +39,7 @@ impl JavaCall {
 
     pub fn new(
         jt: &mut JavaThread,
-        caller: &RefCell<DataArea>,
+        caller: &DataAreaRef,
         mir: MethodIdRef,
     ) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
@@ -117,7 +114,7 @@ impl JavaCall {
     pub fn invoke(
         &mut self,
         jt: &mut JavaThread,
-        caller: Option<&RefCell<DataArea>>,
+        caller: Option<&DataAreaRef>,
         force_no_resolve: bool,
     ) {
         /*
@@ -142,7 +139,7 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, jt: &mut JavaThread, caller: Option<&RefCell<DataArea>>) {
+    fn invoke_java(&mut self, jt: &mut JavaThread, caller: Option<&DataAreaRef>) {
         self.prepare_sync();
 
         match self.prepare_frame(jt) {
@@ -168,7 +165,7 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, jt: &mut JavaThread, caller: Option<&RefCell<DataArea>>) {
+    fn invoke_native(&mut self, jt: &mut JavaThread, caller: Option<&DataAreaRef>) {
         self.prepare_sync();
 
         let package = {
@@ -353,7 +350,7 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(area: &RefCell<DataArea>, sig: MethodSignature) -> Vec<Oop> {
+fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
     //Note: iter args by reverse, because of stack
     sig.args
         .iter()
@@ -388,7 +385,7 @@ fn build_method_args(area: &RefCell<DataArea>, sig: MethodSignature) -> Vec<Oop>
         .collect()
 }
 
-pub fn set_return(caller: Option<&RefCell<DataArea>>, return_type: ArgType, v: Option<Oop>) {
+pub fn set_return(caller: Option<&DataAreaRef>, return_type: ArgType, v: Option<Oop>) {
     match return_type {
         ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
