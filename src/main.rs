@@ -128,7 +128,6 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::oop::OopDesc;
     use std::hash::{Hash, Hasher};
 
     #[test]
@@ -198,7 +197,7 @@ mod tests {
 
         let str1 = Vec::from("hello, world");
         let str1 = new_ref!(str1);
-        let v1 = Arc::new(Mutex::new(Box::new(OopDesc::new_const_utf8(str1))));
+        let v1 = Arc::new(Mutex::new(Box::new(Oop::new_const_utf8(str1))));
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));
 
@@ -300,5 +299,31 @@ mod tests {
         let hash1 = calc_hash(s1);
         let hash2 = calc_hash(s2);
         assert_ne!(hash1, hash2)
+    }
+
+    #[test]
+    fn t_borrow() {
+        use std::cell::RefCell;
+        use std::sync::{Arc, RwLock};
+
+        struct Frame {
+            stack: RefCell<Vec<i32>>,
+        }
+
+        let frame = Arc::new(RwLock::new(Box::new(Frame {
+            stack: RefCell::new(Vec::new()),
+        })));
+
+        let f1 = frame.read().unwrap();
+        {
+            f1.stack.borrow_mut().push(100);
+            f1.stack.borrow_mut().push(200);
+            f1.stack.borrow_mut().push(300);
+        }
+
+        let f2 = frame.read().unwrap();
+        {
+            assert_eq!(f1.stack.borrow().len(), 3);
+        }
     }
 }
