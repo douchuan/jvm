@@ -65,6 +65,7 @@ pub struct Frame {
     pub mir: MethodIdRef,
     code: Arc<Vec<U1>>,
 
+    //Frame的可变部分放在这里
     pub area: DataAreaRef,
 }
 
