@@ -88,8 +88,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     };
     let mut jc =
         runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
-    let mut stack = runtime::stack::Stack::new(0);
-    jc.invoke(jt, &mut stack, false);
+    let area = runtime::DataArea::new(0, 0);
+    jc.invoke(jt, Some(&area), false);
 
     //todo: re-enable sun.security.util.Debug
 

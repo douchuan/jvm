@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{JavaCall, JavaThread, Stack};
+use crate::runtime::{self, JavaCall, JavaThread};
 use crate::util::{self, new_method_id};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -66,10 +66,10 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         };
 
         let mut jt = JavaThread::new();
-        let mut stack = Stack::new(0);
         let args = vec![thread_oop.clone()];
         let mut jc = JavaCall::new_with_args(&mut jt, mir, args);
-        jc.invoke(&mut jt, &mut stack, false);
+        let area = runtime::DataArea::new(0, 0);
+        jc.invoke(&mut jt, Some(&area), false);
 
         Ok(None)
     }

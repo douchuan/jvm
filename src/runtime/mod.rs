@@ -22,7 +22,7 @@ pub use class_path_manager::{
     find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use consts::THREAD_MAX_STACK_FRAMES;
-pub use frame::Frame;
+pub use frame::{DataArea, Frame};
 pub use java_call::JavaCall;
 pub use local::Local;
 pub use slot::Slot;

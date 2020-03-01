@@ -204,9 +204,13 @@ impl JavaMainThread {
 
         match mir {
             Ok(mir) => {
-                let mut stack = self.build_stack(&mut jt);
-                match JavaCall::new(&mut jt, &mut stack, mir) {
-                    Ok(mut jc) => jc.invoke(&mut jt, &mut stack, true),
+                let arg = self.build_main_arg(&mut jt);
+                let area = runtime::DataArea::new(0, 1);
+                {
+                    area.borrow_mut().stack.push_ref(arg);
+                }
+                match JavaCall::new(&mut jt, &area, mir) {
+                    Ok(mut jc) => jc.invoke(&mut jt, Some(&area), true),
                     _ => unreachable!(),
                 }
             }
@@ -220,7 +224,7 @@ impl JavaMainThread {
 }
 
 impl JavaMainThread {
-    fn build_stack(&self, jt: &mut JavaThread) -> Stack {
+    fn build_main_arg(&self, jt: &mut JavaThread) -> Oop {
         let args = match &self.args {
             Some(args) => args
                 .iter()
@@ -231,13 +235,7 @@ impl JavaMainThread {
 
         //build ArrayOopDesc
         let ary_str_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
-        let arg = Oop::new_ref_ary2(ary_str_class, args);
-
-        //push to stack
-        let mut stack = Stack::new(1);
-        stack.push_ref(arg);
-
-        stack
+        Oop::new_ref_ary2(ary_str_class, args)
     }
 
     fn uncaught_ex(&mut self, jt: &mut JavaThread, main_cls: ClassRef) {
@@ -273,9 +271,9 @@ impl JavaMainThread {
                     Ok(mir) => {
                         let ex = { jt.take_ex().unwrap() };
                         let args = vec![v.clone(), ex];
-                        let mut stack = Stack::new(0);
                         let mut jc = JavaCall::new_with_args(jt, mir, args);
-                        jc.invoke(jt, &mut stack, false);
+                        let area = runtime::DataArea::new(0, 0);
+                        jc.invoke(jt, Some(&area), false);
                     }
                     _ => self.uncaught_ex_internal(jt),
                 }

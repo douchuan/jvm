@@ -2,10 +2,13 @@ use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread, Stack};
+use crate::runtime::{
+    self, exception, frame::DataArea, frame::Frame, thread, FrameRef, JavaThread, Stack,
+};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
 use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 pub struct JavaCall {
@@ -22,8 +25,7 @@ pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oo
     };
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);
-    let mut stack = Stack::new(0);
-    jc.invoke(jt, &mut stack, false);
+    jc.invoke(jt, None, false);
 }
 
 impl JavaCall {
@@ -37,11 +39,15 @@ impl JavaCall {
         }
     }
 
-    pub fn new(jt: &mut JavaThread, stack: &mut Stack, mir: MethodIdRef) -> Result<JavaCall, ()> {
+    pub fn new(
+        jt: &mut JavaThread,
+        caller: &RefCell<DataArea>,
+        mir: MethodIdRef,
+    ) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
 
-        let mut args = build_method_args(stack, sig);
+        let mut args = build_method_args(caller, sig);
         args.reverse();
 
         /*
@@ -66,7 +72,10 @@ impl JavaCall {
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {
-            let this = stack.pop_ref();
+            let this = {
+                let mut area = caller.borrow_mut();
+                area.stack.pop_ref()
+            };
 
             //check NPE
             match this {
@@ -104,7 +113,12 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    pub fn invoke(&mut self, jt: &mut JavaThread, stack: &mut Stack, force_no_resolve: bool) {
+    pub fn invoke(
+        &mut self,
+        jt: &mut JavaThread,
+        caller: Option<&RefCell<DataArea>>,
+        force_no_resolve: bool,
+    ) {
         /*
         Do resolve again first, 因为可以用native的方式override
         比如:
@@ -118,10 +132,10 @@ impl JavaCall {
 
         if self.mir.method.is_native() {
             jt.callers.push(self.mir.clone());
-            self.invoke_native(jt, stack);
+            self.invoke_native(jt, caller);
         } else {
             jt.callers.push(self.mir.clone());
-            self.invoke_java(jt, stack);
+            self.invoke_java(jt, caller);
             let _ = jt.frames.pop();
         }
 
@@ -130,19 +144,20 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+    fn invoke_java(&mut self, jt: &mut JavaThread, caller: Option<&RefCell<DataArea>>) {
         self.prepare_sync();
 
         match self.prepare_frame(jt) {
             Ok(frame) => {
                 jt.frames.push(frame.clone());
 
-                match frame.try_write() {
-                    Ok(mut frame) => {
+                match frame.try_read() {
+                    Ok(frame) => {
                         frame.interp(jt);
 
                         if !jt.is_meet_ex() {
-                            set_return(stack, self.return_type.clone(), frame.return_v.clone());
+                            let return_value = { frame.area.borrow().return_v.clone() };
+                            set_return(caller, self.return_type.clone(), return_value);
                         }
                     }
                     _ => unreachable!(),
@@ -155,7 +170,7 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, jt: &mut JavaThread, stack: &mut Stack) {
+    fn invoke_native(&mut self, jt: &mut JavaThread, caller: Option<&RefCell<DataArea>>) {
         self.prepare_sync();
 
         let package = {
@@ -177,7 +192,7 @@ impl JavaCall {
         match v {
             Ok(v) => {
                 if !jt.is_meet_ex() {
-                    set_return(stack, self.return_type.clone(), v)
+                    set_return(caller, self.return_type.clone(), v)
                 }
             }
             Err(ex) => {
@@ -230,34 +245,35 @@ impl JavaCall {
         let mut frame = Frame::new(self.mir.clone(), frame_id);
 
         //JVM spec, 2.6.1
-        let locals = &mut frame.local;
+        let mut area = frame.area.borrow_mut();
         let mut slot_pos: usize = 0;
         self.args.iter().for_each(|v| {
             let step = match v {
                 Oop::Int(v) => {
-                    locals.set_int(slot_pos, *v);
+                    area.local.set_int(slot_pos, *v);
                     1
                 }
                 Oop::Float(v) => {
-                    locals.set_float(slot_pos, *v);
+                    area.local.set_float(slot_pos, *v);
                     1
                 }
                 Oop::Double(v) => {
-                    locals.set_double(slot_pos, *v);
+                    area.local.set_double(slot_pos, *v);
                     2
                 }
                 Oop::Long((v)) => {
-                    locals.set_long(slot_pos, *v);
+                    area.local.set_long(slot_pos, *v);
                     2
                 }
                 _ => {
-                    locals.set_ref(slot_pos, v.clone());
+                    area.local.set_ref(slot_pos, v.clone());
                     1
                 }
             };
 
             slot_pos += step;
         });
+        drop(area);
 
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
@@ -320,59 +336,71 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(stack: &mut Stack, sig: MethodSignature) -> Vec<Oop> {
+fn build_method_args(area: &RefCell<DataArea>, sig: MethodSignature) -> Vec<Oop> {
     //Note: iter args by reverse, because of stack
     sig.args
         .iter()
         .rev()
         .map(|t| match t {
             ArgType::Byte | ArgType::Boolean | ArgType::Int | ArgType::Char | ArgType::Short => {
-                let v = stack.pop_int();
+                let mut area = area.borrow_mut();
+                let v = area.stack.pop_int();
                 Oop::new_int(v)
             }
             ArgType::Long => {
-                let v = stack.pop_long();
+                let mut area = area.borrow_mut();
+                let v = area.stack.pop_long();
                 Oop::new_long(v)
             }
             ArgType::Float => {
-                let v = stack.pop_float();
+                let mut area = area.borrow_mut();
+                let v = area.stack.pop_float();
                 Oop::new_float(v)
             }
             ArgType::Double => {
-                let v = stack.pop_double();
+                let mut area = area.borrow_mut();
+                let v = area.stack.pop_double();
                 Oop::new_double(v)
             }
-            ArgType::Object(_) | ArgType::Array(_) => stack.pop_ref(),
+            ArgType::Object(_) | ArgType::Array(_) => {
+                let mut area = area.borrow_mut();
+                area.stack.pop_ref()
+            }
             t => unreachable!("t = {:?}", t),
         })
         .collect()
 }
 
-pub fn set_return(stack: &mut Stack, return_type: ArgType, v: Option<Oop>) {
+pub fn set_return(caller: Option<&RefCell<DataArea>>, return_type: ArgType, v: Option<Oop>) {
     match return_type {
         ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
-            stack.push_int(v);
+            let mut area = caller.unwrap().borrow_mut();
+            area.stack.push_int(v);
         }
         ArgType::Long => {
             let v = v.unwrap();
             let v = util::oop::extract_long(&v);
-            stack.push_long(v);
+            let mut area = caller.unwrap().borrow_mut();
+            area.stack.push_long(v);
         }
         ArgType::Float => {
             let v = v.unwrap();
             let v = util::oop::extract_float(&v);
-            stack.push_float(v);
+            let mut area = caller.unwrap().borrow_mut();
+            area.stack.push_float(v);
         }
         ArgType::Double => {
             let v = v.unwrap();
             let v = util::oop::extract_double(&v);
-            stack.push_double(v);
+            let mut area = caller.unwrap().borrow_mut();
+            area.stack.push_double(v);
         }
         ArgType::Object(_) | ArgType::Array(_) => {
             let v = v.unwrap();
-            stack.push_ref(v);
+            let mut area = caller.unwrap().borrow_mut();
+            area.stack.push_ref(v);
         }
         ArgType::Void => (),
         _ => unreachable!(),

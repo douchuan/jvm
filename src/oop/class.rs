@@ -106,9 +106,9 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
         match mir {
             Ok(mir) => {
                 info!("call {}:<clinit>", String::from_utf8_lossy(name.as_slice()));
-                let mut stack = Stack::new(0);
-                let jc = JavaCall::new(thread, &mut stack, mir);
-                jc.unwrap().invoke(thread, &mut stack, true);
+                let area = runtime::DataArea::new(0, 0);
+                let mut jc = JavaCall::new_with_args(thread, mir, vec![]);
+                jc.invoke(thread, Some(&area), true);
             }
             _ => (),
         }
