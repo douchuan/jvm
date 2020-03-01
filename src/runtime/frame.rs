@@ -3,11 +3,13 @@ use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
+use crate::runtime::DataArea;
 use crate::oop::{self, consts as oop_consts, field, Oop, TypeArrayValue, ValueType};
 use crate::runtime::{
     self, cmp, exception, require_class, require_class2, require_class3, JavaCall, JavaThread,
-    Local, Stack,
 };
+use crate::runtime::local::Local;
+use crate::runtime::stack::Stack;
 use crate::types::*;
 use crate::util;
 use bytes::Bytes;
@@ -53,33 +55,6 @@ macro_rules! iarray_load {
             $stack.push_int($ary[$pos as usize] as i32);
         }
     };
-}
-
-/*
-Frame的可变部分放在这里
-*/
-pub struct DataArea {
-    pub local: Local,
-    pub stack: Stack,
-    pub pc: i32,
-    pub return_v: Option<Oop>,
-
-    op_widen: bool,
-}
-
-impl DataArea {
-    pub fn new(max_locals: usize, max_stack: usize) -> RefCell<DataArea> {
-        let local = Local::new(max_locals);
-        let stack = Stack::new(max_stack);
-
-        RefCell::new(DataArea {
-            local,
-            stack,
-            pc: 0,
-            return_v: None,
-            op_widen: false,
-        })
-    }
 }
 
 pub struct Frame {

@@ -1,9 +1,10 @@
 use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
+use crate::runtime::DataArea;
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{
-    self, exception, frame::DataArea, frame::Frame, thread, FrameRef, JavaThread, Stack,
+    self, exception, frame::Frame, thread, FrameRef, JavaThread,
 };
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;

@@ -4,6 +4,7 @@ mod class_loader;
 mod class_path_manager;
 pub mod cmp;
 mod consts;
+mod dataarea;
 pub mod exception;
 mod frame;
 mod init_vm;
@@ -22,11 +23,10 @@ pub use class_path_manager::{
     find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use consts::THREAD_MAX_STACK_FRAMES;
-pub use frame::{DataArea, Frame};
+pub use dataarea::DataArea;
+pub use frame::Frame;
 pub use java_call::JavaCall;
-pub use local::Local;
 pub use slot::Slot;
-pub use stack::Stack;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
 

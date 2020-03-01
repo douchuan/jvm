@@ -4,7 +4,7 @@ use crate::classfile::{
 };
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, ValueType};
-use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, Stack};
+use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread};
 use crate::types::*;
 use crate::util;
 use std::collections::HashMap;

@@ -1,7 +1,7 @@
 use crate::classfile::attr_info::AttrType::Exceptions;
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, InstOopDesc, Oop};
-use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall, Local, Stack};
+use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util::{self, new_field_id, new_method_id};
 use std::borrow::BorrowMut;
