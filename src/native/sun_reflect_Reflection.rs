@@ -20,13 +20,23 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_getCallerClass(jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    let mut callers = jt.callers.clone();
+    let mut callers = jt.frames.clone();
 
-    let cur = callers.pop().unwrap(); //pop cur method
-    assert_eq!(cur.method.name.as_slice(), b"getCallerClass");
+    {
+        let cur = {
+            let cur = callers.pop().unwrap(); //pop cur method
+            let cur = cur.try_read().unwrap();
+            cur.mir.clone()
+        };
+        assert_eq!(cur.method.name.as_slice(), b"getCallerClass");
+    }
 
     loop {
-        let caller = callers.pop().unwrap();
+        let caller = {
+            let caller = callers.pop().unwrap();
+            let caller = caller.try_read().unwrap();
+            caller.mir.clone()
+        };
         if caller
             .method
             .check_annotation(b"Lsun/reflect/CallerSensitive;")

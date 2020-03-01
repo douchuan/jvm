@@ -73,7 +73,6 @@ pub struct Method {
     pub acc_flags: U2,
 
     pub code: Option<Code>,
-    //fixme: more readable name
     pub line_num_table: Vec<LineNumber>,
     pub src_file: Option<BytesRef>,
 
@@ -141,14 +140,22 @@ impl Method {
         None
     }
 
-    pub fn get_line_num(&self, pc: U2) -> Option<U2> {
-        let mut number = None;
-        for it in self.line_num_table.iter().rev() {
-            if it.start_pc >= pc {
-                number = Some(it.number);
+    pub fn get_line_num(&self, pc: U2) -> i32 {
+        let mut best_bci = 0;
+        let mut best_line = -1;
+
+        for it in self.line_num_table.iter() {
+            if it.start_pc == pc {
+                return it.number as i32;
+            } else {
+                if it.start_pc < pc && it.start_pc >= best_bci {
+                    best_bci = it.start_pc;
+                    best_line = it.number as i32;
+                }
             }
         }
-        number
+
+        return best_line;
     }
 
     pub fn check_annotation(&self, name: &[u8]) -> bool {

@@ -13,8 +13,6 @@ pub struct JavaThread {
 
     pub java_thread_obj: Option<Oop>,
     ex: Option<Oop>,
-
-    pub callers: Vec<MethodIdRef>,
 }
 
 pub struct JavaMainThread {
@@ -31,8 +29,6 @@ impl JavaThread {
 
             java_thread_obj: None,
             ex: None,
-
-            callers: vec![],
         }
     }
 

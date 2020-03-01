@@ -701,7 +701,7 @@ impl Frame {
                 area.stack.push_ref(ex);
                 drop(area);
 
-                let line_num = self.mir.method.get_line_num(pc).unwrap_or(0);
+                let line_num = self.mir.method.get_line_num(pc);
 
                 info!(
                     "Found Exception Handler: line={}, frame_id={}, {}:{}",
@@ -714,7 +714,7 @@ impl Frame {
 
             None => {
                 let area = self.area.borrow();
-                let line_num = self.mir.method.get_line_num(area.pc as u16).unwrap_or(0);
+                let line_num = self.mir.method.get_line_num(area.pc as u16);
 
                 info!(
                     "NotFound Exception Handler: line={}, frame_id={}, {}:{}",

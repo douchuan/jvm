@@ -30,10 +30,16 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
-    let callers = jt.callers.clone();
+    let callers = jt.frames.clone();
 
     let mut traces = Vec::new();
-    for mir in callers.iter().rev() {
+    for caller in callers.iter().rev() {
+        let (mir, pc) = {
+            let caller = caller.try_read().unwrap();
+            let pc = { caller.area.borrow().pc };
+            (caller.mir.clone(), pc)
+        };
+
         let cls_name = { mir.method.class.read().unwrap().name.clone() };
         let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
         let method_name = mir.method.name.clone();
@@ -46,6 +52,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
             }
             None => util::oop::new_java_lang_string2(jt, ""),
         };
+        let line_num = mir.method.get_line_num((pc - 1) as u16);
 
         let elm = Oop::new_inst(elm_cls.clone());
         let args = vec![
@@ -53,7 +60,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
             util::oop::new_java_lang_string2(jt, &cls_name),
             util::oop::new_java_lang_string2(jt, &method_name),
             src_file,
-            Oop::new_int(0),
+            Oop::new_int(line_num),
         ];
         runtime::java_call::invoke_ctor(
             jt,

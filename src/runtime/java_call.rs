@@ -131,15 +131,12 @@ impl JavaCall {
         self.debug();
 
         if self.mir.method.is_native() {
-            jt.callers.push(self.mir.clone());
             self.invoke_native(jt, caller);
         } else {
-            jt.callers.push(self.mir.clone());
             self.invoke_java(jt, caller);
-            let _ = jt.frames.pop();
         }
 
-        jt.callers.pop();
+        let _ = jt.frames.pop();
     }
 }
 
@@ -184,7 +181,14 @@ impl JavaCall {
             Some(method) => {
                 let class = self.mir.method.class.clone();
                 let env = native::new_jni_env(jt, class);
-                method.invoke(jt, env, self.args.clone())
+
+                match self.prepare_native_frame(jt) {
+                    Ok(frame) => {
+                        jt.frames.push(frame.clone());
+                        method.invoke(jt, env, self.args.clone())
+                    }
+                    Err(ex) => Err(ex),
+                }
             }
             None => unreachable!("NotFound native method"),
         };
@@ -275,6 +279,18 @@ impl JavaCall {
         });
         drop(area);
 
+        let frame_ref = new_sync_ref!(frame);
+        return Ok(frame_ref);
+    }
+
+    fn prepare_native_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, Oop> {
+        if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
+            let ex = exception::new(thread, consts::J_SOE, None);
+            return Err(ex);
+        }
+
+        let frame_id = thread.frames.len() + 1;
+        let mut frame = Frame::new(self.mir.clone(), frame_id);
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
     }
