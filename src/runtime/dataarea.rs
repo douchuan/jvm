@@ -22,6 +22,7 @@ pub struct DataArea {
     pub stack: Stack,
     pub pc: i32,
     pub return_v: Option<Oop>,
+    pub ex_here: bool,
 
     pub op_widen: bool,
 }
@@ -36,6 +37,7 @@ impl DataArea {
             stack,
             pc: 0,
             return_v: None,
+            ex_here: false,
             op_widen: false,
         })
     }

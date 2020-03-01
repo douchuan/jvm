@@ -30,7 +30,41 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
-    let callers = jt.frames.clone();
+    let mut callers = jt.frames.clone();
+
+    let mut last = None;
+    loop {
+        let cur = callers.pop().unwrap();
+        let ex_here = {
+            let cur = cur.try_read().unwrap();
+            let area = cur.area.borrow();
+            area.ex_here
+        };
+
+        /*
+        frame.idiv reach here
+        */
+        if ex_here {
+            callers.push(cur);
+            break;
+        }
+
+        /*
+        throw ex, reach here
+
+        static void fn1() throws Exception {
+            Exception ex = new Exception();
+            throw ex;
+        }
+        */
+        if callers.len() == 0 {
+            callers.push(cur);
+            callers.push(last.unwrap());
+            break;
+        }
+
+        last = Some(cur);
+    }
 
     let mut traces = Vec::new();
     for caller in callers.iter().rev() {

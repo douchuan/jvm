@@ -6,6 +6,12 @@ class Ex
             fn1();
         } catch (Exception e) {
             e.printStackTrace();
+
+            try {
+                fn1();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
         }
 
         try {
