@@ -48,25 +48,6 @@ impl JavaCall {
         let mut args = build_method_args(caller, sig);
         args.reverse();
 
-        /*
-        let mut xx = Vec::with_capacity(args.len());
-        args.iter().for_each(|it| {
-            let it = it.lock().unwrap();
-            match it.v {
-                Oop::Int(_) => xx.push("int"),
-                Oop::Str(_) => xx.push("str"),
-                Oop::Array(_) => xx.push("ary"),
-                Oop::Inst(_) => xx.push("obj"),
-                Oop::Null => xx.push("null"),
-                Oop::Double(_) => xx.push("double"),
-                Oop::Long(_) => xx.push("long"),
-                Oop::Float(_) => xx.push("float"),
-                Oop::Mirror(_) => xx.push("mirror")
-            }
-        });
-        trace!("xx = {}", xx.join(":"));
-        */
-
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {
@@ -142,24 +123,20 @@ impl JavaCall {
     fn invoke_java(&mut self, jt: &mut JavaThread, caller: Option<&DataAreaRef>) {
         self.prepare_sync();
 
-        match self.prepare_frame(jt) {
+        match self.prepare_frame(jt, false) {
             Ok(frame) => {
                 jt.frames.push(frame.clone());
 
-                match frame.try_read() {
-                    Ok(frame) => {
-                        frame.interp(jt);
+                let frame = frame.try_read().unwrap();
 
-                        if !jt.is_meet_ex() {
-                            let return_value = { frame.area.borrow().return_v.clone() };
-                            set_return(caller, self.return_type.clone(), return_value);
-                        }
-                    }
-                    _ => unreachable!(),
+                frame.interp(jt);
+                if !jt.is_meet_ex() {
+                    let return_value = { frame.area.borrow().return_v.clone() };
+                    set_return(caller, self.return_type.clone(), return_value);
                 }
             }
 
-            _ => (),
+            Err(ex) => jt.set_ex(ex),
         }
 
         self.fin_sync();
@@ -180,7 +157,7 @@ impl JavaCall {
                 let class = self.mir.method.class.clone();
                 let env = native::new_jni_env(jt, class);
 
-                match self.prepare_native_frame(jt) {
+                match self.prepare_frame(jt, true) {
                     Ok(frame) => {
                         jt.frames.push(frame.clone());
                         method.invoke(jt, env, self.args.clone())
@@ -197,12 +174,7 @@ impl JavaCall {
                     set_return(caller, self.return_type.clone(), v)
                 }
             }
-            Err(ex) => {
-                //fixme:
-                //把charsets.jar去掉，会让代码走到这里
-                //ex is putted in jt.ex
-                jt.set_ex(ex);
-            }
+            Err(ex) => jt.set_ex(ex)
         }
 
         self.fin_sync();
@@ -236,52 +208,7 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, ()> {
-        if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
-            let ex = exception::new(thread, consts::J_SOE, None);
-            thread.set_ex(ex);
-            return Err(());
-        }
-
-        let frame_id = thread.frames.len() + 1;
-        let mut frame = Frame::new(self.mir.clone(), frame_id);
-
-        //JVM spec, 2.6.1
-        let mut area = frame.area.borrow_mut();
-        let mut slot_pos: usize = 0;
-        self.args.iter().for_each(|v| {
-            let step = match v {
-                Oop::Int(v) => {
-                    area.local.set_int(slot_pos, *v);
-                    1
-                }
-                Oop::Float(v) => {
-                    area.local.set_float(slot_pos, *v);
-                    1
-                }
-                Oop::Double(v) => {
-                    area.local.set_double(slot_pos, *v);
-                    2
-                }
-                Oop::Long((v)) => {
-                    area.local.set_long(slot_pos, *v);
-                    2
-                }
-                _ => {
-                    area.local.set_ref(slot_pos, v.clone());
-                    1
-                }
-            };
-
-            slot_pos += step;
-        });
-        drop(area);
-
-        let frame_ref = new_sync_ref!(frame);
-        return Ok(frame_ref);
-    }
-
-    fn prepare_native_frame(&mut self, thread: &mut JavaThread) -> Result<FrameRef, Oop> {
+    fn prepare_frame(&mut self, thread: &mut JavaThread, is_native: bool) -> Result<FrameRef, Oop> {
         if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
             let ex = exception::new(thread, consts::J_SOE, None);
             return Err(ex);
@@ -289,6 +216,39 @@ impl JavaCall {
 
         let frame_id = thread.frames.len() + 1;
         let mut frame = Frame::new(self.mir.clone(), frame_id);
+
+        if !is_native {
+            //JVM spec, 2.6.1
+            let mut area = frame.area.borrow_mut();
+            let mut slot_pos: usize = 0;
+            self.args.iter().for_each(|v| {
+                let step = match v {
+                    Oop::Int(v) => {
+                        area.local.set_int(slot_pos, *v);
+                        1
+                    }
+                    Oop::Float(v) => {
+                        area.local.set_float(slot_pos, *v);
+                        1
+                    }
+                    Oop::Double(v) => {
+                        area.local.set_double(slot_pos, *v);
+                        2
+                    }
+                    Oop::Long((v)) => {
+                        area.local.set_long(slot_pos, *v);
+                        2
+                    }
+                    _ => {
+                        area.local.set_ref(slot_pos, v.clone());
+                        1
+                    }
+                };
+
+                slot_pos += step;
+            });
+        }
+
         let frame_ref = new_sync_ref!(frame);
         return Ok(frame_ref);
     }
