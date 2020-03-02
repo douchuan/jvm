@@ -27,6 +27,8 @@ Rust中的char: four bytes in size
   Java有monitor_enter/monitor_exit指令，锁由用户管理。
   有没有可能在rust中实现: 锁独立出来(交用户控制, monitor enter/exit)，自由的在线程间 共享&修改 对象。
 2. System.arraycopy
+  针对对象数组优化arraycopy是提高性能的关键，解决办法，目前能想到的就是实现GC，自己管理内存，
+  对对象数组拷贝时，用类似memcpy做，避免每个对象clone
   执行类似这样的代码($JDK_TEST/Character/CheckProp.java)：
    ArrayList<Integer> list = new ArrayList<Integer>();
    int start = 0;

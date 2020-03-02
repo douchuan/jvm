@@ -4,7 +4,7 @@ use crate::classfile::{self, access_flags as acc, constant_pool};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
-use crate::types::ClassRef;
+use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -77,6 +77,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "isInstance",
             "(Ljava/lang/Object;)Z",
             Box::new(jvm_isInstance),
+        ),
+        new_fn(
+            "getDeclaredMethods0",
+            "(Z)[Ljava/lang/reflect/Method;",
+            Box::new(jvm_getDeclaredMethods0),
         ),
     ]
 }
@@ -449,43 +454,8 @@ fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    //parse args
-    let mirror_target = {
-        let arg0 = args.get(0).unwrap();
-        let arg0 = util::oop::extract_ref(arg0);
-        let arg0 = arg0.read().unwrap();
-        match &arg0.v {
-            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!(),
-        }
-    };
-
-    let arg1 = args.get(1).unwrap();
-    let _public_only = util::oop::extract_int(arg1) == 1;
-
-    //fixme: super methods
-    let all_methods = {
-        let cls = mirror_target.read().unwrap();
-        match &cls.kind {
-            oop::class::ClassKind::Instance(inst) => inst.all_methods.clone(),
-            _ => unreachable!(),
-        }
-    };
-
-    //build methods ary
-    let mut methods = Vec::new();
-    for (_, m) in all_methods {
-        if m.method.name.as_slice() == b"<init>" {
-            let v = runtime::reflect::new_method_ctor(jt, m);
-            methods.push(v);
-        }
-    }
-
-    //build oop methods ary
-    let ary_cls = require_class3(None, b"[Ljava/lang/reflect/Constructor;").unwrap();
-
-    Ok(Some(Oop::new_ref_ary2(ary_cls, methods)))
+fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    get_declared_method_helper(true, jt, env, args)
 }
 
 pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
@@ -715,4 +685,76 @@ fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     };
 
     Ok(Some(Oop::new_int(v)))
+}
+
+fn jvm_getDeclaredMethods0(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    get_declared_method_helper(false, jt, env, args)
+}
+
+fn get_declared_method_helper(
+    want_constructor: bool,
+    jt: &mut JavaThread,
+    _env: JNIEnv,
+    args: Vec<Oop>,
+) -> JNIResult {
+    //parse args
+    let mirror_target = {
+        let arg0 = args.get(0).unwrap();
+        let arg0 = util::oop::extract_ref(arg0);
+        let arg0 = arg0.read().unwrap();
+        match &arg0.v {
+            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
+            _ => unreachable!(),
+        }
+    };
+
+    let arg1 = args.get(1).unwrap();
+    let public_only = util::oop::extract_int(arg1) == 1;
+
+    //fixme: super methods
+    let all_methods = {
+        let cls = mirror_target.read().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(inst) => inst.all_methods.clone(),
+            _ => unreachable!(),
+        }
+    };
+
+    fn select_method(want_constructor: bool, m: &MethodIdRef) -> bool {
+        return if want_constructor {
+            m.method.name.as_slice() == b"<init>" && !m.method.is_static()
+        } else {
+            m.method.name.as_slice() != b"<init>"
+        };
+    }
+
+    let mut selected_methods = Vec::new();
+    for (_, m) in all_methods {
+        if select_method(want_constructor, &m) {
+            if !public_only || m.method.is_public() {
+                selected_methods.push(m.clone());
+            }
+        }
+    }
+
+    //build methods ary
+    let mut methods = Vec::new();
+    for m in selected_methods {
+        let v = if want_constructor {
+            runtime::reflect::new_method_ctor(jt, m)
+        } else {
+            runtime::reflect::new_method_normal(jt, m)
+        };
+
+        methods.push(v);
+    }
+
+    //build oop methods ary
+    let ary_cls = if want_constructor {
+        require_class3(None, b"[Ljava/lang/reflect/Constructor;").unwrap()
+    } else {
+        require_class3(None, b"[Ljava/lang/reflect/Method;").unwrap()
+    };
+
+    Ok(Some(Oop::new_ref_ary2(ary_cls, methods)))
 }

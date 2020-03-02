@@ -226,7 +226,7 @@ impl JavaMainThread {
                 .iter()
                 .map(|it| util::oop::new_java_lang_string2(jt, it))
                 .collect(),
-            None => vec![consts::get_null()],
+            None => vec![],
         };
 
         //build ArrayOopDesc

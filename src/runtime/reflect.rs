@@ -111,6 +111,83 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     oop
 }
 
+pub fn new_method_normal(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
+    let ctor_cls = require_class3(None, cls_const::J_METHOD).unwrap();
+
+    //declaringClass
+    let declaring_cls = { mir.method.class.read().unwrap().get_mirror() };
+
+    //name
+    let name = {
+        let name = unsafe { std::str::from_utf8_unchecked(mir.method.name.as_slice()) };
+        util::oop::new_java_lang_string2(jt, name)
+    };
+
+    //parameterTypes
+    let signature = MethodSignature::new(mir.method.desc.as_slice());
+    let params: Vec<Oop> = signature
+        .args
+        .iter()
+        .map(|t| create_value_type(t.clone()))
+        .collect();
+    let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
+    let parameter_types = Oop::new_ref_ary2(cls, params);
+
+    //returnType
+    let return_type = create_value_type(signature.retype.clone());
+
+    //fixme: checkedExceptions
+    let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
+    let checked_exceptions = Oop::new_ref_ary2(cls, vec![]);
+
+    //modifiers
+    let modifiers = mir.method.acc_flags;
+    //slot
+    let slot = mir.offset;
+    //signature
+    let signature = {
+        let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
+        util::oop::new_java_lang_string2(jt, desc)
+    };
+    //fixme:
+    let annotations = Oop::new_byte_ary(0);
+    let parameter_annotations = Oop::new_byte_ary(0);
+    let annotation_default = Oop::new_byte_ary(0);
+
+    let mut desc = Vec::new();
+    desc.push(b'(');
+    let mut args: Vec<Oop> = vec![
+        ("declaringClass", "Ljava/lang/Class;", declaring_cls),
+        ("name", "Ljava/lang/String;", name),
+        ("parameterTypes", "[Ljava/lang/Class;", parameter_types),
+        ("returnType", "Ljava/lang/Class;", return_type),
+        (
+            "checkedExceptions",
+            "[Ljava/lang/Class;",
+            checked_exceptions,
+        ),
+        ("modifiers", "I", Oop::new_int(modifiers as i32)),
+        ("slot", "I", Oop::new_int(slot as i32)),
+        ("signature", "Ljava/lang/String;", signature),
+        ("annotations", "[B", annotations),
+        ("parameterAnnotations", "[B", parameter_annotations),
+        ("annotationDefault", "[B", annotation_default),
+    ]
+    .iter()
+    .map(|(_, t, v)| {
+        desc.extend_from_slice(t.as_bytes());
+        v.clone()
+    })
+    .collect();
+    desc.extend_from_slice(")V".as_bytes());
+
+    let oop = Oop::new_inst(ctor_cls.clone());
+    args.insert(0, oop.clone());
+    runtime::java_call::invoke_ctor(jt, ctor_cls, desc.as_slice(), args);
+
+    oop
+}
+
 pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     //todo: optimize, avoid obtain class
     let cls = {
