@@ -171,14 +171,6 @@ impl Method {
         false
     }
 
-    pub fn get_source_file(&self) -> Option<BytesRef> {
-        let cls = self.class.read().unwrap();
-        match &cls.kind {
-            oop::class::ClassKind::Instance(inst) => inst.source_file.clone(),
-            _ => unreachable!(),
-        }
-    }
-
     pub fn is_public(&self) -> bool {
         (self.acc_flags & ACC_PUBLIC) == ACC_PUBLIC
     }

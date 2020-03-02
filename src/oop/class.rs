@@ -299,6 +299,13 @@ impl Class {
             ClassKind::TypeArray(typ_ary) => typ_ary.mirror = Some(mirror),
         }
     }
+
+    pub fn get_source_file(&self) -> Option<BytesRef> {
+        match &self.kind {
+            ClassKind::Instance(cls_obj) => cls_obj.source_file.clone(),
+            _ => unreachable!()
+        }
+    }
 }
 
 impl ArrayClassObject {
