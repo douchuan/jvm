@@ -111,7 +111,7 @@ fn main() {
     let args = matches.values_of_lossy("ARGS");
     println!("main class: {}, args: {:?}", class, args);
 
-    let mut thread = JavaMainThread::new(class, args);
+    let mut thread = JavaMainThread::new(class.replace(".", "/"), args);
     thread.run();
 
     /*
