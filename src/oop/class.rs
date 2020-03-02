@@ -303,7 +303,7 @@ impl Class {
     pub fn get_source_file(&self) -> Option<BytesRef> {
         match &self.kind {
             ClassKind::Instance(cls_obj) => cls_obj.source_file.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }

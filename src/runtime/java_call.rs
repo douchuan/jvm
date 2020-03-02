@@ -174,7 +174,7 @@ impl JavaCall {
                     set_return(caller, self.return_type.clone(), v)
                 }
             }
-            Err(ex) => jt.set_ex(ex)
+            Err(ex) => jt.set_ex(ex),
         }
 
         self.fin_sync();

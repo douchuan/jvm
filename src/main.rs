@@ -31,10 +31,8 @@ todo list
     去掉native 函数的jt参数
   x. new Constructor with Exception and Type Annotations
   x. String.intern
-  x. native 调用，需要构造一个Frame吗？
   x. BootstrapMethod 有什么用?
   x. .class大量attr没用到，如何起到作用?
-  x. 注意算数运算相关的指令，溢出问题的处理
   x. When & Who invoke Runtime.exit
   x. 检查一遍，全部native的实现 & args, 看实现是否完整
 
