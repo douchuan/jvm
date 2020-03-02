@@ -105,6 +105,7 @@ export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
+cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
