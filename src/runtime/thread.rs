@@ -196,17 +196,17 @@ impl JavaMainThread {
             let cls = main_class.read().unwrap();
 
             /*
-                为了避免"<clinit>"被执行 2 次，这里不允许用路径分隔符
+            为了避免"<clinit>"被执行 2 次，这里不允许用路径分隔符
 
-                假如一个自定义类叫做"MyFile", 而且包含"<clinit>"， 即包括如下初始化信息：
-                    private static File gf = newFile();
+            假如一个自定义类叫做"MyFile", 而且包含"<clinit>"， 即包括如下初始化信息：
+                private static File gf = newFile();
 
-                如果文件名包含路径信息：
-                  xx1: oop::class::load_and_init，加载"test/MyFile"初始化，并调用"<clinit>"
-                  xx2: 之后vm执行，调用invokestatic，加载"MyFile"初始化，并调用"<clinit>"
+            如果文件名包含路径信息：
+              xx1: oop::class::load_and_init，加载"test/MyFile"初始化，并调用"<clinit>"
+              xx2: 之后vm执行，调用invokestatic，加载"MyFile"初始化，并调用"<clinit>"
 
-                实际，这时两个是同一个类，只允许加载1次
-                */
+            实际，这时两个是同一个类，只允许加载1次
+            */
             if self.class.as_bytes() != cls.name.as_slice() {
                 panic!("Error: Could not find or load main class {}", self.class);
             }

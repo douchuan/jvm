@@ -30,6 +30,7 @@ mod sun_misc_Unsafe;
 mod sun_misc_VM;
 mod sun_nio_cs_StreamEncoder;
 mod sun_reflect_NativeConstructorAccessorImpl;
+mod sun_reflect_NativeMethodAccessorImpl;
 mod sun_reflect_Reflection;
 
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
@@ -145,6 +146,10 @@ pub fn init() {
         (
             "sun/reflect/NativeConstructorAccessorImpl",
             sun_reflect_NativeConstructorAccessorImpl::get_native_methods(),
+        ),
+        (
+            "sun/reflect/NativeMethodAccessorImpl",
+            sun_reflect_NativeMethodAccessorImpl::get_native_methods(),
         ),
         (
             "sun/reflect/Reflection",
