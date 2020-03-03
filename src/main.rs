@@ -26,22 +26,22 @@ todo list
   x. fix warn & fixme
 
   x. java to execute a jar by -jar
-  x. 官方的测试用例, TCK
+  x. Official test case, TCK
   x. build thread system
-    去掉native 函数的jt参数
+    Remove the jt parameter of the native function
   x. new Constructor with Exception and Type Annotations
   x. String.intern
-  x. BootstrapMethod 有什么用?
-  x. .class大量attr没用到，如何起到作用?
+  x. What's the use of BootstrapMethod?
+  x. A lot of .class attrs is not used, how does it work?
   x. When & Who invoke Runtime.exit
-  x. 检查一遍，全部native的实现 & args, 看实现是否完整
+  x. Check again, all native implementations & args to see if the implementation is complete
 
-  x. UTF-8导致的问题
-    java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
+  x. Problems caused by UTF-8
+    java_lang_System::jvm_initProperties Commented out "UTF-8" related content
 
-    xx. 按正常流程加载"sun/nio/cs/ext/ExtendedCharsets"，
-        ExtendedCharsets会长时间加载大量的内容，如何优化？
-        现在，java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
+    xx. Load "sun/nio/cs/ext/ExtendedCharsets" according to the normal process,
+        ExtendedCharsets will load a lot of content for a long time, how to optimize?
+        Java_lang_Class::forName0 currently skips "sun/nio/cs/ext/ExtendedCharsets"
 */
 
 fn init_vm() {
@@ -89,16 +89,17 @@ fn main() {
 
     let class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
     /*
-    为了避免"<clinit>"被执行 2 次，这里不允许用路径分隔符
+    To avoid "<clinit>" being executed twice, path separators are not allowed here
 
-    假如一个自定义类叫做"MyFile", 而且包含"<clinit>"， 即包括如下初始化信息：
+    If a custom class is called "MyFile" and contains "<clinit>",
+    it includes the following initialization information:
         private static File gf = newFile();
 
-    如果文件名包含路径信息：
-      xx1: oop::class::load_and_init，加载"test/MyFile"初始化，并调用"<clinit>"
-      xx2: 之后vm执行，调用invokestatic，加载"MyFile"初始化，并调用"<clinit>"
+    If the file name contains path information:
+      xx1: oop::class::load_and_init，load "test/MyFile", and call "<clinit>"
+      xx2: After vm executes, invoke invokestatic, load "MyFile" to initialize, and call "<clinit>"
 
-    实际，这时两个是同一个类，只允许加载1次
+    In fact, at this time, the two are the same class, only allowed to load once
     */
     assert!(
         !class.contains(util::FILE_SEP),

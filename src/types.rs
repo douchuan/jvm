@@ -16,7 +16,7 @@ pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
 pub type DataAreaRef = RefCell<DataArea>;
 
-//引用".class"中的字符串常量值
+// Contains a string constant value in ".class"
 def_ref!(BytesRef, Vec<u8>);
 def_ref!(ConstantPool, Vec<ConstantType>);
 
@@ -24,7 +24,7 @@ def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
 def_sync_ref!(OopRef, RefKindDesc);
 
-//runtime 字符串分配
+// Runtime string allocation
 def_ptr!(ByteAry, Vec<u8>);
 def_ptr!(BoolAry, Vec<u8>);
 def_ptr!(CharAry, Vec<u16>);

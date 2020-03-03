@@ -41,7 +41,7 @@ pub struct RefKindDesc {
     pub v: RefKind,
     pub hash_code: Option<i32>,
 
-    //这两个所相关的field，有意义吗？本身操作，就隐含了lock
+    // Do these two fields make sense? The operation itself, implicit lock
     cond: Condvar,
     monitor: Mutex<usize>,
 }

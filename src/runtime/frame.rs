@@ -71,7 +71,7 @@ pub struct Frame {
     pub mir: MethodIdRef,
     code: Arc<Vec<U1>>,
 
-    //Frame的可变部分放在这里
+    // The variable part of Frame is placed here
     pub area: DataAreaRef,
 }
 
@@ -2936,8 +2936,7 @@ impl Frame {
                     oop::RefKind::Mirror(mirror) => {
                         //run here codes:
                         //$JDK_TEST/Appendable/Basic.java
-                        //最终会调用java.security.Security.getSpiClass("MessageDigest")
-                        //走到这里
+                        //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
                         //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
 
                         let mirror_target = mirror.target.clone().unwrap();

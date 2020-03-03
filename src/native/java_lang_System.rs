@@ -298,9 +298,9 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 */
 
 /*
-同一个对象不可同时lock，需要tmp buf做中转
+The same object cannot be locked at the same time, it needs tmp buf to transfer
 
-todo optimize: 如何做到不用中转，就达到copy的目的
+todo optimize: How to achieve the purpose of copy without relay
 */
 fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
     let is_type_ary = {

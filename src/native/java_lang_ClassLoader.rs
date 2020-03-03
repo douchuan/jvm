@@ -52,7 +52,7 @@ fn jvm_findLoadedClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> J
     Ok(Some(v))
 }
 
-//fixme: 这样实现是否正确？不确定
+// fixme: Is this correct? uncertain
 fn jvm_findBootstrapClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     info!("findBootstrapClass");
     jvm_findLoadedClass0(_jt, _env, args)
