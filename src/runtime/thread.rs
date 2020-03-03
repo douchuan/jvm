@@ -194,6 +194,27 @@ impl JavaMainThread {
 
         let mir = {
             let cls = main_class.read().unwrap();
+
+            /*
+            path info should be included in "--cp", and avoid same class load 2
+            times, otherwise, "<clinit>" invoked 2 times.
+
+            For example:
+              "MyFile.java":
+                private static File gf = newFile();
+
+            if allowed, as follows:
+              "cargo run -- --cp $JDK:$MY_TEST test/with_package/my.ns.HelloWorld"
+            will cause "<clinit>" invoked 2 times, "newFile()" invoked 2 times,
+            maybe create 2 files.
+
+            should be like this:
+              "cargo run -- --cp $JDK:$MY_TEST:test/with_package my.ns.HelloWorld"
+            */
+            if self.class.as_bytes() != cls.name.as_slice() {
+                panic!("Error: Could not find or load main class {}", self.class);
+            }
+
             let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
             cls.get_static_method(id)
         };

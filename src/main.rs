@@ -88,41 +88,10 @@ fn main() {
     }
 
     let class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
-    /*
-    To avoid "<clinit>" being executed twice, path separators are not allowed here
-
-    If a custom class is called "MyFile" and contains "<clinit>",
-    it includes the following initialization information:
-        private static File gf = newFile();
-
-    If the file name contains path information:
-      xx1: oop::class::load_and_init，load "test/MyFile", and call "<clinit>"
-      xx2: After vm executes, invoke invokestatic, load "MyFile" to initialize, and call "<clinit>"
-
-    In fact, at this time, the two are the same class, only allowed to load once
-    */
-    assert!(
-        !class.contains(util::FILE_SEP),
-        "should not contain \"{}\"",
-        util::FILE_SEP
-    );
-
     let args = matches.values_of_lossy("ARGS");
-    println!("main class: {}, args: {:?}", class, args);
-
-    let mut thread = JavaMainThread::new(class.replace(".", "/"), args);
+    // println!("main class: {}, args: {:?}", class, args);
+    let mut thread = JavaMainThread::new(class.replace(".", util::FILE_SEP), args);
     thread.run();
-
-    /*
-    let path = "test/Test.class";
-    match parser::parse(path) {
-        Ok(c) => match c.check_format() {
-            Ok(_) => println!("ok"),
-            _ => error!("check format failed"),
-        },
-        _ => error!("class file parse failed"),
-    }
-    */
 }
 
 #[cfg(test)]

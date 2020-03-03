@@ -31,6 +31,12 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 ### fix ThreadLocal not work, resolve_again for protected
 #cargo run -- --cp $JDK:$MY_TEST ThreadLocalTest
 
+### load with custom package
+## should panic
+#cargo run -- --cp $JDK:$MY_TEST test/with_package/my.ns.HelloWorld
+## ok
+#cargo run -- --cp $JDK:$MY_TEST:test/with_package my.ns.HelloWorld
+
 
 ###regex
 ## System.out.printf not work
@@ -105,7 +111,7 @@ export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
-cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
