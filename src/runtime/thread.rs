@@ -196,16 +196,20 @@ impl JavaMainThread {
             let cls = main_class.read().unwrap();
 
             /*
-            为了避免"<clinit>"被执行 2 次，这里不允许用路径分隔符
+            path info should be included in "--cp", and avoid same class load 2
+            times, otherwise, "<clinit>" invoked 2 times.
 
-            假如一个自定义类叫做"MyFile", 而且包含"<clinit>"， 即包括如下初始化信息：
+            For example:
+              "MyFile.java":
                 private static File gf = newFile();
 
-            如果文件名包含路径信息：
-              xx1: oop::class::load_and_init，加载"test/MyFile"初始化，并调用"<clinit>"
-              xx2: 之后vm执行，调用invokestatic，加载"MyFile"初始化，并调用"<clinit>"
+            if allowed, as follows:
+              "cargo run -- --cp $JDK:$MY_TEST test/with_package/my.ns.HelloWorld"
+            will cause "<clinit>" invoked 2 times, "newFile()" invoked 2 times,
+            maybe create 2 files.
 
-            实际，这时两个是同一个类，只允许加载1次
+            should be like this:
+              "cargo run -- --cp $JDK:$MY_TEST:test/with_package my.ns.HelloWorld"
             */
             if self.class.as_bytes() != cls.name.as_slice() {
                 panic!("Error: Could not find or load main class {}", self.class);
