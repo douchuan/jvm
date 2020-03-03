@@ -166,10 +166,10 @@ impl JavaCall {
                 }
             }
             None => panic!(
-                "Native method not found: {:?} {:?} {:?}",
-                std::str::from_utf8(&package),
-                std::str::from_utf8(&name),
-                std::str::from_utf8(&desc),
+                "Native method not found: {}:{}:{}",
+                unsafe {std::str::from_utf8_unchecked(&package)},
+                unsafe {std::str::from_utf8_unchecked(&name)},
+                unsafe {std::str::from_utf8_unchecked(&desc)},
             ),
         };
 
