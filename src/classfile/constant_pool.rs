@@ -6,9 +6,9 @@ use crate::classfile::consts::{
 };
 use crate::classfile::signature::{MethodSignature, Type as SigType};
 use crate::types::{BytesRef, ConstantPool};
+use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;
-use fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub enum ConstantType {
@@ -387,10 +387,7 @@ impl From<u8> for ConstantTag {
 
 impl ConstantType {
     pub fn as_cp_item<'a, 'b>(&'a self, cp: &'b ConstantPool) -> ConstantPoolItem<'a, 'b> {
-        ConstantPoolItem {
-            cp,
-            item: self
-        }
+        ConstantPoolItem { cp, item: self }
     }
 }
 
@@ -403,16 +400,22 @@ impl Debug for ConstantPoolItem<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.item {
             ConstantType::Nop => f.debug_struct("Nop").finish(),
-            ConstantType::Class {name_index} =>
-                f.debug_struct("Class")
-                    .field("name_index", name_index)
-                    .field("name", &self.cp.get(*name_index as usize).map(|t| t.as_cp_item(self.cp)))
-                    .finish(),
-            ConstantType::Utf8 {bytes, length} =>
-                f.debug_struct("Utf8")
-                    .field("length", length)
-                    .field("string", &std::str::from_utf8(bytes))
-                    .finish(),
+            ConstantType::Class { name_index } => f
+                .debug_struct("Class")
+                .field("name_index", name_index)
+                .field(
+                    "name",
+                    &self
+                        .cp
+                        .get(*name_index as usize)
+                        .map(|t| t.as_cp_item(self.cp)),
+                )
+                .finish(),
+            ConstantType::Utf8 { bytes, length } => f
+                .debug_struct("Utf8")
+                .field("length", length)
+                .field("string", &std::str::from_utf8(bytes))
+                .finish(),
             _ => write!(f, "TODO debug for: {:?}", self.item),
         }
     }

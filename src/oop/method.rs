@@ -21,7 +21,12 @@ pub fn get_method_ref(
 
     //load Method's Class, then init it
     let class = require_class2(class_index, cp).unwrap_or_else(|| {
-        panic!("Unknown method class {:?}", cp.get(class_index as usize).expect("Missing item").as_cp_item(cp))
+        panic!(
+            "Unknown method class {:?}",
+            cp.get(class_index as usize)
+                .expect("Missing item")
+                .as_cp_item(cp)
+        )
     });
 
     {
