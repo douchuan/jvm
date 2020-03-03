@@ -165,7 +165,12 @@ impl JavaCall {
                     Err(ex) => Err(ex),
                 }
             }
-            None => unreachable!("NotFound native method"),
+            None => panic!(
+                "Native method not found: {:?} {:?} {:?}",
+                std::str::from_utf8(&package),
+                std::str::from_utf8(&name),
+                std::str::from_utf8(&desc),
+            ),
         };
 
         match v {

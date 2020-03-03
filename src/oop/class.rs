@@ -118,7 +118,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 pub fn load_and_init(jt: &mut JavaThread, name: &[u8]) -> ClassRef {
     // trace!("load_and_init 1 name={}", String::from_utf8_lossy(name));
     let cls_name = unsafe { std::str::from_utf8_unchecked(name) };
-    let class = runtime::require_class3(None, name).expect(cls_name);
+    let class = runtime::require_class3(None, name).unwrap_or_else(|| panic!("Class not found: {}", cls_name));
     // trace!("load_and_init 2 name={}", String::from_utf8_lossy(name));
     {
         let mut class = class.write().unwrap();

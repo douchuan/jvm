@@ -16,7 +16,9 @@ pub fn get_field_ref(
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
 
     //load Field's Class, then init it
-    let class = require_class2(class_index, cp).unwrap();
+    let class = require_class2(class_index, cp).unwrap_or_else(|| {
+        panic!("Unknown field class {:?}", cp.get(class_index as usize).expect("Missing item").as_cp_item(cp))
+    });
     let (name, desc) = {
         let mut class = class.write().unwrap();
         class.init_class(thread);
