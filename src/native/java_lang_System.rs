@@ -72,7 +72,6 @@ fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
         arraycopy_same_obj(
             src_ref,
             src_pos as usize,
-            dest_ref,
             dest_pos as usize,
             length as usize,
         );
@@ -297,15 +296,10 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 */
 
-/*
-The same object cannot be locked at the same time, it needs tmp buf to transfer
-
-todo optimize: How to achieve the purpose of copy without relay
-*/
-fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
+fn arraycopy_same_obj(buf: OopRef, src_pos: usize, dest_pos: usize, length: usize) {
     let is_type_ary = {
-        let src = src.read().unwrap();
-        match &src.v {
+        let buf = buf.read().unwrap();
+        match &buf.v {
             oop::RefKind::TypeArray(_) => true,
             oop::RefKind::Array(_) => false,
             _ => unreachable!(),
@@ -313,45 +307,14 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     };
 
     if is_type_ary {
-        let tmp = {
-            let src = src.read().unwrap();
-
-            let mut tmp = Vec::with_capacity(length);
-
-            //just choose the needed region
-            match &src.v {
-                oop::RefKind::TypeArray(s) => match s {
-                    oop::TypeArrayValue::Char(ary) => {
-                        let (_, ary) = ary.split_at(src_pos);
-                        ary[..length].iter().for_each(|v| {
-                            tmp.push(*v);
-                        });
-                    }
-                    oop::TypeArrayValue::Byte(ary) => {
-                        let (_, ary) = ary.split_at(src_pos);
-                        ary[..length].iter().for_each(|v| {
-                            tmp.push(*v as u16);
-                        });
-                    }
-                    t => unreachable!("t = {:?}", t),
-                },
-                _ => unreachable!(),
-            }
-
-            tmp
-        };
-
-        let mut dest = dest.write().unwrap();
-        match &mut dest.v {
+        let mut buf = buf.write().unwrap();
+        match &mut buf.v {
             oop::RefKind::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(dest) => {
-                    let (_, dest) = dest.split_at_mut(dest_pos);
-                    dest[..length].copy_from_slice(&tmp[..]);
+                oop::TypeArrayValue::Char(ary) => {
+                    ary.copy_within(src_pos..(src_pos + length), dest_pos)
                 }
-                oop::TypeArrayValue::Byte(dest) => {
-                    let src: Vec<u8> = tmp.iter().map(|v| *v as u8).collect();
-                    let (_, dest) = dest.split_at_mut(dest_pos);
-                    dest[..length].copy_from_slice(&src[..]);
+                oop::TypeArrayValue::Byte(ary) => {
+                    ary.copy_within(src_pos..(src_pos + length), dest_pos)
                 }
                 t => unreachable!("t = {:?}", t),
             },
@@ -359,8 +322,11 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             _ => unreachable!(),
         }
     } else {
+        /*
+        todo optimize: How to achieve the purpose of copy without tmp
+        */
         let tmp = {
-            let ary = src.read().unwrap();
+            let ary = buf.read().unwrap();
             match &ary.v {
                 oop::RefKind::Array(ary) => {
                     let mut tmp = Vec::with_capacity(length);
@@ -374,7 +340,7 @@ fn arraycopy_same_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
             }
         };
 
-        let mut dest = dest.write().unwrap();
+        let mut dest = buf.write().unwrap();
         match &mut dest.v {
             oop::RefKind::Array(ary) => {
                 let (_, ary) = ary.elements.split_at_mut(dest_pos);
