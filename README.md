@@ -1,21 +1,26 @@
-Brief description
-=============
-What can be done with a month's holiday? Complete a Java virtual machine!
+Sun is a great company, in the era of the c++, they created JVM & HotSpot.
+Now, we have Rust, a better tool, let’s see, whether we can remake JVM.
 
-Although it is simple, you can run HelloWorld and do some simple calculations.
-Programmers with enthusiasm and dreams, who have a relatively concentrated time, will do great things. Thanks for this precious time.
+## Overview
+ 
+The project is built with a month's holiday. It's a special holiday! 
 
-Pay tribute to frontline medical staff! Thank you for your contribution to the fight against the epidemic.
+Pay tribute to  frontline medical staff! Thank you for your contribution to the fight against the epidemic.
 
-Comrades, work hard! Work hard to realize China's basic software freedom!
+## Usage
 
-Usage
-=============
 Download JDK from
 https://www.azul.com/downloads/zulu-community
 
 Modify the run.sh script according to your environment
 
-Limit
-=============
-Only tested on Mac
+## Road map
+
+- pass test cases in JDK 
+- WebAssembly, make the JVM work in Browser 
+- separate class parser from project as one standalone create
+- support thread
+- support GC, then optimize System.arraycopy
+- split frame.rs into frame.rs & interp.rs
+- pass TCK
+- support higher version of JVM Spec 
