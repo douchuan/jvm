@@ -46,7 +46,7 @@ pub struct JNINativeMethodStruct {
 }
 
 pub struct JNIEnvStruct {
-    //fixme: just for hack，为了跑HelloWorld，暂时放在这里
+    // fixme: just for hack, in order to run HelloWorld, put it here temporarily
     pub java_thread_obj: Option<Oop>,
     pub class: ClassRef,
 }

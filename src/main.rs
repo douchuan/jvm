@@ -26,22 +26,22 @@ todo list
   x. fix warn & fixme
 
   x. java to execute a jar by -jar
-  x. 官方的测试用例, TCK
+  x. Official test case, TCK
   x. build thread system
-    去掉native 函数的jt参数
+    Remove the jt parameter of the native function
   x. new Constructor with Exception and Type Annotations
   x. String.intern
-  x. BootstrapMethod 有什么用?
-  x. .class大量attr没用到，如何起到作用?
+  x. What's the use of BootstrapMethod?
+  x. A lot of .class attrs is not used, how does it work?
   x. When & Who invoke Runtime.exit
-  x. 检查一遍，全部native的实现 & args, 看实现是否完整
+  x. Check again, all native implementations & args to see if the implementation is complete
 
-  x. UTF-8导致的问题
-    java_lang_System::jvm_initProperties注释掉了"UTF-8"相关的内容
+  x. Problems caused by UTF-8
+    java_lang_System::jvm_initProperties Commented out "UTF-8" related content
 
-    xx. 按正常流程加载"sun/nio/cs/ext/ExtendedCharsets"，
-        ExtendedCharsets会长时间加载大量的内容，如何优化？
-        现在，java_lang_Class::forName0暂且跳过"sun/nio/cs/ext/ExtendedCharsets"
+    xx. Load "sun/nio/cs/ext/ExtendedCharsets" according to the normal process,
+        ExtendedCharsets will load a lot of content for a long time, how to optimize?
+        Java_lang_Class::forName0 currently skips "sun/nio/cs/ext/ExtendedCharsets"
 */
 
 fn init_vm() {

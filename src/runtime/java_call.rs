@@ -70,7 +70,7 @@ impl JavaCall {
                         String::from_utf8_lossy(mir.method.get_id().as_slice())
                     );
 
-                    //快速失败，避免大量log，不容易定位问题
+                    //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
                     //                        panic!();
 
                     let ex = exception::new(jt, consts::J_NPE, None);
@@ -99,8 +99,7 @@ impl JavaCall {
         force_no_resolve: bool,
     ) {
         /*
-        Do resolve again first, 因为可以用native的方式override
-        比如:
+        Do resolve again first, because you can override in a native way such as:
         UnixFileSystem override FileSystem
             public abstract boolean checkAccess(File f, int access);
 
@@ -262,15 +261,15 @@ impl JavaCall {
         let resolve_again = if force_no_resolve {
             false
         } else {
-            //todo: acc_flags 的值为什么可能为0
+            //todo: why is the value of 0 possible in acc_flags?
             /*
-            这种情况出现在:
+            This situation occurs when:
             java/util/regex/Matcher.java
             bool search(int from)
               boolean result = parentPattern.root.match(this, from, text);
 
-            match方法的acc_flags即为0，导致找到的是java/util/regex/Patter$Node中的match，
-            正确的应该使用java/util/regex/Patter$Start中的match
+            The acc_flags of the match method is 0, and what is found is java/util/regex/Patter$Node#match，
+            Correct should use java/util/regex/Patter$Start#match
             */
             self.mir.method.is_abstract()
                 || (self.mir.method.is_public() && !self.mir.method.is_final())

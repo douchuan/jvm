@@ -4,18 +4,21 @@ use crate::runtime::stack::Stack;
 use std::cell::RefCell;
 
 /*
-DataArea的由来
+The origin of DataArea
 
-java method执行方式：
-每调用一个方法，构造一个新的Frame，并把该frame推入至当前thread.frames栈，
-方法执行完毕，出栈该Frame。如果出现异常，jvm_fillInStackTrace遍历当前thread
-的frames：提取每个frame的类名，方法名，pc（pc是为了从LineNumberTable Attributes
-中定位出错的代码行）并构造异常堆栈。
+java method execution method:
+Every time a method is called, a new Frame is constructed,
+and the frame is pushed to the current thread.frames stack.
+After the method is executed, the Frame is popped.
+If an exception occurs, jvm_fillInStackTrace traverses the current thread frames:
+extract the class name, method name, and pc (pc for LineNumberTable Attributes from each frame)
+Locate the error line of code) and construct an exception stack.
 
-Frame中的DataArea用RefCell包装，这样就可以让java_call::invoke_java执行Java
-方法时，可以用只读方式的frame执行字节码；当有异常时，也可以让jvm_fillInStackTrace
-遍历frames获取必要信息。RefCell的性质让这种操作成为可能，在只读的Frame上下文中，需
-要修改DataArea时，borrow_mut就可以了。
+The DataArea in the Frame is wrapped with RefCell, so that java_call::invoke_java can execute Java
+Method, you can use the read-only frame to execute bytecode; when there is an exception, you can also let
+jvm_fillInStackTrace traverse the frames to get the necessary information.
+The nature of RefCell makes this possible.
+In a read-only Frame context, to modify the DataArea, borrow_mut is fine.
 */
 pub struct DataArea {
     pub local: Local,

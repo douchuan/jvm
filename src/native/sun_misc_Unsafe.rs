@@ -122,7 +122,7 @@ fn jvm_objectFieldOffset(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
     Ok(Some(Oop::new_long(v as i64)))
 }
 
-//fixme: 此处语义上要求是原子操作，这里需要重新实现
+// fixme: The semantic requirement here is atomic operation, which needs to be re-implemented here
 fn jvm_compareAndSwapObject(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = util::oop::extract_long(args.get(2).unwrap());
