@@ -179,38 +179,38 @@ impl Method {
     }
 
     pub fn is_public(&self) -> bool {
-        (self.acc_flags & ACC_PUBLIC) == ACC_PUBLIC
+        self.acc_flags & ACC_PUBLIC != 0
     }
 
     pub fn is_private(&self) -> bool {
-        (self.acc_flags & ACC_PRIVATE) == ACC_PRIVATE
+        self.acc_flags & ACC_PRIVATE != 0
     }
 
     pub fn is_protected(&self) -> bool {
-        (self.acc_flags & ACC_PROTECTED) == ACC_PROTECTED
+        self.acc_flags & ACC_PROTECTED != 0
     }
 
     pub fn is_final(&self) -> bool {
-        (self.acc_flags & ACC_FINAL) == ACC_FINAL
+        self.acc_flags & ACC_FINAL != 0
     }
 
     pub fn is_static(&self) -> bool {
-        (self.acc_flags & ACC_STATIC) == ACC_STATIC
+        self.acc_flags & ACC_STATIC != 0
     }
 
     pub fn is_synchronized(&self) -> bool {
-        (self.acc_flags & ACC_SYNCHRONIZED) == ACC_SYNCHRONIZED
+        self.acc_flags & ACC_SYNCHRONIZED != 0
     }
 
     pub fn is_native(&self) -> bool {
-        (self.acc_flags & ACC_NATIVE) == ACC_NATIVE
+        self.acc_flags & ACC_NATIVE != 0
     }
 
     pub fn is_abstract(&self) -> bool {
-        (self.acc_flags & ACC_ABSTRACT) == ACC_ABSTRACT
+        self.acc_flags & ACC_ABSTRACT != 0
     }
 
     pub fn is_interface(&self) -> bool {
-        (self.acc_flags & ACC_INTERFACE) == ACC_INTERFACE
+        self.acc_flags & ACC_INTERFACE != 0
     }
 }
