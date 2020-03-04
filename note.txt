@@ -1,79 +1,48 @@
-
-oop: Ordinary Object Pointer
-klass: meta datas
-
-
-oop-klass why？
-----------------------------
-vtable，fields信息放入klass中，oop用std::vector<oop> _instanceFieldValues保存field值，
-每次set/get field值时，需要通过kclass找到field的index，虽然耗时，但当有成百上千的oop时，
-节省空间
-
-  kclass          			oop
-    vtable  <--index-->		std::vector<oop> _instanceFieldValues
-    fields
-
-
 char
 -----------------------
-Java中的char: 16-bit unsigned integers
-Rust中的char: four bytes in size
+Char in Java: 16-bit unsigned integers
+char in Rust: four bytes in size
 
 
-存在的问题
+problem
 ----------------------
-1. OopRef优化
-  即使单线程环境下, 要修改内容, 也需要lock，影响效率(Arc<Mutex>)
-  Java有monitor_enter/monitor_exit指令，锁由用户管理。
-  有没有可能在rust中实现: 锁独立出来(交用户控制, monitor enter/exit)，自由的在线程间 共享&修改 对象。
+1. can lock be independent from OopRef
+  The lock should be controlled by user using monitor_enter & monitor_exit
+  Can Rust do it? share oop between threads, and lock it when needed
+
 2. System.arraycopy
-  针对对象数组优化arraycopy是提高性能的关键，解决办法，目前能想到的就是实现GC，自己管理内存，
-  对对象数组拷贝时，用类似memcpy做，避免每个对象clone
-  执行类似这样的代码($JDK_TEST/Character/CheckProp.java)：
-   ArrayList<Integer> list = new ArrayList<Integer>();
-   int start = 0;
-   while (start < 50000) {
-       list.add(start++);
-   }
+  The performance of JVM depends on arraycopy.
 
-   会导致
-     a. 大量的Integer对象被创建
-     b. ArrayList内部会不断分配内存，并调用System.arraycopy执行copy操作；
-        jvm内部会:
-          a. 创建Vec，执行一次初始化（元素量大，会耗时）
-          b. arraycopy_diff_obj 针对对象会调用耗时的clone操作
+     ArrayList<Integer> list = new ArrayList<Integer>();
+     int start = 0;
+     while (start < 50000) {
+         list.add(start++);
+     }
 
+  It's slow to run the code, but Oracle Java very quick.
+  The reason is that, invoke 'clone' for every OopRef
+  test case: $JDK_TEST/Character/CheckProp.java
 
-Roadmap
-=============
-1. 通过JDK lang部分的测试用例
-2. 把class parser作为一个独立的部分，分离出来，形成一个crate
-3. support thread
-4. support GC
-5. 拆分frame.rs => frame.rs, interp.rs
+  Key Points:
+     a. create lots of Integer object
+     b. ArrayList inner buf, new bigger buffer when reach limit,
+       then, invoke System.arraycopy to move objects
 
 
-Roadmap(长期)
-=============
-1. 通过TCK测试
-2. 支持最新版本的The Java® Virtual Machine Specification
-
-
-大事记
+Milestones
 -----------------------
-1. 2020.01.30 Add.java 被顺利执行
+1. 2020.01.30 Add.java run successfully
 2. 2020.02.01 github 100 commits
-3. 2020.02.09 代码超过10k
-4. 2020.02.13 成功运行HelloWorld
-5. 2020.02.14 重构，去掉Oop::str，完全用java.lang.String取代
-6. 2020.02.15 github 200 commits, 第一个Watchers, CertainLach, thanks!
-7. 2020.02.19 感谢 Rust语言中文社区(https://rust.cc/)，项目开始涨粉，很受鼓励
-              为项目确立短期和长期目标
-8. 2020.03.01 Oop分离出ref，访问prime类型(bool/int...)的值，不再需要lock
-              从Frame分离DataArea，实现了异常堆栈打印line number
-              本项目录入 科技爱好者周刊 96期，谢谢一峰
+3. 2020.02.09 code lines reach 10k
+4. 2020.02.13 HelloWorld rub successfully
+5. 2020.02.14 refact，Oop::str replaced by java.lang.String
+6. 2020.02.15 github 200 commits, First Watchers, CertainLach, thanks!
+7. 2020.02.19 Thank Rust CC(https://rust.cc/)，get lots of stars
+8. 2020.03.01 extract Ref from Oop, access prime value, no need lock anymore
+              extract DataArea from Frame, printStackTrace has Line Number
+              Included in 科技爱好者周刊 96th，thank yifeng
               http://www.ruanyifeng.com/blog/2020/02/weekly-issue-96.html
 9. 2020.03.03 merge first patch from CertainLach, thanks!
-
+10. 2020.03.04 CertainLach translate README & comments to english
 
 
