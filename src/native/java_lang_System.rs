@@ -117,13 +117,13 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
         ("sun.cpu.isalist", ""),
         // ("sun.misc.URLClassPath.debug", "true"),
         // ("sun.misc.URLClassPath.debugLookupCache", "true"),
+        ("sun.stdout.encoding", "UTF-8"),
+        ("sun.stderr.encoding", "UTF-8"),
         ("user.language", "en"),
         ("user.name", "chuan"),
         ("user.region", "US"),
         //        ("java.security.manager", ""),
         //        ("sun.jnu.encoding", "UTF-8"),
-        //        ("sun.stdout.encoding", "UTF-8"),
-        //        ("sun.stderr.encoding", "UTF-8"),
         //        ("sun.io.unicode.encoding", "UnicodeBig"),
     ];
 

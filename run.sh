@@ -14,6 +14,7 @@ export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
 ### My Test
 #cargo run -- --cp $JDK:$MY_TEST Add
 #cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
+cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
 #cargo run -- --cp $JDK:$MY_TEST MyInteger
