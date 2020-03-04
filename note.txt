@@ -31,18 +31,37 @@ problem
 
 Milestones
 -----------------------
-1. 2020.01.30 Add.java run successfully
-2. 2020.02.01 github 100 commits
-3. 2020.02.09 code lines reach 10k
-4. 2020.02.13 HelloWorld rub successfully
-5. 2020.02.14 refact，Oop::str replaced by java.lang.String
-6. 2020.02.15 github 200 commits, First Watchers, CertainLach, thanks!
-7. 2020.02.19 Thank Rust CC(https://rust.cc/)，get lots of stars
-8. 2020.03.01 extract Ref from Oop, access prime value, no need lock anymore
-              extract DataArea from Frame, printStackTrace has Line Number
-              Included in 科技爱好者周刊 96th，thank yifeng
-              http://www.ruanyifeng.com/blog/2020/02/weekly-issue-96.html
-9. 2020.03.03 merge first patch from CertainLach, thanks!
-10. 2020.03.04 CertainLach translate README & comments to english
+2020.01.30
+Add.java run successfully
+
+2020.02.01
+github 100 commits
+
+2020.02.09
+code lines reach 10k
+
+2020.02.13
+HelloWorld run successfully
+
+2020.02.14
+Oop::str replaced by java.lang.String
+
+2020.02.15
+github 200 commits, First Watchers, CertainLach, thanks!
+
+2020.02.19
+Thank Rust CC(https://rust.cc/)，get lots of stars
+
+2020.03.01
+extract Ref from Oop, access prime value, no need lock anymore
+extract DataArea from Frame, printStackTrace has Line Number
+Included in 科技爱好者周刊 96th，thank yifeng
+http://www.ruanyifeng.com/blog/2020/02/weekly-issue-96.html
+
+2020.03.03
+merge first patch from CertainLach, thanks!
+
+2020.03.04
+CertainLach translate README & comments to english
 
 
