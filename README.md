@@ -1,9 +1,11 @@
-Sun is a great company, in the era of the c++, they created JVM & HotSpot.
-Now, we have Rust, a better tool, let’s see, whether we can remake JVM.
+Have a great goal is a very important thing, such as Moon Landing.
+What is the meaning of this plan? 
+That's the process of achieving this goal, the produce of industry and technology.
 
-## Overview
- 
-The project is built with a month's holiday. It's a special holiday! 
+Sun is a great company, in the era of C++, they created JVM & HotSpot.
+
+Now, we have Rust, a better tool, let’s remake JVM! To explore the limits of Rust,
+then break through the limit.
 
 Pay tribute to  frontline medical staff! Thank you for your contribution to the fight against the epidemic.
 
