@@ -390,7 +390,17 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
                     },
                     _ => unreachable!(),
                 },
-
+                oop::TypeArrayValue::Int(src_ary) => match &mut dest.v {
+                    RefKind::TypeArray(dest_ary) => match dest_ary {
+                        oop::TypeArrayValue::Int(dest_ary) => {
+                            let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                            let (_, src_ptr) = src_ary.split_at(src_pos);
+                            dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                        }
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
+                },
                 t => unreachable!("t = {:?}", t),
             },
             _ => unreachable!(),

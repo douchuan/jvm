@@ -10,7 +10,9 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("initIDs", "()V", Box::new(jvm_initIDs)),
         new_fn("open0", "(Ljava/lang/String;)V", Box::new(jvm_open0)),
         new_fn("readBytes", "([BII)I", Box::new(jvm_readBytes)),
+        //available0 used by zulu8 jdk
         new_fn("available0", "()I", Box::new(jvm_available0)),
+        new_fn("available", "()I", Box::new(jvm_available0)),
         new_fn("close0", "()V", Box::new(jvm_close0)),
     ]
 }

@@ -11,10 +11,13 @@ Pay tribute to  frontline medical staff! Thank you for your contribution to the 
 
 ## Usage
 
-Download JDK from
-https://www.azul.com/downloads/zulu-community
-
 Modify the run.sh script according to your environment
+
+if you installed JDK, but can not find jre path, try cmd:
+
+```shell
+java -XshowSettings:properties
+```
 
 ## Road map
 

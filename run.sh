@@ -1,20 +1,28 @@
 
-JDK_PATH=test/zulu8/jre/lib
+### not use zulu8, cause run $JDK_TEST/Character/CheckScript failed
+#JDK_PATH=test/zulu8/jre/lib
+#export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
+
+
+JDK_PATH=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib
 JDK=$JDK_PATH/resources.jar:$JDK_PATH/rt.jar:$JDK_PATH/jsse.jar:$JDK_PATH/jce.jar:$JDK_PATH/charsets.jar:$JDK_PATH/jfr.jar
 
 JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang
 MY_TEST=.:./test
 
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre
+
 #export RUST_LOG=trace
 #export RUST_LOG=info
 #export RUST_LOG=warn
 export RUST_BACKTRACE=full
-export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
+
+
 
 ### My Test
 #cargo run -- --cp $JDK:$MY_TEST Add
 #cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
-cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
+#cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
 #cargo run -- --cp $JDK:$MY_TEST MyInteger
@@ -61,6 +69,7 @@ cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 ##Float.toString(1.0f) crash
 ##ThreadLocal.initialValue not called, so NPE happend
 #cargo run -- --cp $JDK:$MY_TEST:./test/float ToString
+#cargo run -- --cp $JDK:$MY_TEST:./test/char MyCheckScript
 
 ###############################
 ### jdk test
@@ -112,7 +121,7 @@ export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
+#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
