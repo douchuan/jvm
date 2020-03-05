@@ -8,6 +8,8 @@ use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread};
 use crate::types::*;
 use crate::util;
 use std::collections::HashMap;
+use std::fmt;
+use std::fmt::{Error, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 
@@ -28,11 +30,20 @@ pub struct Class {
     pub kind: ClassKind,
 }
 
-#[derive(Debug)]
 pub enum ClassKind {
     Instance(ClassObject),
     ObjectArray(ArrayClassObject),
     TypeArray(ArrayClassObject),
+}
+
+impl fmt::Debug for ClassKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ClassKind::Instance(cls) => write!(f, "ClassKind::Instance"),
+            ClassKind::ObjectArray(obj_ary) => write!(f, "ClassKind::ObjectArray"),
+            ClassKind::TypeArray(typ_ar) => write!(f, "ClassKind::TypeArray"),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]

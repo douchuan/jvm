@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::classfile::{self, access_flags as acc, constant_pool};
+use crate::classfile::{self, access_flags as acc, constant_pool, consts as cls_file_const};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
@@ -82,6 +82,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getDeclaredMethods0",
             "(Z)[Ljava/lang/reflect/Method;",
             Box::new(jvm_getDeclaredMethods0),
+        ),
+        new_fn(
+            "getInterfaces0",
+            "()[Ljava/lang/Class;",
+            Box::new(jvm_getInterfaces0),
         ),
     ]
 }
@@ -691,6 +696,51 @@ fn jvm_getDeclaredMethods0(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> 
     get_declared_method_helper(false, jt, env, args)
 }
 
+fn jvm_getInterfaces0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let mirror = {
+        let arg0 = args.get(0).unwrap();
+        extract_mirror_target(arg0)
+    };
+
+    let v = mirror.read().unwrap();
+    let elms = match &v.kind {
+        oop::ClassKind::Instance(inst) => {
+            let mut elms = Vec::with_capacity(inst.class_file.interfaces.len());
+            let cp = &inst.class_file.cp;
+            inst.class_file.interfaces.iter().for_each(|it| {
+                let cls = require_class2(*it, cp).unwrap();
+                let cls = cls.read().unwrap();
+                elms.push(cls.get_mirror());
+            });
+
+            elms
+        }
+        ClassKind::ObjectArray(_ary) => {
+            let cls_cloneable = require_class3(None, cls_file_const::J_CLONEABLE).unwrap();
+            let cls_serializable = require_class3(None, cls_file_const::J_SERIALIZABLE).unwrap();
+            let mut elms = Vec::with_capacity(2);
+
+            {
+                let cls = cls_cloneable.read().unwrap();
+                elms.push(cls.get_mirror());
+            }
+
+            {
+                let cls = cls_serializable.read().unwrap();
+                elms.push(cls.get_mirror());
+            }
+
+            elms
+        }
+        ClassKind::TypeArray(_) => unimplemented!("type array getInterfaces0"),
+    };
+
+    let clazz = require_class3(None, b"[Ljava/lang/Class;").unwrap();
+    let ary = Oop::new_ref_ary2(clazz, elms);
+
+    Ok(Some(ary))
+}
+
 fn get_declared_method_helper(
     want_constructor: bool,
     jt: &mut JavaThread,
@@ -700,12 +750,7 @@ fn get_declared_method_helper(
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();
-        let arg0 = util::oop::extract_ref(arg0);
-        let arg0 = arg0.read().unwrap();
-        match &arg0.v {
-            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!(),
-        }
+        extract_mirror_target(arg0)
     };
 
     let arg1 = args.get(1).unwrap();
@@ -716,7 +761,8 @@ fn get_declared_method_helper(
         let cls = mirror_target.read().unwrap();
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => inst.all_methods.clone(),
-            _ => unreachable!(),
+            oop::class::ClassKind::ObjectArray(_ary) => HashMap::new(),
+            t => unreachable!("{:?}", t),
         }
     };
 
@@ -757,4 +803,13 @@ fn get_declared_method_helper(
     };
 
     Ok(Some(Oop::new_ref_ary2(ary_cls, methods)))
+}
+
+fn extract_mirror_target(v: &Oop) -> ClassRef {
+    let v = util::oop::extract_ref(v);
+    let v = v.read().unwrap();
+    match &v.v {
+        oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
+        _ => unreachable!(),
+    }
 }
