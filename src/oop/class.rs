@@ -566,7 +566,7 @@ impl Class {
 
     pub fn new_object_ary(class_loader: ClassLoader, component: ClassRef, elm_name: &[u8]) -> Self {
         let name = Vec::from(elm_name);
-        let name = new_ref!(name);
+        let name = Arc::new(name);
 
         let ary_cls_obj = ArrayClassObject {
             value_type: ValueType::ARRAY,
@@ -599,7 +599,7 @@ impl Class {
         name.extend_from_slice(value_type.into());
 
         Self {
-            name: new_ref!(name),
+            name: Arc::new(name),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
@@ -647,7 +647,7 @@ impl Class {
         };
 
         Self {
-            name: new_ref!(name2),
+            name: Arc::new(name2),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
