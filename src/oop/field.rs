@@ -127,7 +127,7 @@ impl Field {
 
         let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
-        let id = new_ref!(id);
+        let id = Arc::new(id);
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;

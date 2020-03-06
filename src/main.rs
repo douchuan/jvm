@@ -164,7 +164,7 @@ mod tests {
         assert!(Arc::ptr_eq(&null1, &null11));
 
         let str1 = Vec::from("hello, world");
-        let str1 = new_ref!(str1);
+        let str1 = Arc::new(str1);
         let v1 = Arc::new(Mutex::new(Box::new(Oop::new_const_utf8(str1))));
         let v2 = v1.clone();
         assert!(Arc::ptr_eq(&v1, &v2));

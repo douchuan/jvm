@@ -161,9 +161,9 @@ impl ClassLoader {
     fn load_class_from_path(&self, name: &[u8]) -> Option<ClassRef> {
         let name = unsafe { std::str::from_utf8_unchecked(name) };
         match runtime::find_class_in_classpath(name) {
-            Ok(ClassPathResult(_, buf)) => match class_parser::parse_buf(buf) {
+            Ok(ClassPathResult(_, buf)) => match class_parser::parse_buf(&buf) {
                 Ok(cf) => {
-                    let cfr = new_ref!(cf);
+                    let cfr = Arc::new(Box::new(cf.1));
                     let class = Class::new_class(cfr, Some(*self));
                     Some(new_sync_ref!(class))
                 }

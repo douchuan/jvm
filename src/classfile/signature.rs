@@ -93,7 +93,7 @@ fn parse(raw: &[u8]) -> Vec<Type> {
                     buf.push(v.clone());
 
                     let v = Vec::from(&buf[..]);
-                    let v = new_ref!(v);
+                    let v = Arc::new(v);
 
                     if buf[0] == b'[' {
                         types.push(Type::Array(v));
@@ -127,7 +127,7 @@ fn parse(raw: &[u8]) -> Vec<Type> {
 
                     let mut v1 = Vec::from(&buf[..]);
                     v1.push(*v);
-                    let v = new_ref!(v1);
+                    let v = Arc::new(v1);
                     types.push(Type::Array(v));
 
                     buf.clear();
@@ -152,7 +152,7 @@ mod tests {
 
         let args = "([[Ljava/lang/String;)V";
         let ts = vec![
-            Type::Array(Arc::new(Box::new(Vec::from("[[Ljava/lang/String;")))),
+            Type::Array(Arc::new(Vec::from("[[Ljava/lang/String;"))),
             Type::Void,
         ];
         assert_eq!(parse(args.as_bytes()), ts);
@@ -167,8 +167,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;")))),
-            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
         ];
         assert_eq!(parse(args.as_bytes()), ts);
     }
@@ -184,9 +184,9 @@ mod tests {
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
             sig.args,
-            vec![Type::Array(Arc::new(Box::new(Vec::from(
+            vec![Type::Array(Arc::new(Vec::from(
                 "[[Ljava/lang/String;"
-            ))))]
+            )))]
         );
         assert_eq!(sig.retype, Type::Void);
 
@@ -200,8 +200,8 @@ mod tests {
             Type::Long,
             Type::Short,
             Type::Boolean,
-            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;")))),
-            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;")))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
         ];
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
@@ -215,12 +215,12 @@ mod tests {
                 Type::Long,
                 Type::Short,
                 Type::Boolean,
-                Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/Integer;"))))
+                Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;")))
             ]
         );
         assert_eq!(
             sig.retype,
-            Type::Object(Arc::new(Box::new(Vec::from("Ljava/lang/String;"))))
+            Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))
         );
     }
 
@@ -241,17 +241,17 @@ mod tests {
         setup_test!("J".as_bytes(), Type::Long);
 
         let v = Vec::from("Ljava/lang/Object;");
-        let v = new_ref!(v);
+        let v = Arc::new(v);
         setup_test!("Ljava/lang/Object;".as_bytes(), Type::Object(v));
         setup_test!("S".as_bytes(), Type::Short);
         setup_test!("Z".as_bytes(), Type::Boolean);
 
         let v = Vec::from("[Ljava/lang/Object;");
-        let v = new_ref!(v);
+        let v = Arc::new(v);
         setup_test!("[Ljava/lang/Object;".as_bytes(), Type::Array(v));
 
         let v = Vec::from("[[[D");
-        let v = new_ref!(v);
+        let v = Arc::new(v);
         setup_test!("[[[D".as_bytes(), Type::Array(v));
     }
 }

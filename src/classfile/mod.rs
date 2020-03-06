@@ -18,20 +18,14 @@ use crate::types::*;
 
 #[derive(Debug)]
 pub struct ClassFile {
-    pub magic: U4,
     pub version: Version,
-    pub cp_count: U2,
     pub cp: ConstantPool,
     pub acc_flags: U2,
     pub this_class: U2,
     pub super_class: U2,
-    pub interfaces_count: U2,
     pub interfaces: Vec<U2>,
-    pub fields_count: U2,
     pub fields: Vec<FieldInfo>,
-    pub methods_count: U2,
     pub methods: Vec<MethodInfo>,
-    pub attrs_count: U2,
     pub attrs: Vec<AttrType>,
 }
 
@@ -49,17 +43,13 @@ pub struct Version {
 
 impl Checker for ClassFile {
     fn check(&self, cp: &ConstantPool) -> CheckResult {
-        if self.magic != consts::MAGIC {
-            Err(checker::Err::InvalidMagicNum)
-        } else {
-            for it in self.cp.as_slice() {
-                let r = it.check(cp);
-                if r.is_err() {
-                    return r;
-                }
+        for it in self.cp.as_slice() {
+            let r = it.check(cp);
+            if r.is_err() {
+                return r;
             }
-
-            Ok(())
         }
+
+        Ok(())
     }
 }

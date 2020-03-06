@@ -1,4 +1,5 @@
-use crate::classfile::attr_info::{LineNumber, TargetInfo, TypeAnnotation};
+use crate::types::ConstantPool;
+use crate::classfile::attr_info::{TargetInfo, TypeAnnotation};
 use crate::classfile::{
     attr_info::{self, AttrTag, AttrType},
     constant_pool::*,
@@ -6,6 +7,7 @@ use crate::classfile::{
     method_info::MethodInfo,
     ClassFile, Version,
 };
+use std::sync::Arc;
 
 use nom::{tag, named, named_args, do_parse,number::streaming::{be_u8,be_u16,be_u32}, switch, count, take, call, value};
 
@@ -22,6 +24,26 @@ named!(constant_tag<ConstantTag>, do_parse!(
     tag: be_u8 >>
     (ConstantTag::from(tag))
 ));
+
+// Const generics still not in stable,
+// idk how to write this fancier without them D:
+// Hope compiler will rewrite this properly
+macro_rules! gen_take_exact {
+    ($count: expr, $name: ident) => {
+        fn $name(input: &[u8]) -> nom::IResult<&[u8], [u8; $count]> {
+            let output = [0; $count];
+            // TODO: Nom error
+            assert!(input.len()>=$count);
+            for i in 0..$count {
+                output[i] = input[i];
+            }
+            Ok((&input[$count..], output))
+        }
+    }
+}
+
+gen_take_exact!(4, take_exact_4);
+gen_take_exact!(8, take_exact_8);
 
 named!(cp_entry<ConstantType>, do_parse!(
     ct: constant_tag >>
@@ -50,19 +72,19 @@ named!(cp_entry<ConstantType>, do_parse!(
             (ConstantType::String { string_index })
         ) |
         ConstantTag::Integer => do_parse!(
-            v: take!(4) >>
+            v: take_exact_4 >>
             (ConstantType::Integer { v })
         ) |
         ConstantTag::Float => do_parse!(
-            v: take!(4) >>
+            v: take_exact_4 >>
             (ConstantType::Float { v })
         ) |
         ConstantTag::Long => do_parse!(
-            v: take!(8) >>
+            v: take_exact_8 >>
             (ConstantType::Long { v })
         ) |
         ConstantTag::Double => do_parse!(
-            v: take!(8) >>
+            v: take_exact_8 >>
             (ConstantType::Double { v })
         ) |
         ConstantTag::NameAndType => do_parse!(
@@ -73,7 +95,7 @@ named!(cp_entry<ConstantType>, do_parse!(
         ConstantTag::Utf8 => do_parse!(
             length: be_u16 >>
             bytes: take!(length) >>
-            (ConstantType::Utf8 {length, bytes})
+            (ConstantType::Utf8 { bytes: Arc::new(Vec::from(bytes)) })
         ) |
         ConstantTag::MethodHandle => do_parse!(
             ref_kind: be_u8 >>
@@ -93,7 +115,7 @@ named!(cp_entry<ConstantType>, do_parse!(
     (entry)
 ));
 
-fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], Vec<ConstantType>> {
+fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
     let (mut input, count) = be_u16(input)?;
     let output = Vec::new();
     output.push(ConstantType::Nop);
@@ -106,7 +128,7 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], Vec<ConstantType>> {
             }
         }
     }
-    Ok((input, output))
+    Ok((input, Arc::new(output)))
 }
 
 use attr_info::VerificationTypeInfo;
@@ -229,7 +251,7 @@ named!(element_value_tag<attr_info::ElementValueTag>, do_parse!(
 use attr_info::{ElementValueTag, ElementValueType};
 
 // I didn't found a way to turn byte/char/double/float/... boilerplate into a macro(
-named_args!(element_value_type(cp: Vec<ConstantType>)<attr_info::ElementValueType>, do_parse!(
+named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, do_parse!(
     tag: element_value_tag >>
     inner: switch!(tag,
         ElementValueTag::Byte => do_parse!(
@@ -283,15 +305,12 @@ named_args!(element_value_type(cp: Vec<ConstantType>)<attr_info::ElementValueTyp
         ) |
         ElementValueTag::Annotation => do_parse!(
             value: call!(annotation_entry, cp) >>
-            (ElementValueType::Annotation {
-                v: attr_info::AnnotationElementValue {value}
-            })
+            (ElementValueType::Annotation(attr_info::AnnotationElementValue {value}))
         ) |
         ElementValueTag::Array => do_parse!(
             array_size: be_u16 >>
             values: count!(call!(element_value_type, cp), array_size as usize) >>
             (ElementValueType::Array {
-                n: array_size,
                 values,
             })
         ) |
@@ -300,17 +319,17 @@ named_args!(element_value_type(cp: Vec<ConstantType>)<attr_info::ElementValueTyp
     (inner)
 ));
 
-named_args!(element_value_pair(cp: Vec<ConstantType>)<attr_info::ElementValuePair>, do_parse!(
+named_args!(element_value_pair(cp: ConstantPool)<attr_info::ElementValuePair>, do_parse!(
     name_index: be_u16 >>
     value: call!(element_value_type, cp) >>
     (attr_info::ElementValuePair {name_index, value})
 ));
 
-named_args!(annotation_entry(cp: Vec<ConstantType>)<attr_info::AnnotationEntry>, do_parse!(
+named_args!(annotation_entry(cp: ConstantPool)<attr_info::AnnotationEntry>, do_parse!(
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
-    type_name: value!(get_utf8(cp, type_index as usize).expect("Missing type name")) >>
+    type_name: value!(get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
     (attr_info::AnnotationEntry {type_name, pairs})
 ));
 
@@ -376,7 +395,7 @@ named!(type_path<attr_info::TypePath>, do_parse!(
     })
 ));
 
-named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
+named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
     target_info: target_info >>
     target_path_part_count: be_u8 >>
     target_path: count!(type_path, target_path_part_count as usize) >>
@@ -417,7 +436,7 @@ named!(code_exception<attr_info::CodeException>, do_parse!(
     })
 ));
 
-named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<AttrType>, switch!(tag,
+named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType>, switch!(tag,
     AttrTag::ConstantValue => do_parse!(
         constant_value_index: be_u16 >>
         (AttrType::ConstantValue {constant_value_index})
@@ -433,7 +452,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<Att
         (AttrType::Code(attr_info::Code {
             max_stack,
             max_locals,
-            code,
+            code: Arc::new(Vec::from(code)),
             exceptions,
             attrs,
         }))
@@ -468,7 +487,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<Att
     ) |
     AttrTag::SourceDebugExtension => do_parse!(
         debug_extension: take!(self_len) >>
-        (AttrType::SourceDebugExtension {debug_extension})
+        (AttrType::SourceDebugExtension { debug_extension: Arc::new(Vec::from(debug_extension)) })
     ) |
     AttrTag::LineNumberTable => do_parse!(
         line_count: be_u16 >>
@@ -532,13 +551,13 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<Att
     ) |
     AttrTag::Unknown => do_parse!(
         data: take!(self_len) >>
-        (AttrType::Unknown { data })
+        (AttrType::Unknown)
     )
 ));
 
-named_args!(attr(cp: Vec<ConstantType>)<AttrType>, do_parse!(
+named_args!(attr(cp: ConstantPool)<AttrType>, do_parse!(
     name_index: be_u16 >>
-    name: value!(get_utf8(cp, name_index as usize).expect("Missing name")) >>
+    name: value!(get_utf8(&cp, name_index as usize).expect("Missing name")) >>
     attr_tag: value!(AttrTag::from(name.as_slice())) >>
     attr: switch!(attr_tag,
         AttrTag::Invalid => value!(AttrType::Invalid) |
@@ -553,13 +572,13 @@ named_args!(attr(cp: Vec<ConstantType>)<AttrType>, do_parse!(
     (attr)
 ));
 
-named_args!(attrs(cp: Vec<ConstantType>)<Vec<AttrType>>, do_parse!(
+named_args!(attrs(cp: ConstantPool)<Vec<AttrType>>, do_parse!(
     attrs_count: be_u16 >>
     attrs: count!(call!(attr, cp), attrs_count as usize) >>
     (attrs)
 ));
 
-named_args!(field(cp: Vec<ConstantType>)<FieldInfo>, do_parse!(
+named_args!(field(cp: ConstantPool)<FieldInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
     desc_index: be_u16 >>
@@ -572,7 +591,7 @@ named_args!(field(cp: Vec<ConstantType>)<FieldInfo>, do_parse!(
     })
 ));
 
-named_args!(method_info(cp: Vec<ConstantType>)<MethodInfo>, do_parse!(
+named_args!(method_info(cp: ConstantPool)<MethodInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
     desc_index: be_u16 >>
@@ -587,7 +606,7 @@ named_args!(method_info(cp: Vec<ConstantType>)<MethodInfo>, do_parse!(
 
 named!(class_file<ClassFile>, do_parse!(
     magic: tag!(b"\xCA\xFE\xBA\xBE") >>
-    ver_minor: version >>
+    version: version >>
     cp: constant_pool >>
     acc_flags: be_u16 >>
     this_class: be_u16 >>
@@ -600,13 +619,11 @@ named!(class_file<ClassFile>, do_parse!(
     methods: count!(call!(method_info, cp), method_count as usize) >>
     attrs: call!(attrs, cp) >>
     (ClassFile {
-        magic,
         version,
         cp,
         acc_flags,
         this_class,
         super_class,
-        interfaces_count,
         interfaces,
         fields,
         methods,

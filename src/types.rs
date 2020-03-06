@@ -17,8 +17,8 @@ pub type MethodIdRef = Arc<MethodId>;
 pub type DataAreaRef = RefCell<DataArea>;
 
 // Contains a string constant value in ".class"
-def_ref!(BytesRef, Vec<u8>);
-def_ref!(ConstantPool, Vec<ConstantType>);
+def_already_boxed_ref!(BytesRef, Vec<u8>);
+def_already_boxed_ref!(ConstantPool, Vec<ConstantType>);
 
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);

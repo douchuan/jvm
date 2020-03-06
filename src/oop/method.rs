@@ -97,7 +97,7 @@ impl Method {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let id = vec![name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
-        let id = new_ref!(id);
+        let id = Arc::new(id);
         //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();

@@ -2,7 +2,6 @@ use crate::types::ConstantPool;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Err {
-    InvalidMagicNum,
     InvalidCpClassNameIdx,
     InvalidCpFieldRefClsIdx,
     InvalidCpFieldRefNameAndTypeIdx,

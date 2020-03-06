@@ -48,7 +48,6 @@ pub enum ConstantType {
         desc_index: u16,
     },
     Utf8 {
-        length: u16,
         bytes: BytesRef,
     },
     MethodHandle {
@@ -115,7 +114,7 @@ pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Op
 
 pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
     match cp.get(idx) {
-        Some(ConstantType::Utf8 { length: _, bytes }) => Some(bytes.clone()),
+        Some(ConstantType::Utf8 { bytes }) => Some(bytes.clone()),
         _ => None,
     }
 }
@@ -125,10 +124,7 @@ impl Checker for ConstantType {
         match self {
             ConstantType::Nop => Ok(()),
             ConstantType::Class { name_index } => match cp.get(*name_index as usize) {
-                Some(ConstantType::Utf8 {
-                    length: _,
-                    bytes: _,
-                }) => Ok(()),
+                Some(ConstantType::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpClassNameIdx),
             },
             ConstantType::FieldRef {
@@ -193,10 +189,7 @@ impl Checker for ConstantType {
                 _ => Err(checker::Err::InvalidCpInterfaceMethodRefClsIdx),
             },
             ConstantType::String { string_index } => match cp.get(*string_index as usize) {
-                Some(ConstantType::Utf8 {
-                    length: _,
-                    bytes: _,
-                }) => Ok(()),
+                Some(ConstantType::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpStrStrIdx),
             },
             ConstantType::Integer { v: _ } => Ok(()),
@@ -208,22 +201,16 @@ impl Checker for ConstantType {
                 desc_index,
             } => {
                 match cp.get(*name_index as usize) {
-                    Some(ConstantType::Utf8 {
-                        length: _,
-                        bytes: _,
-                    }) => (),
+                    Some(ConstantType::Utf8 { .. }) => (),
                     _ => return Err(checker::Err::InvalidCpStrStrIdx),
                 }
 
                 match cp.get(*desc_index as usize) {
-                    Some(ConstantType::Utf8 { length, bytes }) => Ok(()),
+                    Some(ConstantType::Utf8 { .. }) => Ok(()),
                     _ => return Err(checker::Err::InvalidCpStrStrIdx),
                 }
             }
-            ConstantType::Utf8 {
-                length: _,
-                bytes: _,
-            } => Ok(()),
+            ConstantType::Utf8 { .. } => Ok(()),
             ConstantType::MethodHandle {
                 ref_kind,
                 ref_index,
@@ -320,10 +307,7 @@ impl Checker for ConstantType {
                 }
             }
             ConstantType::MethodType { desc_index } => match cp.get(*desc_index as usize) {
-                Some(ConstantType::Utf8 {
-                    length: _,
-                    bytes: _,
-                }) => Ok(()),
+                Some(ConstantType::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpStrStrIdx),
             },
             ConstantType::InvokeDynamic {
@@ -411,9 +395,8 @@ impl Debug for ConstantPoolItem<'_, '_> {
                         .map(|t| t.as_cp_item(self.cp)),
                 )
                 .finish(),
-            ConstantType::Utf8 { bytes, length } => f
+            ConstantType::Utf8 { bytes } => f
                 .debug_struct("Utf8")
-                .field("length", length)
                 .field("string", &std::str::from_utf8(bytes))
                 .finish(),
             _ => write!(f, "TODO debug for: {:?}", self.item),
