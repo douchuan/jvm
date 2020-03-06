@@ -1,22 +1,20 @@
 
-### not use zulu8, cause run $JDK_TEST/Character/CheckScript failed
-#JDK_PATH=test/zulu8/jre/lib
-#export JAVA_HOME=/Users/douchuan/work/prj_rust/jvm/test/zulu8/jre
+#########################################
+###modify to according to your env
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre
+JDK_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk
+########################################
 
-
-JDK_PATH=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre/lib
-JDK=$JDK_PATH/resources.jar:$JDK_PATH/rt.jar:$JDK_PATH/jsse.jar:$JDK_PATH/jce.jar:$JDK_PATH/charsets.jar:$JDK_PATH/jfr.jar
-
-JDK_TEST=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang
+JDK=$JAVA_HOME/lib/resources.jar:$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/jsse.jar:$JAVA_HOME/lib/jce.jar:$JAVA_HOME/lib/charsets.jar:$JAVA_HOME/lib/jfr.jar
+JDK_T_LANG=$JDK_SRC/jdk/test/java/lang
 MY_TEST=.:./test
 
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre
+export JAVA_HOME
 
 #export RUST_LOG=trace
 #export RUST_LOG=info
 #export RUST_LOG=warn
 export RUST_BACKTRACE=full
-
 
 
 ### My Test
@@ -74,24 +72,24 @@ export RUST_BACKTRACE=full
 ###############################
 ### jdk test
 ###############################
-#cargo run -- --cp $JDK:$JDK_TEST Compare
-#cargo run -- --cp $JDK:$JDK_TEST HashCode
-#cargo run -- --cp $JDK:$JDK_TEST ToString
+#cargo run -- --cp $JDK:$JDK_T_LANG Compare
+#cargo run -- --cp $JDK:$JDK_T_LANG HashCode
+#cargo run -- --cp $JDK:$JDK_T_LANG ToString
 
 ###todo: optimize
 ###init vm，初始化安全模块慢。
 ### File.createTempFile，会使用SecureRandom，导致一系列安全相关的类被加载
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
-#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Appendable Basic
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Appendable Basic
+#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Appendable Basic
 
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/AssertionError Cause
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean Factory
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean GetBoolean
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean MakeBooleanComparable
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Boolean ParseBoolean
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Byte Decode
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/AssertionError Cause
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean Factory
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean GetBoolean
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean MakeBooleanComparable
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean ParseBoolean
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Byte Decode
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
@@ -121,11 +119,9 @@ export RUST_BACKTRACE=full
 #sum_t_parse_int = 626
 #sum_t_println = 3059
 #sum_t_int2integer = 3201
-export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk/jdk/test/java/lang/Character
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
-#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
-#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
-#cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
-#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class ArrayMethods
-
-
+export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
+#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods
