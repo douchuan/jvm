@@ -92,7 +92,7 @@ pub struct ArrayClassObject {
     pub value_type: ValueType,
 
     //valid when dimension > 1
-    down_type: Option<ClassRef>,
+    pub down_type: Option<ClassRef>,
 
     //valid when it's not TypeArray
     pub component: Option<ClassRef>,

@@ -1,9 +1,9 @@
-use crate::classfile::constant_pool::{self, ConstantType};
+use crate::classfile::constant_pool::{self, get_class_name, get_utf8, ConstantType};
 use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, field, Oop, TypeArrayValue, ValueType};
+use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayValue, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{
@@ -3043,8 +3043,23 @@ impl Frame {
     }
 
     pub fn multi_anew_array(&self) {
-        //todo: impl
-        unimplemented!()
+        let cp_idx = self.read_u2();
+        let dimension = self.read_u1();
+
+        let mut lens = Vec::new();
+        let mut area = self.area.borrow_mut();
+        for _ in 0..dimension {
+            let sub = area.stack.pop_int();
+            //todo: check java/lang/NegativeArraySizeException
+            lens.push(sub);
+        }
+        drop(area);
+
+        let cls = require_class2(cp_idx as u16, &self.cp).unwrap();
+        let ary = new_multi_object_array_helper(cls, &lens, 0);
+
+        let mut area = self.area.borrow_mut();
+        area.stack.push_ref(ary);
     }
 
     pub fn if_null(&self) {
@@ -3092,5 +3107,30 @@ impl Frame {
             "Use of undefined bytecode: {} at {}",
             self.code[pc as usize], pc
         );
+    }
+}
+
+fn new_multi_object_array_helper(cls: ClassRef, lens: &Vec<i32>, idx: usize) -> Oop {
+    let length = lens[idx] as usize;
+
+    let down_type = {
+        let cls = cls.read().unwrap();
+        match &cls.kind {
+            oop::ClassKind::Instance(_) => unreachable!(),
+            ClassKind::ObjectArray(obj_ary) => obj_ary.down_type.clone().unwrap(),
+            ClassKind::TypeArray(typ_ary) => typ_ary.down_type.clone().unwrap(),
+        }
+    };
+
+    if idx < lens.len() - 1 {
+        let mut elms = Vec::with_capacity(length);
+        for i in 0..length {
+            let e = new_multi_object_array_helper(down_type.clone(), lens, idx + 1);
+            elms.push(e);
+        }
+
+        Oop::new_ref_ary2(cls, elms)
+    } else {
+        Oop::new_ref_ary(cls, length)
     }
 }

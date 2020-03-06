@@ -93,6 +93,10 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Math AbsPositiveZero
 
+##todo: depend on testng
+##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
+##CharSequence/DefaultTest.java
+
 ##todo: optimize
 ################################
 ### oracle java
@@ -122,8 +126,6 @@ export TEST_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_TEST:$JDK_TEST/Character CheckScript
+#cargo run -- --cp $JDK:$JDK_TEST:$JDK_TEST/Class ArrayMethods
 
-##todo: depend on testng
-##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
-##CharSequence/DefaultTest.java
 
