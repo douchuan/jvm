@@ -331,6 +331,13 @@ named_args!(annotation_entry(cp: Vec<ConstantType>)<attr_info::AnnotationEntry>,
     (attr_info::AnnotationEntry {type_name, pairs})
 ));
 
+named!(local_var_target_table<attr_info::LocalVarTargetTable>, do_parse!(
+    start_pc: be_u16 >>
+    length: be_u16 >>
+    index: be_u16 >>
+    (attr_info::LocalVarTargetTable {start_pc, length, index})
+));
+
 named!(target_info<TargetInfo>, do_parse!(
     target_type: be_u8 >>
     inner: switch!(target_type,
@@ -355,6 +362,24 @@ named!(target_info<TargetInfo>, do_parse!(
         0x17 => do_parse!(
             throws_type_index: be_u16 >>
             (TargetInfo::Throws {throws_type_index})
+        ) |
+        0x40 | 0x41 => do_parse!(
+            item_count: be_u16 >>
+            items: count!(local_var_target_table, item_count as usize) >>
+            (TargetInfo::LocalVar {table: items})
+        ) |
+        0x42 => do_parse!(
+            exception_table_index: be_u16 >>
+            (TargetInfo::Catch {exception_table_index})
+        ) |
+        0x43 | 0x44 | 0x45 | 0x46 => do_parse!(
+            offset: be_u16 >>
+            (TargetInfo::Offset {offset})
+        ) |
+        0x47 | 0x48 | 0x49 | 0x4A | 0x4B => do_parse!(
+            offset: be_u16 >>
+            type_argument_index: be_u8 >>
+            (TargetInfo::TypeArgument {offset, type_argument_index})
         )
     ) >>
 ));
@@ -652,55 +677,6 @@ impl MethodParser for Parser {
     }
 }
 
-
-impl AttrTypeParserUtils for Parser {
-
-    fn get_attr_util_get_target_info(&mut self, target_type: U1) -> TargetInfo {
-        match target_type {
-            0x40 | 0x41 => {
-                let n = self.get_u2();
-                let mut table = Vec::with_capacity(n as usize);
-                for _ in 0..n {
-                    let start_pc = self.get_u2();
-                    let length = self.get_u2();
-                    let index = self.get_u2();
-                    table.push(attr_info::LocalVarTargetTable {
-                        start_pc,
-                        length,
-                        index,
-                    });
-                }
-                attr_info::TargetInfo::LocalVar { table }
-            }
-            0x42 => {
-                let exception_table_index = self.get_u2();
-                attr_info::TargetInfo::Catch {
-                    exception_table_index,
-                }
-            }
-            0x43 | 0x44 | 0x45 | 0x46 => {
-                let offset = self.get_u2();
-                attr_info::TargetInfo::Offset { offset }
-            }
-            0x47 | 0x48 | 0x49 | 0x4A | 0x4B => {
-                let offset = self.get_u2();
-                let type_argument_index = self.get_u1();
-                attr_info::TargetInfo::TypeArgument {
-                    offset,
-                    type_argument_index,
-                }
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-/*
-pub fn parse<P: AsRef<Path>>(path: P) -> std::io::Result<ClassFile> {
-    let buf = util::read(path);
-    parse_buf(buf)
-}
-*/
 
 pub fn parse_buf(buf: Vec<u8>) -> std::io::Result<ClassFile> {
     let mut parser = Parser::new(buf);
