@@ -124,13 +124,36 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], Vec<ConstantType>> {
     Ok((input, output))
 }
 
+use attr_info::VerificationTypeInfo;
+named!(verification_type_info<VerificationTypeInfo>, do_parse!(
+    id: be_u8 >>
+    inner: switch!(id,
+        0 => value!(VerificationTypeInfo::Top) |
+        1 => value!(VerificationTypeInfo::Integer) |
+        2 => value!(VerificationTypeInfo::Float) |
+        3 => value!(VerificationTypeInfo::Long) |
+        4 => value!(VerificationTypeInfo::Double) |
+        5 => value!(VerificationTypeInfo::Null) |
+        6 => value!(VerificationTypeInfo::UninitializedThis) |
+        7 => do_parse!(
+            cpool_index: be_u16 >>
+            (VerificationTypeInfo::Object {cpool_index})
+        ) |
+        8 => do_parse!(
+            offset: be_u16 >>
+            (VerificationTypeInfo::Uninitialized {offset})
+        )
+    ) >>
+    (inner)
+));
+
 named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
     frame_type: be_u8 >>
     inner: switch!(frame_type,
         0..=63 => value!(attr_info::StackMapFrame::Same {offset_delta: frame_type as u16}) |
         64..=127 => do_parse!(
             offset_delta: value!((frame_type-64) as u16) >>
-            type_info: call!(verification_type_info, 1) >>
+            type_info: verification_type_info >>
             stack: value!(type_info.remove(0)) >>
             (attr_info::StackMapFrame::SameLocals1StackItem {
                 offset_delta,
@@ -276,7 +299,7 @@ named_args!(element_value_type(cp: Vec<ConstantType>)<attr_info::ElementValueTyp
             (ElementValueType::Class {index})
         ) |
         ElementValueTag::Annotation => do_parse!(
-            value: call!(annotation, cp) >>
+            value: call!(annotation_entry, cp) >>
             (ElementValueType::Annotation {
                 v: attr_info::AnnotationElementValue {value}
             })
@@ -308,8 +331,35 @@ named_args!(annotation_entry(cp: Vec<ConstantType>)<attr_info::AnnotationEntry>,
     (attr_info::AnnotationEntry {type_name, pairs})
 ));
 
-named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
+named!(target_info<TargetInfo>, do_parse!(
     target_type: be_u8 >>
+    inner: switch!(target_type,
+        0x00 | 0x01 => do_parse!(
+            type_parameter_index: be_u8 >>
+            (TargetInfo::TypeParameter { type_parameter_index })
+        ) |
+        0x10 => do_parse!(
+            supertype_index: be_u16 >>
+            (TargetInfo::SuperType { supertype_index })
+        ) |
+        0x11 | 0x12 => do_parse!(
+            type_parameter_index: be_u8 >>
+            bound_index: be_u8 >>
+            (TargetInfo::TypeParameterBound {type_parameter_index, bound_index})
+        ) |
+        0x13 | 0x14 | 0x15 => value!(TargetInfo::Empty) |
+        0x16 => do_parse!(
+            formal_parameter_index: be_u8 >>
+            (TargetInfo::FormalParameter {formal_parameter_index})
+        ) |
+        0x17 => do_parse!(
+            throws_type_index: be_u16 >>
+            (TargetInfo::Throws {throws_type_index})
+        )
+    ) >>
+));
+
+named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
     target_info: target_info >>
     target_path_part_count: be_u8 >>
     target_path: count!(type_path, target_path_part_count as usize) >>
@@ -336,6 +386,19 @@ named!(method_parameter<attr_info::MethodParameter>, do_parse!(
     name_index: be_u16 >>
     acc_flags: be_u16 >>
     (attr_info::MethodParameter {name_index, acc_flags})
+));
+
+named!(code_exception<attr_info::CodeException>, do_parse!(
+    start_pc: be_u16 >>
+    end_pc: be_u16 >>
+    handler_pc: be_u16 >>
+    catch_type: be_u16 >>
+    (attr_info::CodeException {
+        start_pc,
+        end_pc,
+        handler_pc,
+        catch_type
+    })
 ));
 
 named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<AttrType>, switch!(tag,
@@ -496,7 +559,7 @@ named_args!(field(cp: Vec<ConstantType>)<FieldInfo>, do_parse!(
 fn parse_class_file(input: &[u8]) -> nom::IResult<&[u8], ()>{
     use nom::tag;
     do_parse!(input,
-        tag!(b"\xCA\xFE\xBA\xBE") >>
+        magic: tag!(b"\xCA\xFE\xBA\xBE") >>
         ver_minor: version >>
         cp: constant_pool >>
         acc_flags: be_u16 >>
@@ -506,22 +569,11 @@ fn parse_class_file(input: &[u8]) -> nom::IResult<&[u8], ()>{
         interfaces: count!(be_u16, interfaces_count as usize) >>
         fields_count: be_u16 >>
         fields: count!(call!(field, cp), fields_count as usize) >>
-    )
-}
-
-impl Parser {
-    fn parse(&mut self) -> ClassFile {
-        parse_class_file(self.buf.get_ref());
-
-        let fields_count = self.get_fields_count();
-        let fields = self.get_fields(fields_count, &cp);
-        let methods_count = self.get_methods_count();
-        let methods = self.get_methods(methods_count, &cp);
-        let attrs_count = self.get_attrs_count();
-        let attrs = self.get_attrs(attrs_count, &cp);
-        //        info!("class attrs = {:?}", attrs);
-
-        ClassFile {
+        method_count: be_u16 >>
+        methods: count!(call!(method_info, cp), method_count as usize) >>
+        attr_count: be_u16 >>
+        attrs: count!(call!(attr_type), attr_count as usize) >>
+        (ClassFile {
             magic,
             version,
             cp_count,
@@ -531,92 +583,14 @@ impl Parser {
             super_class,
             interfaces_count,
             interfaces,
-            fields_count,
+            field_count,
             fields,
-            methods_count,
+            method_count,
             methods,
-            attrs_count,
-            attrs,
-        }
-    }
-
-    fn get_u4(&mut self) -> U4 {
-        self.buf.get_u32()
-    }
-
-    fn get_u2(&mut self) -> U2 {
-        self.buf.get_u16()
-    }
-
-    fn get_u1(&mut self) -> U1 {
-        self.buf.get_u8()
-    }
-
-    fn get_u1s(&mut self, len: usize) -> Vec<U1> {
-        let mut bytes = Vec::with_capacity(len);
-        bytes.resize(len, 0);
-        let r = self.buf.read_exact(&mut bytes);
-        assert!(r.is_ok());
-        bytes
-    }
-
-    fn get_code_exceptions(&mut self, len: usize) -> Vec<attr_info::CodeException> {
-        let mut exceptions = Vec::with_capacity(len);
-
-        for _ in 0..len {
-            let start_pc = self.get_u2();
-            let end_pc = self.get_u2();
-            let handler_pc = self.get_u2();
-            let catch_type = self.get_u2();
-            let exception = attr_info::CodeException {
-                start_pc,
-                end_pc,
-                handler_pc,
-                catch_type,
-            };
-            exceptions.push(exception);
-        }
-
-        exceptions
-    }
-
-    fn get_verification_type_info(&mut self, n: usize) -> Vec<attr_info::VerificationTypeInfo> {
-        let mut r = Vec::with_capacity(n);
-
-        for _ in 0..n {
-            let v = match self.get_u1() {
-                0 => attr_info::VerificationTypeInfo::Top,
-                1 => attr_info::VerificationTypeInfo::Integer,
-                2 => attr_info::VerificationTypeInfo::Float,
-                5 => attr_info::VerificationTypeInfo::Null,
-                6 => attr_info::VerificationTypeInfo::UninitializedThis,
-                7 => {
-                    let cpool_index = self.get_u2();
-                    attr_info::VerificationTypeInfo::Object { cpool_index }
-                }
-                8 => {
-                    let offset = self.get_u2();
-                    attr_info::VerificationTypeInfo::Uninitialized { offset }
-                }
-                4 => attr_info::VerificationTypeInfo::Long,
-                3 => attr_info::VerificationTypeInfo::Double,
-                _ => unreachable!(),
-            };
-
-            r.push(v);
-        }
-
-        r
-    }
-}
-
-trait ClassFileParser {
-    fn get_fields_count(&mut self) -> U2;
-    fn get_fields(&mut self, n: U2, cp: &ConstantPool) -> Vec<FieldInfo>;
-    fn get_methods_count(&mut self) -> U2;
-    fn get_methods(&mut self, n: U2, cp: &ConstantPool) -> Vec<MethodInfo>;
-    fn get_attrs_count(&mut self) -> U2;
-    fn get_attrs(&mut self, n: U2, cp: &ConstantPool) -> Vec<AttrType>;
+            attr_count,
+            attrs
+        })
+    )
 }
 
 impl ClassFileParser for Parser {
@@ -678,64 +652,11 @@ impl MethodParser for Parser {
     }
 }
 
-trait AttrTypeParser {
-    fn get_attr_exceptions(&mut self) -> AttrType;
-    fn get_attr_inner_classes(&mut self) -> AttrType;
-    fn get_attr_enclosing_method(&mut self) -> AttrType;
-    fn get_attr_synthetic(&mut self) -> AttrType;
-    fn get_attr_signature(&mut self) -> AttrType;
-    fn get_attr_source_file(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_source_debug_ext(&mut self) -> AttrType;
-    fn get_attr_line_num_table(&mut self) -> AttrType;
-    fn get_attr_local_var_table(&mut self) -> AttrType;
-    fn get_attr_local_var_type_table(&mut self) -> AttrType;
-    fn get_attr_deprecated(&mut self) -> AttrType;
-    fn get_attr_rt_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_rt_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_rt_in_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_bootstrap_methods(&mut self) -> AttrType;
-    fn get_attr_method_parameters(&mut self) -> AttrType;
-    fn get_attr_unknown(&mut self) -> AttrType;
-}
-
 
 impl AttrTypeParserUtils for Parser {
 
     fn get_attr_util_get_target_info(&mut self, target_type: U1) -> TargetInfo {
         match target_type {
-            0x00 | 0x01 => {
-                let type_parameter_index = self.get_u1();
-                attr_info::TargetInfo::TypeParameter {
-                    type_parameter_index,
-                }
-            }
-            0x10 => {
-                let supertype_index = self.get_u2();
-                attr_info::TargetInfo::SuperType { supertype_index }
-            }
-            0x11 | 0x12 => {
-                let type_parameter_index = self.get_u1();
-                let bound_index = self.get_u1();
-                attr_info::TargetInfo::TypeParameterBound {
-                    type_parameter_index,
-                    bound_index,
-                }
-            }
-            0x13 | 0x14 | 0x15 => attr_info::TargetInfo::Empty,
-            0x16 => {
-                let formal_parameter_index = self.get_u1();
-                attr_info::TargetInfo::FormalParameter {
-                    formal_parameter_index,
-                }
-            }
-            0x17 => {
-                let throws_type_index = self.get_u2();
-                attr_info::TargetInfo::Throws { throws_type_index }
-            }
             0x40 | 0x41 => {
                 let n = self.get_u2();
                 let mut table = Vec::with_capacity(n as usize);
