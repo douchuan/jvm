@@ -124,27 +124,6 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], Vec<ConstantType>> {
     Ok((input, output))
 }
 
-// fn attr(pool: Vec<ConstantType>) -> impl Fn(&[u8]) -> nom::IResult<&[u8], AttrType> {
-//     use nom::value;
-//     move |input| {
-//         let (input, name_index) = be_u16(input)?;
-//         // TODO: Move all expects from this parser to nom error
-//         let name = get_utf8(pool, name_index as usize).expect("Missing attr name");
-//         let tag = AttrTag::from(name.as_slice());
-//         match tag {
-//             AttrTag::Invalid => Ok((input, AttrType::Invalid)),
-//             AttrTag::ConstantValue => do_parse!(input,
-//                 length: be_u32 >> // Assert == 2
-//                 constant_value_index: be_u16 >>
-//                 (AttrType::ConstantValue {constant_value_index})
-//             ),
-//             AttrTag::Code => do_parse!(input,
-//                 length: self.
-//             ),
-//         }
-//     }
-// }
-
 named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
     frame_type: be_u8 >>
     inner: switch!(frame_type,
@@ -193,7 +172,173 @@ named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
     (inner)
 ));
 
-named_args!(attr_sized(tag: AttrTag, cp: Vec<ConstantType>)<AttrType>, switch!(tag,
+named!(inner_class<attr_info::InnerClass>, do_parse!(
+    inner_class_info_index: be_u16 >>
+    outer_class_info_index: be_u16 >>
+    inner_name_index: be_u16 >>
+    inner_class_access_flags: be_u16 >>
+    (attr_info::InnerClass {
+        inner_class_info_index,
+        outer_class_info_index,
+        inner_name_index,
+        inner_class_access_flags,
+    })
+));
+
+named!(enclosing_method<attr_info::EnclosingMethod>, do_parse!(
+    class_index: be_u16 >>
+    method_index: be_u16 >>
+    (attr_info::EnclosingMethod {
+        class_index,
+        method_index,
+    })
+));
+
+named!(line_number<attr_info::LineNumber>, do_parse!(
+    start_pc: be_u16 >>
+    number: be_u16 >>
+    (attr_info::LineNumber {start_pc, number})
+));
+
+named!(local_variable<attr_info::LocalVariable>, do_parse!(
+    start_pc: be_u16 >>
+    length: be_u16 >>
+    name_index: be_u16 >>
+    signature_index: be_u16 >>
+    index: be_u16 >>
+    (attr_info::LocalVariable {
+        start_pc,
+        length,
+        name_index,
+        signature_index,
+        index,
+    })
+));
+
+named!(element_value_tag<attr_info::ElementValueTag>, do_parse!(
+    tag: be_u8 >>
+    (attr_info::ElementValueTag::from(tag))
+));
+
+use attr_info::{ElementValueTag, ElementValueType};
+
+// I didn't found a way to turn byte/char/double/float/... boilerplate into a macro(
+named_args!(element_value_type(cp: Vec<ConstantType>)<attr_info::ElementValueType>, do_parse!(
+    tag: element_value_tag >>
+    inner: switch!(tag,
+        ElementValueTag::Byte => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Byte {val_index})
+        ) |
+        ElementValueTag::Char => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Char {val_index})
+        ) |
+        ElementValueTag::Double => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Double {val_index})
+        ) |
+        ElementValueTag::Float => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Float {val_index})
+        ) |
+        ElementValueTag::Byte => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Byte {val_index})
+        ) |
+        ElementValueTag::Int => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Int {val_index})
+        ) |
+        ElementValueTag::Long => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Long {val_index})
+        ) |
+        ElementValueTag::Short => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Short {val_index})
+        ) |
+        ElementValueTag::Boolean => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::Boolean {val_index})
+        ) |
+        ElementValueTag::String => do_parse!(
+            val_index: be_u16 >>
+            (ElementValueType::String {val_index})
+        ) |
+        ElementValueTag::Enum => do_parse!(
+            type_index: be_u16 >>
+            val_index: be_u16 >>
+            (ElementValueType::Enum {type_index, val_index})
+        ) |
+        ElementValueTag::Class => do_parse!(
+            index: be_u16 >>
+            (ElementValueType::Class {index})
+        ) |
+        ElementValueTag::Annotation => do_parse!(
+            value: call!(annotation, cp) >>
+            (ElementValueType::Annotation {
+                v: attr_info::AnnotationElementValue {value}
+            })
+        ) |
+        ElementValueTag::Array => do_parse!(
+            array_size: be_u16 >>
+            values: count!(call!(element_value_type, cp), array_size as usize) >>
+            (ElementValueType::Array {
+                n: array_size,
+                values,
+            })
+        ) |
+        ElementValueTag::Unknown => value!(ElementValueType::Unknown)
+    ) >>
+    (inner)
+));
+
+named_args!(element_value_pair(cp: Vec<ConstantType>)<attr_info::ElementValuePair>, do_parse!(
+    name_index: be_u16 >>
+    value: call!(element_value_type, cp) >>
+    (attr_info::ElementValuePair {name_index, value})
+));
+
+named_args!(annotation_entry(cp: Vec<ConstantType>)<attr_info::AnnotationEntry>, do_parse!(
+    type_index: be_u16 >>
+    pair_count: be_u16 >>
+    pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
+    type_name: value!(get_utf8(cp, type_index as usize).expect("Missing type name")) >>
+    (attr_info::AnnotationEntry {type_name, pairs})
+));
+
+named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
+    target_type: be_u8 >>
+    target_info: target_info >>
+    target_path_part_count: be_u8 >>
+    target_path: count!(type_path, target_path_part_count as usize) >>
+    type_index: be_u16 >>
+    pair_count: be_u16 >>
+    pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
+    (attr_info::TypeAnnotation {
+        target_type,
+        target_info,
+        target_path,
+        type_index,
+        pairs,
+    })
+));
+
+named!(bootstrap_method<attr_info::BootstrapMethod>, do_parse!(
+    method_ref: be_u16 >>
+    arg_count: be_u16 >>
+    args: count!(be_u16, arg_count as usize) >>
+    (attr_info::BootstrapMethod {method_ref, args})
+));
+
+named!(method_parameter<attr_info::MethodParameter>, do_parse!(
+    name_index: be_u16 >>
+    acc_flags: be_u16 >>
+    (attr_info::MethodParameter {name_index, acc_flags})
+));
+
+named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: Vec<ConstantType>)<AttrType>, switch!(tag,
     AttrTag::ConstantValue => do_parse!(
         constant_value_index: be_u16 >>
         (AttrType::ConstantValue {constant_value_index})
@@ -221,7 +366,94 @@ named_args!(attr_sized(tag: AttrTag, cp: Vec<ConstantType>)<AttrType>, switch!(t
     ) |
     AttrTag::Exceptions => do_parse!(
         exception_count: be_u16 >>
-
+        exceptions: count!(be_u16, exception_count as usize) >>
+        (AttrType::Exceptions { exceptions })
+    ) |
+    AttrTag::InnerClasses => do_parse!(
+        class_count: be_u16 >>
+        classes: count!(inner_class, class_count as usize) >>
+        (AttrType::InnerClasses { classes })
+    ) |
+    AttrTag::EnclosingMethod => do_parse!(
+        em: enclosing_method >>
+        (AttrType::EnclosingMethod { em })
+    ) |
+    AttrTag::Synthetic => value!(AttrType::Synthetic) |
+    AttrTag::Signature => do_parse!(
+        signature_index: be_u16 >>
+        (AttrType::Signature { signature_index })
+    ) |
+    AttrTag::SourceFile => do_parse!(
+        source_file_index: be_u16 >>
+        (AttrType::SourceFile { source_file_index })
+    ) |
+    AttrTag::SourceDebugExtension => do_parse!(
+        debug_extension: take!(self_len) >>
+        (AttrType::SourceDebugExtension {debug_extension})
+    ) |
+    AttrTag::LineNumberTable => do_parse!(
+        line_count: be_u16 >>
+        lines: count!(line_number, line_count as usize) >>
+        (AttrType::LineNumberTable { tables: lines })
+    ) |
+    AttrTag::LocalVariableTable => do_parse!(
+        variable_count: be_u16 >>
+        variables: count!(local_variable, variable_count as usize) >>
+        (AttrType::LocalVariableTable { tables: variables })
+    ) |
+    AttrTag::LocalVariableTypeTable => do_parse!(
+        variable_count: be_u16 >>
+        variables: count!(local_variable, variable_count as usize) >>
+        (AttrType::LocalVariableTypeTable { tables: variables })
+    ) |
+    AttrTag::Deprecated => value!(AttrType::Deprecated) |
+    AttrTag::RuntimeVisibleAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        (AttrType::RuntimeVisibleAnnotations {annotations})
+    ) |
+    AttrTag::RuntimeInvisibleAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        (AttrType::RuntimeInvisibleAnnotations {annotations})
+    ) |
+    AttrTag::RuntimeVisibleParameterAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        (AttrType::RuntimeVisibleParameterAnnotations {annotations})
+    ) |
+    AttrTag::RuntimeInvisibleParameterAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        (AttrType::RuntimeInvisibleParameterAnnotations {annotations})
+    ) |
+    AttrTag::RuntimeVisibleTypeAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(type_annotation, cp), annotation_count as usize) >>
+        (AttrType::RuntimeVisibleTypeAnnotations {annotations})
+    ) |
+    AttrTag::RuntimeInvisibleTypeAnnotations => do_parse!(
+        annotation_count: be_u16 >>
+        annotations: count!(call!(type_annotation, cp), annotation_count as usize) >>
+        (AttrType::RuntimeInvisibleTypeAnnotations {annotations})
+    ) |
+    AttrTag::AnnotationDefault => do_parse!(
+        default_value: call!(element_value_type, cp) >>
+        (AttrType::AnnotationDefault {default_value})
+    ) |
+    AttrTag::BootstrapMethods => do_parse!(
+        method_count: be_u16 >>
+        methods: count!(bootstrap_method, method_count as usize) >>
+        (AttrType::BootstrapMethods {n:method_count, methods})
+    ) |
+    AttrTag::MethodParameters => do_parse!(
+        parameter_count: be_u8 >>
+        parameters: count!(method_parameter, parameter_count as usize) >>
+        (AttrType::MethodParameters {parameters})
+    ) |
+    AttrTag::Unknown => do_parse!(
+        data: take!(self_len) >>
+        (AttrType::Unknown { data })
     )
 ));
 
@@ -234,7 +466,8 @@ named_args!(attr(cp: Vec<ConstantType>)<AttrType>, do_parse!(
         _ => do_parse!(
             length: be_u32 >>
             data: take!(length) >>
-            inner: call!(attr_sized, attr_tag) >>
+            // TODO: Apply attr_sized on data
+            inner: call!(attr_sized, attr_tag, length as usize, cp) >>
             (inner)
         )
     ) >>
@@ -345,16 +578,6 @@ impl Parser {
         }
 
         exceptions
-    }
-
-    fn get_line_nums(&mut self, len: usize) -> Vec<LineNumber> {
-        let mut tables = Vec::with_capacity(len);
-        for _ in 0..len {
-            let start_pc = self.get_u2();
-            let number = self.get_u2();
-            tables.push(attr_info::LineNumber { start_pc, number });
-        }
-        tables
     }
 
     fn get_verification_type_info(&mut self, n: usize) -> Vec<attr_info::VerificationTypeInfo> {
@@ -479,270 +702,8 @@ trait AttrTypeParser {
     fn get_attr_unknown(&mut self) -> AttrType;
 }
 
-trait AttrTypeParserUtils {
-    fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry;
-    fn get_attr_util_get_type_annotation(&mut self, cp: &ConstantPool)
-        -> attr_info::TypeAnnotation;
-    fn get_attr_util_get_target_info(&mut self, target_type: U1) -> attr_info::TargetInfo;
-    fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable;
-    fn get_attr_util_get_element_val(&mut self, cp: &ConstantPool) -> attr_info::ElementValueType;
-}
-
-impl AttrTypeParser for Parser {
-
-    fn get_attr_exceptions(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut exceptions = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            exceptions.push(self.get_u2());
-        }
-        AttrType::Exceptions { exceptions }
-    }
-
-    fn get_attr_inner_classes(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut classes = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let inner_class_info_index = self.get_u2();
-            let outer_class_info_index = self.get_u2();
-            let inner_name_index = self.get_u2();
-            let inner_class_access_flags = self.get_u2();
-            classes.push(attr_info::InnerClass {
-                inner_class_info_index,
-                outer_class_info_index,
-                inner_name_index,
-                inner_class_access_flags,
-            });
-        }
-        AttrType::InnerClasses { classes }
-    }
-
-    fn get_attr_enclosing_method(&mut self) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 4);
-        let class_index = self.get_u2();
-        let method_index = self.get_u2();
-        let em = attr_info::EnclosingMethod {
-            class_index,
-            method_index,
-        };
-        AttrType::EnclosingMethod { em }
-    }
-
-    fn get_attr_synthetic(&mut self) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 0);
-        AttrType::Synthetic
-    }
-
-    fn get_attr_signature(&mut self) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 2);
-        let signature_index = self.get_u2();
-        AttrType::Signature { signature_index }
-    }
-
-    fn get_attr_source_file(&mut self, _cp: &ConstantPool) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 2);
-        let source_file_index = self.get_u2();
-        //        let name = get_utf8(cp, source_file_index as usize).unwrap();
-        //        println!("src name = {}", String::from_utf8_lossy(name.as_slice()));
-        AttrType::SourceFile { source_file_index }
-    }
-
-    fn get_attr_source_debug_ext(&mut self) -> AttrType {
-        let length = self.get_u4();
-        let debug_extension = self.get_u1s(length as usize);
-        let debug_extension = Arc::new(debug_extension);
-        AttrType::SourceDebugExtension { debug_extension }
-    }
-
-    fn get_attr_line_num_table(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let tables = self.get_line_nums(n as usize);
-        AttrType::LineNumberTable { tables }
-    }
-
-    fn get_attr_local_var_table(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut tables = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            tables.push(self.get_attr_util_get_local_var());
-        }
-        AttrType::LocalVariableTable { tables }
-    }
-
-    fn get_attr_local_var_type_table(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut tables = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            tables.push(self.get_attr_util_get_local_var());
-        }
-        AttrType::LocalVariableTypeTable { tables }
-    }
-
-    fn get_attr_deprecated(&mut self) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 0);
-        AttrType::Deprecated
-    }
-
-    fn get_attr_rt_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_annotation(cp));
-        }
-        AttrType::RuntimeVisibleAnnotations { annotations }
-    }
-
-    fn get_attr_rt_in_vis_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_annotation(cp));
-        }
-        AttrType::RuntimeInvisibleAnnotations { annotations }
-    }
-
-    fn get_attr_rt_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_annotation(cp));
-        }
-        AttrType::RuntimeVisibleParameterAnnotations { annotations }
-    }
-
-    fn get_attr_rt_in_vis_parameter_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_annotation(cp));
-        }
-        AttrType::RuntimeInvisibleParameterAnnotations { annotations }
-    }
-
-    fn get_attr_rt_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_type_annotation(cp));
-        }
-        AttrType::RuntimeVisibleTypeAnnotations { annotations }
-    }
-
-    fn get_attr_rt_in_vis_type_annotations(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut annotations = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            annotations.push(self.get_attr_util_get_type_annotation(cp));
-        }
-        AttrType::RuntimeInvisibleTypeAnnotations { annotations }
-    }
-
-    fn get_attr_annotation_default(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let default_value = self.get_attr_util_get_element_val(cp);
-        AttrType::AnnotationDefault { default_value }
-    }
-
-    fn get_attr_bootstrap_methods(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut methods = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let method_ref: U2 = self.get_u2();
-            let n_arg: U2 = self.get_u2();
-            let mut args = Vec::with_capacity(n_arg as usize);
-            for _ in 0..n_arg {
-                args.push(self.get_u2());
-            }
-            methods.push(attr_info::BootstrapMethod { method_ref, args });
-        }
-
-        AttrType::BootstrapMethods { n, methods }
-    }
-
-    fn get_attr_method_parameters(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u1();
-        let mut parameters = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let name_index = self.get_u2();
-            let acc_flags = self.get_u2();
-            parameters.push(attr_info::MethodParameter {
-                name_index,
-                acc_flags,
-            });
-        }
-
-        AttrType::MethodParameters { parameters }
-    }
-
-    fn get_attr_unknown(&mut self) -> AttrType {
-        let len = self.get_u4();
-        let _v = self.get_u1s(len as usize);
-        AttrType::Unknown
-    }
-}
 
 impl AttrTypeParserUtils for Parser {
-    fn get_attr_util_get_annotation(&mut self, cp: &ConstantPool) -> attr_info::AnnotationEntry {
-        let type_index = self.get_u2();
-        let n = self.get_u2();
-        let mut pairs = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let name_index = self.get_u2();
-            let value = self.get_attr_util_get_element_val(cp);
-            pairs.push(attr_info::ElementValuePair { name_index, value });
-        }
-        let type_name = get_utf8(cp, type_index as usize).expect("Missing type name");
-        attr_info::AnnotationEntry { type_name, pairs }
-    }
-
-    fn get_attr_util_get_type_annotation(&mut self, cp: &ConstantPool) -> TypeAnnotation {
-        let target_type = self.get_u1();
-        //Table 4.7.20
-        let target_info = self.get_attr_util_get_target_info(target_type);
-        let n = self.get_u1();
-        let mut target_path = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let type_path_kind = self.get_u1();
-            let type_argument_index = self.get_u1();
-            target_path.push(attr_info::TypePath {
-                type_path_kind,
-                type_argument_index,
-            });
-        }
-        let type_index = self.get_u2();
-        let n = self.get_u2();
-        let mut pairs = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let name_index = self.get_u2();
-            let value = self.get_attr_util_get_element_val(cp);
-            pairs.push(attr_info::ElementValuePair { name_index, value });
-        }
-        attr_info::TypeAnnotation {
-            target_type,
-            target_info,
-            target_path,
-            type_index,
-            pairs,
-        }
-    }
 
     fn get_attr_util_get_target_info(&mut self, target_type: U1) -> TargetInfo {
         match target_type {
@@ -809,90 +770,6 @@ impl AttrTypeParserUtils for Parser {
                 }
             }
             _ => unreachable!(),
-        }
-    }
-
-    fn get_attr_util_get_local_var(&mut self) -> attr_info::LocalVariable {
-        let start_pc = self.get_u2();
-        let length = self.get_u2();
-        let name_index = self.get_u2();
-        let signature_index = self.get_u2();
-        let index = self.get_u2();
-        attr_info::LocalVariable {
-            start_pc,
-            length,
-            name_index,
-            signature_index,
-            index,
-        }
-    }
-
-    fn get_attr_util_get_element_val(&mut self, cp: &ConstantPool) -> attr_info::ElementValueType {
-        let tag = self.get_u1();
-        match attr_info::ElementValueTag::from(tag) {
-            attr_info::ElementValueTag::Byte => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Byte { tag, val_index }
-            }
-            attr_info::ElementValueTag::Char => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Char { tag, val_index }
-            }
-            attr_info::ElementValueTag::Double => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Double { tag, val_index }
-            }
-            attr_info::ElementValueTag::Float => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Float { tag, val_index }
-            }
-            attr_info::ElementValueTag::Int => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Int { tag, val_index }
-            }
-            attr_info::ElementValueTag::Long => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Long { tag, val_index }
-            }
-            attr_info::ElementValueTag::Short => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Short { tag, val_index }
-            }
-            attr_info::ElementValueTag::Boolean => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Boolean { tag, val_index }
-            }
-            attr_info::ElementValueTag::String => {
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::String { tag, val_index }
-            }
-            attr_info::ElementValueTag::Enum => {
-                let type_index = self.get_u2();
-                let val_index = self.get_u2();
-                attr_info::ElementValueType::Enum {
-                    tag,
-                    type_index,
-                    val_index,
-                }
-            }
-            attr_info::ElementValueTag::Class => {
-                let index = self.get_u2();
-                attr_info::ElementValueType::Class { tag, index }
-            }
-            attr_info::ElementValueTag::Annotation => {
-                let value = self.get_attr_util_get_annotation(cp);
-                let v = attr_info::AnnotationElementValue { value };
-                attr_info::ElementValueType::Annotation(v)
-            }
-            attr_info::ElementValueTag::Array => {
-                let n = self.get_u2();
-                let mut values = Vec::with_capacity(n as usize);
-                for _ in 0..n {
-                    values.push(self.get_attr_util_get_element_val(cp));
-                }
-                attr_info::ElementValueType::Array { n, values }
-            }
-            attr_info::ElementValueTag::Unknown => attr_info::ElementValueType::Unknown,
         }
     }
 }
