@@ -71,6 +71,7 @@ pub enum AttrType {
     Unknown,
 }
 
+#[derive(Clone, Copy)]
 pub enum AttrTag {
     Invalid,
     ConstantValue,
@@ -205,7 +206,7 @@ pub struct LocalVariable {
     pub index: U2,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ElementValueTag {
     Byte,
     Char,
@@ -247,53 +248,41 @@ impl From<u8> for ElementValueTag {
 #[derive(Debug, Clone)]
 pub enum ElementValueType {
     Byte {
-        tag: U1,
         val_index: U2,
     },
     Char {
-        tag: U1,
         val_index: U2,
     },
     Double {
-        tag: U1,
         val_index: U2,
     },
     Float {
-        tag: U1,
         val_index: U2,
     },
     Int {
-        tag: U1,
         val_index: U2,
     },
     Long {
-        tag: U1,
         val_index: U2,
     },
     Short {
-        tag: U1,
         val_index: U2,
     },
     Boolean {
-        tag: U1,
         val_index: U2,
     },
     String {
-        tag: U1,
         val_index: U2,
     },
     Enum {
-        tag: U1,
         type_index: U2,
         val_index: U2,
     },
     Class {
-        tag: U1,
         index: U2,
     },
     Annotation(AnnotationElementValue),
     Array {
-        n: U2,
         values: Vec<ElementValueType>,
     },
     Unknown,
@@ -381,7 +370,6 @@ pub enum StackMapFrame {
 
 #[derive(Debug, Clone)]
 pub struct TypeAnnotation {
-    pub target_type: U1,
     pub target_info: TargetInfo,
     pub target_path: Vec<TypePath>,
     pub type_index: U2,

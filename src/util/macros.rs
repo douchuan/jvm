@@ -5,6 +5,12 @@ macro_rules! def_sync_ref {
     };
 }
 
+macro_rules! def_already_boxed_ref {
+    ($name:ident, $t:ty) => {
+        pub type $name = std::sync::Arc<$t>;
+    };
+}
+
 #[macro_export]
 macro_rules! def_ref {
     ($name:ident, $t:ty) => {

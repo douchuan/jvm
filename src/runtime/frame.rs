@@ -107,7 +107,7 @@ impl Frame {
             None => Self {
                 frame_id,
                 class,
-                cp: Arc::new(Box::new(Vec::new())),
+                cp: Arc::new(Vec::new()),
                 mir,
                 code: Arc::new(vec![]),
                 area: DataArea::new(0, 0),
@@ -2811,7 +2811,7 @@ impl Frame {
                     }
                 };
 
-                let name = new_ref!(name);
+                let name = Arc::new(name);
                 (name, class.class_loader.clone())
             };
 
