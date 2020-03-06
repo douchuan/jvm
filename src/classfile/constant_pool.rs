@@ -328,7 +328,7 @@ impl Checker for ConstantType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ConstantTag {
     Class,
     FieldRef,

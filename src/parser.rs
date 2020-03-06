@@ -31,7 +31,7 @@ named!(constant_tag<ConstantTag>, do_parse!(
 macro_rules! gen_take_exact {
     ($count: expr, $name: ident) => {
         fn $name(input: &[u8]) -> nom::IResult<&[u8], [u8; $count]> {
-            let output = [0; $count];
+            let mut output = [0; $count];
             // TODO: Nom error
             assert!(input.len()>=$count);
             for i in 0..$count {
@@ -47,7 +47,7 @@ gen_take_exact!(8, take_exact_8);
 
 named!(cp_entry<ConstantType>, do_parse!(
     ct: constant_tag >>
-    entry: switch!(ct,
+    entry: switch!(value!(ct),
         ConstantTag::Class => do_parse!(
             name_index: be_u16 >>
             (ConstantType::Class { name_index })
@@ -117,15 +117,16 @@ named!(cp_entry<ConstantType>, do_parse!(
 
 fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
     let (mut input, count) = be_u16(input)?;
-    let output = Vec::new();
+    let mut output = Vec::new();
     output.push(ConstantType::Nop);
-    for i in 0..count {
+    for _i in 0..count {
         let (new_input, constant_type) = cp_entry(input)?;
         input = new_input;
         match constant_type {
             ConstantType::Long {..} | ConstantType::Double {..} => {
                 output.push(ConstantType::Nop);
-            }
+            },
+            _ => {},
         }
     }
     Ok((input, Arc::new(output)))
@@ -134,7 +135,7 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
 use attr_info::VerificationTypeInfo;
 named!(verification_type_info<VerificationTypeInfo>, do_parse!(
     id: be_u8 >>
-    inner: switch!(id,
+    inner: switch!(value!(id),
         0 => value!(VerificationTypeInfo::Top) |
         1 => value!(VerificationTypeInfo::Integer) |
         2 => value!(VerificationTypeInfo::Float) |
@@ -156,7 +157,7 @@ named!(verification_type_info<VerificationTypeInfo>, do_parse!(
 
 named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
     frame_type: be_u8 >>
-    inner: switch!(frame_type,
+    inner: switch!(value!(frame_type),
         0..=63 => value!(attr_info::StackMapFrame::Same {offset_delta: frame_type as u16}) |
         64..=127 => do_parse!(
             offset_delta: value!((frame_type-64) as u16) >>
@@ -253,7 +254,7 @@ use attr_info::{ElementValueTag, ElementValueType};
 // I didn't found a way to turn byte/char/double/float/... boilerplate into a macro(
 named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, do_parse!(
     tag: element_value_tag >>
-    inner: switch!(tag,
+    inner: switch!(value!(tag),
         ElementValueTag::Byte => do_parse!(
             val_index: be_u16 >>
             (ElementValueType::Byte {val_index})
@@ -309,7 +310,7 @@ named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, d
         ) |
         ElementValueTag::Array => do_parse!(
             array_size: be_u16 >>
-            values: count!(call!(element_value_type, cp), array_size as usize) >>
+            values: count!(call!(element_value_type, cp.clone()), array_size as usize) >>
             (ElementValueType::Array {
                 values,
             })
@@ -328,7 +329,7 @@ named_args!(element_value_pair(cp: ConstantPool)<attr_info::ElementValuePair>, d
 named_args!(annotation_entry(cp: ConstantPool)<attr_info::AnnotationEntry>, do_parse!(
     type_index: be_u16 >>
     pair_count: be_u16 >>
-    pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
+    pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
     type_name: value!(get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
     (attr_info::AnnotationEntry {type_name, pairs})
 ));
@@ -342,7 +343,7 @@ named!(local_var_target_table<attr_info::LocalVarTargetTable>, do_parse!(
 
 named!(target_info<TargetInfo>, do_parse!(
     target_type: be_u8 >>
-    inner: switch!(target_type,
+    inner: switch!(value!(target_type),
         0x00 | 0x01 => do_parse!(
             type_parameter_index: be_u8 >>
             (TargetInfo::TypeParameter { type_parameter_index })
@@ -384,6 +385,7 @@ named!(target_info<TargetInfo>, do_parse!(
             (TargetInfo::TypeArgument {offset, type_argument_index})
         )
     ) >>
+    (inner)
 ));
 
 named!(type_path<attr_info::TypePath>, do_parse!(
@@ -401,7 +403,7 @@ named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
     target_path: count!(type_path, target_path_part_count as usize) >>
     type_index: be_u16 >>
     pair_count: be_u16 >>
-    pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
+    pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
     (attr_info::TypeAnnotation {
         target_info,
         target_path,
@@ -436,7 +438,7 @@ named!(code_exception<attr_info::CodeException>, do_parse!(
     })
 ));
 
-named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType>, switch!(tag,
+named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType>, switch!(value!(tag),
     AttrTag::ConstantValue => do_parse!(
         constant_value_index: be_u16 >>
         (AttrType::ConstantValue {constant_value_index})
@@ -448,7 +450,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
         code: take!(len) >> // TODO: Parse code in same time?)
         exception_count: be_u16 >>
         exceptions: count!(code_exception, exception_count as usize) >>
-        attrs: call!(attrs, cp) >>
+        attrs: call!(attr_type_vec, cp) >>
         (AttrType::Code(attr_info::Code {
             max_stack,
             max_locals,
@@ -507,36 +509,36 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
     AttrTag::Deprecated => value!(AttrType::Deprecated) |
     AttrTag::RuntimeVisibleAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeVisibleAnnotations {annotations})
     ) |
     AttrTag::RuntimeInvisibleAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeInvisibleAnnotations {annotations})
     ) |
     AttrTag::RuntimeVisibleParameterAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeVisibleParameterAnnotations {annotations})
     ) |
     AttrTag::RuntimeInvisibleParameterAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(annotation_entry, cp), annotation_count as usize) >>
+        annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeInvisibleParameterAnnotations {annotations})
     ) |
     AttrTag::RuntimeVisibleTypeAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(type_annotation, cp), annotation_count as usize) >>
+        annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeVisibleTypeAnnotations {annotations})
     ) |
     AttrTag::RuntimeInvisibleTypeAnnotations => do_parse!(
         annotation_count: be_u16 >>
-        annotations: count!(call!(type_annotation, cp), annotation_count as usize) >>
+        annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
         (AttrType::RuntimeInvisibleTypeAnnotations {annotations})
     ) |
     AttrTag::AnnotationDefault => do_parse!(
-        default_value: call!(element_value_type, cp) >>
+        default_value: call!(element_value_type, cp.clone()) >>
         (AttrType::AnnotationDefault {default_value})
     ) |
     AttrTag::BootstrapMethods => do_parse!(
@@ -555,26 +557,31 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
     )
 ));
 
-named_args!(attr(cp: ConstantPool)<AttrType>, do_parse!(
+named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     name_index: be_u16 >>
     name: value!(get_utf8(&cp, name_index as usize).expect("Missing name")) >>
-    attr_tag: value!(AttrTag::from(name.as_slice())) >>
-    attr: switch!(attr_tag,
+    inner: value!(AttrTag::from(name.as_slice())) >>
+    (inner)
+));
+
+named_args!(attr_type(cp: ConstantPool)<AttrType>, do_parse!(
+    tag: call!(attr_tag, cp.clone()) >>
+    attr: switch!(value!(tag),
         AttrTag::Invalid => value!(AttrType::Invalid) |
         _ => do_parse!(
             length: be_u32 >>
             data: take!(length) >>
             // TODO: Apply attr_sized on data
-            inner: call!(attr_sized, attr_tag, length as usize, cp) >>
+            inner: call!(attr_sized, tag, length as usize, cp.clone()) >>
             (inner)
         )
     ) >>
     (attr)
 ));
 
-named_args!(attrs(cp: ConstantPool)<Vec<AttrType>>, do_parse!(
+named_args!(attr_type_vec(cp: ConstantPool)<Vec<AttrType>>, do_parse!(
     attrs_count: be_u16 >>
-    attrs: count!(call!(attr, cp), attrs_count as usize) >>
+    attrs: count!(call!(attr_type, cp.clone()), attrs_count as usize) >>
     (attrs)
 ));
 
@@ -582,7 +589,7 @@ named_args!(field(cp: ConstantPool)<FieldInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
     desc_index: be_u16 >>
-    attrs: call!(attrs, cp) >>
+    attrs: call!(attr_type_vec, cp) >>
     (FieldInfo {
         acc_flags,
         name_index,
@@ -595,7 +602,7 @@ named_args!(method_info(cp: ConstantPool)<MethodInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
     desc_index: be_u16 >>
-    attrs: call!(attrs, cp) >>
+    attrs: call!(attr_type_vec, cp) >>
     (MethodInfo {
         acc_flags,
         name_index,
@@ -614,13 +621,13 @@ named!(class_file<ClassFile>, do_parse!(
     interfaces_count: be_u16 >>
     interfaces: count!(be_u16, interfaces_count as usize) >>
     fields_count: be_u16 >>
-    fields: count!(call!(field, cp), fields_count as usize) >>
+    fields: count!(call!(field, cp.clone()), fields_count as usize) >>
     method_count: be_u16 >>
-    methods: count!(call!(method_info, cp), method_count as usize) >>
-    attrs: call!(attrs, cp) >>
+    methods: count!(call!(method_info, cp.clone()), method_count as usize) >>
+    attrs: call!(attr_type_vec, cp.clone()) >>
     (ClassFile {
         version,
-        cp,
+        cp: cp.clone(),
         acc_flags,
         this_class,
         super_class,

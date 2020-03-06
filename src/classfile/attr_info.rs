@@ -71,6 +71,7 @@ pub enum AttrType {
     Unknown,
 }
 
+#[derive(Clone, Copy)]
 pub enum AttrTag {
     Invalid,
     ConstantValue,
@@ -205,7 +206,7 @@ pub struct LocalVariable {
     pub index: U2,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ElementValueTag {
     Byte,
     Char,
