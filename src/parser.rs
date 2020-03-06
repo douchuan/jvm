@@ -7,10 +7,10 @@ use crate::classfile::{
     ClassFile, Version,
 };
 use crate::types::*;
-use bytes::Buf;
 use std::io::{Cursor, Read};
 //use std::path::Path;
 use std::sync::Arc;
+use nom::{named, named_args, do_parse,number::streaming::{be_u8,be_u16,be_u32}, switch, count, take, call, value};
 
 struct Parser {
     buf: Cursor<Vec<U1>>,
@@ -24,19 +24,262 @@ impl Parser {
     }
 }
 
+named!(version<Version>, do_parse!(
+    minor: be_u16 >>
+    major: be_u16 >>
+    (Version {
+        minor,
+        major,
+    })
+));
+
+named!(constant_tag<ConstantTag>, do_parse!(
+    tag: be_u8 >>
+    (ConstantTag::from(tag))
+));
+
+named!(cp_entry<ConstantType>, do_parse!(
+    ct: constant_tag >>
+    entry: switch!(ct,
+        ConstantTag::Class => do_parse!(
+            name_index: be_u16 >>
+            (ConstantType::Class { name_index })
+        ) |
+        ConstantTag::FieldRef => do_parse!(
+            class_index: be_u16 >>
+            name_and_type_index: be_u16 >>
+            (ConstantType::FieldRef { class_index, name_and_type_index })
+        ) |
+        ConstantTag::MethodRef => do_parse!(
+            class_index: be_u16 >>
+            name_and_type_index: be_u16 >>
+            (ConstantType::MethodRef { class_index, name_and_type_index })
+        ) |
+        ConstantTag::InterfaceMethodRef => do_parse!(
+            class_index: be_u16 >>
+            name_and_type_index: be_u16 >>
+            (ConstantType::InterfaceMethodRef { class_index, name_and_type_index })
+        ) |
+        ConstantTag::String => do_parse!(
+            string_index: be_u16 >>
+            (ConstantType::String { string_index })
+        ) |
+        ConstantTag::Integer => do_parse!(
+            v: take!(4) >>
+            (ConstantType::Integer { v })
+        ) |
+        ConstantTag::Float => do_parse!(
+            v: take!(4) >>
+            (ConstantType::Float { v })
+        ) |
+        ConstantTag::Long => do_parse!(
+            v: take!(8) >>
+            (ConstantType::Long { v })
+        ) |
+        ConstantTag::Double => do_parse!(
+            v: take!(8) >>
+            (ConstantType::Double { v })
+        ) |
+        ConstantTag::NameAndType => do_parse!(
+            name_index: be_u16 >>
+            desc_index: be_u16 >>
+            (ConstantType::NameAndType { name_index, desc_index })
+        ) |
+        ConstantTag::Utf8 => do_parse!(
+            length: be_u16 >>
+            bytes: take!(length) >>
+            (ConstantType::Utf8 {length, bytes})
+        ) |
+        ConstantTag::MethodHandle => do_parse!(
+            ref_kind: be_u8 >>
+            ref_index: be_u16 >>
+            (ConstantType::MethodHandle { ref_kind, ref_index })
+        ) |
+        ConstantTag::MethodType => do_parse!(
+            desc_index: be_u16 >>
+            (ConstantType::MethodType { desc_index })
+        ) |
+        ConstantTag::InvokeDynamic => do_parse!(
+            bootstrap_method_attr_index: be_u16 >>
+            name_and_type_index: be_u16 >>
+            (ConstantType::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
+        )
+    ) >>
+    (entry)
+));
+
+fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], Vec<ConstantType>> {
+    let (mut input, count) = be_u16(input)?;
+    let output = Vec::new();
+    output.push(ConstantType::Nop);
+    for i in 0..count {
+        let (new_input, constant_type) = cp_entry(input)?;
+        input = new_input;
+        match constant_type {
+            ConstantType::Long {..} | ConstantType::Double {..} => {
+                output.push(ConstantType::Nop);
+            }
+        }
+    }
+    Ok((input, output))
+}
+
+// fn attr(pool: Vec<ConstantType>) -> impl Fn(&[u8]) -> nom::IResult<&[u8], AttrType> {
+//     use nom::value;
+//     move |input| {
+//         let (input, name_index) = be_u16(input)?;
+//         // TODO: Move all expects from this parser to nom error
+//         let name = get_utf8(pool, name_index as usize).expect("Missing attr name");
+//         let tag = AttrTag::from(name.as_slice());
+//         match tag {
+//             AttrTag::Invalid => Ok((input, AttrType::Invalid)),
+//             AttrTag::ConstantValue => do_parse!(input,
+//                 length: be_u32 >> // Assert == 2
+//                 constant_value_index: be_u16 >>
+//                 (AttrType::ConstantValue {constant_value_index})
+//             ),
+//             AttrTag::Code => do_parse!(input,
+//                 length: self.
+//             ),
+//         }
+//     }
+// }
+
+named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
+    frame_type: be_u8 >>
+    inner: switch!(frame_type,
+        0..=63 => value!(attr_info::StackMapFrame::Same {offset_delta: frame_type as u16}) |
+        64..=127 => do_parse!(
+            offset_delta: value!((frame_type-64) as u16) >>
+            type_info: call!(verification_type_info, 1) >>
+            stack: value!(type_info.remove(0)) >>
+            (attr_info::StackMapFrame::SameLocals1StackItem {
+                offset_delta,
+                stack,
+            })
+        ) |
+        128..=246 => value!(attr_info::StackMapFrame::Reserved) |
+        247 => do_parse!(
+            offset_delta: be_u16 >>
+            type_info: call!(verification_type_info, 1) >>
+            stack: value!(type_info.remove(0)) >>
+            (attr_info::StackMapFrame::SameLocals1StackItem {
+                offset_delta,
+                stack,
+            })
+        ) |
+        248..=250 => do_parse!(
+            offset_delta: be_u16 >>
+            (attr_info::StackMapFrame::Chop {
+                offset_delta,
+            })
+        ) |
+        251 => do_parse!(
+            offset_delta: be_u16 >>
+            (attr_info::StackMapFrame::SameExtended {
+                offset_delta
+            })
+        ) |
+        252..=254 => do_parse!(
+            offset_delta: be_u16 >>
+            locals_count: value!(frame_type - 251) >>
+            locals: call!(verification_type_info, locals_count as usize) >>
+            (attr_info::StackMapFrame::Append {
+                offset_delta,
+                locals,
+            })
+        )
+    ) >>
+    (inner)
+));
+
+named_args!(attr_sized(tag: AttrTag, cp: Vec<ConstantType>)<AttrType>, switch!(tag,
+    AttrTag::ConstantValue => do_parse!(
+        constant_value_index: be_u16 >>
+        (AttrType::ConstantValue {constant_value_index})
+    ) |
+    AttrTag::Code => do_parse!(
+        max_stack: be_u16 >>
+        max_locals: be_u16 >>
+        len: be_u16 >>
+        code: take!(len) >> // TODO: Parse code in same time?)
+        exception_count: be_u16 >>
+        exceptions: count!(code_exception, exception_count as usize) >>
+        attrs: call!(attrs, cp) >>
+        (AttrType::Code(attr_info::Code {
+            max_stack,
+            max_locals,
+            code,
+            exceptions,
+            attrs,
+        }))
+    ) |
+    AttrTag::StackMapTable => do_parse!(
+        frame_count: be_u16 >>
+        frames: count!(stack_map_frame, frame_count as usize) >>
+        (AttrType::StackMapTable { entries: frames })
+    ) |
+    AttrTag::Exceptions => do_parse!(
+        exception_count: be_u16 >>
+
+    )
+));
+
+named_args!(attr(cp: Vec<ConstantType>)<AttrType>, do_parse!(
+    name_index: be_u16 >>
+    name: value!(get_utf8(cp, name_index as usize).expect("Missing name")) >>
+    attr_tag: value!(AttrTag::from(name.as_slice())) >>
+    attr: switch!(attr_tag,
+        AttrTag::Invalid => value!(AttrType::Invalid) |
+        _ => do_parse!(
+            length: be_u32 >>
+            data: take!(length) >>
+            inner: call!(attr_sized, attr_tag) >>
+            (inner)
+        )
+    ) >>
+    (attr)
+));
+
+named_args!(attrs(cp: Vec<ConstantType>)<Vec<AttrType>>, do_parse!(
+    attrs_count: be_u16 >>
+    attrs: count!(call!(attr, cp), attrs_count as usize) >>
+    (attrs)
+));
+
+named_args!(field(cp: Vec<ConstantType>)<FieldInfo>, do_parse!(
+    acc_flags: be_u16 >>
+    name_index: be_u16 >>
+    desc_index: be_u16 >>
+    attrs: call!(attrs, cp) >>
+    (FieldInfo {
+        acc_flags,
+        name_index,
+        desc_index,
+        attrs,
+    })
+));
+
+fn parse_class_file(input: &[u8]) -> nom::IResult<&[u8], ()>{
+    use nom::tag;
+    do_parse!(input,
+        tag!(b"\xCA\xFE\xBA\xBE") >>
+        ver_minor: version >>
+        cp: constant_pool >>
+        acc_flags: be_u16 >>
+        this_class: be_u16 >>
+        super_class: be_u16 >>
+        interfaces_count: be_u16 >>
+        interfaces: count!(be_u16, interfaces_count as usize) >>
+        fields_count: be_u16 >>
+        fields: count!(call!(field, cp), fields_count as usize) >>
+    )
+}
+
 impl Parser {
     fn parse(&mut self) -> ClassFile {
-        let magic = self.get_magic();
-        assert_eq!(magic, 0xCAFEBABE);
-        let version = self.get_version();
-        info!("class version={:?}", version);
-        let cp_count = self.get_cp_count();
-        let cp = self.get_cp(cp_count);
-        let acc_flags = self.get_acc_flags();
-        let this_class = self.get_this_class();
-        let super_class = self.get_super_class();
-        let interfaces_count = self.get_interface_count();
-        let interfaces = self.get_interfaces(interfaces_count);
+        parse_class_file(self.buf.get_ref());
+
         let fields_count = self.get_fields_count();
         let fields = self.get_fields(fields_count, &cp);
         let methods_count = self.get_methods_count();
@@ -145,15 +388,6 @@ impl Parser {
 }
 
 trait ClassFileParser {
-    fn get_magic(&mut self) -> U4;
-    fn get_version(&mut self) -> Version;
-    fn get_cp_count(&mut self) -> U2;
-    fn get_cp(&mut self, n: U2) -> ConstantPool;
-    fn get_acc_flags(&mut self) -> U2;
-    fn get_this_class(&mut self) -> U2;
-    fn get_super_class(&mut self) -> U2;
-    fn get_interface_count(&mut self) -> U2;
-    fn get_interfaces(&mut self, n: U2) -> Vec<U2>;
     fn get_fields_count(&mut self) -> U2;
     fn get_fields(&mut self, n: U2, cp: &ConstantPool) -> Vec<FieldInfo>;
     fn get_methods_count(&mut self) -> U2;
@@ -163,87 +397,6 @@ trait ClassFileParser {
 }
 
 impl ClassFileParser for Parser {
-    fn get_magic(&mut self) -> U4 {
-        self.get_u4()
-    }
-
-    fn get_version(&mut self) -> Version {
-        let minor = self.get_u2();
-        let major = self.get_u2();
-        Version { minor, major }
-    }
-
-    fn get_cp_count(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_cp(&mut self, n: U2) -> ConstantPool {
-        let mut v = Vec::new();
-
-        v.push(ConstantType::Nop);
-
-        let mut i = 1;
-        while i < n {
-            let tag = self.get_u1();
-            let ct = ConstantTag::from(tag);
-            let vv = match ct {
-                ConstantTag::Class => self.get_constant_class(),
-                ConstantTag::FieldRef => self.get_constant_field_ref(),
-                ConstantTag::MethodRef => self.get_constant_method_ref(),
-                ConstantTag::InterfaceMethodRef => self.get_constant_interface_method_ref(),
-                ConstantTag::String => self.get_constant_string(),
-                ConstantTag::Integer => self.get_constant_integer(),
-                ConstantTag::Float => self.get_constant_float(),
-                ConstantTag::Long => self.get_constant_long(),
-                ConstantTag::Double => self.get_constant_double(),
-                ConstantTag::NameAndType => self.get_constant_name_and_type(),
-                ConstantTag::Utf8 => self.get_constant_utf8(),
-                ConstantTag::MethodHandle => self.get_constant_method_handle(),
-                ConstantTag::MethodType => self.get_constant_method_type(),
-                ConstantTag::InvokeDynamic => self.get_constant_invoke_dynamic(),
-                _ => unreachable!(),
-            };
-
-            i += 1;
-            v.push(vv);
-
-            //spec 4.4.5
-            match ct {
-                ConstantTag::Long | ConstantTag::Double => {
-                    i += 1;
-                    v.push(ConstantType::Nop);
-                }
-                _ => (),
-            }
-        }
-
-        new_ref!(v)
-    }
-
-    fn get_acc_flags(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_this_class(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_super_class(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_interface_count(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_interfaces(&mut self, n: U2) -> Vec<U2> {
-        let mut v = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            v.push(self.get_u2())
-        }
-        v
-    }
-
     fn get_fields_count(&mut self) -> U2 {
         self.get_u2()
     }
@@ -281,141 +434,6 @@ impl ClassFileParser for Parser {
     }
 }
 
-trait ConstantPoolParser {
-    fn get_constant_class(&mut self) -> ConstantType;
-    fn get_constant_field_ref(&mut self) -> ConstantType;
-    fn get_constant_method_ref(&mut self) -> ConstantType;
-    fn get_constant_interface_method_ref(&mut self) -> ConstantType;
-    fn get_constant_string(&mut self) -> ConstantType;
-    fn get_constant_integer(&mut self) -> ConstantType;
-    fn get_constant_float(&mut self) -> ConstantType;
-    fn get_constant_long(&mut self) -> ConstantType;
-    fn get_constant_double(&mut self) -> ConstantType;
-    fn get_constant_name_and_type(&mut self) -> ConstantType;
-    fn get_constant_utf8(&mut self) -> ConstantType;
-    fn get_constant_method_handle(&mut self) -> ConstantType;
-    fn get_constant_method_type(&mut self) -> ConstantType;
-    fn get_constant_invoke_dynamic(&mut self) -> ConstantType;
-}
-
-impl ConstantPoolParser for Parser {
-    fn get_constant_class(&mut self) -> ConstantType {
-        ConstantType::Class {
-            name_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_field_ref(&mut self) -> ConstantType {
-        ConstantType::FieldRef {
-            class_index: self.get_u2(),
-            name_and_type_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_method_ref(&mut self) -> ConstantType {
-        ConstantType::MethodRef {
-            class_index: self.get_u2(),
-            name_and_type_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_interface_method_ref(&mut self) -> ConstantType {
-        ConstantType::InterfaceMethodRef {
-            class_index: self.get_u2(),
-            name_and_type_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_string(&mut self) -> ConstantType {
-        ConstantType::String {
-            string_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_integer(&mut self) -> ConstantType {
-        let mut v = [0; 4];
-        let r = self.buf.read_exact(&mut v);
-        assert!(r.is_ok());
-        ConstantType::Integer { v }
-    }
-
-    fn get_constant_float(&mut self) -> ConstantType {
-        let mut v = [0; 4];
-        let r = self.buf.read_exact(&mut v);
-        assert!(r.is_ok());
-        ConstantType::Float { v }
-    }
-
-    fn get_constant_long(&mut self) -> ConstantType {
-        let mut v = [0; 8];
-        let r = self.buf.read_exact(&mut v);
-        assert!(r.is_ok());
-        ConstantType::Long { v }
-    }
-
-    fn get_constant_double(&mut self) -> ConstantType {
-        let mut v = [0; 8];
-        let r = self.buf.read_exact(&mut v);
-        assert!(r.is_ok());
-        ConstantType::Double { v }
-    }
-
-    fn get_constant_name_and_type(&mut self) -> ConstantType {
-        ConstantType::NameAndType {
-            name_index: self.get_u2(),
-            desc_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_utf8(&mut self) -> ConstantType {
-        let length = self.get_u2();
-        let bytes = self.get_u1s(length as usize);
-        let bytes = new_ref!(bytes);
-        ConstantType::Utf8 { length, bytes }
-    }
-
-    fn get_constant_method_handle(&mut self) -> ConstantType {
-        ConstantType::MethodHandle {
-            ref_kind: self.get_u1(),
-            ref_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_method_type(&mut self) -> ConstantType {
-        ConstantType::MethodType {
-            desc_index: self.get_u2(),
-        }
-    }
-
-    fn get_constant_invoke_dynamic(&mut self) -> ConstantType {
-        ConstantType::InvokeDynamic {
-            bootstrap_method_attr_index: self.get_u2(),
-            name_and_type_index: self.get_u2(),
-        }
-    }
-}
-
-trait FieldParser {
-    fn get_field(&mut self, cp: &ConstantPool) -> FieldInfo;
-}
-
-impl FieldParser for Parser {
-    fn get_field(&mut self, cp: &ConstantPool) -> FieldInfo {
-        let acc_flags = self.get_u2();
-        let name_index = self.get_u2();
-        let desc_index = self.get_u2();
-        let attrs_count = self.get_attrs_count();
-        let attrs = self.get_attrs(attrs_count, cp);
-        //        info!("field attrs = {:?}", attrs);
-        FieldInfo {
-            acc_flags,
-            name_index,
-            desc_index,
-            attrs,
-        }
-    }
-}
-
 trait MethodParser {
     fn get_method(&mut self, cp: &ConstantPool) -> MethodInfo;
 }
@@ -438,10 +456,6 @@ impl MethodParser for Parser {
 }
 
 trait AttrTypeParser {
-    fn get_attr_type(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_constant_value(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_code(&mut self, cp: &ConstantPool) -> AttrType;
-    fn get_attr_stack_map_table(&mut self) -> AttrType;
     fn get_attr_exceptions(&mut self) -> AttrType;
     fn get_attr_inner_classes(&mut self) -> AttrType;
     fn get_attr_enclosing_method(&mut self) -> AttrType;
@@ -475,155 +489,6 @@ trait AttrTypeParserUtils {
 }
 
 impl AttrTypeParser for Parser {
-    fn get_attr_type(&mut self, cp: &ConstantPool) -> AttrType {
-        let name_index = self.get_u2();
-        let name = get_utf8(cp, name_index as usize).unwrap();
-        let tag = AttrTag::from(name.as_slice());
-
-        match tag {
-            AttrTag::Invalid => AttrType::Invalid,
-            AttrTag::ConstantValue => self.get_attr_constant_value(cp),
-            AttrTag::Code => self.get_attr_code(cp),
-            AttrTag::StackMapTable => self.get_attr_stack_map_table(),
-            AttrTag::Exceptions => self.get_attr_exceptions(),
-            AttrTag::InnerClasses => self.get_attr_inner_classes(),
-            AttrTag::EnclosingMethod => self.get_attr_enclosing_method(),
-            AttrTag::Synthetic => self.get_attr_synthetic(),
-            AttrTag::Signature => self.get_attr_signature(),
-            AttrTag::SourceFile => self.get_attr_source_file(cp),
-            AttrTag::SourceDebugExtension => self.get_attr_source_debug_ext(),
-            AttrTag::LineNumberTable => self.get_attr_line_num_table(),
-            AttrTag::LocalVariableTable => self.get_attr_local_var_table(),
-            AttrTag::LocalVariableTypeTable => self.get_attr_local_var_type_table(),
-            AttrTag::Deprecated => self.get_attr_deprecated(),
-            AttrTag::RuntimeVisibleAnnotations => self.get_attr_rt_vis_annotations(cp),
-            AttrTag::RuntimeInvisibleAnnotations => self.get_attr_rt_in_vis_annotations(cp),
-            AttrTag::RuntimeVisibleParameterAnnotations => {
-                self.get_attr_rt_vis_parameter_annotations(cp)
-            }
-            AttrTag::RuntimeInvisibleParameterAnnotations => {
-                self.get_attr_rt_in_vis_parameter_annotations(cp)
-            }
-            AttrTag::RuntimeVisibleTypeAnnotations => self.get_attr_rt_vis_type_annotations(cp),
-            AttrTag::RuntimeInvisibleTypeAnnotations => {
-                self.get_attr_rt_in_vis_type_annotations(cp)
-            }
-            AttrTag::AnnotationDefault => self.get_attr_annotation_default(cp),
-            AttrTag::BootstrapMethods => self.get_attr_bootstrap_methods(),
-            AttrTag::MethodParameters => self.get_attr_method_parameters(),
-            AttrTag::Unknown => self.get_attr_unknown(),
-        }
-    }
-
-    fn get_attr_constant_value(&mut self, cp: &ConstantPool) -> AttrType {
-        let length = self.get_u4();
-        assert_eq!(length, 2);
-        let constant_value_index = self.get_u2();
-        match cp.get(constant_value_index as usize) {
-            Some(v) => match v {
-                ConstantType::Long { v: _ } => (),              //verify ok
-                ConstantType::Float { v: _ } => (),             //verify ok
-                ConstantType::Double { v: _ } => (),            //verify ok
-                ConstantType::Integer { v: _ } => (),           //verify ok
-                ConstantType::String { string_index: _ } => (), //verify ok
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        }
-        AttrType::ConstantValue {
-            constant_value_index,
-        }
-    }
-
-    fn get_attr_code(&mut self, cp: &ConstantPool) -> AttrType {
-        let _length = self.get_u4();
-        let max_stack = self.get_u2();
-        let max_locals = self.get_u2();
-        let len = self.get_u4();
-        let code = self.get_u1s(len as usize);
-        let code = Arc::new(code);
-        let n = self.get_u2();
-        let exceptions = self.get_code_exceptions(n as usize);
-        let n = self.get_u2();
-        let mut attrs = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            attrs.push(self.get_attr_type(cp));
-        }
-
-        AttrType::Code(attr_info::Code {
-            max_stack,
-            max_locals,
-            code,
-            exceptions,
-            attrs,
-        })
-    }
-
-    fn get_attr_stack_map_table(&mut self) -> AttrType {
-        let _length = self.get_u4();
-        let n = self.get_u2();
-        let mut entries = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            let frame_type = self.get_u1();
-            let v = match frame_type {
-                0..=63 => attr_info::StackMapFrame::Same {
-                    offset_delta: frame_type as U2,
-                },
-                64..=127 => {
-                    let offset_delta = (frame_type - 64) as U2;
-                    let mut v = self.get_verification_type_info(1);
-                    let stack = [v.remove(0)];
-                    attr_info::StackMapFrame::SameLocals1StackItem {
-                        offset_delta,
-                        stack,
-                    }
-                }
-                128..=246 => attr_info::StackMapFrame::Reserved,
-                247 => {
-                    let offset_delta = self.get_u2();
-                    let mut v = self.get_verification_type_info(1);
-                    let stack = [v.remove(0)];
-                    attr_info::StackMapFrame::SameLocals1StackItem {
-                        offset_delta,
-                        stack,
-                    }
-                }
-                248..=250 => {
-                    let offset_delta = self.get_u2();
-                    attr_info::StackMapFrame::Chop { offset_delta }
-                }
-                251 => {
-                    let offset_delta = self.get_u2();
-                    attr_info::StackMapFrame::SameExtended { offset_delta }
-                }
-                252..=254 => {
-                    let offset_delta = self.get_u2();
-                    let n = frame_type - 251;
-                    let locals = self.get_verification_type_info(n as usize);
-                    attr_info::StackMapFrame::Append {
-                        offset_delta,
-                        locals,
-                    }
-                }
-                255 => {
-                    let offset_delta = self.get_u2();
-                    let n = self.get_u2();
-                    let locals = self.get_verification_type_info(n as usize);
-                    let n = self.get_u2();
-                    let stack = self.get_verification_type_info(n as usize);
-                    attr_info::StackMapFrame::Full {
-                        offset_delta,
-                        locals,
-                        stack,
-                    }
-                }
-            };
-
-            entries.push(v);
-        }
-
-        AttrType::StackMapTable { entries }
-    }
 
     fn get_attr_exceptions(&mut self) -> AttrType {
         let _length = self.get_u4();
@@ -844,7 +709,7 @@ impl AttrTypeParserUtils for Parser {
             let value = self.get_attr_util_get_element_val(cp);
             pairs.push(attr_info::ElementValuePair { name_index, value });
         }
-        let type_name = get_utf8(cp, type_index as usize).unwrap();
+        let type_name = get_utf8(cp, type_index as usize).expect("Missing type name");
         attr_info::AnnotationEntry { type_name, pairs }
     }
 
