@@ -6,23 +6,8 @@ use crate::classfile::{
     method_info::MethodInfo,
     ClassFile, Version,
 };
-use crate::types::*;
-use std::io::{Cursor, Read};
-//use std::path::Path;
-use std::sync::Arc;
-use nom::{named, named_args, do_parse,number::streaming::{be_u8,be_u16,be_u32}, switch, count, take, call, value};
 
-struct Parser {
-    buf: Cursor<Vec<U1>>,
-}
-
-impl Parser {
-    fn new(raw: Vec<U1>) -> Self {
-        Self {
-            buf: Cursor::new(raw),
-        }
-    }
-}
+use nom::{tag, named, named_args, do_parse,number::streaming::{be_u8,be_u16,be_u32}, switch, count, take, call, value};
 
 named!(version<Version>, do_parse!(
     minor: be_u16 >>
@@ -154,20 +139,18 @@ named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
         64..=127 => do_parse!(
             offset_delta: value!((frame_type-64) as u16) >>
             type_info: verification_type_info >>
-            stack: value!(type_info.remove(0)) >>
             (attr_info::StackMapFrame::SameLocals1StackItem {
                 offset_delta,
-                stack,
+                stack: [type_info],
             })
         ) |
         128..=246 => value!(attr_info::StackMapFrame::Reserved) |
         247 => do_parse!(
             offset_delta: be_u16 >>
-            type_info: call!(verification_type_info, 1) >>
-            stack: value!(type_info.remove(0)) >>
+            type_info: verification_type_info >>
             (attr_info::StackMapFrame::SameLocals1StackItem {
                 offset_delta,
-                stack,
+                stack: [type_info],
             })
         ) |
         248..=250 => do_parse!(
@@ -185,7 +168,7 @@ named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
         252..=254 => do_parse!(
             offset_delta: be_u16 >>
             locals_count: value!(frame_type - 251) >>
-            locals: call!(verification_type_info, locals_count as usize) >>
+            locals: count!(verification_type_info, locals_count as usize) >>
             (attr_info::StackMapFrame::Append {
                 offset_delta,
                 locals,
@@ -384,6 +367,15 @@ named!(target_info<TargetInfo>, do_parse!(
     ) >>
 ));
 
+named!(type_path<attr_info::TypePath>, do_parse!(
+    type_path_kind: be_u8 >>
+    type_argument_index: be_u8 >>
+    (attr_info::TypePath {
+        type_path_kind,
+        type_argument_index,
+    })
+));
+
 named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
     target_info: target_info >>
     target_path_part_count: be_u8 >>
@@ -392,7 +384,6 @@ named_args!(type_annotation(cp: Vec<ConstantType>)<TypeAnnotation>, do_parse!(
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp), pair_count as usize) >>
     (attr_info::TypeAnnotation {
-        target_type,
         target_info,
         target_path,
         type_index,
@@ -581,104 +572,48 @@ named_args!(field(cp: Vec<ConstantType>)<FieldInfo>, do_parse!(
     })
 ));
 
-fn parse_class_file(input: &[u8]) -> nom::IResult<&[u8], ()>{
-    use nom::tag;
-    do_parse!(input,
-        magic: tag!(b"\xCA\xFE\xBA\xBE") >>
-        ver_minor: version >>
-        cp: constant_pool >>
-        acc_flags: be_u16 >>
-        this_class: be_u16 >>
-        super_class: be_u16 >>
-        interfaces_count: be_u16 >>
-        interfaces: count!(be_u16, interfaces_count as usize) >>
-        fields_count: be_u16 >>
-        fields: count!(call!(field, cp), fields_count as usize) >>
-        method_count: be_u16 >>
-        methods: count!(call!(method_info, cp), method_count as usize) >>
-        attr_count: be_u16 >>
-        attrs: count!(call!(attr_type), attr_count as usize) >>
-        (ClassFile {
-            magic,
-            version,
-            cp_count,
-            cp,
-            acc_flags,
-            this_class,
-            super_class,
-            interfaces_count,
-            interfaces,
-            field_count,
-            fields,
-            method_count,
-            methods,
-            attr_count,
-            attrs
-        })
-    )
-}
+named_args!(method_info(cp: Vec<ConstantType>)<MethodInfo>, do_parse!(
+    acc_flags: be_u16 >>
+    name_index: be_u16 >>
+    desc_index: be_u16 >>
+    attrs: call!(attrs, cp) >>
+    (MethodInfo {
+        acc_flags,
+        name_index,
+        desc_index,
+        attrs,
+    })
+));
 
-impl ClassFileParser for Parser {
-    fn get_fields_count(&mut self) -> U2 {
-        self.get_u2()
-    }
+named!(class_file<ClassFile>, do_parse!(
+    magic: tag!(b"\xCA\xFE\xBA\xBE") >>
+    ver_minor: version >>
+    cp: constant_pool >>
+    acc_flags: be_u16 >>
+    this_class: be_u16 >>
+    super_class: be_u16 >>
+    interfaces_count: be_u16 >>
+    interfaces: count!(be_u16, interfaces_count as usize) >>
+    fields_count: be_u16 >>
+    fields: count!(call!(field, cp), fields_count as usize) >>
+    method_count: be_u16 >>
+    methods: count!(call!(method_info, cp), method_count as usize) >>
+    attrs: call!(attrs, cp) >>
+    (ClassFile {
+        magic,
+        version,
+        cp,
+        acc_flags,
+        this_class,
+        super_class,
+        interfaces_count,
+        interfaces,
+        fields,
+        methods,
+        attrs
+    })
+));
 
-    fn get_fields(&mut self, n: U2, cp: &ConstantPool) -> Vec<FieldInfo> {
-        let mut v = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            v.push(self.get_field(cp))
-        }
-        v
-    }
-
-    fn get_methods_count(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_methods(&mut self, n: U2, cp: &ConstantPool) -> Vec<MethodInfo> {
-        let mut v = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            v.push(self.get_method(cp));
-        }
-        v
-    }
-
-    fn get_attrs_count(&mut self) -> U2 {
-        self.get_u2()
-    }
-
-    fn get_attrs(&mut self, n: U2, cp: &ConstantPool) -> Vec<AttrType> {
-        let mut v = Vec::with_capacity(n as usize);
-        for _ in 0..n {
-            v.push(self.get_attr_type(cp));
-        }
-        v
-    }
-}
-
-trait MethodParser {
-    fn get_method(&mut self, cp: &ConstantPool) -> MethodInfo;
-}
-
-impl MethodParser for Parser {
-    fn get_method(&mut self, cp: &ConstantPool) -> MethodInfo {
-        let acc_flags = self.get_u2();
-        let name_index = self.get_u2();
-        let desc_index = self.get_u2();
-        let attrs_count = self.get_attrs_count();
-        let attrs = self.get_attrs(attrs_count, cp);
-        //        info!("method attrs = {:?}", attrs);
-        MethodInfo {
-            acc_flags,
-            name_index,
-            desc_index,
-            attrs,
-        }
-    }
-}
-
-
-pub fn parse_buf(buf: Vec<u8>) -> std::io::Result<ClassFile> {
-    let mut parser = Parser::new(buf);
-    Ok(parser.parse())
+pub fn parse_buf(input: &[u8]) -> nom::IResult<&[u8], ClassFile> {
+    class_file(input)
 }
