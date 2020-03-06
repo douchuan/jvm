@@ -4,22 +4,21 @@ That's the process of achieving this goal, the produce of industry and technolog
 
 Sun is a great company, in the era of C++, they created JVM & HotSpot.
 
-Now, we have Rust, a better tool, let’s remake JVM! To explore the limits of Rust,
-then break through the limit.
+Now, we have Rust, a better tool, let’s remake JVM! 
 
 Pay tribute to  frontline medical staff! Thank you for your contribution to the fight against the epidemic.
 
 ## Usage
 
-Modify the run.sh script according to your environment
+Modify the run.sh script according to your environment.
 
-if you installed JDK, but can not find jre path, try cmd:
+If you installed JDK, but can not find jre path, try:
 
 ```shell
 java -XshowSettings:properties
 ```
 
-## Road map
+## Roadmap
 
 - pass test cases in JDK 
 - WebAssembly, make the JVM work in Browser 
