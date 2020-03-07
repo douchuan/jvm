@@ -1,16 +1,21 @@
-use crate::types::ConstantPool;
 use crate::classfile::attr_info::{TargetInfo, TypeAnnotation};
 use crate::classfile::{
-    attr_info::{self, AttrTag, AttrType},
-    constant_pool::*,
-    field_info::FieldInfo,
-    method_info::MethodInfo,
-    ClassFile, Version,
+	attr_info::{self, AttrTag, AttrType},
+	constant_pool::*,
+	field_info::FieldInfo,
+	method_info::MethodInfo,
+	ClassFile, Version,
 };
+use crate::types::ConstantPool;
 use std::sync::Arc;
 
-use nom::{tag, named, named_args, do_parse,number::streaming::{be_u8,be_u16,be_u32}, switch, count, take, call, value};
+use nom::{
+	call, count, do_parse, named, named_args,
+	number::streaming::{be_u16, be_u32, be_u8},
+	switch, tag, take, value,
+};
 
+#[rustfmt::skip]
 named!(version<Version>, do_parse!(
     minor: be_u16 >>
     major: be_u16 >>
@@ -20,6 +25,7 @@ named!(version<Version>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(constant_tag<ConstantTag>, do_parse!(
     tag: be_u8 >>
     (ConstantTag::from(tag))
@@ -29,22 +35,23 @@ named!(constant_tag<ConstantTag>, do_parse!(
 // idk how to write this fancier without them D:
 // Hope compiler will rewrite this properly
 macro_rules! gen_take_exact {
-    ($count: expr, $name: ident) => {
-        fn $name(input: &[u8]) -> nom::IResult<&[u8], [u8; $count]> {
-            let mut output = [0; $count];
-            // TODO: Nom error
-            assert!(input.len()>=$count);
-            for i in 0..$count {
-                output[i] = input[i];
-            }
-            Ok((&input[$count..], output))
-        }
-    }
+	($count: expr, $name: ident) => {
+		fn $name(input: &[u8]) -> nom::IResult<&[u8], [u8; $count]> {
+			let mut output = [0; $count];
+			// TODO: Nom error
+			assert!(input.len() >= $count);
+			for i in 0..$count {
+				output[i] = input[i];
+			}
+			Ok((&input[$count..], output))
+		}
+	};
 }
 
 gen_take_exact!(4, take_exact_4);
 gen_take_exact!(8, take_exact_8);
 
+#[rustfmt::skip]
 named!(cp_entry<ConstantType>, do_parse!(
     ct: constant_tag >>
     entry: switch!(value!(ct),
@@ -115,15 +122,24 @@ named!(cp_entry<ConstantType>, do_parse!(
     (entry)
 ));
 
+#[rustfmt::skip]
 fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
     let (mut input, count) = be_u16(input)?;
-    let mut output = Vec::new();
+
+    let mut output = Vec::with_capacity(count as usize);
     output.push(ConstantType::Nop);
-    for _i in 0..count {
+    let mut i = 1;
+    while i < count {
         let (new_input, constant_type) = cp_entry(input)?;
         input = new_input;
+
+        i += 1;
+        output.push(constant_type.clone());
+
+        //spec 4.4.5
         match constant_type {
             ConstantType::Long {..} | ConstantType::Double {..} => {
+                i += 1;
                 output.push(ConstantType::Nop);
             },
             _ => {},
@@ -133,6 +149,7 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
 }
 
 use attr_info::VerificationTypeInfo;
+#[rustfmt::skip]
 named!(verification_type_info<VerificationTypeInfo>, do_parse!(
     id: be_u8 >>
     inner: switch!(value!(id),
@@ -155,6 +172,7 @@ named!(verification_type_info<VerificationTypeInfo>, do_parse!(
     (inner)
 ));
 
+#[rustfmt::skip]
 named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
     frame_type: be_u8 >>
     inner: switch!(value!(frame_type),
@@ -196,11 +214,24 @@ named!(stack_map_frame<attr_info::StackMapFrame>, do_parse!(
                 offset_delta,
                 locals,
             })
+        ) |
+        255 => do_parse!(
+            offset_delta: be_u16 >>
+            locals_count: be_u16 >>
+            locals: count!(verification_type_info, locals_count as usize) >>
+            stack_count: be_u16 >>
+            stack: count!(verification_type_info, stack_count as usize) >>
+            (attr_info::StackMapFrame::Full {
+                offset_delta,
+                locals,
+                stack,
+            })
         )
     ) >>
     (inner)
 ));
 
+#[rustfmt::skip]
 named!(inner_class<attr_info::InnerClass>, do_parse!(
     inner_class_info_index: be_u16 >>
     outer_class_info_index: be_u16 >>
@@ -214,6 +245,7 @@ named!(inner_class<attr_info::InnerClass>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(enclosing_method<attr_info::EnclosingMethod>, do_parse!(
     class_index: be_u16 >>
     method_index: be_u16 >>
@@ -223,12 +255,14 @@ named!(enclosing_method<attr_info::EnclosingMethod>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(line_number<attr_info::LineNumber>, do_parse!(
     start_pc: be_u16 >>
     number: be_u16 >>
     (attr_info::LineNumber {start_pc, number})
 ));
 
+#[rustfmt::skip]
 named!(local_variable<attr_info::LocalVariable>, do_parse!(
     start_pc: be_u16 >>
     length: be_u16 >>
@@ -244,6 +278,7 @@ named!(local_variable<attr_info::LocalVariable>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(element_value_tag<attr_info::ElementValueTag>, do_parse!(
     tag: be_u8 >>
     (attr_info::ElementValueTag::from(tag))
@@ -252,6 +287,7 @@ named!(element_value_tag<attr_info::ElementValueTag>, do_parse!(
 use attr_info::{ElementValueTag, ElementValueType};
 
 // I didn't found a way to turn byte/char/double/float/... boilerplate into a macro(
+#[rustfmt::skip]
 named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, do_parse!(
     tag: element_value_tag >>
     inner: switch!(value!(tag),
@@ -320,12 +356,14 @@ named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, d
     (inner)
 ));
 
+#[rustfmt::skip]
 named_args!(element_value_pair(cp: ConstantPool)<attr_info::ElementValuePair>, do_parse!(
     name_index: be_u16 >>
     value: call!(element_value_type, cp) >>
     (attr_info::ElementValuePair {name_index, value})
 ));
 
+#[rustfmt::skip]
 named_args!(annotation_entry(cp: ConstantPool)<attr_info::AnnotationEntry>, do_parse!(
     type_index: be_u16 >>
     pair_count: be_u16 >>
@@ -334,6 +372,7 @@ named_args!(annotation_entry(cp: ConstantPool)<attr_info::AnnotationEntry>, do_p
     (attr_info::AnnotationEntry {type_name, pairs})
 ));
 
+#[rustfmt::skip]
 named!(local_var_target_table<attr_info::LocalVarTargetTable>, do_parse!(
     start_pc: be_u16 >>
     length: be_u16 >>
@@ -341,6 +380,7 @@ named!(local_var_target_table<attr_info::LocalVarTargetTable>, do_parse!(
     (attr_info::LocalVarTargetTable {start_pc, length, index})
 ));
 
+#[rustfmt::skip]
 named!(target_info<TargetInfo>, do_parse!(
     target_type: be_u8 >>
     inner: switch!(value!(target_type),
@@ -388,6 +428,7 @@ named!(target_info<TargetInfo>, do_parse!(
     (inner)
 ));
 
+#[rustfmt::skip]
 named!(type_path<attr_info::TypePath>, do_parse!(
     type_path_kind: be_u8 >>
     type_argument_index: be_u8 >>
@@ -397,6 +438,7 @@ named!(type_path<attr_info::TypePath>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
     target_info: target_info >>
     target_path_part_count: be_u8 >>
@@ -412,6 +454,7 @@ named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(bootstrap_method<attr_info::BootstrapMethod>, do_parse!(
     method_ref: be_u16 >>
     arg_count: be_u16 >>
@@ -419,12 +462,14 @@ named!(bootstrap_method<attr_info::BootstrapMethod>, do_parse!(
     (attr_info::BootstrapMethod {method_ref, args})
 ));
 
+#[rustfmt::skip]
 named!(method_parameter<attr_info::MethodParameter>, do_parse!(
     name_index: be_u16 >>
     acc_flags: be_u16 >>
     (attr_info::MethodParameter {name_index, acc_flags})
 ));
 
+#[rustfmt::skip]
 named!(code_exception<attr_info::CodeException>, do_parse!(
     start_pc: be_u16 >>
     end_pc: be_u16 >>
@@ -438,6 +483,7 @@ named!(code_exception<attr_info::CodeException>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType>, switch!(value!(tag),
     AttrTag::ConstantValue => do_parse!(
         constant_value_index: be_u16 >>
@@ -552,11 +598,12 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
         (AttrType::MethodParameters {parameters})
     ) |
     AttrTag::Unknown => do_parse!(
-        data: take!(self_len) >>
+        _data: take!(self_len) >>
         (AttrType::Unknown)
     )
 ));
 
+#[rustfmt::skip]
 named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     name_index: be_u16 >>
     name: value!(get_utf8(&cp, name_index as usize).expect("Missing name")) >>
@@ -564,13 +611,14 @@ named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     (inner)
 ));
 
+#[rustfmt::skip]
 named_args!(attr_type(cp: ConstantPool)<AttrType>, do_parse!(
     tag: call!(attr_tag, cp.clone()) >>
     attr: switch!(value!(tag),
         AttrTag::Invalid => value!(AttrType::Invalid) |
         _ => do_parse!(
             length: be_u32 >>
-            data: take!(length) >>
+            // data: take!(length) >>
             // TODO: Apply attr_sized on data
             inner: call!(attr_sized, tag, length as usize, cp.clone()) >>
             (inner)
@@ -579,12 +627,14 @@ named_args!(attr_type(cp: ConstantPool)<AttrType>, do_parse!(
     (attr)
 ));
 
+#[rustfmt::skip]
 named_args!(attr_type_vec(cp: ConstantPool)<Vec<AttrType>>, do_parse!(
     attrs_count: be_u16 >>
     attrs: count!(call!(attr_type, cp.clone()), attrs_count as usize) >>
     (attrs)
 ));
 
+#[rustfmt::skip]
 named_args!(field(cp: ConstantPool)<FieldInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
@@ -598,6 +648,7 @@ named_args!(field(cp: ConstantPool)<FieldInfo>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named_args!(method_info(cp: ConstantPool)<MethodInfo>, do_parse!(
     acc_flags: be_u16 >>
     name_index: be_u16 >>
@@ -611,8 +662,9 @@ named_args!(method_info(cp: ConstantPool)<MethodInfo>, do_parse!(
     })
 ));
 
+#[rustfmt::skip]
 named!(class_file<ClassFile>, do_parse!(
-    magic: tag!(b"\xCA\xFE\xBA\xBE") >>
+    _magic: tag!(b"\xCA\xFE\xBA\xBE") >>
     version: version >>
     cp: constant_pool >>
     acc_flags: be_u16 >>
@@ -639,5 +691,5 @@ named!(class_file<ClassFile>, do_parse!(
 ));
 
 pub fn parse_buf(input: &[u8]) -> nom::IResult<&[u8], ClassFile> {
-    class_file(input)
+	class_file(input)
 }
