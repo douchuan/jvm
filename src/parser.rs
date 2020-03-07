@@ -634,15 +634,8 @@ named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
 
 named_args!(attr_type(cp: ConstantPool)<AttrType>, do_parse!(
     tag: call!(attr_tag, cp.clone()) >>
-    attr: switch!(value!(tag),
-        AttrTag::Invalid => value!(AttrType::Invalid) |
-        _ => do_parse!(
-            length: be_u32 >>
-            // TODO: Apply attr_sized on data
-            inner: call!(attr_sized, tag, length as usize, cp.clone()) >>
-            (inner)
-        )
-    ) >>
+    length: be_u32 >>
+    attr: call!(attr_sized, tag, length as usize, cp.clone()) >>
     (attr)
 ));
 

@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum AttrType {
-    Invalid,
     ConstantValue {
         constant_value_index: U2,
     },
@@ -73,7 +72,6 @@ pub enum AttrType {
 
 #[derive(Clone, Copy)]
 pub enum AttrTag {
-    Invalid,
     ConstantValue,
     Code,
     StackMapTable,
