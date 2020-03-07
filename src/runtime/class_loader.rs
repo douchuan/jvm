@@ -30,7 +30,6 @@ pub fn require_class3(class_loader: Option<ClassLoader>, name: &[u8]) -> Option<
 
 impl ClassLoader {
     fn load_class(&self, name: &[u8]) -> Option<ClassRef> {
-        assert_ne!(name[0], b'L');
         assert!(!name.contains(&b'.'));
         //        error!("load_class name = {}", String::from_utf8_lossy(name));
         match self {

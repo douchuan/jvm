@@ -313,18 +313,26 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 }
 
 fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let target = {
+    let (target, value_type) = {
         let arg0 = args.get(0).unwrap();
         let arg0 = util::oop::extract_ref(arg0);
         let arg0 = arg0.read().unwrap();
         match &arg0.v {
-            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
+            oop::RefKind::Mirror(mirror) => (mirror.target.clone(), mirror.value_type),
             _ => unreachable!(),
         }
     };
     let name = {
-        let cls = target.read().unwrap();
-        cls.name.clone()
+        match target {
+            Some(target) => {
+                let cls = target.read().unwrap();
+                cls.name.clone()
+            }
+            None => match value_type {
+                ValueType::INT => Arc::new(Vec::from("int")),
+                _ => unimplemented!(),
+            },
+        }
     };
 
     let name = String::from_utf8_lossy(name.as_slice());

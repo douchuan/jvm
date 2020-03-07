@@ -124,7 +124,7 @@ impl Oop {
         let field_values = field::build_inited_field_values(java_lang_class);
         let v = MirrorOopDesc {
             target,
-            field_values: vec![],
+            field_values,
             value_type,
         };
 
