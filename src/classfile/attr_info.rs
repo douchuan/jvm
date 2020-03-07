@@ -247,44 +247,19 @@ impl From<u8> for ElementValueTag {
 
 #[derive(Debug, Clone)]
 pub enum ElementValueType {
-    Byte {
-        val_index: U2,
-    },
-    Char {
-        val_index: U2,
-    },
-    Double {
-        val_index: U2,
-    },
-    Float {
-        val_index: U2,
-    },
-    Int {
-        val_index: U2,
-    },
-    Long {
-        val_index: U2,
-    },
-    Short {
-        val_index: U2,
-    },
-    Boolean {
-        val_index: U2,
-    },
-    String {
-        val_index: U2,
-    },
-    Enum {
-        type_index: U2,
-        val_index: U2,
-    },
-    Class {
-        index: U2,
-    },
+    Byte { val_index: U2 },
+    Char { val_index: U2 },
+    Double { val_index: U2 },
+    Float { val_index: U2 },
+    Int { val_index: U2 },
+    Long { val_index: U2 },
+    Short { val_index: U2 },
+    Boolean { val_index: U2 },
+    String { val_index: U2 },
+    Enum { type_index: U2, val_index: U2 },
+    Class { index: U2 },
     Annotation(AnnotationElementValue),
-    Array {
-        values: Vec<ElementValueType>,
-    },
+    Array { values: Vec<ElementValueType> },
     Unknown,
 }
 
