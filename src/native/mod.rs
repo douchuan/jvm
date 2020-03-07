@@ -29,6 +29,7 @@ mod sun_misc_URLClassPath;
 mod sun_misc_Unsafe;
 mod sun_misc_VM;
 mod sun_nio_cs_StreamEncoder;
+mod sun_reflect_ConstantPool;
 mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_NativeMethodAccessorImpl;
 mod sun_reflect_Reflection;
@@ -142,6 +143,10 @@ pub fn init() {
         (
             "sun/nio/cs/StreamEncoder",
             sun_nio_cs_StreamEncoder::get_native_methods(),
+        ),
+        (
+            "sun/reflect/ConstantPool",
+            sun_reflect_ConstantPool::get_native_methods(),
         ),
         (
             "sun/reflect/NativeConstructorAccessorImpl",
