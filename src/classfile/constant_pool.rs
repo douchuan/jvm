@@ -344,6 +344,7 @@ pub enum ConstantTag {
     MethodHandle,
     MethodType,
     InvokeDynamic,
+    Unknown,
 }
 
 impl From<u8> for ConstantTag {
@@ -363,7 +364,7 @@ impl From<u8> for ConstantTag {
             15 => ConstantTag::MethodHandle,
             16 => ConstantTag::MethodType,
             18 => ConstantTag::InvokeDynamic,
-            _ => unreachable!(),
+            _ => ConstantTag::Unknown,
         }
     }
 }

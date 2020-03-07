@@ -184,7 +184,9 @@ mod tests {
         let sig = MethodSignature::new(args.as_bytes());
         assert_eq!(
             sig.args,
-            vec![Type::Array(Arc::new(Vec::from("[[Ljava/lang/String;")))]
+            vec![Type::Array(Arc::new(Vec::from(
+                "[[Ljava/lang/String;"
+            )))]
         );
         assert_eq!(sig.retype, Type::Void);
 
