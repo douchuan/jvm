@@ -75,7 +75,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
         };
 
         let cls_name = { mir.method.class.read().unwrap().name.clone() };
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
+        let cls_name = String::from_utf8_lossy(cls_name.as_slice()).replace("/", ".");
         let method_name = mir.method.name.clone();
         let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
         let src_file = {
