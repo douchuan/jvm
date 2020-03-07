@@ -24,7 +24,8 @@ java -XshowSettings:properties
 - WebAssembly, make the JVM work in Browser 
 - separate class parser from project as one standalone create
 - support thread
-- support GC, then optimize System.arraycopy
+- support GC, then optimize System.arraycopy (the key of performance)
 - split frame.rs into frame.rs & interp.rs
 - pass TCK
 - support higher version of JVM Spec 
+- java options (-version, -server...)
