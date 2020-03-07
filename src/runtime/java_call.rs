@@ -1,5 +1,5 @@
 use crate::classfile::consts;
-use crate::classfile::signature::{self, MethodSignature, Type as ArgType};
+use crate::classfile::signature::{self, MethodSignature, Type as ArgType, Type};
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread};
@@ -351,7 +351,7 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
 
 pub fn set_return(caller: Option<&DataAreaRef>, return_type: ArgType, v: Option<Oop>) {
     match return_type {
-        ArgType::Byte | ArgType::Char | ArgType::Int | ArgType::Boolean => {
+        ArgType::Byte | ArgType::Short | ArgType::Char | ArgType::Int | ArgType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
             let mut area = caller.unwrap().borrow_mut();
@@ -381,6 +381,5 @@ pub fn set_return(caller: Option<&DataAreaRef>, return_type: ArgType, v: Option<
             area.stack.push_ref(v);
         }
         ArgType::Void => (),
-        _ => unreachable!(),
     }
 }

@@ -2988,6 +2988,10 @@ impl Frame {
                         let obj_cls = inst.class.clone();
                         cmp::instance_of(obj_cls, target_cls)
                     }
+                    oop::RefKind::Mirror(mirror) => {
+                        let obj_cls = mirror.target.clone().unwrap();
+                        cmp::instance_of(obj_cls, target_cls)
+                    }
                     _ => unreachable!(),
                 }
             }

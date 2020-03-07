@@ -12,7 +12,7 @@ use std::sync::Arc;
 use nom::{
     call, count, do_parse, named, named_args,
     number::streaming::{be_u16, be_u32, be_u8},
-    switch, tag, take, value,
+    peek, switch, tag, take, value,
 };
 
 named!(
@@ -576,9 +576,10 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
     ) |
     AttrTag::Deprecated => value!(AttrType::Deprecated) |
     AttrTag::RuntimeVisibleAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleAnnotations {annotations})
+        (AttrType::RuntimeVisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleAnnotations => do_parse!(
         annotation_count: be_u16 >>

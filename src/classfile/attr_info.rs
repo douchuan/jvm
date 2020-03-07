@@ -40,6 +40,7 @@ pub enum AttrType {
     },
     Deprecated,
     RuntimeVisibleAnnotations {
+        raw: BytesRef,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleAnnotations {

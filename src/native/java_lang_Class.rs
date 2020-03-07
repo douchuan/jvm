@@ -6,6 +6,7 @@ use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
+use bytes::Buf;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -87,6 +88,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "getInterfaces0",
             "()[Ljava/lang/Class;",
             Box::new(jvm_getInterfaces0),
+        ),
+        new_fn("getRawAnnotations", "()[B", Box::new(jvm_getRawAnnotations)),
+        new_fn(
+            "getConstantPool",
+            "()Lsun/reflect/ConstantPool;",
+            Box::new(jvm_getConstantPool),
         ),
     ]
 }
@@ -747,6 +754,59 @@ fn jvm_getInterfaces0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNI
     let ary = Oop::new_ref_ary2(clazz, elms);
 
     Ok(Some(ary))
+}
+
+fn jvm_getRawAnnotations(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let cls = args.get(0).unwrap();
+    let annotations = match cls {
+        Oop::Ref(rf) => {
+            let rf = rf.read().unwrap();
+            match &rf.v {
+                oop::RefKind::Mirror(mirror) => {
+                    let cls = mirror.target.clone().unwrap();
+                    let cls = cls.read().unwrap();
+                    match &cls.kind {
+                        oop::ClassKind::Instance(cls) => {
+                            match &cls.attr_runtime_visible_annotations_raw {
+                                Some(v) => Oop::new_byte_ary2(v.to_vec()),
+                                None => oop::consts::get_null(),
+                            }
+                        }
+                        _ => unimplemented!(),
+                    }
+                }
+                _ => unimplemented!(),
+            }
+        }
+        _ => oop::consts::get_null(),
+    };
+    Ok(Some(annotations))
+}
+
+fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let cp_oop = match this {
+        Oop::Ref(rf) => {
+            let rf = rf.read().unwrap();
+            match &rf.v {
+                oop::RefKind::Mirror(mirror) => {
+                    let cp_cls = require_class3(None, b"sun/reflect/ConstantPool").unwrap();
+                    let cp_oop = Oop::new_inst(cp_cls.clone());
+
+                    let cls = cp_cls.read().unwrap();
+                    let fid = cls.get_field_id(b"constantPoolOop", b"Ljava/lang/Object;", false);
+                    cls.put_field_value(cp_oop.clone(), fid, this.clone());
+
+                    cp_oop
+                }
+                _ => unimplemented!(),
+            }
+        }
+        _ => oop::consts::get_null(),
+    };
+
+    // unreachable!();
+    Ok(Some(cp_oop))
 }
 
 fn get_declared_method_helper(

@@ -85,6 +85,7 @@ pub struct ClassObject {
     pub source_file: Option<BytesRef>,
     pub enclosing_method: Option<EnclosingMethod>,
     pub inner_classes: Option<Vec<InnerClass>>,
+    pub attr_runtime_visible_annotations_raw: Option<BytesRef>,
 }
 
 #[derive(Debug)]
@@ -390,6 +391,7 @@ impl Class {
             .get_field_id(name, desc, is_static)
     }
 
+    //todo: receiver change to ref
     pub fn put_field_value(&self, receiver: Oop, fir: FieldIdRef, v: Oop) {
         match receiver {
             Oop::Ref(rf) => {
@@ -550,6 +552,7 @@ impl Class {
             source_file: None,
             enclosing_method: None,
             inner_classes: None,
+            attr_runtime_visible_annotations_raw: None,
         };
 
         Self {
@@ -754,7 +757,7 @@ impl ClassObject {
             //todo: add type annos
             //            let mut runtime_vis_type_annos = Vec::new();
             it.attrs.iter().for_each(|attr| match attr {
-                AttrType::RuntimeVisibleAnnotations { annotations } => {
+                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
                     vis_annos.extend_from_slice(annotations.as_slice());
                 }
                 AttrType::RuntimeVisibleParameterAnnotations { annotations } => {
@@ -796,6 +799,9 @@ impl ClassObject {
                 }
                 AttrType::InnerClasses { classes } => {
                     self.inner_classes = Some(classes.clone());
+                }
+                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
+                    self.attr_runtime_visible_annotations_raw = Some(raw.clone());
                 }
                 //todo: ATTRIBUTE_BootstrapMethods
                 _ => (),
