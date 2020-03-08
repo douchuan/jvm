@@ -95,6 +95,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "()Lsun/reflect/ConstantPool;",
             Box::new(jvm_getConstantPool),
         ),
+        new_fn("getDeclaredClasses0", "()[Ljava/lang/Class;", Box::new(jvm_getDeclaredClasses0)),
     ]
 }
 
@@ -366,7 +367,8 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     let _caller_mirror = args.get(3).unwrap();
 
     if java_name.contains("/") {
-        let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, None);
+        let msg = Some(java_name);
+        let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, msg);
         return Err(ex);
     }
 
@@ -398,7 +400,8 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
         }
         None => {
             error!("forName0, NotFound: {}", java_name);
-            let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, None);
+            let msg = Some(java_name);
+            let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, msg);
             Err(ex)
         }
     }
@@ -816,6 +819,13 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 
     // unreachable!();
     Ok(Some(cp_oop))
+}
+
+fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    //todo: impl me
+    let r = oop::consts::get_null();
+    Ok(Some(r))
 }
 
 fn get_declared_method_helper(

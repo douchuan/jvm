@@ -131,6 +131,11 @@ export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
 
+##todo: NonJavaNames just ignored currently
+##NonJavaNames
+
+##todo: impl getDeclaredClasses0
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
 
 
 #[2020-03-07T23:14:59Z ERROR jvm::native::sun_reflect_ConstantPool] s = LExpectedGenericString;
