@@ -92,6 +92,8 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let area = runtime::DataArea::new(0, 0);
     jc.invoke(jt, Some(&area), force_no_resolve);
 
+    // error!("invoke0 return_type = {:?}, desc={}", jc.return_type, String::from_utf8_lossy(mir.method.desc.as_slice()));
+
     let r = {
         let mut area = area.borrow_mut();
         match jc.return_type {
@@ -112,7 +114,7 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 Some(oop::Oop::new_long(v))
             }
             Type::Object(_) | Type::Array(_) => Some(area.stack.pop_ref()),
-            Type::Void => None,
+            Type::Void => Some(oop::consts::get_null()),
         }
     };
 
