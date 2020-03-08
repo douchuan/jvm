@@ -7,6 +7,8 @@ use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+mod common;
+
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
@@ -33,8 +35,6 @@ mod sun_reflect_ConstantPool;
 mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_NativeMethodAccessorImpl;
 mod sun_reflect_Reflection;
-
-mod common;
 
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;

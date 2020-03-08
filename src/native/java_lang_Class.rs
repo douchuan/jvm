@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::classfile::{self, access_flags as acc, constant_pool, consts as cls_file_const};
-use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, MethodIdRef};
@@ -305,7 +305,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
             continue;
         }
 
-        let v = runtime::reflect::new_field(jt, it);
+        let v = common::reflect::new_field(jt, it);
         fields.push(v);
     }
 
@@ -314,7 +314,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
             continue;
         }
 
-        let v = runtime::reflect::new_field(jt, it);
+        let v = common::reflect::new_field(jt, it);
         fields.push(v);
     }
 
@@ -877,9 +877,9 @@ fn get_declared_method_helper(
     let mut methods = Vec::new();
     for m in selected_methods {
         let v = if want_constructor {
-            runtime::reflect::new_method_ctor(jt, m)
+            common::reflect::new_method_ctor(jt, m)
         } else {
-            runtime::reflect::new_method_normal(jt, m)
+            common::reflect::new_method_normal(jt, m)
         };
 
         methods.push(v);

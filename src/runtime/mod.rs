@@ -10,7 +10,6 @@ mod frame;
 mod init_vm;
 pub mod java_call;
 mod local;
-pub mod reflect;
 mod slot;
 mod stack;
 mod sys_dic;

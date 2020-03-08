@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, JavaThread};
 use crate::util;
@@ -17,7 +17,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 
-    let clazz = runtime::reflect::get_Constructor_clazz(ctor);
+    let clazz = common::reflect::get_Constructor_clazz(ctor);
     let target_cls = {
         let clazz = util::oop::extract_ref(&clazz);
         let v = clazz.read().unwrap();
@@ -32,7 +32,7 @@ fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
         cls.name.clone()
     };
 
-    let signature = runtime::reflect::get_Constructor_signature(ctor);
+    let signature = common::reflect::get_Constructor_signature(ctor);
 
     let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
     info!("newInstance0 {}:{}", name, signature);

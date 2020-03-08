@@ -3,7 +3,7 @@
 use crate::classfile::consts as cls_const;
 use crate::classfile::signature::{FieldSignature, MethodSignature, Type as ArgType, Type};
 use crate::native::java_lang_Class;
-use crate::oop::{self, Oop, ValueType};
+use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::*;
 use crate::util;
@@ -205,6 +205,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     cls.get_field_value(ctor, id)
 }
 
+/*
 pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
     let cls = {
         let v = util::oop::extract_ref(ctor);
@@ -220,6 +221,7 @@ pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
     let v = cls.get_field_value(ctor, id);
     util::oop::extract_int(&v)
 }
+*/
 
 pub fn get_Constructor_signature(ctor: &Oop) -> String {
     //todo: optimisze, cache Constructor cls, avoid obtain class
