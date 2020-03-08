@@ -146,7 +146,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     put_props_kv(jt, props_oop, "java.io.tmpdir", v);
 
     //user.home
-    let v = std::env::home_dir().expect("home_dir failed");
+    let v = dirs::home_dir().expect("get home_dir failed");
     let v = v.to_str().expect("home_dir to_str failed");
     put_props_kv(jt, props_oop, "user.home", v);
 

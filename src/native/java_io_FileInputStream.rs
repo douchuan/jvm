@@ -91,7 +91,6 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     }
 
     let mut size = -1i64;
-    let mut current = -1i64;
 
     unsafe {
         let mut stat: libc::stat = std::mem::zeroed();
@@ -110,7 +109,7 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
             }
         }
 
-        current = libc::lseek(fd, 0, libc::SEEK_CUR);
+        let current = libc::lseek(fd, 0, libc::SEEK_CUR);
         if current == -1 {
             return Ok(Some(Oop::new_int(0)));
         }
@@ -125,9 +124,9 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
                 return Ok(Some(Oop::new_int(0)));
             }
         }
-    }
 
-    return Ok(Some(Oop::new_int((size - current) as i32)));
+        return Ok(Some(Oop::new_int((size - current) as i32)));
+    }
 }
 
 fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {

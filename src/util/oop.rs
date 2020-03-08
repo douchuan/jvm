@@ -12,12 +12,12 @@ pub fn set_java_lang_string_value_offset(offset: usize) {
     *v = Some(offset);
 }
 
-pub fn is_ref(v: &Oop) -> bool {
-    match v {
-        Oop::Ref(_) => true,
-        _ => false,
-    }
-}
+// pub fn is_ref(v: &Oop) -> bool {
+//     match v {
+//         Oop::Ref(_) => true,
+//         _ => false,
+//     }
+// }
 
 pub fn is_null(v: &Oop) -> bool {
     match v {

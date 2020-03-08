@@ -6,7 +6,6 @@ use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
-use bytes::Buf;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -95,7 +94,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "()Lsun/reflect/ConstantPool;",
             Box::new(jvm_getConstantPool),
         ),
-        new_fn("getDeclaredClasses0", "()[Ljava/lang/Class;", Box::new(jvm_getDeclaredClasses0)),
+        new_fn(
+            "getDeclaredClasses0",
+            "()[Ljava/lang/Class;",
+            Box::new(jvm_getDeclaredClasses0),
+        ),
     ]
 }
 
@@ -800,7 +803,7 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
         Oop::Ref(rf) => {
             let rf = rf.read().unwrap();
             match &rf.v {
-                oop::RefKind::Mirror(mirror) => {
+                oop::RefKind::Mirror(_mirror) => {
                     let cp_cls = require_class3(None, b"sun/reflect/ConstantPool").unwrap();
                     let cp_oop = Oop::new_inst(cp_cls.clone());
 
@@ -822,7 +825,7 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 }
 
 fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let this = args.get(0).unwrap();
+    let _this = args.get(0).unwrap();
     //todo: impl me
     let r = oop::consts::get_null();
     Ok(Some(r))
