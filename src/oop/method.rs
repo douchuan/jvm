@@ -1,4 +1,3 @@
-use crate::classfile::attr_info::AnnotationEntry;
 use crate::classfile::{
     access_flags::*, attr_info::Code, attr_info::LineNumber, constant_pool, consts, AttrType,
     FieldInfo, MethodInfo,
@@ -74,6 +73,7 @@ pub struct MethodId {
 #[derive(Debug, Clone)]
 pub struct Method {
     pub class: ClassRef,
+    pub class_file: ClassFileRef,
     pub name: BytesRef,
     pub desc: BytesRef,
     id: BytesRef,
@@ -82,8 +82,7 @@ pub struct Method {
     pub code: Option<Code>,
     pub line_num_table: Vec<LineNumber>,
 
-    vis_annos: Vec<AnnotationEntry>,
-    vis_param_annos: Vec<AnnotationEntry>,
+    method_info_index: usize,
 }
 
 impl Method {
@@ -91,8 +90,8 @@ impl Method {
         cp: &ConstantPool,
         mi: &MethodInfo,
         class: ClassRef,
-        vis_annos: Vec<AnnotationEntry>,
-        vis_param_annos: Vec<AnnotationEntry>,
+        class_file: ClassFileRef,
+        method_info_index: usize,
     ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
@@ -105,14 +104,14 @@ impl Method {
 
         Self {
             class,
+            class_file,
             name,
             desc,
             id,
             acc_flags,
             code,
             line_num_table,
-            vis_annos,
-            vis_param_annos,
+            method_info_index
         }
     }
 
@@ -163,15 +162,25 @@ impl Method {
     }
 
     pub fn check_annotation(&self, name: &[u8]) -> bool {
-        for it in self.vis_annos.iter() {
-            if it.type_name.as_slice() == name {
-                return true;
-            }
-        }
+        let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
 
-        for it in self.vis_param_annos.iter() {
-            if it.type_name.as_slice() == name {
-                return true;
+        for it in  method_info.attrs.iter() {
+            match it {
+                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
+                    for it in annotations.iter() {
+                        if it.type_name.as_slice() == name {
+                            return true;
+                        }
+                    }
+                }
+                AttrType::RuntimeVisibleParameterAnnotations { raw, annotations } => {
+                    for it in annotations.iter() {
+                        if it.type_name.as_slice() == name {
+                            return true;
+                        }
+                    }
+                }
+                _ => (),
             }
         }
 

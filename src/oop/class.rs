@@ -752,21 +752,7 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let mut vis_annos = Vec::new();
-            let mut vis_param_annos = Vec::new();
-            //todo: add type annos
-            //            let mut runtime_vis_type_annos = Vec::new();
-            it.attrs.iter().for_each(|attr| match attr {
-                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
-                    vis_annos.extend_from_slice(annotations.as_slice());
-                }
-                AttrType::RuntimeVisibleParameterAnnotations { annotations } => {
-                    vis_param_annos.extend_from_slice(annotations.as_slice());
-                }
-                _ => (),
-            });
-
-            let method = method::Method::new(cp, it, this_ref.clone(), vis_annos, vis_param_annos);
+            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(),i);
             let id = method.get_id();
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
