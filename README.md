@@ -32,7 +32,7 @@ java -XshowSettings:properties
 - Split frame.rs into frame.rs & interp.rs
 
 In summary, the roadmap is built on a three-step progress.
-- Pass TCK or JCK, to verify implementation is ok
+- Pass TCK or JCK
 - Refactor & Rewrite
 - Divide into several crates, build a collection of modular and reusable vm technologies
 
