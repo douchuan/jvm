@@ -111,7 +111,7 @@ impl Method {
             acc_flags,
             code,
             line_num_table,
-            method_info_index
+            method_info_index,
         }
     }
 
@@ -161,10 +161,55 @@ impl Method {
         return best_line;
     }
 
+    pub fn get_raw_runtime_vis_annotation(&self) -> Option<BytesRef> {
+        let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
+
+        for it in method_info.attrs.iter() {
+            match it {
+                AttrType::RuntimeVisibleAnnotations { raw, .. } => {
+                    return Some(raw.clone());
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    pub fn get_raw_runtime_vis_param_annotation(&self) -> Option<BytesRef> {
+        let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
+
+        for it in method_info.attrs.iter() {
+            match it {
+                AttrType::RuntimeVisibleParameterAnnotations { raw, .. } => {
+                    return Some(raw.clone());
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    pub fn get_raw_annotation_default(&self) -> Option<BytesRef> {
+        let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
+
+        for it in method_info.attrs.iter() {
+            match it {
+                AttrType::AnnotationDefault { raw, .. } => {
+                    return Some(raw.clone());
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
     pub fn check_annotation(&self, name: &[u8]) -> bool {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
 
-        for it in  method_info.attrs.iter() {
+        for it in method_info.attrs.iter() {
             match it {
                 AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
                     for it in annotations.iter() {

@@ -752,7 +752,7 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(),i);
+            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(), i);
             let id = method.get_id();
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
