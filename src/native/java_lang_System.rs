@@ -101,7 +101,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
         // ("java.security.auth.debug", "all"),
         ("java.specification.version", "1.8"),
         ("java.specification.name", "Java Platform API Specification"),
-        ("java.specification.vendor", "Chuan"),
+        ("java.specification.vendor", "Oracle Corporation"),
         ("java.vendor", "Chuan"),
         ("java.vendor.url", "https://github.com/douchuan/jvm"),
         ("java.vendor.url.bug", "https://github.com/douchuan/jvm"),

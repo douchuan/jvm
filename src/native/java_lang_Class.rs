@@ -365,7 +365,12 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
 
     let _caller_mirror = args.get(3).unwrap();
 
-    let java_name = java_name.replace(".", util::FILE_SEP);
+    if java_name.contains("/") {
+        let ex = runtime::exception::new(jt, classfile::consts::J_CLASS_NOT_FOUND, None);
+        return Err(ex);
+    }
+
+    let java_name = java_name.replace(".", "/");
     let cls = {
         if java_name == "sun/nio/cs/ext/ExtendedCharsets" {
             //fixme: skip, cause jvm start very slow

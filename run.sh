@@ -129,6 +129,7 @@ export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
 
 
 

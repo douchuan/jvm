@@ -34,6 +34,8 @@ mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_NativeMethodAccessorImpl;
 mod sun_reflect_Reflection;
 
+mod common;
+
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
 pub type NativeMethodPtr =
