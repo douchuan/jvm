@@ -125,3 +125,28 @@ export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
+
+
+
+#[2020-03-07T23:14:59Z ERROR jvm::native::sun_reflect_ConstantPool] s = LExpectedGenericString;
+#[2020-03-07T23:14:59Z ERROR jvm::runtime::frame] mirror MyGenericStringTest cannot be cast to java.lang.reflect.Constructor
+#Exception in thread "main" java.lang.ClassCastException: mirror MyGenericStringTest cannot be cast to java.lang.reflect.Constructor
+#	at sun.reflect.generics.factory.CoreReflectionFactory.getDeclsLoader(CoreReflectionFactory.java:67)
+#	at sun.reflect.generics.factory.CoreReflectionFactory.makeNamedType(CoreReflectionFactory.java:115)
+#	at sun.reflect.generics.visitor.Reifier.visitClassTypeSignature(Reifier.java:125)
+#	at sun.reflect.generics.tree.ClassTypeSignature.accept(ClassTypeSignature.java:49)
+#	at sun.reflect.annotation.AnnotationParser.parseSig(AnnotationParser.java:439)
+#	at sun.reflect.annotation.AnnotationParser.parseAnnotation2(AnnotationParser.java:241)
+#	at sun.reflect.annotation.AnnotationParser.parseAnnotations2(AnnotationParser.java:120)
+#	at sun.reflect.annotation.AnnotationParser.parseAnnotations(AnnotationParser.java:72)
+#	at java.lang.Class.createAnnotationData(Class.java:3521)
+#	at java.lang.Class.annotationData(Class.java:3510)
+#	at java.lang.Class.getAnnotation(Class.java:3415)
+#	at MyGenericStringTest.main(MyGenericStringTest.java:53)
+###
+###  the impl of getRawAnnotations & intance_of & classloader is not right
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class MyGenericStringTest

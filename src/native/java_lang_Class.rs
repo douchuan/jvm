@@ -351,7 +351,7 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
 fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let java_name = util::oop::extract_str(arg0);
-    let _initialize = {
+    let initialize = {
         let arg1 = args.get(1).unwrap();
         util::oop::extract_int(arg1) != 0
     };
@@ -382,7 +382,10 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
                 cls.init_class(jt);
                 //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
             }
-            oop::class::init_class_fully(jt, cls.clone());
+
+            if initialize {
+                oop::class::init_class_fully(jt, cls.clone());
+            }
 
             let mirror = { cls.read().unwrap().get_mirror() };
 
@@ -795,6 +798,7 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 
                     let cls = cp_cls.read().unwrap();
                     let fid = cls.get_field_id(b"constantPoolOop", b"Ljava/lang/Object;", false);
+                    //todo: reimpl maybe, create one JNIHandles, like jdk
                     cls.put_field_value(cp_oop.clone(), fid, this.clone());
 
                     cp_oop
