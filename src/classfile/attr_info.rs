@@ -44,21 +44,27 @@ pub enum AttrType {
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleAnnotations {
+        raw: BytesRef,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeVisibleParameterAnnotations {
+        raw: BytesRef,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeInvisibleParameterAnnotations {
+        raw: BytesRef,
         annotations: Vec<AnnotationEntry>,
     },
     RuntimeVisibleTypeAnnotations {
+        raw: BytesRef,
         annotations: Vec<TypeAnnotation>,
     },
     RuntimeInvisibleTypeAnnotations {
+        raw: BytesRef,
         annotations: Vec<TypeAnnotation>,
     },
     AnnotationDefault {
+        raw: BytesRef,
         default_value: ElementValueType,
     },
     BootstrapMethods {

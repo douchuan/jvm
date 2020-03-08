@@ -582,33 +582,39 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
         (AttrType::RuntimeVisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleAnnotations {annotations})
+        (AttrType::RuntimeInvisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeVisibleParameterAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleParameterAnnotations {annotations})
+        (AttrType::RuntimeVisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleParameterAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleParameterAnnotations {annotations})
+        (AttrType::RuntimeInvisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeVisibleTypeAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleTypeAnnotations {annotations})
+        (AttrType::RuntimeVisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleTypeAnnotations => do_parse!(
+        raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleTypeAnnotations {annotations})
+        (AttrType::RuntimeInvisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::AnnotationDefault => do_parse!(
+        raw: peek!(take!(self_len)) >>
         default_value: call!(element_value_type, cp.clone()) >>
-        (AttrType::AnnotationDefault {default_value})
+        (AttrType::AnnotationDefault {raw: Arc::new(Vec::from(raw)), default_value})
     ) |
     AttrTag::BootstrapMethods => do_parse!(
         method_count: be_u16 >>
