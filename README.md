@@ -20,7 +20,7 @@ java -XshowSettings:properties
 
 ## Roadmap
 
-- Pass test cases in JDK (TCK) 
+- Pass test cases in JDK & TCK 
 - Separate class parser from project as one standalone crate
 - After class parser crate is finished, we can write javap
 - Support threads
@@ -31,10 +31,10 @@ java -XshowSettings:properties
 - java options (-version, -server...)
 - Split frame.rs into frame.rs & interp.rs
 
-In summary, separated into three steps
-- Pass all test cases, to verify implementation is ok
+In summary, separated into 3 steps in the long term.
+- Pass TCK or JCK, to verify implementation is ok
 - Based on the first phase of the results, refactor & rewrite
-- Split the project to crates, build a collection of modular and reusable vm technologies
+- Divide into several crates, build a collection of modular and reusable vm technologies
 
 Well, it's a long roadmap, Sun spent 30 years to improve
 vm, Oracle continue doing it.
