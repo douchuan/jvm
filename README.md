@@ -31,14 +31,14 @@ java -XshowSettings:properties
 - java options (-version, -server...)
 - Split frame.rs into frame.rs & interp.rs
 
-In summary, separated into 3 steps in the long term.
+In summary, the roadmap is built on a three-step progress.
 - Pass TCK or JCK, to verify implementation is ok
-- Based on the first phase of the results, refactor & rewrite
+- Refactor & Rewrite
 - Divide into several crates, build a collection of modular and reusable vm technologies
 
-Well, it's a long roadmap, Sun spent 30 years to improve
-vm, Oracle continue doing it.
+Well, it's a long term plan, Sun spent 30 years to improve
+VM, Oracle continue doing it.
 
 The journey of a thousand miles begins with one first step. Even the sage was once an ordinary human being.
 
-Just do it.
+Just Do It.
