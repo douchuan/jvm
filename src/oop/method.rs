@@ -191,6 +191,21 @@ impl Method {
         None
     }
 
+    pub fn get_raw_vis_type_annotation(&self) -> Option<BytesRef> {
+        let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
+
+        for it in method_info.attrs.iter() {
+            match it {
+                AttrType::RuntimeVisibleTypeAnnotations { raw, .. } => {
+                    return Some(raw.clone());
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
     pub fn get_raw_annotation_default(&self) -> Option<BytesRef> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
 

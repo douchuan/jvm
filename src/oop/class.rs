@@ -85,7 +85,6 @@ pub struct ClassObject {
     pub source_file: Option<BytesRef>,
     pub enclosing_method: Option<EnclosingMethod>,
     pub inner_classes: Option<Vec<InnerClass>>,
-    pub attr_runtime_visible_annotations_raw: Option<BytesRef>,
 }
 
 #[derive(Debug)]
@@ -318,6 +317,24 @@ impl Class {
             ClassKind::Instance(cls_obj) => cls_obj.source_file.clone(),
             _ => unreachable!(),
         }
+    }
+
+    pub fn get_runtime_vis_annotation(&self) -> Option<BytesRef> {
+        match &self.kind {
+            ClassKind::Instance(cls) => {
+                for it in cls.class_file.attrs.iter() {
+                    match it {
+                        AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
+                            return Some(raw.clone());
+                        }
+                        _ => (),
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+
+        None
     }
 }
 
@@ -552,7 +569,6 @@ impl Class {
             source_file: None,
             enclosing_method: None,
             inner_classes: None,
-            attr_runtime_visible_annotations_raw: None,
         };
 
         Self {
@@ -768,30 +784,24 @@ impl ClassObject {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
 
-        class_file.attrs.iter().for_each(|a| {
-            match a {
-                AttrType::Signature { signature_index } => {
-                    if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
-                        self.signature = Some(s);
-                    }
+        class_file.attrs.iter().for_each(|a| match a {
+            AttrType::Signature { signature_index } => {
+                if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
+                    self.signature = Some(s);
                 }
-                AttrType::SourceFile { source_file_index } => {
-                    if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {
-                        self.source_file = Some(s);
-                    }
-                }
-                AttrType::EnclosingMethod { em } => {
-                    self.enclosing_method = Some(em.clone());
-                }
-                AttrType::InnerClasses { classes } => {
-                    self.inner_classes = Some(classes.clone());
-                }
-                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
-                    self.attr_runtime_visible_annotations_raw = Some(raw.clone());
-                }
-                //todo: ATTRIBUTE_BootstrapMethods
-                _ => (),
             }
+            AttrType::SourceFile { source_file_index } => {
+                if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {
+                    self.source_file = Some(s);
+                }
+            }
+            AttrType::EnclosingMethod { em } => {
+                self.enclosing_method = Some(em.clone());
+            }
+            AttrType::InnerClasses { classes } => {
+                self.inner_classes = Some(classes.clone());
+            }
+            _ => (),
         });
     }
 

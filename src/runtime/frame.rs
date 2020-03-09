@@ -2902,13 +2902,12 @@ impl Frame {
                             let s_name = { obj_cls.read().unwrap().name.clone() };
                             let t_name = { target_cls.read().unwrap().name.clone() };
 
-                            let s_name = String::from_utf8_lossy(s_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
-                            let t_name = String::from_utf8_lossy(t_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
+                            let s_name =
+                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
+                            let t_name =
+                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
 
                             let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
-
                             meet_ex(thread, consts::J_CCE, Some(msg));
                         }
                     }
@@ -2922,14 +2921,12 @@ impl Frame {
                             let s_name = { obj_cls.read().unwrap().name.clone() };
                             let t_name = { target_cls.read().unwrap().name.clone() };
 
-                            let s_name = String::from_utf8_lossy(s_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
-                            let t_name = String::from_utf8_lossy(t_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
+                            let s_name =
+                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
+                            let t_name =
+                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
 
                             let msg = format!("array {} cannot be cast to {}", s_name, t_name);
-                            warn!("{}", msg);
-
                             meet_ex(thread, consts::J_CCE, Some(msg));
                         }
                     }
@@ -2942,7 +2939,7 @@ impl Frame {
                         let mirror_target = mirror.target.clone().unwrap();
                         let s_name = { mirror_target.read().unwrap().name.clone() };
                         let t_name = { target_cls.read().unwrap().name.clone() };
-                        trace!(
+                        error!(
                             "mirror checkcast {} to {}",
                             unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
                             unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
@@ -2953,14 +2950,12 @@ impl Frame {
                             let mut area = self.area.borrow_mut();
                             area.stack.push_ref(rf_back);
                         } else {
-                            let s_name = String::from_utf8_lossy(s_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
-                            let t_name = String::from_utf8_lossy(t_name.as_slice())
-                                .replace(util::FILE_SEP, ".");
+                            let s_name =
+                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
+                            let t_name =
+                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
 
                             let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
-                            error!("{}", msg);
-
                             meet_ex(thread, consts::J_CCE, Some(msg));
                         }
                     }

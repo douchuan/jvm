@@ -779,14 +779,9 @@ fn jvm_getRawAnnotations(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
                 oop::RefKind::Mirror(mirror) => {
                     let cls = mirror.target.clone().unwrap();
                     let cls = cls.read().unwrap();
-                    match &cls.kind {
-                        oop::ClassKind::Instance(cls) => {
-                            match &cls.attr_runtime_visible_annotations_raw {
-                                Some(v) => Oop::new_byte_ary2(v.to_vec()),
-                                None => oop::consts::get_null(),
-                            }
-                        }
-                        _ => unimplemented!(),
+                    match cls.get_runtime_vis_annotation() {
+                        Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+                        _ => oop::consts::get_null(),
                     }
                 }
                 _ => unimplemented!(),
@@ -826,7 +821,7 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
 
 fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
-    //todo: impl me
+    unimplemented!();
     let r = oop::consts::get_null();
     Ok(Some(r))
 }
