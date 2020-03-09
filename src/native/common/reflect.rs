@@ -160,7 +160,6 @@ pub fn new_method_normal(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
         let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
         util::oop::new_java_lang_string2(jt, desc)
     };
-    //fixme:
     let annotations = {
         let raw = mir.method.get_raw_runtime_vis_annotation();
         match raw {

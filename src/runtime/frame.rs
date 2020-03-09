@@ -2939,7 +2939,7 @@ impl Frame {
                         let mirror_target = mirror.target.clone().unwrap();
                         let s_name = { mirror_target.read().unwrap().name.clone() };
                         let t_name = { target_cls.read().unwrap().name.clone() };
-                        error!(
+                        info!(
                             "mirror checkcast {} to {}",
                             unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
                             unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
@@ -2984,8 +2984,16 @@ impl Frame {
                         cmp::instance_of(obj_cls, target_cls)
                     }
                     oop::RefKind::Mirror(mirror) => {
+                        let t_name = { target_cls.read().unwrap().name.clone() };
+
                         let obj_cls = mirror.target.clone().unwrap();
-                        cmp::instance_of(obj_cls, target_cls)
+                        let r = cmp::instance_of(obj_cls, target_cls);
+
+                        r || t_name.as_slice() == b"java/lang/Class"
+                    }
+                    oop::RefKind::Array(ary) => {
+                        let obj_cls = ary.class.clone();
+                        cmp::instance_of(obj_cls.clone(), target_cls.clone())
                     }
                     _ => unreachable!(),
                 }
