@@ -668,15 +668,12 @@ impl Frame {
                 let obj_name = { obj_cls.read().unwrap().name.clone() };
                 let target_name = { target_cls.read().unwrap().name.clone() };
 
-                let obj_name =
-                    String::from_utf8_lossy(obj_name.as_slice()).replace("/", ".");
-                let target_name =
-                    String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
+                let obj_name = String::from_utf8_lossy(obj_name.as_slice()).replace("/", ".");
+                let target_name = String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
 
                 let msg = format!("{} cannot be cast to {}", obj_name, target_name);
                 meet_ex(thread, consts::J_CCE, Some(msg));
             }
-
         };
         let op_instance_of = |r: bool| {
             let mut area = self.area.borrow_mut();
@@ -726,7 +723,8 @@ impl Frame {
 
                         let obj_cls = mirror.target.clone().unwrap();
                         let target_name = { target_cls.read().unwrap().name.clone() };
-                        let r = target_name.as_slice() == b"java/lang/Class"|| cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                        let r = target_name.as_slice() == b"java/lang/Class"
+                            || cmp::instance_of(obj_cls.clone(), target_cls.clone());
 
                         if is_cast {
                             op_check_cast(r, obj_cls, target_cls);
@@ -2968,7 +2966,7 @@ impl Frame {
     }
 
     pub fn instance_of(&self, thread: &mut JavaThread) {
-       self.check_cast_helper(thread, false);
+        self.check_cast_helper(thread, false);
     }
 
     pub fn monitor_enter(&self, thread: &mut JavaThread) {
