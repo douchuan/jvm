@@ -354,7 +354,7 @@ impl Frame {
                         OpCode::anewarray => self.anew_array(thread),
                         OpCode::arraylength => self.array_length(thread),
                         OpCode::checkcast => self.check_cast(thread),
-                        OpCode::instanceof => self.instance_of(),
+                        OpCode::instanceof => self.instance_of(thread),
                         OpCode::monitorenter => self.monitor_enter(thread),
                         OpCode::monitorexit => self.monitor_exit(thread),
                         OpCode::wide => self.wide(),
@@ -648,6 +648,96 @@ impl Frame {
                 }
             }
             Err(_) => unreachable!("NotFound method"),
+        }
+    }
+
+    pub fn check_cast_helper(&self, thread: &mut JavaThread, is_cast: bool) {
+        let cp_idx = self.read_i2();
+        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
+
+        let mut area = self.area.borrow_mut();
+        let obj_rf = area.stack.pop_ref();
+        drop(area);
+
+        let obj_rf_clone = obj_rf.clone();
+        let op_check_cast = |r: bool, obj_cls: ClassRef, target_cls: ClassRef| {
+            if r {
+                let mut area = self.area.borrow_mut();
+                area.stack.push_ref(obj_rf_clone);
+            } else {
+                let obj_name = { obj_cls.read().unwrap().name.clone() };
+                let target_name = { target_cls.read().unwrap().name.clone() };
+
+                let obj_name =
+                    String::from_utf8_lossy(obj_name.as_slice()).replace("/", ".");
+                let target_name =
+                    String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
+
+                let msg = format!("{} cannot be cast to {}", obj_name, target_name);
+                meet_ex(thread, consts::J_CCE, Some(msg));
+            }
+
+        };
+        let op_instance_of = |r: bool| {
+            let mut area = self.area.borrow_mut();
+            if r {
+                area.stack.push_const1(false);
+            } else {
+                area.stack.push_const0(false);
+            }
+        };
+
+        match obj_rf {
+            Oop::Null => {
+                let mut area = self.area.borrow_mut();
+                if is_cast {
+                    area.stack.push_ref(obj_rf);
+                } else {
+                    area.stack.push_const0(false);
+                }
+            }
+            Oop::Ref(rf) => {
+                let rf = rf.read().unwrap();
+                match &rf.v {
+                    oop::RefKind::Inst(inst) => {
+                        let obj_cls = inst.class.clone();
+                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+
+                        if is_cast {
+                            op_check_cast(r, obj_cls, target_cls);
+                        } else {
+                            op_instance_of(r);
+                        }
+                    }
+                    oop::RefKind::Array(ary) => {
+                        let obj_cls = ary.class.clone();
+                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                        if is_cast {
+                            op_check_cast(r, obj_cls, target_cls);
+                        } else {
+                            op_instance_of(r);
+                        }
+                    }
+                    oop::RefKind::Mirror(mirror) => {
+                        //run here codes:
+                        //$JDK_TEST/Appendable/Basic.java
+                        //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
+                        //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
+
+                        let obj_cls = mirror.target.clone().unwrap();
+                        let target_name = { target_cls.read().unwrap().name.clone() };
+                        let r = target_name.as_slice() == b"java/lang/Class"|| cmp::instance_of(obj_cls.clone(), target_cls.clone());
+
+                        if is_cast {
+                            op_check_cast(r, obj_cls, target_cls);
+                        } else {
+                            op_instance_of(r);
+                        }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            _ => unreachable!(),
         }
     }
 }
@@ -2874,139 +2964,11 @@ impl Frame {
     }
 
     pub fn check_cast(&self, thread: &mut JavaThread) {
-        let cp_idx = self.read_i2();
-
-        let mut area = self.area.borrow_mut();
-        let v = area.stack.pop_ref();
-        drop(area);
-
-        let rf_back = v.clone();
-
-        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
-
-        match v {
-            Oop::Null => {
-                let mut area = self.area.borrow_mut();
-                area.stack.push_ref(v)
-            }
-            Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::Inst(inst) => {
-                        let obj_cls = inst.class.clone();
-                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                        if r {
-                            let mut area = self.area.borrow_mut();
-                            area.stack.push_ref(rf_back);
-                        } else {
-                            let s_name = { obj_cls.read().unwrap().name.clone() };
-                            let t_name = { target_cls.read().unwrap().name.clone() };
-
-                            let s_name =
-                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
-                            let t_name =
-                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
-
-                            let msg = format!("inst {} cannot be cast to {}", s_name, t_name);
-                            meet_ex(thread, consts::J_CCE, Some(msg));
-                        }
-                    }
-                    oop::RefKind::Array(ary) => {
-                        let obj_cls = ary.class.clone();
-                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                        if r {
-                            let mut area = self.area.borrow_mut();
-                            area.stack.push_ref(rf_back);
-                        } else {
-                            let s_name = { obj_cls.read().unwrap().name.clone() };
-                            let t_name = { target_cls.read().unwrap().name.clone() };
-
-                            let s_name =
-                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
-                            let t_name =
-                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
-
-                            let msg = format!("array {} cannot be cast to {}", s_name, t_name);
-                            meet_ex(thread, consts::J_CCE, Some(msg));
-                        }
-                    }
-                    oop::RefKind::Mirror(mirror) => {
-                        //run here codes:
-                        //$JDK_TEST/Appendable/Basic.java
-                        //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
-                        //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
-
-                        let mirror_target = mirror.target.clone().unwrap();
-                        let s_name = { mirror_target.read().unwrap().name.clone() };
-                        let t_name = { target_cls.read().unwrap().name.clone() };
-                        info!(
-                            "mirror checkcast {} to {}",
-                            unsafe { std::str::from_utf8_unchecked(s_name.as_slice()) },
-                            unsafe { std::str::from_utf8_unchecked(t_name.as_slice()) }
-                        );
-
-                        let r = cmp::instance_of(mirror_target.clone(), target_cls.clone());
-                        if r || t_name.as_slice() == b"java/lang/Class" {
-                            let mut area = self.area.borrow_mut();
-                            area.stack.push_ref(rf_back);
-                        } else {
-                            let s_name =
-                                String::from_utf8_lossy(s_name.as_slice()).replace("/", ".");
-                            let t_name =
-                                String::from_utf8_lossy(t_name.as_slice()).replace("/", ".");
-
-                            let msg = format!("mirror {} cannot be cast to {}", s_name, t_name);
-                            meet_ex(thread, consts::J_CCE, Some(msg));
-                        }
-                    }
-                    _ => unreachable!(),
-                }
-            }
-            _ => unreachable!(),
-        }
+        self.check_cast_helper(thread, true);
     }
 
-    pub fn instance_of(&self) {
-        let cp_idx = self.read_i2();
-        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
-
-        let mut area = self.area.borrow_mut();
-        let v = area.stack.pop_ref();
-        drop(area);
-
-        let result = match v {
-            Oop::Null => false,
-            Oop::Ref(v) => {
-                let v = v.read().unwrap();
-                match &v.v {
-                    oop::RefKind::Inst(inst) => {
-                        let obj_cls = inst.class.clone();
-                        cmp::instance_of(obj_cls, target_cls)
-                    }
-                    oop::RefKind::Mirror(mirror) => {
-                        let t_name = { target_cls.read().unwrap().name.clone() };
-
-                        let obj_cls = mirror.target.clone().unwrap();
-                        let r = cmp::instance_of(obj_cls, target_cls);
-
-                        r || t_name.as_slice() == b"java/lang/Class"
-                    }
-                    oop::RefKind::Array(ary) => {
-                        let obj_cls = ary.class.clone();
-                        cmp::instance_of(obj_cls.clone(), target_cls.clone())
-                    }
-                    _ => unreachable!(),
-                }
-            }
-            _ => unreachable!(),
-        };
-
-        let mut area = self.area.borrow_mut();
-        if result {
-            area.stack.push_const1(false);
-        } else {
-            area.stack.push_const0(false);
-        }
+    pub fn instance_of(&self, thread: &mut JavaThread) {
+       self.check_cast_helper(thread, false);
     }
 
     pub fn monitor_enter(&self, thread: &mut JavaThread) {
