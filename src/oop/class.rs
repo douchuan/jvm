@@ -13,7 +13,6 @@ use std::fmt::{Error, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
 pub struct Class {
     pub name: BytesRef,
     pub state: State,
@@ -43,6 +42,16 @@ impl fmt::Debug for ClassKind {
             ClassKind::ObjectArray(obj_ary) => write!(f, "ClassKind::ObjectArray"),
             ClassKind::TypeArray(typ_ar) => write!(f, "ClassKind::TypeArray"),
         }
+    }
+}
+
+impl fmt::Debug for Class {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Class({})",
+            String::from_utf8_lossy(self.name.as_slice())
+        )
     }
 }
 
@@ -319,22 +328,22 @@ impl Class {
         }
     }
 
-    pub fn get_runtime_vis_annotation(&self) -> Option<BytesRef> {
+    pub fn get_annotation(&self) -> Vec<u8> {
         match &self.kind {
             ClassKind::Instance(cls) => {
-                for it in cls.class_file.attrs.iter() {
-                    match it {
-                        AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
-                            return Some(raw.clone());
-                        }
-                        _ => (),
-                    }
-                }
+                util::cls_file_attr::assemble_annotation(&cls.class_file.attrs)
             }
             _ => unreachable!(),
         }
+    }
 
-        None
+    pub fn get_type_annotation(&self) -> Vec<u8> {
+        match &self.kind {
+            ClassKind::Instance(cls) => {
+                util::cls_file_attr::assemble_type_annotation(&cls.class_file.attrs)
+            }
+            _ => unreachable!(),
+        }
     }
 }
 

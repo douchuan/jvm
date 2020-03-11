@@ -161,64 +161,24 @@ impl Method {
         return best_line;
     }
 
-    pub fn get_raw_runtime_vis_annotation(&self) -> Option<BytesRef> {
+    pub fn get_annotation(&self) -> Vec<u8> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-
-        for it in method_info.attrs.iter() {
-            match it {
-                AttrType::RuntimeVisibleAnnotations { raw, .. } => {
-                    return Some(raw.clone());
-                }
-                _ => (),
-            }
-        }
-
-        None
+        util::cls_file_attr::assemble_annotation(&method_info.attrs)
     }
 
-    pub fn get_raw_runtime_vis_param_annotation(&self) -> Option<BytesRef> {
+    pub fn get_param_annotation(&self) -> Vec<u8> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-
-        for it in method_info.attrs.iter() {
-            match it {
-                AttrType::RuntimeVisibleParameterAnnotations { raw, .. } => {
-                    return Some(raw.clone());
-                }
-                _ => (),
-            }
-        }
-
-        None
+        util::cls_file_attr::assemble_param_annotation(&method_info.attrs)
     }
 
-    pub fn get_raw_vis_type_annotation(&self) -> Option<BytesRef> {
+    pub fn get_type_annotation(&self) -> Vec<u8> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-
-        for it in method_info.attrs.iter() {
-            match it {
-                AttrType::RuntimeVisibleTypeAnnotations { raw, .. } => {
-                    return Some(raw.clone());
-                }
-                _ => (),
-            }
-        }
-
-        None
+        util::cls_file_attr::assemble_type_annotation(&method_info.attrs)
     }
 
-    pub fn get_raw_annotation_default(&self) -> Option<BytesRef> {
+    pub fn get_annotation_default(&self) -> Vec<u8> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-
-        for it in method_info.attrs.iter() {
-            match it {
-                AttrType::AnnotationDefault { raw, .. } => {
-                    return Some(raw.clone());
-                }
-                _ => (),
-            }
-        }
-
-        None
+        util::cls_file_attr::assemble_annotation_default(&method_info.attrs)
     }
 
     pub fn check_annotation(&self, name: &[u8]) -> bool {
@@ -227,13 +187,6 @@ impl Method {
         for it in method_info.attrs.iter() {
             match it {
                 AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
-                    for it in annotations.iter() {
-                        if it.type_name.as_slice() == name {
-                            return true;
-                        }
-                    }
-                }
-                AttrType::RuntimeVisibleParameterAnnotations { raw, annotations } => {
                     for it in annotations.iter() {
                         if it.type_name.as_slice() == name {
                             return true;

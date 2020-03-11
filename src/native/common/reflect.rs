@@ -77,18 +77,12 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
     let signature = util::oop::new_java_lang_string2(jt, desc);
     let annotations = {
-        let raw = mir.method.get_raw_runtime_vis_annotation();
-        match raw {
-            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => Oop::new_byte_ary(0),
-        }
+        let raw = mir.method.get_annotation();
+        Oop::new_byte_ary2(raw.to_vec())
     };
     let parameter_annotations = {
-        let raw = mir.method.get_raw_runtime_vis_param_annotation();
-        match raw {
-            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => Oop::new_byte_ary(0),
-        }
+        let raw = mir.method.get_param_annotation();
+        Oop::new_byte_ary2(raw.to_vec())
     };
 
     let mut desc = Vec::new();
@@ -161,25 +155,16 @@ pub fn new_method_normal(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
         util::oop::new_java_lang_string2(jt, desc)
     };
     let annotations = {
-        let raw = mir.method.get_raw_runtime_vis_annotation();
-        match raw {
-            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => Oop::new_byte_ary(0),
-        }
+        let raw = mir.method.get_annotation();
+        Oop::new_byte_ary2(raw.to_vec())
     };
     let parameter_annotations = {
-        let raw = mir.method.get_raw_runtime_vis_param_annotation();
-        match raw {
-            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => Oop::new_byte_ary(0),
-        }
+        let raw = mir.method.get_param_annotation();
+        Oop::new_byte_ary2(raw.to_vec())
     };
     let annotation_default = {
-        let raw = mir.method.get_raw_annotation_default();
-        match raw {
-            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => Oop::new_byte_ary(0),
-        }
+        let raw = mir.method.get_annotation_default();
+        Oop::new_byte_ary2(raw.to_vec())
     };
 
     let mut desc = Vec::new();

@@ -167,7 +167,7 @@ impl ClassLoader {
                     Some(new_sync_ref!(class))
                 }
 
-                Err(e) => unreachable!("class parse error: {}", e),
+                Err(e) => unreachable!("name={}, {}", name, e),
             },
 
             Err(_) => None,

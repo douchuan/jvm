@@ -113,6 +113,12 @@ pub fn if_acmpeq(v1: &Oop, v2: &Oop) -> bool {
 
     let v1_ref = extract_ref(v1);
     let v2_ref = extract_ref(v2);
+
+    {
+        // let v = v1_ref.read().unwrap();
+        // error!("xx {:?}", v.v);
+    }
+
     if Arc::ptr_eq(&v1_ref, &v2_ref) {
         true
     } else {
