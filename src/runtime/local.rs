@@ -1,5 +1,6 @@
 use crate::oop::Oop;
 use crate::runtime::Slot;
+use crate::util;
 use std::sync::Arc;
 
 pub struct Local {
@@ -40,10 +41,10 @@ impl Local {
     }
 
     pub fn get_int(&self, pos: usize) -> i32 {
-        if let Slot::Primitive(v) = self.locals.get(pos).unwrap() {
-            i32::from_be_bytes([v[0], v[1], v[2], v[3]])
-        } else {
-            panic!("Illegal type");
+        match self.locals.get(pos).unwrap() {
+            Slot::Primitive(v) => i32::from_be_bytes([v[0], v[1], v[2], v[3]]),
+            Slot::Ref(v) => util::oop::extract_java_lang_integer_value(v),
+            t => panic!("Illegal type {:?}", t),
         }
     }
 

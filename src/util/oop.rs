@@ -60,6 +60,17 @@ pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
     }
 }
 
+pub fn extract_java_lang_integer_value(v: &Oop) -> i32 {
+    let cls_string = require_class3(None, b"java/lang/Integer").unwrap();
+    let v = {
+        let cls = cls_string.read().unwrap();
+        let fid = cls.get_field_id(b"value", b"I", false);
+        cls.get_field_value2(v, fid.offset)
+    };
+
+    extract_int(&v)
+}
+
 pub fn extract_str(v: &Oop) -> String {
     let value = extract_java_lang_string_value(v);
     String::from_utf16_lossy(value.as_slice())
