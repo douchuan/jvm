@@ -29,7 +29,7 @@ todo list
   x. Official test case, TCK
   x. build thread system
     Remove the jt parameter of the native function
-  x. new Constructor with Exception and Type Annotations
+  x. new Constructor with Exception
   x. String.intern
   x. What's the use of BootstrapMethod?
   x. A lot of .class attrs is not used, how does it work?

@@ -99,6 +99,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "()[Ljava/lang/Class;",
             Box::new(jvm_getDeclaredClasses0),
         ),
+        new_fn(
+            "getGenericSignature0",
+            "()Ljava/lang/String;",
+            Box::new(jvm_getGenericSignature0),
+        ),
     ]
 }
 
@@ -835,6 +840,12 @@ fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -
     unimplemented!();
     let r = oop::consts::get_null();
     Ok(Some(r))
+}
+
+fn jvm_getGenericSignature0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let v = oop::consts::get_null();
+    Ok(Some(v))
 }
 
 fn get_declared_method_helper(
