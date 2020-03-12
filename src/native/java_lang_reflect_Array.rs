@@ -7,11 +7,18 @@ use crate::types::ClassRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![new_fn(
-        "newArray",
-        "(Ljava/lang/Class;I)Ljava/lang/Object;",
-        Box::new(jvm_newArray),
-    )]
+    vec![
+        new_fn(
+            "newArray",
+            "(Ljava/lang/Class;I)Ljava/lang/Object;",
+            Box::new(jvm_newArray),
+        ),
+        new_fn(
+            "getLength",
+            "(Ljava/lang/Object;)I",
+            Box::new(jvm_getLength),
+        ),
+    ]
 }
 
 fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
@@ -32,6 +39,24 @@ fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let ary_cls = require_class3(None, name.as_slice()).unwrap();
     let v = Oop::new_ref_ary(ary_cls, length as usize);
 
+    Ok(Some(v))
+}
+
+fn jvm_getLength(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let ary = args.get(0).unwrap();
+    let len = match ary {
+        Oop::Ref(rf) => {
+            let rf = rf.read().unwrap();
+            match &rf.v {
+                oop::RefKind::TypeArray(ary) => ary.len(),
+                oop::RefKind::Array(ary) => ary.elements.len(),
+                _ => unreachable!(),
+            }
+        }
+        _ => unreachable!(),
+    };
+
+    let v = Oop::new_int(len as i32);
     Ok(Some(v))
 }
 
