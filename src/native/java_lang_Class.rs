@@ -779,8 +779,11 @@ fn jvm_getRawAnnotations(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
                 oop::RefKind::Mirror(mirror) => {
                     let cls = mirror.target.clone().unwrap();
                     let cls = cls.read().unwrap();
-                    let raw_assemble = cls.get_annotation();
-                    Oop::new_byte_ary2(raw_assemble)
+                    let raw = cls.get_annotation();
+                    match raw {
+                        Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+                        None => oop::consts::get_null(),
+                    }
                 }
                 _ => unimplemented!(),
             }

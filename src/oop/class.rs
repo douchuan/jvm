@@ -328,7 +328,7 @@ impl Class {
         }
     }
 
-    pub fn get_annotation(&self) -> Vec<u8> {
+    pub fn get_annotation(&self) -> Option<Vec<u8>> {
         match &self.kind {
             ClassKind::Instance(cls) => {
                 util::cls_file_attr::assemble_annotation(&cls.class_file.attrs)
@@ -337,7 +337,7 @@ impl Class {
         }
     }
 
-    pub fn get_type_annotation(&self) -> Vec<u8> {
+    pub fn get_type_annotation(&self) -> Option<Vec<u8>> {
         match &self.kind {
             ClassKind::Instance(cls) => {
                 util::cls_file_attr::assemble_type_annotation(&cls.class_file.attrs)

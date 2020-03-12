@@ -161,22 +161,22 @@ impl Method {
         return best_line;
     }
 
-    pub fn get_annotation(&self) -> Vec<u8> {
+    pub fn get_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
         util::cls_file_attr::assemble_annotation(&method_info.attrs)
     }
 
-    pub fn get_param_annotation(&self) -> Vec<u8> {
+    pub fn get_param_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
         util::cls_file_attr::assemble_param_annotation(&method_info.attrs)
     }
 
-    pub fn get_type_annotation(&self) -> Vec<u8> {
+    pub fn get_type_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
         util::cls_file_attr::assemble_type_annotation(&method_info.attrs)
     }
 
-    pub fn get_annotation_default(&self) -> Vec<u8> {
+    pub fn get_annotation_default(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
         util::cls_file_attr::assemble_annotation_default(&method_info.attrs)
     }

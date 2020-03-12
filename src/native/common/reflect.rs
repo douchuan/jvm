@@ -78,11 +78,17 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     let signature = util::oop::new_java_lang_string2(jt, desc);
     let annotations = {
         let raw = mir.method.get_annotation();
-        Oop::new_byte_ary2(raw.to_vec())
+        match raw {
+            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+            None => oop::consts::get_null(),
+        }
     };
     let parameter_annotations = {
         let raw = mir.method.get_param_annotation();
-        Oop::new_byte_ary2(raw.to_vec())
+        match raw {
+            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+            None => oop::consts::get_null(),
+        }
     };
 
     let mut desc = Vec::new();
@@ -156,15 +162,24 @@ pub fn new_method_normal(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     };
     let annotations = {
         let raw = mir.method.get_annotation();
-        Oop::new_byte_ary2(raw.to_vec())
+        match raw {
+            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+            None => oop::consts::get_null(),
+        }
     };
     let parameter_annotations = {
         let raw = mir.method.get_param_annotation();
-        Oop::new_byte_ary2(raw.to_vec())
+        match raw {
+            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+            None => oop::consts::get_null(),
+        }
     };
     let annotation_default = {
         let raw = mir.method.get_annotation_default();
-        Oop::new_byte_ary2(raw.to_vec())
+        match raw {
+            Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
+            None => oop::consts::get_null(),
+        }
     };
 
     let mut desc = Vec::new();

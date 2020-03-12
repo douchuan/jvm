@@ -135,6 +135,7 @@ impl From<&[u8]> for AttrTag {
             b"MethodParameters" => AttrTag::MethodParameters,
             _ => {
                 info!("Unknown attr {}", String::from_utf8_lossy(raw));
+                // error!("Unknown attr {}", String::from_utf8_lossy(raw));
                 AttrTag::Unknown
             }
         }
