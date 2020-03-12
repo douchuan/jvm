@@ -30,44 +30,50 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
-    let mut callers = jt.frames.clone();
+    let mut backtrace = Vec::with_capacity(jt.frames.len());
 
-    let mut last = None;
-    loop {
-        let cur = callers.pop().unwrap();
+    let mut found_ex_here = false;
+    for it in jt.frames.iter() {
         let ex_here = {
-            let cur = cur.try_read().unwrap();
-            let area = cur.area.borrow();
+            let it = it.try_read().unwrap();
+            let area = it.area.borrow();
             area.ex_here
         };
 
-        /*
-        frame.idiv reach here
-        */
+        backtrace.push(it.clone());
+
         if ex_here {
-            callers.push(cur);
+            found_ex_here = true;
             break;
         }
+    }
 
-        /*
-        throw ex, reach here
+    /*
+       todo: how handle throw better?
 
-        static void fn1() throws Exception {
-            Exception ex = new Exception();
-            throw ex;
-        }
-        */
-        if callers.len() == 0 {
-            callers.push(cur);
-            callers.push(last.unwrap());
-            break;
-        }
+    if no ex_here found, it's:
+      throw new AnnotationFormatError("Unexpected end of annotations.");
 
-        last = Some(cur);
+    new Throwable
+      Throwable.fillInStackTrace invoked, and come here
+
+    there are stacktraces for build 'Throwable' obj, not necessary for user, need discard
+
+    Exception in thread "main" java.lang.annotation.AnnotationFormatError: Unexpected end of annotations.
+       at java.lang.Throwable.fillInStackTrace(Throwable.java)
+       at java.lang.Throwable.fillInStackTrace(Throwable.java:783)
+       at java.lang.Throwable.<init>(Throwable.java:265)
+       at java.lang.Error.<init>(Error.java:70)
+       */
+    if !found_ex_here {
+        backtrace.pop();
+        backtrace.pop();
+        backtrace.pop();
+        backtrace.pop();
     }
 
     let mut traces = Vec::new();
-    for caller in callers.iter().rev() {
+    for caller in backtrace.iter().rev() {
         let (mir, pc) = {
             let caller = caller.try_read().unwrap();
             let pc = { caller.area.borrow().pc };

@@ -367,7 +367,7 @@ impl Frame {
                     }
 
                     if thread.is_meet_ex() {
-                        // error!("meet ex: {:?}, frame_id = {}", op_code, self.frame_id);
+                        // util::debug::print_stack_trace(thread);
                         let ex = thread.take_ex().unwrap();
                         match self.try_handle_exception(thread, ex) {
                             Ok(_) => (),
@@ -787,8 +787,8 @@ impl Frame {
                 let line_num = self.mir.method.get_line_num(area.pc as u16);
 
                 info!(
-                    "NotFound Exception Handler: line={}, frame_id={}, {}:{}",
-                    line_num, self.frame_id, method_cls_name, method_name
+                    "NotFound Exception Handler: line={}, frame_id={}, {}:{}, ex_here={}",
+                    line_num, self.frame_id, method_cls_name, method_name, area.ex_here
                 );
 
                 Err(ex)
