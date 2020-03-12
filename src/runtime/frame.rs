@@ -48,9 +48,10 @@ macro_rules! array_store {
 }
 
 macro_rules! iarray_load {
-    ($thread:ident, $stack:ident, $ary:ident, $pos:ident) => {
+    ($thread:ident, $area:ident, $ary:ident, $pos:ident) => {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
+            drop($area);
             let msg = format!("length is {}, but index is {}", len, $pos);
             meet_ex(
                 $thread,
@@ -58,7 +59,8 @@ macro_rules! iarray_load {
                 Some(msg),
             );
         } else {
-            $stack.push_int($ary[$pos as usize] as i32);
+            let stack = &mut ($area.stack);
+            stack.push_int($ary[$pos as usize] as i32);
         }
     };
 }
@@ -1132,8 +1134,7 @@ impl Frame {
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Int(ary) => {
-                            let stack = &mut area.stack;
-                            iarray_load!(thread, stack, ary, pos);
+                            iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1155,8 +1156,7 @@ impl Frame {
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Short(ary) => {
-                            let stack = &mut area.stack;
-                            iarray_load!(thread, stack, ary, pos);
+                            iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1178,8 +1178,7 @@ impl Frame {
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Char(ary) => {
-                            let stack = &mut area.stack;
-                            iarray_load!(thread, stack, ary, pos);
+                            iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1201,12 +1200,10 @@ impl Frame {
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayValue::Byte(ary) => {
-                            let stack = &mut area.stack;
-                            iarray_load!(thread, stack, ary, pos);
+                            iarray_load!(thread, area, ary, pos);
                         }
                         oop::TypeArrayValue::Bool(ary) => {
-                            let stack = &mut area.stack;
-                            iarray_load!(thread, stack, ary, pos);
+                            iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
