@@ -341,7 +341,16 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
             }
             None => match value_type {
                 ValueType::INT => Arc::new(Vec::from("int")),
-                _ => unimplemented!(),
+                ValueType::BYTE => Arc::new(Vec::from("byte")),
+                ValueType::BOOLEAN => Arc::new(Vec::from("boolean")),
+                ValueType::CHAR => Arc::new(Vec::from("char")),
+                ValueType::SHORT => Arc::new(Vec::from("short")),
+                ValueType::LONG => Arc::new(Vec::from("long")),
+                ValueType::FLOAT => Arc::new(Vec::from("float")),
+                ValueType::DOUBLE => Arc::new(Vec::from("double")),
+                ValueType::VOID => unreachable!(),
+                ValueType::OBJECT => unimplemented!(),
+                ValueType::ARRAY => unimplemented!(),
             },
         }
     };

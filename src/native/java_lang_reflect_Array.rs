@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{require_class3, JavaThread};
+use crate::types::ClassRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -15,41 +16,56 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 
 fn jvm_newArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
-    let component_cls = {
-        let mirror = util::oop::extract_ref(mirror);
-        let v = mirror.read().unwrap();
-        match &v.v {
-            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!(),
-        }
-    };
+    //todo: throw NegativeArraySizeException
     let length = args.get(1).unwrap();
     let length = util::oop::extract_int(length);
 
-    //todo: throw NegativeArraySizeException
-    let name = {
-        let mut new_name = Vec::new();
+    let (vt, component_cls) = {
+        let mirror = util::oop::extract_ref(mirror);
+        let v = mirror.read().unwrap();
+        match &v.v {
+            oop::RefKind::Mirror(mirror) => (mirror.value_type, mirror.target.clone()),
+            _ => unreachable!(),
+        }
+    };
+    let name = build_ary_name(vt, component_cls);
+    let ary_cls = require_class3(None, name.as_slice()).unwrap();
+    let v = Oop::new_ref_ary(ary_cls, length as usize);
 
-        let cls = component_cls.read().unwrap();
-        new_name.extend_from_slice("[".as_bytes());
-        match cls.kind {
-            oop::ClassKind::Instance(_) => {
-                new_name.extend_from_slice("L".as_bytes());
-                new_name.extend_from_slice(cls.name.as_slice());
-                new_name.extend_from_slice(";".as_bytes());
+    Ok(Some(v))
+}
+
+fn build_ary_name(vt: ValueType, component_cls: Option<ClassRef>) -> Vec<u8> {
+    let mut name = Vec::from("[");
+
+    match vt {
+        ValueType::BYTE
+        | ValueType::BOOLEAN
+        | ValueType::CHAR
+        | ValueType::SHORT
+        | ValueType::INT
+        | ValueType::LONG
+        | ValueType::FLOAT
+        | ValueType::DOUBLE => name.extend_from_slice(vt.into()),
+        ValueType::OBJECT | ValueType::ARRAY => {
+            let cls = component_cls.unwrap();
+            let cls = cls.read().unwrap();
+            match cls.kind {
+                oop::ClassKind::Instance(_) => {
+                    name.extend_from_slice("L".as_bytes());
+                    name.extend_from_slice(cls.name.as_slice());
+                    name.extend_from_slice(";".as_bytes());
+                }
+                oop::ClassKind::ObjectArray(_) => {
+                    name.extend_from_slice(cls.name.as_slice());
+                    name.extend_from_slice(";".as_bytes());
+                }
+                oop::ClassKind::TypeArray(_) => unimplemented!(),
             }
-            oop::ClassKind::ObjectArray(_) => {
-                new_name.extend_from_slice(cls.name.as_slice());
-                new_name.extend_from_slice(";".as_bytes());
-            }
-            oop::ClassKind::TypeArray(_) => (),
         }
 
-        new_name
-    };
+        ValueType::VOID => unreachable!(),
+    }
 
-    let ary_cls = require_class3(None, name.as_slice()).unwrap();
-
-    let v = Oop::new_ref_ary(ary_cls, length as usize);
-    Ok(Some(v))
+    name
 }
