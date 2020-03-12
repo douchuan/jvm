@@ -24,6 +24,7 @@ mod java_lang_System;
 mod java_lang_Thread;
 mod java_lang_Throwable;
 mod java_lang_reflect_Array;
+mod java_lang_reflect_Proxy;
 mod java_security_AccessController;
 mod java_util_concurrent_atomic_AtomicLong;
 mod sun_misc_Signal;
@@ -118,6 +119,10 @@ pub fn init() {
         (
             "java/lang/reflect/Array",
             java_lang_reflect_Array::get_native_methods(),
+        ),
+        (
+            "java/lang/reflect/Proxy",
+            java_lang_reflect_Proxy::get_native_methods(),
         ),
         ("java/lang/Runtime", java_lang_Runtime::get_native_methods()),
         ("java/lang/String", java_lang_String::get_native_methods()),
