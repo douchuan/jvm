@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-pub mod access_flags;
+pub mod flags;
 pub mod attributes;
 pub mod checker;
 pub mod constant_pool;

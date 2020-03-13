@@ -1,5 +1,5 @@
 use crate::classfile::{
-    access_flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, Type,
+    flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, Type,
     FieldInfo, MethodInfo,
 };
 use crate::oop::{self, ClassRef, ValueType};

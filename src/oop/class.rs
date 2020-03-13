@@ -1,6 +1,6 @@
 use crate::classfile::constant_pool::get_utf8;
 use crate::classfile::{
-    access_flags::*, attributes::Type, attributes::EnclosingMethod, attributes::InnerClass,
+    flags::*, attributes::Type, attributes::EnclosingMethod, attributes::InnerClass,
     constant_pool, consts,
 };
 use crate::oop::method::MethodId;

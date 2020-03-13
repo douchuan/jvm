@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::classfile::{self, access_flags as acc, constant_pool, consts as cls_file_const};
+use crate::classfile::{self, flags as acc, constant_pool, consts as cls_file_const};
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
