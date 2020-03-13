@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 pub mod access_flags;
-pub mod attr_info;
+pub mod attributes;
 pub mod checker;
 pub mod constant_pool;
 pub mod consts;
@@ -10,7 +10,7 @@ pub mod method_info;
 pub mod opcode;
 pub mod signature;
 
-pub use crate::classfile::attr_info::AttrType;
+pub use crate::classfile::attributes::AttrType;
 use crate::classfile::checker::{CheckResult, Checker};
 pub use crate::classfile::field_info::FieldInfo;
 pub use crate::classfile::method_info::MethodInfo;

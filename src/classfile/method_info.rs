@@ -1,4 +1,4 @@
-use crate::classfile::attr_info::{AttrType, Code, LineNumber};
+use crate::classfile::attributes::{AttrType, Code, LineNumber};
 use crate::classfile::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;

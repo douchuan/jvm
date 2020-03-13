@@ -1,6 +1,6 @@
 use crate::classfile::constant_pool::get_utf8;
 use crate::classfile::{
-    access_flags::*, attr_info::AttrType, attr_info::EnclosingMethod, attr_info::InnerClass,
+    access_flags::*, attributes::AttrType, attributes::EnclosingMethod, attributes::InnerClass,
     constant_pool, consts,
 };
 use crate::oop::method::MethodId;
@@ -332,7 +332,7 @@ impl Class {
     pub fn get_annotation(&self) -> Option<Vec<u8>> {
         match &self.kind {
             ClassKind::Instance(cls) => {
-                util::cls_file_attr::assemble_annotation(&cls.class_file.attrs)
+                util::attributes::assemble_annotation(&cls.class_file.attrs)
             }
             _ => unreachable!(),
         }
@@ -341,7 +341,7 @@ impl Class {
     pub fn get_type_annotation(&self) -> Option<Vec<u8>> {
         match &self.kind {
             ClassKind::Instance(cls) => {
-                util::cls_file_attr::assemble_type_annotation(&cls.class_file.attrs)
+                util::attributes::assemble_type_annotation(&cls.class_file.attrs)
             }
             _ => unreachable!(),
         }
@@ -350,7 +350,7 @@ impl Class {
     pub fn get_attr_signatrue(&self) -> Option<BytesRef> {
         match &self.kind {
             ClassKind::Instance(cls) => {
-                let idx = util::cls_file_attr::get_signature(&cls.class_file.attrs);
+                let idx = util::attributes::get_signature(&cls.class_file.attrs);
                 if idx != 0 {
                     let cp = &cls.class_file.cp;
                     get_utf8(cp, idx as usize)

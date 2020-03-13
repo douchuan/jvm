@@ -1,4 +1,4 @@
-use crate::classfile::attr_info::AttrType;
+use crate::classfile::attributes::AttrType;
 use crate::types::U2;
 
 #[derive(Debug)]

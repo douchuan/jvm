@@ -27,7 +27,7 @@ pub enum AttrType {
         source_file_index: U2,
     },
     SourceDebugExtension {
-        debug_extension: Arc<Vec<U1>>,
+        debug_extension: BytesRef,
     },
     LineNumberTable {
         tables: Vec<LineNumber>,

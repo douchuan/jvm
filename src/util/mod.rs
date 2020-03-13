@@ -1,7 +1,7 @@
 #[macro_use]
 pub mod macros;
 
-pub mod cls_file_attr;
+pub mod attributes;
 pub mod debug;
 pub mod oop;
 mod sys;

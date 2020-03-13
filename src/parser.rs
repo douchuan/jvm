@@ -1,6 +1,6 @@
-use crate::classfile::attr_info::{TargetInfo, TypeAnnotation};
+use crate::classfile::attributes::{TargetInfo, TypeAnnotation};
 use crate::classfile::{
-    attr_info::{self, AttrTag, AttrType},
+    attributes::{self, AttrTag, AttrType},
     constant_pool::*,
     field_info::FieldInfo,
     method_info::MethodInfo,
@@ -146,7 +146,7 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
     Ok((input, Arc::new(output)))
 }
 
-use attr_info::VerificationTypeInfo;
+use attributes::VerificationTypeInfo;
 named!(
     verification_type_info<VerificationTypeInfo>,
     do_parse!(
@@ -174,38 +174,38 @@ named!(
 );
 
 named!(
-    stack_map_frame<attr_info::StackMapFrame>,
+    stack_map_frame<attributes::StackMapFrame>,
     do_parse!(
         frame_type: be_u8
             >> inner:
                 switch!(value!(frame_type),
-                    0..=63 => value!(attr_info::StackMapFrame::Same {offset_delta: frame_type as u16}) |
+                    0..=63 => value!(attributes::StackMapFrame::Same {offset_delta: frame_type as u16}) |
                     64..=127 => do_parse!(
                         offset_delta: value!((frame_type-64) as u16) >>
                         type_info: verification_type_info >>
-                        (attr_info::StackMapFrame::SameLocals1StackItem {
+                        (attributes::StackMapFrame::SameLocals1StackItem {
                             offset_delta,
                             stack: [type_info],
                         })
                     ) |
-                    128..=246 => value!(attr_info::StackMapFrame::Reserved) |
+                    128..=246 => value!(attributes::StackMapFrame::Reserved) |
                     247 => do_parse!(
                         offset_delta: be_u16 >>
                         type_info: verification_type_info >>
-                        (attr_info::StackMapFrame::SameLocals1StackItem {
+                        (attributes::StackMapFrame::SameLocals1StackItem {
                             offset_delta,
                             stack: [type_info],
                         })
                     ) |
                     248..=250 => do_parse!(
                         offset_delta: be_u16 >>
-                        (attr_info::StackMapFrame::Chop {
+                        (attributes::StackMapFrame::Chop {
                             offset_delta,
                         })
                     ) |
                     251 => do_parse!(
                         offset_delta: be_u16 >>
-                        (attr_info::StackMapFrame::SameExtended {
+                        (attributes::StackMapFrame::SameExtended {
                             offset_delta
                         })
                     ) |
@@ -213,7 +213,7 @@ named!(
                         offset_delta: be_u16 >>
                         locals_count: value!(frame_type - 251) >>
                         locals: count!(verification_type_info, locals_count as usize) >>
-                        (attr_info::StackMapFrame::Append {
+                        (attributes::StackMapFrame::Append {
                             offset_delta,
                             locals,
                         })
@@ -224,7 +224,7 @@ named!(
                         locals: count!(verification_type_info, locals_count as usize) >>
                         stack_count: be_u16 >>
                         stack: count!(verification_type_info, stack_count as usize) >>
-                        (attr_info::StackMapFrame::Full {
+                        (attributes::StackMapFrame::Full {
                             offset_delta,
                             locals,
                             stack,
@@ -236,13 +236,13 @@ named!(
 );
 
 named!(
-    inner_class<attr_info::InnerClass>,
+    inner_class<attributes::InnerClass>,
     do_parse!(
         inner_class_info_index: be_u16
             >> outer_class_info_index: be_u16
             >> inner_name_index: be_u16
             >> inner_class_access_flags: be_u16
-            >> (attr_info::InnerClass {
+            >> (attributes::InnerClass {
                 inner_class_info_index,
                 outer_class_info_index,
                 inner_name_index,
@@ -252,11 +252,11 @@ named!(
 );
 
 named!(
-    enclosing_method<attr_info::EnclosingMethod>,
+    enclosing_method<attributes::EnclosingMethod>,
     do_parse!(
         class_index: be_u16
             >> method_index: be_u16
-            >> (attr_info::EnclosingMethod {
+            >> (attributes::EnclosingMethod {
                 class_index,
                 method_index,
             })
@@ -264,19 +264,19 @@ named!(
 );
 
 named!(
-    line_number<attr_info::LineNumber>,
-    do_parse!(start_pc: be_u16 >> number: be_u16 >> (attr_info::LineNumber { start_pc, number }))
+    line_number<attributes::LineNumber>,
+    do_parse!(start_pc: be_u16 >> number: be_u16 >> (attributes::LineNumber { start_pc, number }))
 );
 
 named!(
-    local_variable<attr_info::LocalVariable>,
+    local_variable<attributes::LocalVariable>,
     do_parse!(
         start_pc: be_u16
             >> length: be_u16
             >> name_index: be_u16
             >> signature_index: be_u16
             >> index: be_u16
-            >> (attr_info::LocalVariable {
+            >> (attributes::LocalVariable {
                 start_pc,
                 length,
                 name_index,
@@ -287,14 +287,14 @@ named!(
 );
 
 named!(
-    element_value_tag<attr_info::ElementValueTag>,
-    do_parse!(tag: be_u8 >> (attr_info::ElementValueTag::from(tag)))
+    element_value_tag<attributes::ElementValueTag>,
+    do_parse!(tag: be_u8 >> (attributes::ElementValueTag::from(tag)))
 );
 
-use attr_info::{ElementValueTag, ElementValueType};
+use attributes::{ElementValueTag, ElementValueType};
 
 // I didn't found a way to turn byte/char/double/float/... boilerplate into a macro(
-named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, do_parse!(
+named_args!(element_value_type(cp: ConstantPool)<attributes::ElementValueType>, do_parse!(
     tag: element_value_tag >>
     inner: switch!(value!(tag),
         ElementValueTag::Byte => do_parse!(
@@ -348,7 +348,7 @@ named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, d
         ) |
         ElementValueTag::Annotation => do_parse!(
             value: call!(annotation_entry, cp) >>
-            (ElementValueType::Annotation(attr_info::AnnotationElementValue {value}))
+            (ElementValueType::Annotation(attributes::AnnotationElementValue {value}))
         ) |
         ElementValueTag::Array => do_parse!(
             array_size: be_u16 >>
@@ -362,27 +362,27 @@ named_args!(element_value_type(cp: ConstantPool)<attr_info::ElementValueType>, d
     (inner)
 ));
 
-named_args!(element_value_pair(cp: ConstantPool)<attr_info::ElementValuePair>, do_parse!(
+named_args!(element_value_pair(cp: ConstantPool)<attributes::ElementValuePair>, do_parse!(
     name_index: be_u16 >>
     value: call!(element_value_type, cp) >>
-    (attr_info::ElementValuePair {name_index, value})
+    (attributes::ElementValuePair {name_index, value})
 ));
 
-named_args!(annotation_entry(cp: ConstantPool)<attr_info::AnnotationEntry>, do_parse!(
+named_args!(annotation_entry(cp: ConstantPool)<attributes::AnnotationEntry>, do_parse!(
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
     type_name: value!(get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
-    (attr_info::AnnotationEntry {type_name, pairs})
+    (attributes::AnnotationEntry {type_name, pairs})
 ));
 
 named!(
-    local_var_target_table<attr_info::LocalVarTargetTable>,
+    local_var_target_table<attributes::LocalVarTargetTable>,
     do_parse!(
         start_pc: be_u16
             >> length: be_u16
             >> index: be_u16
-            >> (attr_info::LocalVarTargetTable {
+            >> (attributes::LocalVarTargetTable {
                 start_pc,
                 length,
                 index
@@ -442,11 +442,11 @@ named!(
 );
 
 named!(
-    type_path<attr_info::TypePath>,
+    type_path<attributes::TypePath>,
     do_parse!(
         type_path_kind: be_u8
             >> type_argument_index: be_u8
-            >> (attr_info::TypePath {
+            >> (attributes::TypePath {
                 type_path_kind,
                 type_argument_index,
             })
@@ -460,7 +460,7 @@ named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
-    (attr_info::TypeAnnotation {
+    (attributes::TypeAnnotation {
         target_info,
         target_path,
         type_index,
@@ -469,21 +469,21 @@ named_args!(type_annotation(cp: ConstantPool)<TypeAnnotation>, do_parse!(
 ));
 
 named!(
-    bootstrap_method<attr_info::BootstrapMethod>,
+    bootstrap_method<attributes::BootstrapMethod>,
     do_parse!(
         method_ref: be_u16
             >> arg_count: be_u16
             >> args: count!(be_u16, arg_count as usize)
-            >> (attr_info::BootstrapMethod { method_ref, args })
+            >> (attributes::BootstrapMethod { method_ref, args })
     )
 );
 
 named!(
-    method_parameter<attr_info::MethodParameter>,
+    method_parameter<attributes::MethodParameter>,
     do_parse!(
         name_index: be_u16
             >> acc_flags: be_u16
-            >> (attr_info::MethodParameter {
+            >> (attributes::MethodParameter {
                 name_index,
                 acc_flags
             })
@@ -491,13 +491,13 @@ named!(
 );
 
 named!(
-    code_exception<attr_info::CodeException>,
+    code_exception<attributes::CodeException>,
     do_parse!(
         start_pc: be_u16
             >> end_pc: be_u16
             >> handler_pc: be_u16
             >> catch_type: be_u16
-            >> (attr_info::CodeException {
+            >> (attributes::CodeException {
                 start_pc,
                 end_pc,
                 handler_pc,
@@ -519,7 +519,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
         exception_count: be_u16 >>
         exceptions: count!(code_exception, exception_count as usize) >>
         attrs: call!(attr_type_vec, cp) >>
-        (AttrType::Code(attr_info::Code {
+        (AttrType::Code(attributes::Code {
             max_stack,
             max_locals,
             code: Arc::new(Vec::from(code)),

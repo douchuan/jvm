@@ -1,5 +1,5 @@
 use crate::classfile::{
-    access_flags::*, attr_info::Code, attr_info::LineNumber, constant_pool, consts, AttrType,
+    access_flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, AttrType,
     FieldInfo, MethodInfo,
 };
 use crate::oop::{self, ClassRef, ValueType};
@@ -163,22 +163,22 @@ impl Method {
 
     pub fn get_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-        util::cls_file_attr::assemble_annotation(&method_info.attrs)
+        util::attributes::assemble_annotation(&method_info.attrs)
     }
 
     pub fn get_param_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-        util::cls_file_attr::assemble_param_annotation(&method_info.attrs)
+        util::attributes::assemble_param_annotation(&method_info.attrs)
     }
 
     pub fn get_type_annotation(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-        util::cls_file_attr::assemble_type_annotation(&method_info.attrs)
+        util::attributes::assemble_type_annotation(&method_info.attrs)
     }
 
     pub fn get_annotation_default(&self) -> Option<Vec<u8>> {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
-        util::cls_file_attr::assemble_annotation_default(&method_info.attrs)
+        util::attributes::assemble_annotation_default(&method_info.attrs)
     }
 
     pub fn check_annotation(&self, name: &[u8]) -> bool {

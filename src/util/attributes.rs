@@ -1,4 +1,4 @@
-use crate::classfile::attr_info::AttrType;
+use crate::classfile::attributes::AttrType;
 use crate::types::BytesRef;
 
 pub fn assemble_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {

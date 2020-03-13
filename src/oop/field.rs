@@ -1,4 +1,4 @@
-use crate::classfile::{access_flags::*, attr_info, constant_pool, consts, FieldInfo};
+use crate::classfile::{access_flags::*, attributes, constant_pool, consts, FieldInfo};
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
@@ -132,7 +132,7 @@ impl Field {
 
         let mut attr_constant_value = None;
         fi.attrs.iter().for_each(|a| {
-            if let attr_info::AttrType::ConstantValue {
+            if let attributes::AttrType::ConstantValue {
                 constant_value_index,
             } = a
             {
