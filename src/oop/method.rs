@@ -1,5 +1,5 @@
 use crate::classfile::{
-    access_flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, AttrType,
+    access_flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, Type,
     FieldInfo, MethodInfo,
 };
 use crate::oop::{self, ClassRef, ValueType};
@@ -186,7 +186,7 @@ impl Method {
 
         for it in method_info.attrs.iter() {
             match it {
-                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
+                Type::RuntimeVisibleAnnotations { raw, annotations } => {
                     for it in annotations.iter() {
                         if it.type_name.as_slice() == name {
                             return true;

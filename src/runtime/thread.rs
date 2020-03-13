@@ -1,4 +1,4 @@
-use crate::classfile::attributes::AttrType::Exceptions;
+use crate::classfile::attributes::Type::Exceptions;
 use crate::classfile::{self, signature};
 use crate::oop::{self, consts, InstOopDesc, Oop};
 use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall};

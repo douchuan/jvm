@@ -132,7 +132,7 @@ impl Field {
 
         let mut attr_constant_value = None;
         fi.attrs.iter().for_each(|a| {
-            if let attributes::AttrType::ConstantValue {
+            if let attributes::Type::ConstantValue {
                 constant_value_index,
             } = a
             {

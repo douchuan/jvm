@@ -1,6 +1,6 @@
 use crate::classfile::attributes::{TargetInfo, TypeAnnotation};
 use crate::classfile::{
-    attributes::{self, AttrTag, AttrType},
+    attributes::{self, Tag as AttrTag, Type as AttrType},
     constant_pool::*,
     field_info::FieldInfo,
     method_info::MethodInfo,

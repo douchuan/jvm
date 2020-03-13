@@ -10,7 +10,7 @@ pub mod method_info;
 pub mod opcode;
 pub mod signature;
 
-pub use crate::classfile::attributes::AttrType;
+pub use crate::classfile::attributes::Type;
 use crate::classfile::checker::{CheckResult, Checker};
 pub use crate::classfile::field_info::FieldInfo;
 pub use crate::classfile::method_info::MethodInfo;
@@ -26,7 +26,7 @@ pub struct ClassFile {
     pub interfaces: Vec<U2>,
     pub fields: Vec<FieldInfo>,
     pub methods: Vec<MethodInfo>,
-    pub attrs: Vec<AttrType>,
+    pub attrs: Vec<Type>,
 }
 
 impl ClassFile {

@@ -1,6 +1,6 @@
 use crate::classfile::constant_pool::get_utf8;
 use crate::classfile::{
-    access_flags::*, attributes::AttrType, attributes::EnclosingMethod, attributes::InnerClass,
+    access_flags::*, attributes::Type, attributes::EnclosingMethod, attributes::InnerClass,
     constant_pool, consts,
 };
 use crate::oop::method::MethodId;
@@ -810,20 +810,20 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.attrs.iter().for_each(|a| match a {
-            AttrType::Signature { signature_index } => {
+            Type::Signature { signature_index } => {
                 if let Some(s) = constant_pool::get_utf8(cp, *signature_index as usize) {
                     self.signature = Some(s);
                 }
             }
-            AttrType::SourceFile { source_file_index } => {
+            Type::SourceFile { source_file_index } => {
                 if let Some(s) = constant_pool::get_utf8(cp, *source_file_index as usize) {
                     self.source_file = Some(s);
                 }
             }
-            AttrType::EnclosingMethod { em } => {
+            Type::EnclosingMethod { em } => {
                 self.enclosing_method = Some(em.clone());
             }
-            AttrType::InnerClasses { classes } => {
+            Type::InnerClasses { classes } => {
                 self.inner_classes = Some(classes.clone());
             }
             _ => (),

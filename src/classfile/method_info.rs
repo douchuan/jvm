@@ -1,4 +1,4 @@
-use crate::classfile::attributes::{AttrType, Code, LineNumber};
+use crate::classfile::attributes::{Type, Code, LineNumber};
 use crate::classfile::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
@@ -8,14 +8,14 @@ pub struct MethodInfo {
     pub acc_flags: U2,
     pub name_index: U2,
     pub desc_index: U2,
-    pub attrs: Vec<AttrType>,
+    pub attrs: Vec<Type>,
 }
 
 impl MethodInfo {
     pub fn get_code(&self) -> Option<Code> {
         for it in self.attrs.iter() {
             match it {
-                AttrType::Code(code) => return Some(code.clone()),
+                Type::Code(code) => return Some(code.clone()),
                 _ => (),
             }
         }
@@ -28,10 +28,10 @@ impl MethodInfo {
 
         for it in self.attrs.iter() {
             match it {
-                AttrType::Code(code) => {
+                Type::Code(code) => {
                     for it in code.attrs.iter() {
                         match it {
-                            AttrType::LineNumberTable { tables } => {
+                            Type::LineNumberTable { tables } => {
                                 line_num_table.extend_from_slice(tables.as_slice());
                             }
                             _ => (),

@@ -2,7 +2,7 @@ use crate::types::{BytesRef, U1, U2, U4};
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub enum AttrType {
+pub enum Type {
     ConstantValue {
         constant_value_index: U2,
     },
@@ -78,7 +78,7 @@ pub enum AttrType {
 }
 
 #[derive(Clone, Copy)]
-pub enum AttrTag {
+pub enum Tag {
     ConstantValue,
     Code,
     StackMapTable,
@@ -105,38 +105,38 @@ pub enum AttrTag {
     Unknown,
 }
 
-impl From<&[u8]> for AttrTag {
+impl From<&[u8]> for Tag {
     fn from(raw: &[u8]) -> Self {
         match raw {
-            b"ConstantValue" => AttrTag::ConstantValue,
-            b"Code" => AttrTag::Code,
-            b"StackMapTable" => AttrTag::StackMapTable,
-            b"Exceptions" => AttrTag::Exceptions,
-            b"InnerClasses" => AttrTag::InnerClasses,
-            b"EnclosingMethod" => AttrTag::EnclosingMethod,
-            b"Synthetic" => AttrTag::Synthetic,
-            b"Signature" => AttrTag::Signature,
-            b"SourceFile" => AttrTag::SourceFile,
-            b"SourceDebugExtension" => AttrTag::SourceDebugExtension,
-            b"LineNumberTable" => AttrTag::LineNumberTable,
-            b"LocalVariableTable" => AttrTag::LocalVariableTable,
-            b"LocalVariableTypeTable" => AttrTag::LocalVariableTypeTable,
-            b"Deprecated" => AttrTag::Deprecated,
-            b"RuntimeVisibleAnnotations" => AttrTag::RuntimeVisibleAnnotations,
-            b"RuntimeInvisibleAnnotations" => AttrTag::RuntimeInvisibleAnnotations,
-            b"RuntimeVisibleParameterAnnotations" => AttrTag::RuntimeVisibleParameterAnnotations,
+            b"ConstantValue" => Tag::ConstantValue,
+            b"Code" => Tag::Code,
+            b"StackMapTable" => Tag::StackMapTable,
+            b"Exceptions" => Tag::Exceptions,
+            b"InnerClasses" => Tag::InnerClasses,
+            b"EnclosingMethod" => Tag::EnclosingMethod,
+            b"Synthetic" => Tag::Synthetic,
+            b"Signature" => Tag::Signature,
+            b"SourceFile" => Tag::SourceFile,
+            b"SourceDebugExtension" => Tag::SourceDebugExtension,
+            b"LineNumberTable" => Tag::LineNumberTable,
+            b"LocalVariableTable" => Tag::LocalVariableTable,
+            b"LocalVariableTypeTable" => Tag::LocalVariableTypeTable,
+            b"Deprecated" => Tag::Deprecated,
+            b"RuntimeVisibleAnnotations" => Tag::RuntimeVisibleAnnotations,
+            b"RuntimeInvisibleAnnotations" => Tag::RuntimeInvisibleAnnotations,
+            b"RuntimeVisibleParameterAnnotations" => Tag::RuntimeVisibleParameterAnnotations,
             b"RuntimeInvisibleParameterAnnotations" => {
-                AttrTag::RuntimeInvisibleParameterAnnotations
+                Tag::RuntimeInvisibleParameterAnnotations
             }
-            b"RuntimeVisibleTypeAnnotations" => AttrTag::RuntimeVisibleTypeAnnotations,
-            b"RuntimeInvisibleTypeAnnotations" => AttrTag::RuntimeInvisibleTypeAnnotations,
-            b"AnnotationDefault" => AttrTag::AnnotationDefault,
-            b"BootstrapMethods" => AttrTag::BootstrapMethods,
-            b"MethodParameters" => AttrTag::MethodParameters,
+            b"RuntimeVisibleTypeAnnotations" => Tag::RuntimeVisibleTypeAnnotations,
+            b"RuntimeInvisibleTypeAnnotations" => Tag::RuntimeInvisibleTypeAnnotations,
+            b"AnnotationDefault" => Tag::AnnotationDefault,
+            b"BootstrapMethods" => Tag::BootstrapMethods,
+            b"MethodParameters" => Tag::MethodParameters,
             _ => {
                 info!("Unknown attr {}", String::from_utf8_lossy(raw));
                 // error!("Unknown attr {}", String::from_utf8_lossy(raw));
-                AttrTag::Unknown
+                Tag::Unknown
             }
         }
     }
@@ -148,7 +148,7 @@ pub struct Code {
     pub max_locals: U2,
     pub code: Arc<Vec<U1>>,
     pub exceptions: Vec<CodeException>,
-    pub attrs: Vec<AttrType>,
+    pub attrs: Vec<Type>,
 }
 
 #[derive(Debug, Clone)]
