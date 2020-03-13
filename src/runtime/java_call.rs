@@ -289,7 +289,18 @@ impl JavaCall {
                 oop::RefKind::Inst(inst) => {
                     let cls = inst.class.read().unwrap();
                     let id = self.mir.method.get_id();
-                    self.mir = cls.get_virtual_method(id).unwrap();
+                    match cls.get_virtual_method(id.clone()) {
+                        Ok(mir) => self.mir = mir,
+                        _ => {
+                            let cls = self.mir.method.class.read().unwrap();
+                            warn!(
+                                "resolve again failed, {}:{}, acc_flags = {}",
+                                String::from_utf8_lossy(cls.name.as_slice()),
+                                String::from_utf8_lossy(id.as_slice()),
+                                self.mir.method.acc_flags
+                            );
+                        }
+                    }
                 }
                 _ => (),
             };

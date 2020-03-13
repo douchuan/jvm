@@ -2,7 +2,7 @@
 #########################################
 ###modify to according to your env
 JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre
-JDK_SRC=/Users/douchuan/work/codes/java/openjdk-8u41-src-b04-14_jan_2020/openjdk
+JDK_SRC=/Users/douchuan/work/codes/java/vm/openjdk8
 ########################################
 
 JDK=$JAVA_HOME/lib/resources.jar:$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/jsse.jar:$JAVA_HOME/lib/jce.jar:$JAVA_HOME/lib/charsets.jar:$JAVA_HOME/lib/jfr.jar
@@ -68,6 +68,7 @@ export RUST_BACKTRACE=full
 ##ThreadLocal.initialValue not called, so NPE happend
 #cargo run -- --cp $JDK:$MY_TEST:./test/float ToString
 #cargo run -- --cp $JDK:$MY_TEST:./test/char MyCheckScript
+#cargo run -- --cp $JDK:$MY_TEST:./test/annotation AnnotationTest
 
 ###############################
 ### jdk test
@@ -105,13 +106,6 @@ export RUST_BACKTRACE=full
 #sum_t_println = 26
 #sum_t_int2integer = 13
 #################################
-### mine debug mode
-#sum_t_list_add = 45778
-#sum_t_map_get = 867
-#sum_t_map_put = 63
-#sum_t_parse_int = 4502
-#sum_t_println = 21181
-#sum_t_int2integer = 27745
 ### mine release mode
 #sum_t_list_add = 5494
 #sum_t_map_get = 123
@@ -120,7 +114,6 @@ export RUST_BACKTRACE=full
 #sum_t_println = 3059
 #sum_t_int2integer = 3201
 export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
@@ -130,29 +123,12 @@ export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
+
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/reflect/Constructor TestParameterAnnotations
 
 ##todo: NonJavaNames just ignored currently
 ##NonJavaNames
 
 ##todo: impl getDeclaredClasses0
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
-
-
-#[2020-03-07T23:14:59Z ERROR jvm::native::sun_reflect_ConstantPool] s = LExpectedGenericString;
-#[2020-03-07T23:14:59Z ERROR jvm::runtime::frame] mirror MyGenericStringTest cannot be cast to java.lang.reflect.Constructor
-#Exception in thread "main" java.lang.ClassCastException: mirror MyGenericStringTest cannot be cast to java.lang.reflect.Constructor
-#	at sun.reflect.generics.factory.CoreReflectionFactory.getDeclsLoader(CoreReflectionFactory.java:67)
-#	at sun.reflect.generics.factory.CoreReflectionFactory.makeNamedType(CoreReflectionFactory.java:115)
-#	at sun.reflect.generics.visitor.Reifier.visitClassTypeSignature(Reifier.java:125)
-#	at sun.reflect.generics.tree.ClassTypeSignature.accept(ClassTypeSignature.java:49)
-#	at sun.reflect.annotation.AnnotationParser.parseSig(AnnotationParser.java:439)
-#	at sun.reflect.annotation.AnnotationParser.parseAnnotation2(AnnotationParser.java:241)
-#	at sun.reflect.annotation.AnnotationParser.parseAnnotations2(AnnotationParser.java:120)
-#	at sun.reflect.annotation.AnnotationParser.parseAnnotations(AnnotationParser.java:72)
-#	at java.lang.Class.createAnnotationData(Class.java:3521)
-#	at java.lang.Class.annotationData(Class.java:3510)
-#	at java.lang.Class.getAnnotation(Class.java:3415)
-#	at MyGenericStringTest.main(MyGenericStringTest.java:53)
-###
-###  the impl of getRawAnnotations & intance_of & classloader is not right
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class MyGenericStringTest

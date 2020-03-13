@@ -878,7 +878,7 @@ impl Class {
         Err(())
     }
 
-    pub fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
         match &self.kind {
             ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&id) {
                 Some(m) => return Ok(m.clone()),
