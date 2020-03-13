@@ -1,3 +1,4 @@
+use crate::classfile::constant_pool::get_utf8;
 use crate::classfile::{
     access_flags::*, attr_info::AttrType, attr_info::EnclosingMethod, attr_info::InnerClass,
     constant_pool, consts,
@@ -341,6 +342,21 @@ impl Class {
         match &self.kind {
             ClassKind::Instance(cls) => {
                 util::cls_file_attr::assemble_type_annotation(&cls.class_file.attrs)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_attr_signatrue(&self) -> Option<BytesRef> {
+        match &self.kind {
+            ClassKind::Instance(cls) => {
+                let idx = util::cls_file_attr::get_signature(&cls.class_file.attrs);
+                if idx != 0 {
+                    let cp = &cls.class_file.cp;
+                    get_utf8(cp, idx as usize)
+                } else {
+                    None
+                }
             }
             _ => unreachable!(),
         }

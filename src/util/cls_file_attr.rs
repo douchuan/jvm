@@ -73,6 +73,19 @@ pub fn assemble_annotation_default(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
     do_assemble(vis, None)
 }
 
+pub fn get_signature(attrs: &Vec<AttrType>) -> u16 {
+    for it in attrs.iter() {
+        match it {
+            AttrType::Signature { signature_index } => {
+                return *signature_index;
+            }
+            _ => (),
+        }
+    }
+
+    0
+}
+
 fn do_assemble(vis: Option<BytesRef>, in_vis: Option<BytesRef>) -> Option<Vec<u8>> {
     let mut raw = None;
 

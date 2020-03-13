@@ -842,9 +842,35 @@ fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -
     Ok(Some(r))
 }
 
-fn jvm_getGenericSignature0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let _this = args.get(0).unwrap();
-    let v = oop::consts::get_null();
+fn jvm_getGenericSignature0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let v = match this {
+        Oop::Ref(rf) => {
+            let rf = rf.read().unwrap();
+            match &rf.v {
+                oop::RefKind::Mirror(mirror) => {
+                    let vt = mirror.value_type;
+                    if vt == ValueType::OBJECT {
+                        let target = mirror.target.clone().unwrap();
+                        let cls = target.read().unwrap();
+                        let sig = cls.get_attr_signatrue();
+                        sig.map_or_else(
+                            || oop::consts::get_null(),
+                            |v| {
+                                let sig = unsafe { std::str::from_utf8_unchecked(v.as_slice()) };
+                                util::oop::new_java_lang_string2(jt, sig)
+                            },
+                        )
+                    } else {
+                        oop::consts::get_null()
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+        _ => unreachable!(),
+    };
+
     Ok(Some(v))
 }
 
