@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::runtime::thread::JavaThread;
 use std::fmt::Write;
 

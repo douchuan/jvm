@@ -11,7 +11,7 @@ use std::fmt;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
-pub enum ConstantType {
+pub enum Type {
     Nop,
     Class {
         name_index: u16,
@@ -66,14 +66,14 @@ pub enum ConstantType {
 
 pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
     match cp.get(idx) {
-        Some(ConstantType::Class { name_index }) => get_utf8(cp, *name_index as usize),
+        Some(Type::Class { name_index }) => get_utf8(cp, *name_index as usize),
         _ => None,
     }
 }
 
 pub fn get_field_ref(cp: &ConstantPool, idx: usize) -> (u16, u16) {
     match cp.get(idx) {
-        Some(ConstantType::FieldRef {
+        Some(Type::FieldRef {
             class_index,
             name_and_type_index,
         }) => (*class_index, *name_and_type_index),
@@ -83,11 +83,11 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize) -> (u16, u16) {
 
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
     match cp.get(idx) {
-        Some(ConstantType::MethodRef {
+        Some(Type::MethodRef {
             class_index,
             name_and_type_index,
         }) => (CONSTANT_METHOD_REF_TAG, *class_index, *name_and_type_index),
-        Some(ConstantType::InterfaceMethodRef {
+        Some(Type::InterfaceMethodRef {
             class_index,
             name_and_type_index,
         }) => (
@@ -101,7 +101,7 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
 
 pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Option<BytesRef>) {
     match cp.get(idx) {
-        Some(ConstantType::NameAndType {
+        Some(Type::NameAndType {
             name_index,
             desc_index,
         }) => (
@@ -114,26 +114,26 @@ pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Op
 
 pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
     match cp.get(idx) {
-        Some(ConstantType::Utf8 { bytes }) => Some(bytes.clone()),
+        Some(Type::Utf8 { bytes }) => Some(bytes.clone()),
         _ => None,
     }
 }
 
-impl Checker for ConstantType {
+impl Checker for Type {
     fn check(&self, cp: &ConstantPool) -> CheckResult {
         match self {
-            ConstantType::Nop => Ok(()),
-            ConstantType::Class { name_index } => match cp.get(*name_index as usize) {
-                Some(ConstantType::Utf8 { .. }) => Ok(()),
+            Type::Nop => Ok(()),
+            Type::Class { name_index } => match cp.get(*name_index as usize) {
+                Some(Type::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpClassNameIdx),
             },
-            ConstantType::FieldRef {
+            Type::FieldRef {
                 class_index,
                 name_and_type_index,
             } => {
                 match cp.get(*class_index as usize) {
                     //todo: may be either a class type or an interface type
-                    Some(ConstantType::Class { name_index: _ }) => (),
+                    Some(Type::Class { name_index: _ }) => (),
                     _ => return Err(checker::Err::InvalidCpFieldRefClsIdx),
                 }
 
@@ -144,20 +144,20 @@ impl Checker for ConstantType {
                 // name <init>, representing an instance initialization method (§2.9).
                 // The return type of such a method must be void
                 match cp.get(*name_and_type_index as usize) {
-                    Some(ConstantType::NameAndType {
+                    Some(Type::NameAndType {
                         name_index,
                         desc_index,
                     }) => Ok(()),
                     _ => Err(checker::Err::InvalidCpFieldRefNameAndTypeIdx),
                 }
             }
-            ConstantType::MethodRef {
+            Type::MethodRef {
                 class_index,
                 name_and_type_index,
             } => {
                 //todo: must be a class type, not an interface type
                 match cp.get(*class_index as usize) {
-                    Some(ConstantType::Class { name_index: _ }) => (),
+                    Some(Type::Class { name_index: _ }) => (),
                     _ => return Err(checker::Err::InvalidCpMethodRefClsIdx),
                 }
 
@@ -181,37 +181,37 @@ impl Checker for ConstantType {
                     _ => Err(checker::Err::InvalidCpMethodRefNameAndTypeIdx),
                 }
             }
-            ConstantType::InterfaceMethodRef {
+            Type::InterfaceMethodRef {
                 class_index,
                 name_and_type_index,
             } => match cp.get(*class_index as usize) {
-                Some(ConstantType::Class { name_index: _ }) => Ok(()),
+                Some(Type::Class { name_index: _ }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpInterfaceMethodRefClsIdx),
             },
-            ConstantType::String { string_index } => match cp.get(*string_index as usize) {
-                Some(ConstantType::Utf8 { .. }) => Ok(()),
+            Type::String { string_index } => match cp.get(*string_index as usize) {
+                Some(Type::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpStrStrIdx),
             },
-            ConstantType::Integer { v: _ } => Ok(()),
-            ConstantType::Float { v: _ } => Ok(()),
-            ConstantType::Long { v: _ } => Ok(()),
-            ConstantType::Double { v: _ } => Ok(()),
-            ConstantType::NameAndType {
+            Type::Integer { v: _ } => Ok(()),
+            Type::Float { v: _ } => Ok(()),
+            Type::Long { v: _ } => Ok(()),
+            Type::Double { v: _ } => Ok(()),
+            Type::NameAndType {
                 name_index,
                 desc_index,
             } => {
                 match cp.get(*name_index as usize) {
-                    Some(ConstantType::Utf8 { .. }) => (),
+                    Some(Type::Utf8 { .. }) => (),
                     _ => return Err(checker::Err::InvalidCpStrStrIdx),
                 }
 
                 match cp.get(*desc_index as usize) {
-                    Some(ConstantType::Utf8 { .. }) => Ok(()),
+                    Some(Type::Utf8 { .. }) => Ok(()),
                     _ => return Err(checker::Err::InvalidCpStrStrIdx),
                 }
             }
-            ConstantType::Utf8 { .. } => Ok(()),
-            ConstantType::MethodHandle {
+            Type::Utf8 { .. } => Ok(()),
+            Type::MethodHandle {
                 ref_kind,
                 ref_index,
             } => {
@@ -222,14 +222,14 @@ impl Checker for ConstantType {
 
                 match ref_kind {
                     1 | 2 | 3 | 4 => match cp.get(*ref_index as usize) {
-                        Some(ConstantType::FieldRef {
+                        Some(Type::FieldRef {
                             class_index: _,
                             name_and_type_index: _,
                         }) => (),
                         _ => return Err(checker::Err::InvalidCpMethodHandleRefIdx),
                     },
                     5 | 8 => match cp.get(*ref_index as usize) {
-                        Some(ConstantType::MethodRef {
+                        Some(Type::MethodRef {
                             class_index: _,
                             name_and_type_index: _,
                         }) => (),
@@ -237,18 +237,18 @@ impl Checker for ConstantType {
                     },
                     6 | 7 => match cp.get(*ref_index as usize) {
                         //fixme: is less than 52.0, the constant_pool entry at ...
-                        Some(ConstantType::MethodRef {
+                        Some(Type::MethodRef {
                             class_index: _,
                             name_and_type_index: _,
                         }) => (),
-                        Some(ConstantType::InterfaceMethodRef {
+                        Some(Type::InterfaceMethodRef {
                             class_index,
                             name_and_type_index,
                         }) => (),
                         _ => return Err(checker::Err::InvalidCpMethodHandleRefIdx),
                     },
                     9 => match cp.get(*ref_index as usize) {
-                        Some(ConstantType::InterfaceMethodRef {
+                        Some(Type::InterfaceMethodRef {
                             class_index: _,
                             name_and_type_index: _,
                         }) => (),
@@ -259,7 +259,7 @@ impl Checker for ConstantType {
 
                 match ref_kind {
                     5 | 6 | 7 | 9 => match cp.get(*ref_index as usize) {
-                        Some(ConstantType::MethodRef {
+                        Some(Type::MethodRef {
                             class_index: _,
                             name_and_type_index,
                         }) => match get_name_and_type(cp, *name_and_type_index as usize) {
@@ -274,7 +274,7 @@ impl Checker for ConstantType {
                             }
                             _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
                         },
-                        Some(ConstantType::InterfaceMethodRef {
+                        Some(Type::InterfaceMethodRef {
                             class_index: _,
                             name_and_type_index,
                         }) => match get_name_and_type(cp, *name_and_type_index as usize) {
@@ -292,7 +292,7 @@ impl Checker for ConstantType {
                         _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
                     },
                     8 => match cp.get(*ref_index as usize) {
-                        Some(ConstantType::MethodRef {
+                        Some(Type::MethodRef {
                             class_index: _,
                             name_and_type_index,
                         }) => match get_name_and_type(cp, *name_and_type_index as usize) {
@@ -306,30 +306,30 @@ impl Checker for ConstantType {
                     _ => Err(checker::Err::InvalidCpMethodHandleRefIdx),
                 }
             }
-            ConstantType::MethodType { desc_index } => match cp.get(*desc_index as usize) {
-                Some(ConstantType::Utf8 { .. }) => Ok(()),
+            Type::MethodType { desc_index } => match cp.get(*desc_index as usize) {
+                Some(Type::Utf8 { .. }) => Ok(()),
                 _ => Err(checker::Err::InvalidCpStrStrIdx),
             },
-            ConstantType::InvokeDynamic {
+            Type::InvokeDynamic {
                 bootstrap_method_attr_index,
                 name_and_type_index,
             } => {
                 //todo: bootstrap_method_attr_index
                 match cp.get(*name_and_type_index as usize) {
-                    Some(ConstantType::NameAndType {
+                    Some(Type::NameAndType {
                         name_index: _,
                         desc_index: _,
                     }) => Ok(()),
                     _ => Err(checker::Err::InvalidCpFieldRefNameAndTypeIdx),
                 }
             }
-            ConstantType::Unknown => Ok(()),
+            Type::Unknown => Ok(()),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ConstantTag {
+pub enum Tag {
     Class,
     FieldRef,
     MethodRef,
@@ -346,29 +346,29 @@ pub enum ConstantTag {
     InvokeDynamic,
 }
 
-impl From<u8> for ConstantTag {
+impl From<u8> for Tag {
     fn from(tag: u8) -> Self {
         match tag {
-            7 => ConstantTag::Class,
-            9 => ConstantTag::FieldRef,
-            10 => ConstantTag::MethodRef,
-            11 => ConstantTag::InterfaceMethodRef,
-            8 => ConstantTag::String,
-            3 => ConstantTag::Integer,
-            4 => ConstantTag::Float,
-            5 => ConstantTag::Long,
-            6 => ConstantTag::Double,
-            12 => ConstantTag::NameAndType,
-            1 => ConstantTag::Utf8,
-            15 => ConstantTag::MethodHandle,
-            16 => ConstantTag::MethodType,
-            18 => ConstantTag::InvokeDynamic,
+            7 => Tag::Class,
+            9 => Tag::FieldRef,
+            10 => Tag::MethodRef,
+            11 => Tag::InterfaceMethodRef,
+            8 => Tag::String,
+            3 => Tag::Integer,
+            4 => Tag::Float,
+            5 => Tag::Long,
+            6 => Tag::Double,
+            12 => Tag::NameAndType,
+            1 => Tag::Utf8,
+            15 => Tag::MethodHandle,
+            16 => Tag::MethodType,
+            18 => Tag::InvokeDynamic,
             _ => unreachable!(),
         }
     }
 }
 
-impl ConstantType {
+impl Type {
     pub fn as_cp_item<'a, 'b>(&'a self, cp: &'b ConstantPool) -> ConstantPoolItem<'a, 'b> {
         ConstantPoolItem { cp, item: self }
     }
@@ -376,14 +376,14 @@ impl ConstantType {
 
 pub struct ConstantPoolItem<'item, 'cp> {
     cp: &'cp ConstantPool,
-    item: &'item ConstantType,
+    item: &'item Type,
 }
 
 impl Debug for ConstantPoolItem<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.item {
-            ConstantType::Nop => f.debug_struct("Nop").finish(),
-            ConstantType::Class { name_index } => f
+            Type::Nop => f.debug_struct("Nop").finish(),
+            Type::Class { name_index } => f
                 .debug_struct("Class")
                 .field("name_index", name_index)
                 .field(
@@ -394,7 +394,7 @@ impl Debug for ConstantPoolItem<'_, '_> {
                         .map(|t| t.as_cp_item(self.cp)),
                 )
                 .finish(),
-            ConstantType::Utf8 { bytes } => f
+            Type::Utf8 { bytes } => f
                 .debug_struct("Utf8")
                 .field("string", &std::str::from_utf8(bytes))
                 .finish(),

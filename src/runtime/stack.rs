@@ -1,4 +1,4 @@
-use crate::classfile::constant_pool::ConstantType;
+use crate::classfile::constant_pool::Type;
 use crate::classfile::method_info::MethodInfo;
 use crate::classfile::ClassFile;
 use crate::oop::{consts, Oop};

@@ -1,4 +1,4 @@
-use crate::classfile::constant_pool::{self, get_class_name, get_utf8, ConstantType};
+use crate::classfile::constant_pool::{self, get_class_name, get_utf8, Type};
 use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
@@ -422,30 +422,30 @@ impl Frame {
 
     fn load_constant(&self, pos: usize, thread: &mut JavaThread) {
         match &self.cp[pos] {
-            ConstantType::Integer { v } => {
+            Type::Integer { v } => {
                 let mut area = self.area.borrow_mut();
                 area.stack.push_int2(*v)
             }
-            ConstantType::Float { v } => {
+            Type::Float { v } => {
                 let mut area = self.area.borrow_mut();
                 area.stack.push_float2(*v)
             }
-            ConstantType::Long { v } => {
+            Type::Long { v } => {
                 let mut area = self.area.borrow_mut();
                 area.stack.push_long2(*v)
             }
-            ConstantType::Double { v } => {
+            Type::Double { v } => {
                 let mut area = self.area.borrow_mut();
                 area.stack.push_double2(*v)
             }
-            ConstantType::String { string_index } => {
+            Type::String { string_index } => {
                 let s = constant_pool::get_utf8(&self.cp, *string_index as usize).unwrap();
                 let s = util::oop::new_java_lang_string3(thread, s.as_slice());
 
                 let mut area = self.area.borrow_mut();
                 area.stack.push_ref(s);
             }
-            ConstantType::Class { name_index } => {
+            Type::Class { name_index } => {
                 let name = constant_pool::get_utf8(&self.cp, *name_index as usize).unwrap();
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
                 let cl = { self.class.read().unwrap().class_loader.clone() };

@@ -1,7 +1,7 @@
 use crate::classfile::attributes::{TargetInfo, TypeAnnotation};
 use crate::classfile::{
     attributes::{self, Tag as AttrTag, Type as AttrType},
-    constant_pool::*,
+    constant_pool,
     field_info::FieldInfo,
     method_info::MethodInfo,
     ClassFile, Version,
@@ -21,8 +21,8 @@ named!(
 );
 
 named!(
-    constant_tag<ConstantTag>,
-    do_parse!(tag: be_u8 >> (ConstantTag::from(tag)))
+    constant_tag<constant_pool::Tag>,
+    do_parse!(tag: be_u8 >> (constant_pool::Tag::from(tag)))
 );
 
 // Const generics still not in stable,
@@ -46,73 +46,73 @@ gen_take_exact!(4, take_exact_4);
 gen_take_exact!(8, take_exact_8);
 
 named!(
-    cp_entry<ConstantType>,
+    cp_entry<constant_pool::Type>,
     do_parse!(
         ct: constant_tag
             >> entry:
                 switch!(value!(ct),
-                    ConstantTag::Class => do_parse!(
+                    constant_pool::Tag::Class => do_parse!(
                         name_index: be_u16 >>
-                        (ConstantType::Class { name_index })
+                        (constant_pool::Type::Class { name_index })
                     ) |
-                    ConstantTag::FieldRef => do_parse!(
+                    constant_pool::Tag::FieldRef => do_parse!(
                         class_index: be_u16 >>
                         name_and_type_index: be_u16 >>
-                        (ConstantType::FieldRef { class_index, name_and_type_index })
+                        (constant_pool::Type::FieldRef { class_index, name_and_type_index })
                     ) |
-                    ConstantTag::MethodRef => do_parse!(
+                    constant_pool::Tag::MethodRef => do_parse!(
                         class_index: be_u16 >>
                         name_and_type_index: be_u16 >>
-                        (ConstantType::MethodRef { class_index, name_and_type_index })
+                        (constant_pool::Type::MethodRef { class_index, name_and_type_index })
                     ) |
-                    ConstantTag::InterfaceMethodRef => do_parse!(
+                    constant_pool::Tag::InterfaceMethodRef => do_parse!(
                         class_index: be_u16 >>
                         name_and_type_index: be_u16 >>
-                        (ConstantType::InterfaceMethodRef { class_index, name_and_type_index })
+                        (constant_pool::Type::InterfaceMethodRef { class_index, name_and_type_index })
                     ) |
-                    ConstantTag::String => do_parse!(
+                    constant_pool::Tag::String => do_parse!(
                         string_index: be_u16 >>
-                        (ConstantType::String { string_index })
+                        (constant_pool::Type::String { string_index })
                     ) |
-                    ConstantTag::Integer => do_parse!(
+                    constant_pool::Tag::Integer => do_parse!(
                         v: take_exact_4 >>
-                        (ConstantType::Integer { v })
+                        (constant_pool::Type::Integer { v })
                     ) |
-                    ConstantTag::Float => do_parse!(
+                    constant_pool::Tag::Float => do_parse!(
                         v: take_exact_4 >>
-                        (ConstantType::Float { v })
+                        (constant_pool::Type::Float { v })
                     ) |
-                    ConstantTag::Long => do_parse!(
+                    constant_pool::Tag::Long => do_parse!(
                         v: take_exact_8 >>
-                        (ConstantType::Long { v })
+                        (constant_pool::Type::Long { v })
                     ) |
-                    ConstantTag::Double => do_parse!(
+                    constant_pool::Tag::Double => do_parse!(
                         v: take_exact_8 >>
-                        (ConstantType::Double { v })
+                        (constant_pool::Type::Double { v })
                     ) |
-                    ConstantTag::NameAndType => do_parse!(
+                    constant_pool::Tag::NameAndType => do_parse!(
                         name_index: be_u16 >>
                         desc_index: be_u16 >>
-                        (ConstantType::NameAndType { name_index, desc_index })
+                        (constant_pool::Type::NameAndType { name_index, desc_index })
                     ) |
-                    ConstantTag::Utf8 => do_parse!(
+                    constant_pool::Tag::Utf8 => do_parse!(
                         length: be_u16 >>
                         bytes: take!(length) >>
-                        (ConstantType::Utf8 { bytes: Arc::new(Vec::from(bytes)) })
+                        (constant_pool::Type::Utf8 { bytes: Arc::new(Vec::from(bytes)) })
                     ) |
-                    ConstantTag::MethodHandle => do_parse!(
+                    constant_pool::Tag::MethodHandle => do_parse!(
                         ref_kind: be_u8 >>
                         ref_index: be_u16 >>
-                        (ConstantType::MethodHandle { ref_kind, ref_index })
+                        (constant_pool::Type::MethodHandle { ref_kind, ref_index })
                     ) |
-                    ConstantTag::MethodType => do_parse!(
+                    constant_pool::Tag::MethodType => do_parse!(
                         desc_index: be_u16 >>
-                        (ConstantType::MethodType { desc_index })
+                        (constant_pool::Type::MethodType { desc_index })
                     ) |
-                    ConstantTag::InvokeDynamic => do_parse!(
+                    constant_pool::Tag::InvokeDynamic => do_parse!(
                         bootstrap_method_attr_index: be_u16 >>
                         name_and_type_index: be_u16 >>
-                        (ConstantType::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
+                        (constant_pool::Type::InvokeDynamic { bootstrap_method_attr_index, name_and_type_index })
                     )
                 )
             >> (entry)
@@ -123,7 +123,7 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
     let (mut input, count) = be_u16(input)?;
 
     let mut output = Vec::with_capacity(count as usize);
-    output.push(ConstantType::Nop);
+    output.push(constant_pool::Type::Nop);
 
     let mut i = 1;
     while i < count {
@@ -135,9 +135,9 @@ fn constant_pool(input: &[u8]) -> nom::IResult<&[u8], ConstantPool> {
 
         //spec 4.4.5
         match constant_type {
-            ConstantType::Long { .. } | ConstantType::Double { .. } => {
+            constant_pool::Type::Long { .. } | constant_pool::Type::Double { .. } => {
                 i += 1;
-                output.push(ConstantType::Nop);
+                output.push(constant_pool::Type::Nop);
             }
             _ => (),
         }
@@ -372,7 +372,7 @@ named_args!(annotation_entry(cp: ConstantPool)<attributes::AnnotationEntry>, do_
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
-    type_name: value!(get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
+    type_name: value!(constant_pool::get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
     (attributes::AnnotationEntry {type_name, pairs})
 ));
 
@@ -634,7 +634,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
 
 named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     name_index: be_u16 >>
-    name: value!(get_utf8(&cp, name_index as usize).expect("Missing name")) >>
+    name: value!(constant_pool::get_utf8(&cp, name_index as usize).expect("Missing name")) >>
     inner: value!(AttrTag::from(name.as_slice())) >>
     (inner)
 ));

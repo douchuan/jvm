@@ -1,4 +1,4 @@
-use crate::classfile::constant_pool::ConstantType;
+use crate::classfile::constant_pool;
 use crate::classfile::ClassFile;
 use crate::oop::class::Class;
 use crate::oop::field::FieldId;
@@ -18,7 +18,7 @@ pub type DataAreaRef = RefCell<DataArea>;
 
 // Contains a string constant value in ".class"
 def_already_boxed_ref!(BytesRef, Vec<u8>);
-def_already_boxed_ref!(ConstantPool, Vec<ConstantType>);
+def_already_boxed_ref!(ConstantPool, Vec<constant_pool::Type>);
 
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);

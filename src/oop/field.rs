@@ -137,32 +137,32 @@ impl Field {
             } = a
             {
                 match cp.get(*constant_value_index as usize) {
-                    Some(constant_pool::ConstantType::Long { v }) => {
+                    Some(constant_pool::Type::Long { v }) => {
                         let v =
                             i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = Oop::new_long(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::ConstantType::Float { v }) => {
+                    Some(constant_pool::Type::Float { v }) => {
                         let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = f32::from_bits(v);
                         let v = Oop::new_float(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::ConstantType::Double { v }) => {
+                    Some(constant_pool::Type::Double { v }) => {
                         let v =
                             u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = f64::from_bits(v);
                         let v = Oop::new_double(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::ConstantType::Integer { v }) => {
+                    Some(constant_pool::Type::Integer { v }) => {
                         let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = Oop::new_int(v);
                         attr_constant_value = Some(v);
                     }
                     //                    此处没有javathread，如何创建String?
-                    Some(constant_pool::ConstantType::String { string_index }) => {
+                    Some(constant_pool::Type::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
                             //                            println!("field const value = {}", String::from_utf8_lossy(v.as_slice()));
                             let v = Oop::new_const_utf8(v);
