@@ -10,12 +10,14 @@ pub mod ary;
 pub mod class;
 pub mod consts;
 pub mod field;
+pub mod inst;
 pub mod method;
 pub mod mirror;
 pub mod values;
 
 pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
 pub use self::class::{Class, ClassKind};
+pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::values::ValueType;
 
@@ -257,23 +259,6 @@ impl RefKindDesc {
     pub fn monitor_exit(&mut self) {
         let mut v = self.monitor.lock().unwrap();
         *v -= 1;
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct InstOopDesc {
-    pub class: ClassRef,
-    pub field_values: Vec<Oop>,
-}
-
-impl InstOopDesc {
-    pub fn new(class: ClassRef) -> Self {
-        let field_values = field::build_inited_field_values(class.clone());
-
-        Self {
-            class,
-            field_values,
-        }
     }
 }
 
