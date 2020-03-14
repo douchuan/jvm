@@ -46,4 +46,3 @@ pub fn meet_ex(jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>
     let ex = new(jt, cls_name, msg);
     jt.set_ex(ex);
 }
-

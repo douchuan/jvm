@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::fmt;
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 
 use crate::classfile::ClassFile;
@@ -22,8 +23,9 @@ pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
+use nom::lib::std::fmt::{Error, Formatter};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Oop {
     Int(i32),
     Long(i64),
@@ -38,6 +40,32 @@ pub enum Oop {
     Null,
 
     Ref(OopRef),
+}
+
+impl fmt::Debug for Oop {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Oop::Int(v) => write!(f, "Oop(Int({}))", *v),
+            Oop::Long(v) => write!(f, "Oop(Long({}))", *v),
+            Oop::Float(v) => write!(f, "Oop(Float({}))", *v),
+            Oop::Double(v) => write!(f, "Oop(Double({}))", *v),
+            Oop::ConstUtf8(v) => write!(
+                f,
+                "Oop(ConstUtf8({}))",
+                String::from_utf8_lossy(v.as_slice())
+            ),
+            Oop::Null => write!(f, "Oop(Null)"),
+            Oop::Ref(rf) => {
+                let rf = rf.read().unwrap();
+                match &rf.v {
+                    RefKind::Inst(_) => write!(f, "Oop(inst)"),
+                    RefKind::Array(_) => write!(f, "Oop(array)"),
+                    RefKind::TypeArray(ary) => write!(f, "Oop(typearray[{}])", ary.len()),
+                    RefKind::Mirror(_) => write!(f, "Oop(mirror)"),
+                }
+            }
+        }
+    }
 }
 
 //primitive value factor

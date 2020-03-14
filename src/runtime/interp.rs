@@ -1181,7 +1181,11 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(
+                                    thread,
+                                    consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                    Some(msg),
+                                );
                             } else {
                                 area.stack.push_long(ary[pos as usize]);
                             }
@@ -1209,7 +1213,11 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(
+                                    thread,
+                                    consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                    Some(msg),
+                                );
                             } else {
                                 area.stack.push_float(ary[pos as usize]);
                             }
@@ -1237,7 +1245,11 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(
+                                    thread,
+                                    consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                    Some(msg),
+                                );
                             } else {
                                 area.stack.push_double(ary[pos as usize]);
                             }
@@ -1265,7 +1277,11 @@ impl<'a> Interp<'a> {
                         //                info!("aaload pos={}, len={}", pos, len);
                         if (pos < 0) || (pos as usize >= len) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                            exception::meet_ex(
+                                thread,
+                                consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                                Some(msg),
+                            );
                         } else {
                             let v = ary.elements[pos as usize].clone();
                             area.stack.push_ref(v);
