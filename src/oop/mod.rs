@@ -13,31 +13,15 @@ pub mod field;
 pub mod inst;
 pub mod method;
 pub mod mirror;
+pub mod reference;
 pub mod values;
 
 pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
 pub use self::class::{Class, ClassKind};
 pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
+pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
-
-#[derive(Debug)]
-pub enum RefKind {
-    Inst(InstOopDesc),
-    Array(ArrayOopDesc),
-    TypeArray(TypeArrayDesc),
-    Mirror(MirrorOopDesc),
-}
-
-#[derive(Debug)]
-pub struct RefKindDesc {
-    pub v: RefKind,
-    pub hash_code: Option<i32>,
-
-    // Do these two fields make sense? The operation itself, implicit lock
-    cond: Condvar,
-    monitor: Mutex<usize>,
-}
 
 #[derive(Debug, Clone)]
 pub enum Oop {
@@ -247,18 +231,6 @@ impl Oop {
 
         let v = Arc::new(RwLock::new(Box::new(v)));
         Oop::Ref(v)
-    }
-}
-
-impl RefKindDesc {
-    pub fn monitor_enter(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v += 1;
-    }
-
-    pub fn monitor_exit(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v -= 1;
     }
 }
 
