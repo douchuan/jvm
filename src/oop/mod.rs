@@ -40,6 +40,7 @@ pub enum Oop {
     Ref(OopRef),
 }
 
+//primitive value factor
 impl Oop {
     pub fn new_int(v: i32) -> Self {
         Oop::Int(v)
@@ -56,70 +57,10 @@ impl Oop {
     pub fn new_double(v: f64) -> Self {
         Oop::Double(v)
     }
+}
 
-    pub fn new_const_utf8(v: BytesRef) -> Self {
-        Oop::ConstUtf8(v)
-    }
-
-    pub fn new_null() -> Self {
-        Oop::Null
-    }
-
-    pub fn new_inst(cls_obj: ClassRef) -> Oop {
-        let v = InstOopDesc::new(cls_obj);
-        Self::new_ref(RefKind::Inst(v))
-    }
-
-    pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
-        let mut elements = Vec::with_capacity(len);
-        for _ in 0..len {
-            elements.push(consts::get_null());
-        }
-        // elements.resize(0, consts::get_null());
-        Self::new_ref_ary2(ary_cls_obj, elements)
-    }
-
-    pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<Oop>) -> Oop {
-        let v = ArrayOopDesc::new(ary_cls_obj, elms);
-        Self::new_ref(RefKind::Array(v))
-    }
-
-    pub fn new_mirror(target: ClassRef) -> Oop {
-        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
-        let field_values = field::build_inited_field_values(java_lang_class);
-        let v = MirrorOopDesc {
-            target: Some(target),
-            field_values,
-            value_type: ValueType::OBJECT,
-        };
-
-        Self::new_ref(RefKind::Mirror(v))
-    }
-
-    pub fn new_prim_mirror(value_type: ValueType, target: Option<ClassRef>) -> Oop {
-        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
-        let field_values = field::build_inited_field_values(java_lang_class);
-        let v = MirrorOopDesc {
-            target,
-            field_values,
-            value_type,
-        };
-
-        Self::new_ref(RefKind::Mirror(v))
-    }
-
-    pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> Oop {
-        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
-        let field_values = field::build_inited_field_values(java_lang_class);
-        let v = MirrorOopDesc {
-            target: Some(target),
-            field_values: vec![],
-            value_type: value_type,
-        };
-
-        Self::new_ref(RefKind::Mirror(v))
-    }
-
+//primitive ary value factor
+impl Oop {
     pub fn char_ary_from1(v: &[u16]) -> Oop {
         let elms = Vec::from(v);
         Self::new_char_ary2(elms)
@@ -220,7 +161,82 @@ impl Oop {
         let v = TypeArrayDesc::Long(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
+}
 
+//reference value factory
+impl Oop {
+    pub fn new_const_utf8(v: BytesRef) -> Self {
+        Oop::ConstUtf8(v)
+    }
+
+    pub fn new_null() -> Self {
+        Oop::Null
+    }
+
+    pub fn new_inst(cls_obj: ClassRef) -> Oop {
+        let v = InstOopDesc::new(cls_obj);
+        Self::new_ref(RefKind::Inst(v))
+    }
+}
+
+//mirror
+impl Oop {
+    pub fn new_mirror(target: ClassRef) -> Oop {
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
+        let v = MirrorOopDesc {
+            target: Some(target),
+            field_values,
+            value_type: ValueType::OBJECT,
+        };
+
+        Self::new_ref(RefKind::Mirror(v))
+    }
+
+    pub fn new_prim_mirror(value_type: ValueType, target: Option<ClassRef>) -> Oop {
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
+        let v = MirrorOopDesc {
+            target,
+            field_values,
+            value_type,
+        };
+
+        Self::new_ref(RefKind::Mirror(v))
+    }
+
+    pub fn new_ary_mirror(target: ClassRef, value_type: ValueType) -> Oop {
+        let java_lang_class = require_class3(None, b"java/lang/Class").unwrap();
+        let field_values = field::build_inited_field_values(java_lang_class);
+        let v = MirrorOopDesc {
+            target: Some(target),
+            field_values: vec![],
+            value_type,
+        };
+
+        Self::new_ref(RefKind::Mirror(v))
+    }
+}
+
+//array reference factory
+impl Oop {
+    pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
+        let mut elements = Vec::with_capacity(len);
+        for _ in 0..len {
+            elements.push(consts::get_null());
+        }
+        // elements.resize(0, consts::get_null());
+        Self::new_ref_ary2(ary_cls_obj, elements)
+    }
+
+    pub fn new_ref_ary2(ary_cls_obj: ClassRef, elms: Vec<Oop>) -> Oop {
+        let v = ArrayOopDesc::new(ary_cls_obj, elms);
+        Self::new_ref(RefKind::Array(v))
+    }
+}
+
+//private helper
+impl Oop {
     fn new_ref(v: RefKind) -> Oop {
         let v = RefKindDesc {
             v,
