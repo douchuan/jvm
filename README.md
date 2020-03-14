@@ -29,7 +29,6 @@ java -XshowSettings:properties
 - After GC built, ready for optimize System.arraycopy (the key of performance)
 - Support higher version of JVM Spec 
 - java options (-version, -server...)
-- Split frame.rs into frame.rs & interp.rs
 
 In summary, the roadmap is built on a three-step progress.
 - Pass TCK or JCK

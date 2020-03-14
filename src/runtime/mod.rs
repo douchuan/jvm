@@ -8,6 +8,7 @@ mod dataarea;
 pub mod exception;
 mod frame;
 mod init_vm;
+pub mod interp;
 pub mod java_call;
 mod local;
 mod slot;
@@ -24,11 +25,13 @@ pub use class_path_manager::{
 pub use consts::THREAD_MAX_STACK_FRAMES;
 pub use dataarea::DataArea;
 pub use frame::Frame;
+pub use interp::Interp;
 pub use java_call::JavaCall;
 pub use slot::Slot;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
 
+//should moved to types
 def_sync_ref!(FrameRef, Frame);
 
 pub fn init() {

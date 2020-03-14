@@ -2,7 +2,7 @@ use crate::classfile::consts;
 use crate::classfile::signature::{self, MethodSignature, Type as ArgType, Type};
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, JavaThread};
+use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
 use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
 use crate::util;
 use std::borrow::BorrowMut;
@@ -126,11 +126,16 @@ impl JavaCall {
             Ok(frame) => {
                 jt.frames.push(frame.clone());
 
-                let frame = frame.try_read().unwrap();
+                let frame_h = frame.try_read().unwrap();
+                let interp = Interp::new(frame_h);
+                interp.run(jt);
 
-                frame.interp(jt);
                 if !jt.is_meet_ex() {
-                    let return_value = { frame.area.borrow().return_v.clone() };
+                    let return_value = {
+                        let frame = frame.try_read().unwrap();
+                        let area = frame.area.borrow();
+                        area.return_v.clone()
+                    };
                     set_return(caller, self.return_type.clone(), return_value);
                 }
             }
