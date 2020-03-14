@@ -1,6 +1,6 @@
 use crate::classfile::{
-    flags::*, attributes::Code, attributes::LineNumber, constant_pool, consts, Type,
-    FieldInfo, MethodInfo,
+    attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, FieldInfo,
+    MethodInfo, Type,
 };
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};

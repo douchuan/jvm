@@ -1,11 +1,11 @@
 #![allow(unused)]
 
-pub mod flags;
 pub mod attributes;
 pub mod checker;
 pub mod constant_pool;
 pub mod consts;
 pub mod field_info;
+pub mod flags;
 pub mod method_info;
 pub mod opcode;
 pub mod signature;

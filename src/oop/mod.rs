@@ -324,7 +324,6 @@ impl ValueType {
         }
     }
 
-    /*
     pub fn into_primitive_name(&self) -> &'static [u8] {
         match *self {
             ValueType::BYTE => b"byte",
@@ -335,12 +334,9 @@ impl ValueType {
             ValueType::LONG => b"long",
             ValueType::FLOAT => b"float",
             ValueType::DOUBLE => b"double",
-            ValueType::VOID => b"void",
-            ValueType::OBJECT => unreachable!(),
-            ValueType::ARRAY => unreachable!(),
+            ValueType::VOID | ValueType::OBJECT | ValueType::ARRAY => unreachable!(),
         }
     }
-    */
 }
 
 #[derive(Debug, Clone)]

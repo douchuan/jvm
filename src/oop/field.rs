@@ -1,4 +1,4 @@
-use crate::classfile::{flags::*, attributes, constant_pool, consts, FieldInfo};
+use crate::classfile::{attributes, constant_pool, consts, flags::*, FieldInfo};
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;

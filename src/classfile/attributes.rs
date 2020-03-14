@@ -125,9 +125,7 @@ impl From<&[u8]> for Tag {
             b"RuntimeVisibleAnnotations" => Tag::RuntimeVisibleAnnotations,
             b"RuntimeInvisibleAnnotations" => Tag::RuntimeInvisibleAnnotations,
             b"RuntimeVisibleParameterAnnotations" => Tag::RuntimeVisibleParameterAnnotations,
-            b"RuntimeInvisibleParameterAnnotations" => {
-                Tag::RuntimeInvisibleParameterAnnotations
-            }
+            b"RuntimeInvisibleParameterAnnotations" => Tag::RuntimeInvisibleParameterAnnotations,
             b"RuntimeVisibleTypeAnnotations" => Tag::RuntimeVisibleTypeAnnotations,
             b"RuntimeInvisibleTypeAnnotations" => Tag::RuntimeInvisibleTypeAnnotations,
             b"AnnotationDefault" => Tag::AnnotationDefault,

@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::classfile::{self, flags as acc, constant_pool, consts as cls_file_const};
+use crate::classfile::{self, constant_pool, consts as cls_file_const, flags as acc};
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
@@ -329,7 +329,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
 }
 
 fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let (target, value_type) = {
+    let (target, vt) = {
         let arg0 = args.get(0).unwrap();
         let arg0 = util::oop::extract_ref(arg0);
         let arg0 = arg0.read().unwrap();
@@ -344,19 +344,10 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
                 let cls = target.read().unwrap();
                 cls.name.clone()
             }
-            None => match value_type {
-                ValueType::INT => Arc::new(Vec::from("int")),
-                ValueType::BYTE => Arc::new(Vec::from("byte")),
-                ValueType::BOOLEAN => Arc::new(Vec::from("boolean")),
-                ValueType::CHAR => Arc::new(Vec::from("char")),
-                ValueType::SHORT => Arc::new(Vec::from("short")),
-                ValueType::LONG => Arc::new(Vec::from("long")),
-                ValueType::FLOAT => Arc::new(Vec::from("float")),
-                ValueType::DOUBLE => Arc::new(Vec::from("double")),
-                ValueType::VOID => unreachable!(),
-                ValueType::OBJECT => unimplemented!(),
-                ValueType::ARRAY => unimplemented!(),
-            },
+            None => {
+                let v = vt.into_primitive_name();
+                Arc::new(Vec::from(v))
+            }
         }
     };
 

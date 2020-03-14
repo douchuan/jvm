@@ -1,7 +1,7 @@
 use crate::classfile::constant_pool::get_utf8;
 use crate::classfile::{
-    flags::*, attributes::Type, attributes::EnclosingMethod, attributes::InnerClass,
-    constant_pool, consts,
+    attributes::EnclosingMethod, attributes::InnerClass, attributes::Type, constant_pool, consts,
+    flags::*,
 };
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, ValueType};
