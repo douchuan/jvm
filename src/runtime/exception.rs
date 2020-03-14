@@ -35,3 +35,15 @@ pub fn new(jt: &mut JavaThread, name: &[u8], msg: Option<String>) -> Oop {
 
     ex
 }
+
+pub fn meet_ex(jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
+    {
+        let frame = jt.frames.last().unwrap();
+        let frame = frame.try_read().unwrap();
+        frame.area.borrow_mut().ex_here = true;
+    }
+
+    let ex = new(jt, cls_name, msg);
+    jt.set_ex(ex);
+}
+

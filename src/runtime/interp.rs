@@ -20,23 +20,12 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, RwLockReadGuard};
 
-fn meet_ex(jt: &mut JavaThread, cls_name: &'static [u8], msg: Option<String>) {
-    {
-        let frame = jt.frames.last().unwrap();
-        let frame = frame.try_read().unwrap();
-        frame.area.borrow_mut().ex_here = true;
-    }
-
-    let ex = exception::new(jt, cls_name, msg);
-    jt.set_ex(ex);
-}
-
 macro_rules! array_store {
     ($thread:ident, $ary:ident, $pos:ident, $v:ident) => {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
             let msg = format!("length is {}, but index is {}", len, $pos);
-            meet_ex(
+            exception::meet_ex(
                 $thread,
                 crate::classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                 Some(msg),
@@ -53,7 +42,7 @@ macro_rules! iarray_load {
         if ($pos < 0) || ($pos as usize >= len) {
             drop($area);
             let msg = format!("length is {}, but index is {}", len, $pos);
-            meet_ex(
+            exception::meet_ex(
                 $thread,
                 crate::classfile::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                 Some(msg),
@@ -582,7 +571,7 @@ impl<'a> Interp<'a> {
                 area.stack.pop_ref()
             };
             match receiver {
-                Oop::Null => meet_ex(thread, consts::J_NPE, None),
+                Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
                 _ => {
                     class.put_field_value(receiver, fir.clone(), v);
                 }
@@ -637,7 +626,7 @@ impl<'a> Interp<'a> {
                 let target_name = String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
 
                 let msg = format!("{} cannot be cast to {}", obj_name, target_name);
-                meet_ex(thread, consts::J_CCE, Some(msg));
+                exception::meet_ex(thread, consts::J_CCE, Some(msg));
             }
         };
         let op_instance_of = |r: bool| {
@@ -1092,7 +1081,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1114,7 +1103,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1136,7 +1125,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1158,7 +1147,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1183,7 +1172,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1192,7 +1181,7 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                             } else {
                                 area.stack.push_long(ary[pos as usize]);
                             }
@@ -1211,7 +1200,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1220,7 +1209,7 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                             } else {
                                 area.stack.push_float(ary[pos as usize]);
                             }
@@ -1239,7 +1228,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1248,7 +1237,7 @@ impl<'a> Interp<'a> {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
-                                meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                                exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                             } else {
                                 area.stack.push_double(ary[pos as usize]);
                             }
@@ -1267,7 +1256,7 @@ impl<'a> Interp<'a> {
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1276,7 +1265,7 @@ impl<'a> Interp<'a> {
                         //                info!("aaload pos={}, len={}", pos, len);
                         if (pos < 0) || (pos as usize >= len) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                            exception::meet_ex(thread, consts::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                         } else {
                             let v = ary.elements[pos as usize].clone();
                             area.stack.push_ref(v);
@@ -1512,7 +1501,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1542,7 +1531,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1568,7 +1557,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1594,7 +1583,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1619,7 +1608,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1644,7 +1633,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1669,7 +1658,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1694,7 +1683,7 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match ary_rf {
-            Oop::Null => meet_ex(thread, consts::J_NPE, None),
+            Oop::Null => exception::meet_ex(thread, consts::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
@@ -1852,7 +1841,7 @@ impl<'a> Interp<'a> {
         if v2 == 0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1869,7 +1858,7 @@ impl<'a> Interp<'a> {
         if v2 == 0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1886,7 +1875,7 @@ impl<'a> Interp<'a> {
         if v2 == 0.0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1903,7 +1892,7 @@ impl<'a> Interp<'a> {
         if v2 == 0.0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1920,7 +1909,7 @@ impl<'a> Interp<'a> {
         if v2 == 0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1937,7 +1926,7 @@ impl<'a> Interp<'a> {
         if v2 == 0 {
             drop(area);
 
-            meet_ex(
+            exception::meet_ex(
                 thread,
                 consts::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -2711,7 +2700,7 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
+                exception::meet_ex(thread, consts::J_NPE, None);
             }
             _ => {
                 self.get_field_helper(thread, rf, cp_idx, false);
@@ -2788,7 +2777,7 @@ impl<'a> Interp<'a> {
 
         if len < 0 {
             drop(area);
-            meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
+            exception::meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let len = len as usize;
             let ary = match t {
@@ -2824,7 +2813,7 @@ impl<'a> Interp<'a> {
 
         //        info!("anew_array length={}", length);
         if length < 0 {
-            meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
+            exception::meet_ex(thread, consts::J_NASE, Some("length < 0".to_string()));
         } else {
             let class = match runtime::require_class2(cp_idx as u16, &self.frame.cp) {
                 Some(class) => class,
@@ -2894,7 +2883,7 @@ impl<'a> Interp<'a> {
         match v {
             Oop::Null => {
                 drop(area);
-                meet_ex(thread, consts::J_NPE, None)
+                exception::meet_ex(thread, consts::J_NPE, None)
             }
             Oop::Ref(rf) => {
                 let v = rf.read().unwrap();
@@ -2937,7 +2926,7 @@ impl<'a> Interp<'a> {
 
         match v {
             Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
+                exception::meet_ex(thread, consts::J_NPE, None);
             }
             Oop::Ref(v) => {
                 let mut v = v.write().unwrap();
@@ -2954,7 +2943,7 @@ impl<'a> Interp<'a> {
 
         match v {
             Oop::Null => {
-                meet_ex(thread, consts::J_NPE, None);
+                exception::meet_ex(thread, consts::J_NPE, None);
             }
             Oop::Ref(v) => {
                 let mut v = v.write().unwrap();
