@@ -11,10 +11,12 @@ pub mod class;
 pub mod consts;
 pub mod field;
 pub mod method;
+pub mod mirror;
 pub mod values;
 
 pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
 pub use self::class::{Class, ClassKind};
+pub use self::mirror::MirrorOopDesc;
 pub use self::values::ValueType;
 
 #[derive(Debug)]
@@ -264,13 +266,6 @@ pub struct InstOopDesc {
     pub field_values: Vec<Oop>,
 }
 
-#[derive(Debug, Clone)]
-pub struct MirrorOopDesc {
-    pub target: Option<ClassRef>,
-    pub field_values: Vec<Oop>,
-    pub value_type: ValueType,
-}
-
 impl InstOopDesc {
     pub fn new(class: ClassRef) -> Self {
         let field_values = field::build_inited_field_values(class.clone());
@@ -279,12 +274,6 @@ impl InstOopDesc {
             class,
             field_values,
         }
-    }
-}
-
-impl MirrorOopDesc {
-    pub fn is_prim_mirror(&self) -> bool {
-        self.target.is_none()
     }
 }
 
