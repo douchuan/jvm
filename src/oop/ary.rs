@@ -8,7 +8,7 @@ pub struct ArrayOopDesc {
 }
 
 #[derive(Debug, Clone)]
-pub enum TypeArrayValue {
+pub enum TypeArrayDesc {
     Byte(ByteAry),
     Bool(BoolAry),
     Char(CharAry),
@@ -18,6 +18,7 @@ pub enum TypeArrayValue {
     Int(IntAry),
     Long(LongAry),
 }
+
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
@@ -37,17 +38,17 @@ impl ArrayOopDesc {
     }
 }
 
-impl TypeArrayValue {
+impl TypeArrayDesc {
     pub fn len(&self) -> usize {
         match self {
-            TypeArrayValue::Char(ary) => ary.len(),
-            TypeArrayValue::Byte(ary) => ary.len(),
-            TypeArrayValue::Bool(ary) => ary.len(),
-            TypeArrayValue::Short(ary) => ary.len(),
-            TypeArrayValue::Float(ary) => ary.len(),
-            TypeArrayValue::Double(ary) => ary.len(),
-            TypeArrayValue::Int(ary) => ary.len(),
-            TypeArrayValue::Long(ary) => ary.len(),
+            TypeArrayDesc::Char(ary) => ary.len(),
+            TypeArrayDesc::Byte(ary) => ary.len(),
+            TypeArrayDesc::Bool(ary) => ary.len(),
+            TypeArrayDesc::Short(ary) => ary.len(),
+            TypeArrayDesc::Float(ary) => ary.len(),
+            TypeArrayDesc::Double(ary) => ary.len(),
+            TypeArrayDesc::Int(ary) => ary.len(),
+            TypeArrayDesc::Long(ary) => ary.len(),
         }
     }
 }

@@ -310,10 +310,10 @@ fn arraycopy_same_obj(buf: OopRef, src_pos: usize, dest_pos: usize, length: usiz
         let mut buf = buf.write().unwrap();
         match &mut buf.v {
             oop::RefKind::TypeArray(ary) => match ary {
-                oop::TypeArrayValue::Char(ary) => {
+                oop::TypeArrayDesc::Char(ary) => {
                     ary.copy_within(src_pos..(src_pos + length), dest_pos)
                 }
-                oop::TypeArrayValue::Byte(ary) => {
+                oop::TypeArrayDesc::Byte(ary) => {
                     ary.copy_within(src_pos..(src_pos + length), dest_pos)
                 }
                 t => unreachable!("t = {:?}", t),
@@ -368,9 +368,9 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     if is_type_ary {
         match &src.v {
             oop::RefKind::TypeArray(src_ary) => match src_ary {
-                oop::TypeArrayValue::Char(src_ary) => match &mut dest.v {
+                oop::TypeArrayDesc::Char(src_ary) => match &mut dest.v {
                     RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayValue::Char(dest_ary) => {
+                        oop::TypeArrayDesc::Char(dest_ary) => {
                             let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                             let (_, src_ptr) = src_ary.split_at(src_pos);
                             dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
@@ -379,9 +379,9 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
                     },
                     _ => unreachable!(),
                 },
-                oop::TypeArrayValue::Byte(src_ary) => match &mut dest.v {
+                oop::TypeArrayDesc::Byte(src_ary) => match &mut dest.v {
                     RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayValue::Byte(dest_ary) => {
+                        oop::TypeArrayDesc::Byte(dest_ary) => {
                             let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                             let (_, src_ptr) = src_ary.split_at(src_pos);
                             dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
@@ -390,9 +390,9 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
                     },
                     _ => unreachable!(),
                 },
-                oop::TypeArrayValue::Int(src_ary) => match &mut dest.v {
+                oop::TypeArrayDesc::Int(src_ary) => match &mut dest.v {
                     RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayValue::Int(dest_ary) => {
+                        oop::TypeArrayDesc::Int(dest_ary) => {
                             let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                             let (_, src_ptr) = src_ary.split_at(src_pos);
                             dest_ptr[..length].copy_from_slice(&src_ptr[..length]);

@@ -40,7 +40,7 @@ fn jvm_writeBytes(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     let v = v.read().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
-            oop::TypeArrayValue::Byte(ary) => {
+            oop::TypeArrayDesc::Byte(ary) => {
                 let (_, ary) = ary.split_at(off as usize);
                 let len = len as usize;
 

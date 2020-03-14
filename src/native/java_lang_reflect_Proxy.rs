@@ -51,7 +51,7 @@ fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
             match &rf.v {
                 oop::RefKind::TypeArray(ary) => {
                     match ary {
-                        oop::TypeArrayValue::Byte(ary) => {
+                        oop::TypeArrayDesc::Byte(ary) => {
                             match class_parser::parse_buf(&ary[off..(off + len)]) {
                                 Ok(r) => {
                                     let cfr = Arc::new(Box::new(r.1));

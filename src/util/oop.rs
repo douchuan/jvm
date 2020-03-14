@@ -53,7 +53,7 @@ pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
     let v = v.read().unwrap();
     match &v.v {
         oop::RefKind::TypeArray(ary) => match ary {
-            oop::TypeArrayValue::Char(ary) => ary.to_vec(),
+            oop::TypeArrayDesc::Char(ary) => ary.to_vec(),
             _ => unreachable!(),
         },
         _ => unreachable!(),

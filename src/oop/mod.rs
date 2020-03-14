@@ -13,7 +13,7 @@ pub mod field;
 pub mod method;
 pub mod values;
 
-pub use self::ary::{ArrayOopDesc, TypeArrayValue};
+pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
 pub use self::class::{Class, ClassKind};
 pub use self::values::ValueType;
 
@@ -21,7 +21,7 @@ pub use self::values::ValueType;
 pub enum RefKind {
     Inst(InstOopDesc),
     Array(ArrayOopDesc),
-    TypeArray(TypeArrayValue),
+    TypeArray(TypeArrayDesc),
     Mirror(MirrorOopDesc),
 }
 
@@ -187,49 +187,49 @@ impl Oop {
 
     pub fn new_byte_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Byte(ary);
+        let v = TypeArrayDesc::Byte(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_bool_ary2(elms: Vec<u8>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Bool(ary);
+        let v = TypeArrayDesc::Bool(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_char_ary2(elms: Vec<u16>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Char(ary);
+        let v = TypeArrayDesc::Char(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_short_ary2(elms: Vec<i16>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Short(ary);
+        let v = TypeArrayDesc::Short(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_int_ary2(elms: Vec<i32>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Int(ary);
+        let v = TypeArrayDesc::Int(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_float_ary2(elms: Vec<f32>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Float(ary);
+        let v = TypeArrayDesc::Float(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_double_ary2(elms: Vec<f64>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Double(ary);
+        let v = TypeArrayDesc::Double(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 
     pub fn new_long_ary2(elms: Vec<i64>) -> Oop {
         let ary = Box::new(elms);
-        let v = TypeArrayValue::Long(ary);
+        let v = TypeArrayDesc::Long(ary);
         Self::new_ref(RefKind::TypeArray(v))
     }
 

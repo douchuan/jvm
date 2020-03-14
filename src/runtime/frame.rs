@@ -3,7 +3,7 @@ use crate::classfile::consts;
 use crate::classfile::consts::J_STRING;
 use crate::classfile::opcode::OpCode;
 use crate::classfile::ClassFile;
-use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayValue, ValueType};
+use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDesc, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{
@@ -1133,7 +1133,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Int(ary) => {
+                        oop::TypeArrayDesc::Int(ary) => {
                             iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
@@ -1155,7 +1155,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Short(ary) => {
+                        oop::TypeArrayDesc::Short(ary) => {
                             iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
@@ -1177,7 +1177,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Char(ary) => {
+                        oop::TypeArrayDesc::Char(ary) => {
                             iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
@@ -1199,10 +1199,10 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Byte(ary) => {
+                        oop::TypeArrayDesc::Byte(ary) => {
                             iarray_load!(thread, area, ary, pos);
                         }
-                        oop::TypeArrayValue::Bool(ary) => {
+                        oop::TypeArrayDesc::Bool(ary) => {
                             iarray_load!(thread, area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
@@ -1224,7 +1224,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Long(ary) => {
+                        oop::TypeArrayDesc::Long(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
@@ -1252,7 +1252,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Float(ary) => {
+                        oop::TypeArrayDesc::Float(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
@@ -1280,7 +1280,7 @@ impl Frame {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Double(ary) => {
+                        oop::TypeArrayDesc::Double(ary) => {
                             let len = ary.len();
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
@@ -1553,11 +1553,11 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Byte(ary) => {
+                        oop::TypeArrayDesc::Byte(ary) => {
                             let v = v as u8;
                             array_store!(thread, ary, pos, v);
                         }
-                        oop::TypeArrayValue::Bool(ary) => {
+                        oop::TypeArrayDesc::Bool(ary) => {
                             let v = v as u8;
                             array_store!(thread, ary, pos, v);
                         }
@@ -1583,7 +1583,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Char(ary) => {
+                        oop::TypeArrayDesc::Char(ary) => {
                             let v = v as u16;
                             array_store!(thread, ary, pos, v);
                         }
@@ -1609,7 +1609,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Short(ary) => {
+                        oop::TypeArrayDesc::Short(ary) => {
                             let v = v as i16;
                             array_store!(thread, ary, pos, v);
                         }
@@ -1635,7 +1635,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Int(ary) => {
+                        oop::TypeArrayDesc::Int(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
                         _ => unreachable!(),
@@ -1660,7 +1660,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Long(ary) => {
+                        oop::TypeArrayDesc::Long(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
                         _ => unreachable!(),
@@ -1685,7 +1685,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Float(ary) => {
+                        oop::TypeArrayDesc::Float(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
                         _ => unreachable!(),
@@ -1710,7 +1710,7 @@ impl Frame {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayValue::Double(ary) => {
+                        oop::TypeArrayDesc::Double(ary) => {
                             array_store!(thread, ary, pos, v);
                         }
                         _ => unreachable!(),

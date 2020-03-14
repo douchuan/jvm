@@ -349,7 +349,7 @@ fn jvm_copyMemory(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
             let mut v = v.write().unwrap();
             match &mut v.v {
                 oop::RefKind::TypeArray(dest_ary) => match dest_ary {
-                    oop::TypeArrayValue::Char(dest_ary) => {
+                    oop::TypeArrayDesc::Char(dest_ary) => {
                         let dest_ptr = dest_ary.as_mut_ptr() as usize + dest_offset;
                         let dest_ptr = dest_ptr as *mut libc::c_void;
 

@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use crate::classfile;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, TypeArrayValue};
+use crate::oop::{self, Oop, TypeArrayDesc};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
 
@@ -55,7 +55,7 @@ fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     let mut v = v.write().unwrap();
     let n = match &mut v.v {
         oop::RefKind::TypeArray(ary) => match ary {
-            TypeArrayValue::Byte(ary) => {
+            TypeArrayDesc::Byte(ary) => {
                 let (_, ptr) = ary.split_at_mut(off as usize);
                 let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
                 let n = unsafe { libc::read(fd, ptr, len as usize) };
