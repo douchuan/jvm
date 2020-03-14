@@ -6,12 +6,14 @@ use crate::classfile::ClassFile;
 use crate::runtime::{require_class3, ClassLoader};
 use crate::types::*;
 
+pub mod ary;
 pub mod class;
 pub mod consts;
 pub mod field;
 pub mod method;
 pub mod values;
 
+pub use self::ary::{ArrayOopDesc, TypeArrayValue};
 pub use self::class::{Class, ClassKind};
 pub use self::values::ValueType;
 
@@ -263,24 +265,6 @@ pub struct InstOopDesc {
 }
 
 #[derive(Debug, Clone)]
-pub struct ArrayOopDesc {
-    pub class: ClassRef,
-    pub elements: Vec<Oop>,
-}
-
-#[derive(Debug, Clone)]
-pub enum TypeArrayValue {
-    Byte(ByteAry),
-    Bool(BoolAry),
-    Char(CharAry),
-    Short(ShortAry),
-    Float(FloatAry),
-    Double(DoubleAry),
-    Int(IntAry),
-    Long(LongAry),
-}
-
-#[derive(Debug, Clone)]
 pub struct MirrorOopDesc {
     pub target: Option<ClassRef>,
     pub field_values: Vec<Oop>,
@@ -298,43 +282,9 @@ impl InstOopDesc {
     }
 }
 
-impl ArrayOopDesc {
-    pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
-        {
-            assert!(class.read().unwrap().is_array());
-        }
-
-        Self { class, elements }
-    }
-
-    pub fn get_dimension(&self) -> usize {
-        let class = self.class.read().unwrap();
-        match &class.kind {
-            class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
-            class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),
-            _ => unreachable!(),
-        }
-    }
-}
-
 impl MirrorOopDesc {
     pub fn is_prim_mirror(&self) -> bool {
         self.target.is_none()
-    }
-}
-
-impl TypeArrayValue {
-    pub fn len(&self) -> usize {
-        match self {
-            TypeArrayValue::Char(ary) => ary.len(),
-            TypeArrayValue::Byte(ary) => ary.len(),
-            TypeArrayValue::Bool(ary) => ary.len(),
-            TypeArrayValue::Short(ary) => ary.len(),
-            TypeArrayValue::Float(ary) => ary.len(),
-            TypeArrayValue::Double(ary) => ary.len(),
-            TypeArrayValue::Int(ary) => ary.len(),
-            TypeArrayValue::Long(ary) => ary.len(),
-        }
     }
 }
 
