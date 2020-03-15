@@ -3,19 +3,19 @@ use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::OopRef;
 use std::sync::{Arc, RwLock};
 
-lazy_static! {
-    static ref JAVA_LANG_STRING_VALUE_OFFSET: RwLock<Option<usize>> = { RwLock::new(None) };
-    static ref JAVA_LANG_INTEGER_VALUE_OFFSET: RwLock<Option<usize>> = { RwLock::new(None) };
-}
+static mut JAVA_LANG_STRING_VALUE_OFFSET: usize = 0;
+static mut JAVA_LANG_INTEGER_VALUE_OFFSET: usize = 0;
 
 pub fn set_java_lang_string_value_offset(offset: usize) {
-    let mut v = JAVA_LANG_STRING_VALUE_OFFSET.write().unwrap();
-    *v = Some(offset);
+    unsafe {
+        JAVA_LANG_STRING_VALUE_OFFSET = offset;
+    }
 }
 
 pub fn set_java_lang_integer_value_offset(offset: usize) {
-    let mut v = JAVA_LANG_INTEGER_VALUE_OFFSET.write().unwrap();
-    *v = Some(offset);
+    unsafe {
+        JAVA_LANG_INTEGER_VALUE_OFFSET = offset;
+    }
 }
 
 // pub fn is_ref(v: &Oop) -> bool {
@@ -44,10 +44,7 @@ fn is_str(v: &OopRef) -> bool {
 }
 
 pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
-    let offset = {
-        let v = JAVA_LANG_STRING_VALUE_OFFSET.read().unwrap();
-        v.clone().unwrap()
-    };
+    let offset = unsafe { JAVA_LANG_STRING_VALUE_OFFSET };
 
     let cls_string = require_class3(None, b"java/lang/String").unwrap();
     let v = {
@@ -67,10 +64,7 @@ pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
 }
 
 pub fn extract_java_lang_integer_value(v: &Oop) -> i32 {
-    let offset = {
-        let v = JAVA_LANG_INTEGER_VALUE_OFFSET.read().unwrap();
-        v.clone().unwrap()
-    };
+    let offset = unsafe { JAVA_LANG_INTEGER_VALUE_OFFSET };
     let cls_string = require_class3(None, b"java/lang/Integer").unwrap();
     let v = {
         let cls = cls_string.read().unwrap();
