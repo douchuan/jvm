@@ -72,6 +72,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             Box::new(jvm_copyMemory),
         ),
         new_fn("getChar", "(J)C", Box::new(jvm_getChar)),
+        new_fn(
+            "putObject",
+            "(Ljava/lang/Object;JLjava/lang/Object;)V",
+            Box::new(jvm_putObject),
+        ),
     ]
 }
 
@@ -373,4 +378,9 @@ fn jvm_getChar(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     let ptr = util::oop::extract_long(args.get(1).unwrap()) as *const u16;
     let v = unsafe { *ptr };
     Ok(Some(Oop::new_int(v as i32)))
+}
+
+fn jvm_putObject(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    unimplemented!();
+    Ok(None)
 }

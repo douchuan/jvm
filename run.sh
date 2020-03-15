@@ -121,9 +121,11 @@ export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsSynthetic
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class TypeCheckMicroBenchmark
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
 
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/reflect/Constructor TestParameterAnnotations
 

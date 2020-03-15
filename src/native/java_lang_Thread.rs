@@ -16,6 +16,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("setPriority0", "(I)V", Box::new(jvm_setPriority0)),
         new_fn("isAlive", "()Z", Box::new(jvm_isAlive)),
         new_fn("start0", "()V", Box::new(jvm_start0)),
+        new_fn("isInterrupted", "(Z)Z", Box::new(jvm_isInterrupted)),
     ]
 }
 
@@ -73,4 +74,10 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
         Ok(None)
     }
+}
+
+fn jvm_isInterrupted(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    //todo: fix me
+    let v = Oop::new_int(0);
+    Ok(Some(v))
 }
