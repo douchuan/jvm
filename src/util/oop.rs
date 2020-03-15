@@ -5,10 +5,16 @@ use std::sync::{Arc, RwLock};
 
 lazy_static! {
     static ref JAVA_LANG_STRING_VALUE_OFFSET: RwLock<Option<usize>> = { RwLock::new(None) };
+    static ref JAVA_LANG_INTEGER_VALUE_OFFSET: RwLock<Option<usize>> = { RwLock::new(None) };
 }
 
 pub fn set_java_lang_string_value_offset(offset: usize) {
     let mut v = JAVA_LANG_STRING_VALUE_OFFSET.write().unwrap();
+    *v = Some(offset);
+}
+
+pub fn set_java_lang_integer_value_offset(offset: usize) {
+    let mut v = JAVA_LANG_INTEGER_VALUE_OFFSET.write().unwrap();
     *v = Some(offset);
 }
 
@@ -61,11 +67,14 @@ pub fn extract_java_lang_string_value(v: &Oop) -> Vec<u16> {
 }
 
 pub fn extract_java_lang_integer_value(v: &Oop) -> i32 {
+    let offset = {
+        let v = JAVA_LANG_INTEGER_VALUE_OFFSET.read().unwrap();
+        v.clone().unwrap()
+    };
     let cls_string = require_class3(None, b"java/lang/Integer").unwrap();
     let v = {
         let cls = cls_string.read().unwrap();
-        let fid = cls.get_field_id(b"value", b"I", false);
-        cls.get_field_value2(v, fid.offset)
+        cls.get_field_value2(v, offset)
     };
 
     extract_int(&v)

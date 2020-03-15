@@ -112,6 +112,13 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
         util::oop::set_java_lang_string_value_offset(fir.offset);
     }
 
+    let integer_cls = oop::class::load_and_init(jt, b"java/lang/Integer");
+    {
+        let cls = integer_cls.read().unwrap();
+        let fir = cls.get_field_id(b"value", b"I", false);
+        util::oop::set_java_lang_integer_value_offset(fir.offset);
+    }
+
     let _ = oop::class::load_and_init(jt, J_CLONEABLE);
     let _ = oop::class::load_and_init(jt, J_SERIALIZABLE);
     let _ = oop::class::load_and_init(jt, J_NPE);
