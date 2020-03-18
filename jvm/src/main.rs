@@ -1,22 +1,15 @@
-extern crate bytes;
 extern crate clap;
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
 
 use clap::{App, Arg};
 
-#[macro_use]
-mod util;
-
-mod native;
-mod oop;
-mod runtime;
-mod types;
-
-use crate::runtime::thread::JavaMainThread;
+use vm::native;
+use vm::oop;
+use vm::runtime;
+use vm::runtime::thread::JavaMainThread;
+use vm::util;
 
 /*
 todo list

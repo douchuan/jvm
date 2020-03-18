@@ -264,17 +264,11 @@ dependencies = [
 name = "jvm"
 version = "0.2.0"
 dependencies = [
- "bytes",
- "chrono",
  "clap",
  "class-parser",
- "dirs",
  "env_logger",
- "lazy_static",
- "libc",
  "log",
- "nix",
- "zip",
+ "vm",
 ]
 
 [[package]]
@@ -536,6 +530,18 @@ checksum = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 [[package]]
 name = "vm"
 version = "0.1.0"
+dependencies = [
+ "bytes",
+ "chrono",
+ "class-parser",
+ "dirs",
+ "env_logger",
+ "lazy_static",
+ "libc",
+ "log",
+ "nix",
+ "zip",
+]
 
 [[package]]
 name = "void"
