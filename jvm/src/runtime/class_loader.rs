@@ -1,4 +1,4 @@
-use class_parser::{constant_pool, types::{BytesRef, ConstantPool, U2}, parser::parse as class_parse};
+use class_parser::{constant_pool, types::{BytesRef, ConstantPool, U2}, parse_class};
 use crate::native;
 use crate::oop::{self, Class, ValueType};
 use crate::runtime::{self, ClassPathResult};
@@ -159,7 +159,7 @@ impl ClassLoader {
     fn load_class_from_path(&self, name: &[u8]) -> Option<ClassRef> {
         let name = unsafe { std::str::from_utf8_unchecked(name) };
         match runtime::find_class_in_classpath(name) {
-            Ok(ClassPathResult(_, buf)) => match class_parse(&buf) {
+            Ok(ClassPathResult(_, buf)) => match parse_class(&buf) {
                 Ok(cf) => {
                     let cfr = Arc::new(Box::new(cf.1));
                     let class = Class::new_class(cfr, Some(*self));

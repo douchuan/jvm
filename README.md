@@ -21,8 +21,7 @@ java -XshowSettings:properties
 ## Roadmap
 
 - Pass test cases in JDK & TCK 
-- Separate class parser from project as one standalone crate
-- After class parser crate is finished, we can write javap
+- impl class checker
 - Support threads
 - WebAssembly, make the JVM work in Browser 
 - Support GC

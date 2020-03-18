@@ -1,4 +1,4 @@
-use class_parser::{consts as cls_const, signature::MethodSignature, signature::Type as ArgType};
+use class_parser::{consts as cls_const, MethodSignature, SignatureType};
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 pub struct JavaCall {
     pub mir: MethodIdRef,
     pub args: Vec<Oop>,
-    pub return_type: ArgType,
+    pub return_type: SignatureType,
 }
 
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
@@ -335,27 +335,27 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
         .iter()
         .rev()
         .map(|t| match t {
-            ArgType::Byte | ArgType::Boolean | ArgType::Int | ArgType::Char | ArgType::Short => {
+            SignatureType::Byte | SignatureType::Boolean | SignatureType::Int | SignatureType::Char | SignatureType::Short => {
                 let mut area = area.borrow_mut();
                 let v = area.stack.pop_int();
                 Oop::new_int(v)
             }
-            ArgType::Long => {
+            SignatureType::Long => {
                 let mut area = area.borrow_mut();
                 let v = area.stack.pop_long();
                 Oop::new_long(v)
             }
-            ArgType::Float => {
+            SignatureType::Float => {
                 let mut area = area.borrow_mut();
                 let v = area.stack.pop_float();
                 Oop::new_float(v)
             }
-            ArgType::Double => {
+            SignatureType::Double => {
                 let mut area = area.borrow_mut();
                 let v = area.stack.pop_double();
                 Oop::new_double(v)
             }
-            ArgType::Object(_) | ArgType::Array(_) => {
+            SignatureType::Object(_) | SignatureType::Array(_) => {
                 let mut area = area.borrow_mut();
                 area.stack.pop_ref()
             }
@@ -364,37 +364,37 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
         .collect()
 }
 
-pub fn set_return(caller: Option<&DataAreaRef>, return_type: ArgType, v: Option<Oop>) {
+pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: Option<Oop>) {
     match return_type {
-        ArgType::Byte | ArgType::Short | ArgType::Char | ArgType::Int | ArgType::Boolean => {
+        SignatureType::Byte | SignatureType::Short | SignatureType::Char | SignatureType::Int | SignatureType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_int(v);
         }
-        ArgType::Long => {
+        SignatureType::Long => {
             let v = v.unwrap();
             let v = util::oop::extract_long(&v);
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_long(v);
         }
-        ArgType::Float => {
+        SignatureType::Float => {
             let v = v.unwrap();
             let v = util::oop::extract_float(&v);
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_float(v);
         }
-        ArgType::Double => {
+        SignatureType::Double => {
             let v = v.unwrap();
             let v = util::oop::extract_double(&v);
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_double(v);
         }
-        ArgType::Object(_) | ArgType::Array(_) => {
+        SignatureType::Object(_) | SignatureType::Array(_) => {
             let v = v.unwrap();
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_ref(v);
         }
-        ArgType::Void => (),
+        SignatureType::Void => (),
     }
 }

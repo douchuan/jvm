@@ -1,15 +1,15 @@
-use class_parser::{attributes::Type as AttrType, types::BytesRef};
+use class_parser::{types::BytesRef, AttributeType};
 
-pub fn assemble_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
+pub fn assemble_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
     for it in attrs.iter() {
         match it {
-            AttrType::RuntimeVisibleAnnotations { raw, .. } => {
+            AttributeType::RuntimeVisibleAnnotations { raw, .. } => {
                 vis = Some(raw.clone());
             }
-            AttrType::RuntimeInvisibleAnnotations { raw, .. } => {
+            AttributeType::RuntimeInvisibleAnnotations { raw, .. } => {
                 in_vis = Some(raw.clone());
             }
             _ => (),
@@ -19,16 +19,16 @@ pub fn assemble_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_param_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
+pub fn assemble_param_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
     for it in attrs.iter() {
         match it {
-            AttrType::RuntimeVisibleParameterAnnotations { raw, .. } => {
+            AttributeType::RuntimeVisibleParameterAnnotations { raw, .. } => {
                 vis = Some(raw.clone());
             }
-            AttrType::RuntimeInvisibleParameterAnnotations { raw, .. } => {
+            AttributeType::RuntimeInvisibleParameterAnnotations { raw, .. } => {
                 in_vis = Some(raw.clone());
             }
             _ => (),
@@ -38,16 +38,16 @@ pub fn assemble_param_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_type_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
+pub fn assemble_type_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
     for it in attrs.iter() {
         match it {
-            AttrType::RuntimeVisibleTypeAnnotations { raw, .. } => {
+            AttributeType::RuntimeVisibleTypeAnnotations { raw, .. } => {
                 vis = Some(raw.clone());
             }
-            AttrType::RuntimeInvisibleTypeAnnotations { raw, .. } => {
+            AttributeType::RuntimeInvisibleTypeAnnotations { raw, .. } => {
                 in_vis = Some(raw.clone());
             }
             _ => (),
@@ -57,12 +57,12 @@ pub fn assemble_type_annotation(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_annotation_default(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
+pub fn assemble_annotation_default(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     let mut vis = None;
 
     for it in attrs.iter() {
         match it {
-            AttrType::AnnotationDefault { raw, .. } => {
+            AttributeType::AnnotationDefault { raw, .. } => {
                 vis = Some(raw.clone());
             }
             _ => (),
@@ -72,10 +72,10 @@ pub fn assemble_annotation_default(attrs: &Vec<AttrType>) -> Option<Vec<u8>> {
     do_assemble(vis, None)
 }
 
-pub fn get_signature(attrs: &Vec<AttrType>) -> u16 {
+pub fn get_signature(attrs: &Vec<AttributeType>) -> u16 {
     for it in attrs.iter() {
         match it {
-            AttrType::Signature { signature_index } => {
+            AttributeType::Signature { signature_index } => {
                 return *signature_index;
             }
             _ => (),

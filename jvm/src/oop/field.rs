@@ -1,4 +1,4 @@
-use class_parser::{attributes, constant_pool, consts, flags::*, field_info::FieldInfo, types::{ConstantPool, BytesRef, U2}};
+use class_parser::{AttributeType, ConstantPoolType, constant_pool, consts, flags::*, FieldInfo, types::{ConstantPool, BytesRef, U2}};
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
@@ -132,37 +132,37 @@ impl Field {
 
         let mut attr_constant_value = None;
         fi.attrs.iter().for_each(|a| {
-            if let attributes::Type::ConstantValue {
+            if let AttributeType::ConstantValue {
                 constant_value_index,
             } = a
             {
                 match cp.get(*constant_value_index as usize) {
-                    Some(constant_pool::Type::Long { v }) => {
+                    Some(ConstantPoolType::Long { v }) => {
                         let v =
                             i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = Oop::new_long(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::Type::Float { v }) => {
+                    Some(ConstantPoolType::Float { v }) => {
                         let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = f32::from_bits(v);
                         let v = Oop::new_float(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::Type::Double { v }) => {
+                    Some(ConstantPoolType::Double { v }) => {
                         let v =
                             u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                         let v = f64::from_bits(v);
                         let v = Oop::new_double(v);
                         attr_constant_value = Some(v);
                     }
-                    Some(constant_pool::Type::Integer { v }) => {
+                    Some(ConstantPoolType::Integer { v }) => {
                         let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                         let v = Oop::new_int(v);
                         attr_constant_value = Some(v);
                     }
                     //                    此处没有javathread，如何创建String?
-                    Some(constant_pool::Type::String { string_index }) => {
+                    Some(ConstantPoolType::String { string_index }) => {
                         if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
                             //                            println!("field const value = {}", String::from_utf8_lossy(v.as_slice()));
                             let v = Oop::new_const_utf8(v);

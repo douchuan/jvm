@@ -4,18 +4,30 @@
 extern crate log;
 
 pub mod attributes;
-pub mod checker;
-pub mod classfile;
+mod checker;
+mod classfile;
 pub mod constant_pool;
 pub mod consts;
-pub mod field_info;
+mod field_info;
 pub mod flags;
-pub mod method_info;
-pub mod opcode;
-pub mod parser;
-pub mod signature;
+mod method_info;
+mod opcode;
+mod parser;
+mod signature;
 pub mod types;
-pub mod version;
+mod version;
+
+pub use attributes::Type as AttributeType;
+pub use classfile::ClassFile;
+pub use constant_pool::Type as ConstantPoolType;
+pub use field_info::FieldInfo;
+pub use method_info::MethodInfo;
+pub use opcode::OpCode;
+pub use parser::parse as parse_class;
+pub use signature::Type as SignatureType;
+pub use signature::MethodSignature;
+pub use signature::FieldSignature;
+
 
 #[cfg(test)]
 mod tests {

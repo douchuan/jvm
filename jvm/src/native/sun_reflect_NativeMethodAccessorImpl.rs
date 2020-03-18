@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use class_parser::{consts as cls_consts, signature::Type as SigType};
+use class_parser::{consts as cls_consts, SignatureType};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
@@ -96,24 +96,24 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let r = {
         let mut area = area.borrow_mut();
         match jc.return_type {
-            SigType::Byte | SigType::Char | SigType::Boolean | SigType::Short | SigType::Int => {
+            SignatureType::Byte | SignatureType::Char | SignatureType::Boolean | SignatureType::Short | SignatureType::Int => {
                 let v = area.stack.pop_int();
                 Some(oop::Oop::new_int(v))
             }
-            SigType::Double => {
+            SignatureType::Double => {
                 let v = area.stack.pop_double();
                 Some(oop::Oop::new_double(v))
             }
-            SigType::Float => {
+            SignatureType::Float => {
                 let v = area.stack.pop_float();
                 Some(oop::Oop::new_float(v))
             }
-            SigType::Long => {
+            SignatureType::Long => {
                 let v = area.stack.pop_long();
                 Some(oop::Oop::new_long(v))
             }
-            SigType::Object(_) | SigType::Array(_) => Some(area.stack.pop_ref()),
-            SigType::Void => Some(oop::consts::get_null()),
+            SignatureType::Object(_) | SignatureType::Array(_) => Some(area.stack.pop_ref()),
+            SignatureType::Void => Some(oop::consts::get_null()),
         }
     };
 

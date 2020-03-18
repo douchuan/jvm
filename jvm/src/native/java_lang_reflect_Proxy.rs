@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use class_parser::parser::parse as class_parse;
+use class_parser::parse_class;
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
@@ -52,7 +52,7 @@ fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
                 oop::RefKind::TypeArray(ary) => {
                     match ary {
                         oop::TypeArrayDesc::Byte(ary) => {
-                            match class_parse(&ary[off..(off + len)]) {
+                            match parse_class(&ary[off..(off + len)]) {
                                 Ok(r) => {
                                     let cfr = Arc::new(Box::new(r.1));
                                     //fixme: setup classloader

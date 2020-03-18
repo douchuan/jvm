@@ -1,4 +1,4 @@
-use class_parser::{consts as cls_const, constant_pool::get_utf8 as get_cp_utf8, classfile::ClassFile, constant_pool::Type as ConstantPoolType, opcode::OpCode, types::{U1, U2}};
+use class_parser::{consts as cls_const, constant_pool::get_utf8 as get_cp_utf8, ClassFile, ConstantPoolType, OpCode, types::{U1, U2}};
 use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDesc, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;

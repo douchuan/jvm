@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use class_parser::consts as cls_const;
-use class_parser::signature::{FieldSignature, MethodSignature, Type as ArgType};
+use class_parser::{FieldSignature, MethodSignature, SignatureType};
 use crate::native::java_lang_Class;
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
@@ -269,28 +269,28 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
     util::oop::extract_str(&v)
 }
 
-fn create_value_type(t: ArgType) -> Oop {
+fn create_value_type(t: SignatureType) -> Oop {
     match t {
-        ArgType::Byte => java_lang_Class::get_primitive_class_mirror("B").unwrap(),
-        ArgType::Char => java_lang_Class::get_primitive_class_mirror("C").unwrap(),
-        ArgType::Int => java_lang_Class::get_primitive_class_mirror("I").unwrap(),
-        ArgType::Double => java_lang_Class::get_primitive_class_mirror("D").unwrap(),
-        ArgType::Float => java_lang_Class::get_primitive_class_mirror("F").unwrap(),
-        ArgType::Long => java_lang_Class::get_primitive_class_mirror("J").unwrap(),
-        ArgType::Object(desc) => {
+        SignatureType::Byte => java_lang_Class::get_primitive_class_mirror("B").unwrap(),
+        SignatureType::Char => java_lang_Class::get_primitive_class_mirror("C").unwrap(),
+        SignatureType::Int => java_lang_Class::get_primitive_class_mirror("I").unwrap(),
+        SignatureType::Double => java_lang_Class::get_primitive_class_mirror("D").unwrap(),
+        SignatureType::Float => java_lang_Class::get_primitive_class_mirror("F").unwrap(),
+        SignatureType::Long => java_lang_Class::get_primitive_class_mirror("J").unwrap(),
+        SignatureType::Object(desc) => {
             let len = desc.len();
             let name = &desc.as_slice()[1..len - 1];
             let cls = require_class3(None, name).unwrap();
             let cls = cls.read().unwrap();
             cls.get_mirror()
         }
-        ArgType::Short => java_lang_Class::get_primitive_class_mirror("S").unwrap(),
-        ArgType::Boolean => java_lang_Class::get_primitive_class_mirror("Z").unwrap(),
-        ArgType::Array(desc) => {
+        SignatureType::Short => java_lang_Class::get_primitive_class_mirror("S").unwrap(),
+        SignatureType::Boolean => java_lang_Class::get_primitive_class_mirror("Z").unwrap(),
+        SignatureType::Array(desc) => {
             let cls = require_class3(None, desc.as_slice()).unwrap();
             let cls = cls.read().unwrap();
             cls.get_mirror()
         }
-        ArgType::Void => java_lang_Class::get_primitive_class_mirror("V").unwrap(),
+        SignatureType::Void => java_lang_Class::get_primitive_class_mirror("V").unwrap(),
     }
 }

@@ -1,4 +1,4 @@
-use class_parser::classfile::ClassFile;
+use class_parser::ClassFile;
 use crate::oop::class::Class;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;

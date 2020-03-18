@@ -1,7 +1,8 @@
 use class_parser::{
+    AttributeType,
     types::{BytesRef, ConstantPool, U2},
-    attributes::Code, attributes::LineNumber, attributes::Type as AttrType, constant_pool, consts, flags::*, field_info::FieldInfo,
-    method_info::MethodInfo
+    attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, FieldInfo,
+    MethodInfo
 };
 use crate::oop::{self, ClassRef, ValueType};
 use crate::runtime::{self, require_class2, JavaThread};
@@ -187,7 +188,7 @@ impl Method {
 
         for it in method_info.attrs.iter() {
             match it {
-                AttrType::RuntimeVisibleAnnotations { raw, annotations } => {
+                AttributeType::RuntimeVisibleAnnotations { raw, annotations } => {
                     for it in annotations.iter() {
                         if it.type_name.as_slice() == name {
                             return true;

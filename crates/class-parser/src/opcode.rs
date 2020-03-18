@@ -441,7 +441,7 @@ impl From<u8> for OpCode {
 
 #[cfg(test)]
 mod tests {
-    use crate::classfile::opcode::OpCode;
+    use super::OpCode;
 
     #[test]
     fn t_opcode() {
