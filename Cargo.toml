@@ -1,5 +1,6 @@
 [workspace]
 members = [
   "jvm",
-  "crates/class-parser"
+  "crates/class-parser",
+  "crates/vm"
 ]
