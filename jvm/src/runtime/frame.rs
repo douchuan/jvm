@@ -1,7 +1,7 @@
-use class_parser::{types::U1, types::ConstantPool};
 use crate::oop;
 use crate::runtime::DataArea;
 use crate::types::*;
+use class_parser::{types::ConstantPool, types::U1};
 use std::sync::Arc;
 
 pub struct Frame {

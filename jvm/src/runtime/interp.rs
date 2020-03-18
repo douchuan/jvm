@@ -1,4 +1,3 @@
-use class_parser::{consts as cls_const, constant_pool::get_utf8 as get_cp_utf8, ClassFile, ConstantPoolType, OpCode, types::{U1, U2}};
 use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDesc, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
@@ -9,6 +8,12 @@ use crate::runtime::{
 use crate::types::*;
 use crate::util;
 use bytes::Bytes;
+use class_parser::{
+    constant_pool::get_utf8 as get_cp_utf8,
+    consts as cls_const,
+    types::{U1, U2},
+    ClassFile, ConstantPoolType, OpCode,
+};
 use nix::sys::socket::SockType::Datagram;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;

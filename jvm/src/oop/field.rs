@@ -1,9 +1,14 @@
-use class_parser::{AttributeType, ConstantPoolType, constant_pool, consts, flags::*, FieldInfo, types::{ConstantPool, BytesRef, U2}};
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
 use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
+use class_parser::{
+    constant_pool, consts,
+    flags::*,
+    types::{BytesRef, ConstantPool, U2},
+    AttributeType, ConstantPoolType, FieldInfo,
+};
 use std::ops::Deref;
 use std::sync::Arc;
 

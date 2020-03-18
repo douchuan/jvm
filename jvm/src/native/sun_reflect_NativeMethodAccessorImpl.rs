@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-use class_parser::{consts as cls_consts, SignatureType};
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::util;
+use class_parser::{consts as cls_consts, SignatureType};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -96,7 +96,11 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let r = {
         let mut area = area.borrow_mut();
         match jc.return_type {
-            SignatureType::Byte | SignatureType::Char | SignatureType::Boolean | SignatureType::Short | SignatureType::Int => {
+            SignatureType::Byte
+            | SignatureType::Char
+            | SignatureType::Boolean
+            | SignatureType::Short
+            | SignatureType::Int => {
                 let v = area.stack.pop_int();
                 Some(oop::Oop::new_int(v))
             }

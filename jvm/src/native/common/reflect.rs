@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 
-use class_parser::consts as cls_const;
-use class_parser::{FieldSignature, MethodSignature, SignatureType};
 use crate::native::java_lang_Class;
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::*;
 use crate::util;
+use class_parser::consts as cls_const;
+use class_parser::{FieldSignature, MethodSignature, SignatureType};
 
 pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();

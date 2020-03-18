@@ -10,60 +10,6 @@ use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
-pub enum Type {
-    Nop,
-    Class {
-        name_index: u16,
-    },
-    FieldRef {
-        class_index: u16,
-        name_and_type_index: u16,
-    },
-    MethodRef {
-        class_index: u16,
-        name_and_type_index: u16,
-    },
-    InterfaceMethodRef {
-        class_index: u16,
-        name_and_type_index: u16,
-    },
-    String {
-        string_index: u16,
-    },
-    Integer {
-        v: [u8; 4],
-    },
-    Float {
-        v: [u8; 4],
-    },
-    Long {
-        v: [u8; 8],
-    },
-    Double {
-        v: [u8; 8],
-    },
-    NameAndType {
-        name_index: u16,
-        desc_index: u16,
-    },
-    Utf8 {
-        bytes: BytesRef,
-    },
-    MethodHandle {
-        ref_kind: u8,
-        ref_index: u16,
-    },
-    MethodType {
-        desc_index: u16,
-    },
-    InvokeDynamic {
-        bootstrap_method_attr_index: u16,
-        name_and_type_index: u16,
-    },
-    Unknown,
-}
-
 pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
     match cp.get(idx) {
         Some(Type::Class { name_index }) => get_utf8(cp, *name_index as usize),
@@ -117,6 +63,60 @@ pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
         Some(Type::Utf8 { bytes }) => Some(bytes.clone()),
         _ => None,
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Type {
+    Nop,
+    Class {
+        name_index: u16,
+    },
+    FieldRef {
+        class_index: u16,
+        name_and_type_index: u16,
+    },
+    MethodRef {
+        class_index: u16,
+        name_and_type_index: u16,
+    },
+    InterfaceMethodRef {
+        class_index: u16,
+        name_and_type_index: u16,
+    },
+    String {
+        string_index: u16,
+    },
+    Integer {
+        v: [u8; 4],
+    },
+    Float {
+        v: [u8; 4],
+    },
+    Long {
+        v: [u8; 8],
+    },
+    Double {
+        v: [u8; 8],
+    },
+    NameAndType {
+        name_index: u16,
+        desc_index: u16,
+    },
+    Utf8 {
+        bytes: BytesRef,
+    },
+    MethodHandle {
+        ref_kind: u8,
+        ref_index: u16,
+    },
+    MethodType {
+        desc_index: u16,
+    },
+    InvokeDynamic {
+        bootstrap_method_attr_index: u16,
+        name_and_type_index: u16,
+    },
+    Unknown,
 }
 
 impl Checker for Type {

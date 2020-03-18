@@ -1,12 +1,13 @@
 use crate::attributes::{TargetInfo, TypeAnnotation};
+use crate::types::ConstantPool;
 use crate::{
     attributes::{self, Tag as AttrTag, Type as AttrType},
+    classfile::ClassFile,
     constant_pool,
     field_info::FieldInfo,
     method_info::MethodInfo,
-    classfile::ClassFile, version::Version,
+    version::Version,
 };
-use crate::types::ConstantPool;
 use std::sync::Arc;
 
 use nom::{

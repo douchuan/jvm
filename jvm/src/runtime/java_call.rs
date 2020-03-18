@@ -1,9 +1,9 @@
-use class_parser::{consts as cls_const, MethodSignature, SignatureType};
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
 use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
 use crate::util;
+use class_parser::{consts as cls_const, MethodSignature, SignatureType};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -335,7 +335,11 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
         .iter()
         .rev()
         .map(|t| match t {
-            SignatureType::Byte | SignatureType::Boolean | SignatureType::Int | SignatureType::Char | SignatureType::Short => {
+            SignatureType::Byte
+            | SignatureType::Boolean
+            | SignatureType::Int
+            | SignatureType::Char
+            | SignatureType::Short => {
                 let mut area = area.borrow_mut();
                 let v = area.stack.pop_int();
                 Oop::new_int(v)
@@ -366,7 +370,11 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
 
 pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: Option<Oop>) {
     match return_type {
-        SignatureType::Byte | SignatureType::Short | SignatureType::Char | SignatureType::Int | SignatureType::Boolean => {
+        SignatureType::Byte
+        | SignatureType::Short
+        | SignatureType::Char
+        | SignatureType::Int
+        | SignatureType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
             let mut area = caller.unwrap().borrow_mut();

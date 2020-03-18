@@ -24,10 +24,11 @@ pub use field_info::FieldInfo;
 pub use method_info::MethodInfo;
 pub use opcode::OpCode;
 pub use parser::parse as parse_class;
-pub use signature::Type as SignatureType;
-pub use signature::MethodSignature;
 pub use signature::FieldSignature;
-
+pub use signature::MethodSignature;
+pub use signature::Type as SignatureType;
+pub use types::BytesRef;
+pub use types::ConstantPool;
 
 #[cfg(test)]
 mod tests {

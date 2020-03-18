@@ -1,12 +1,12 @@
 #![allow(non_snake_case)]
 
-use class_parser::parse_class;
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, JavaThread};
 use crate::types::ClassRef;
 use crate::util;
+use class_parser::parse_class;
 use std::sync::Arc;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {

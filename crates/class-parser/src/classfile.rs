@@ -1,8 +1,8 @@
+use crate::types::{ConstantPool, U2};
 use crate::{
     attributes::Type, checker::CheckResult, checker::Checker, field_info::FieldInfo,
     method_info::MethodInfo, version::Version,
 };
-use crate::types::{ConstantPool, U2};
 
 #[derive(Debug)]
 pub struct ClassFile {

@@ -1,9 +1,12 @@
-use class_parser::{constant_pool, types::{BytesRef, ConstantPool, U2}, parse_class};
 use crate::native;
 use crate::oop::{self, Class, ValueType};
 use crate::runtime::{self, ClassPathResult};
 use crate::types::*;
 use crate::util;
+use class_parser::{
+    constant_pool, parse_class,
+    types::{BytesRef, ConstantPool, U2},
+};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Copy, Clone)]

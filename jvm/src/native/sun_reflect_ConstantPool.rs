@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
-use class_parser::constant_pool;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::JavaThread;
 use crate::util;
+use class_parser::constant_pool;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(

@@ -1,15 +1,18 @@
-use class_parser::{
-    AttributeType,
-    constant_pool::get_utf8 as get_cp_utf8,
-    types::{BytesRef, U2},
-    attributes::EnclosingMethod, attributes::InnerClass, constant_pool, consts,
-    flags::*,
-};
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, ValueType};
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread};
 use crate::types::*;
 use crate::util;
+use class_parser::{
+    attributes::EnclosingMethod,
+    attributes::InnerClass,
+    constant_pool,
+    constant_pool::get_utf8 as get_cp_utf8,
+    consts,
+    flags::*,
+    types::{BytesRef, U2},
+    AttributeType,
+};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Error, Formatter};
