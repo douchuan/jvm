@@ -3,7 +3,7 @@ use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
 use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
 use crate::util;
-use class_parser::{consts as cls_const, MethodSignature, SignatureType};
+use classfile::{consts as cls_const, MethodSignature, SignatureType};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};

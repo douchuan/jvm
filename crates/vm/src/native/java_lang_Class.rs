@@ -5,7 +5,7 @@ use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3, JavaThread};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
-use class_parser::{constant_pool, consts as cls_consts, flags as acc};
+use classfile::{constant_pool, consts as cls_consts, flags as acc};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 

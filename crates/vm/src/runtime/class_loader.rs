@@ -3,10 +3,13 @@ use crate::oop::{self, Class, ValueType};
 use crate::runtime::{self, ClassPathResult};
 use crate::types::*;
 use crate::util;
-use class_parser::{
-    constant_pool, parse_class,
-    types::{BytesRef, ConstantPool, U2},
+use classfile::{
+    constant_pool,
+    types::U2,
+    BytesRef,
+    ConstantPool
 };
+use class_parser::parse_class;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Copy, Clone)]

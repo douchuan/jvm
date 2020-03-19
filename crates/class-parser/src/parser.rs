@@ -1,12 +1,12 @@
-use crate::attributes::{TargetInfo, TypeAnnotation};
-use crate::types::ConstantPool;
-use crate::{
-    attributes::{self, Tag as AttrTag, Type as AttrType},
-    classfile::ClassFile,
+use classfile::{
+    attributes::{self, Tag as AttrTag, TargetInfo, TypeAnnotation},
     constant_pool,
-    field_info::FieldInfo,
-    method_info::MethodInfo,
-    version::Version,
+    AttributeType,
+    ClassFile,
+    ConstantPool,
+    FieldInfo,
+    MethodInfo,
+    Version,
 };
 use std::sync::Arc;
 
@@ -507,10 +507,10 @@ named!(
     )
 );
 
-named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType>, switch!(value!(tag),
+named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttributeType>, switch!(value!(tag),
     AttrTag::ConstantValue => do_parse!(
         constant_value_index: be_u16 >>
-        (AttrType::ConstantValue {constant_value_index})
+        (AttributeType::ConstantValue {constant_value_index})
     ) |
     AttrTag::Code => do_parse!(
         max_stack: be_u16 >>
@@ -520,7 +520,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
         exception_count: be_u16 >>
         exceptions: count!(code_exception, exception_count as usize) >>
         attrs: call!(attr_type_vec, cp) >>
-        (AttrType::Code(attributes::Code {
+        (AttributeType::Code(attributes::Code {
             max_stack,
             max_locals,
             code: Arc::new(Vec::from(code)),
@@ -531,105 +531,105 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<AttrType
     AttrTag::StackMapTable => do_parse!(
         frame_count: be_u16 >>
         frames: count!(stack_map_frame, frame_count as usize) >>
-        (AttrType::StackMapTable { entries: frames })
+        (AttributeType::StackMapTable { entries: frames })
     ) |
     AttrTag::Exceptions => do_parse!(
         exception_count: be_u16 >>
         exceptions: count!(be_u16, exception_count as usize) >>
-        (AttrType::Exceptions { exceptions })
+        (AttributeType::Exceptions { exceptions })
     ) |
     AttrTag::InnerClasses => do_parse!(
         class_count: be_u16 >>
         classes: count!(inner_class, class_count as usize) >>
-        (AttrType::InnerClasses { classes })
+        (AttributeType::InnerClasses { classes })
     ) |
     AttrTag::EnclosingMethod => do_parse!(
         em: enclosing_method >>
-        (AttrType::EnclosingMethod { em })
+        (AttributeType::EnclosingMethod { em })
     ) |
-    AttrTag::Synthetic => value!(AttrType::Synthetic) |
+    AttrTag::Synthetic => value!(AttributeType::Synthetic) |
     AttrTag::Signature => do_parse!(
         signature_index: be_u16 >>
-        (AttrType::Signature { signature_index })
+        (AttributeType::Signature { signature_index })
     ) |
     AttrTag::SourceFile => do_parse!(
         source_file_index: be_u16 >>
-        (AttrType::SourceFile { source_file_index })
+        (AttributeType::SourceFile { source_file_index })
     ) |
     AttrTag::SourceDebugExtension => do_parse!(
         debug_extension: take!(self_len) >>
-        (AttrType::SourceDebugExtension { debug_extension: Arc::new(Vec::from(debug_extension)) })
+        (AttributeType::SourceDebugExtension { debug_extension: Arc::new(Vec::from(debug_extension)) })
     ) |
     AttrTag::LineNumberTable => do_parse!(
         line_count: be_u16 >>
         lines: count!(line_number, line_count as usize) >>
-        (AttrType::LineNumberTable { tables: lines })
+        (AttributeType::LineNumberTable { tables: lines })
     ) |
     AttrTag::LocalVariableTable => do_parse!(
         variable_count: be_u16 >>
         variables: count!(local_variable, variable_count as usize) >>
-        (AttrType::LocalVariableTable { tables: variables })
+        (AttributeType::LocalVariableTable { tables: variables })
     ) |
     AttrTag::LocalVariableTypeTable => do_parse!(
         variable_count: be_u16 >>
         variables: count!(local_variable, variable_count as usize) >>
-        (AttrType::LocalVariableTypeTable { tables: variables })
+        (AttributeType::LocalVariableTypeTable { tables: variables })
     ) |
-    AttrTag::Deprecated => value!(AttrType::Deprecated) |
+    AttrTag::Deprecated => value!(AttributeType::Deprecated) |
     AttrTag::RuntimeVisibleAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeVisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeInvisibleAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeVisibleParameterAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeVisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleParameterAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(annotation_entry, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeInvisibleParameterAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeVisibleTypeAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeVisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeVisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::RuntimeInvisibleTypeAnnotations => do_parse!(
         raw: peek!(take!(self_len)) >>
         annotation_count: be_u16 >>
         annotations: count!(call!(type_annotation, cp.clone()), annotation_count as usize) >>
-        (AttrType::RuntimeInvisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
+        (AttributeType::RuntimeInvisibleTypeAnnotations {raw: Arc::new(Vec::from(raw)), annotations})
     ) |
     AttrTag::AnnotationDefault => do_parse!(
         raw: peek!(take!(self_len)) >>
         default_value: call!(element_value_type, cp.clone()) >>
-        (AttrType::AnnotationDefault {raw: Arc::new(Vec::from(raw)), default_value})
+        (AttributeType::AnnotationDefault {raw: Arc::new(Vec::from(raw)), default_value})
     ) |
     AttrTag::BootstrapMethods => do_parse!(
         method_count: be_u16 >>
         methods: count!(bootstrap_method, method_count as usize) >>
-        (AttrType::BootstrapMethods {n:method_count, methods})
+        (AttributeType::BootstrapMethods {n:method_count, methods})
     ) |
     AttrTag::MethodParameters => do_parse!(
         parameter_count: be_u8 >>
         parameters: count!(method_parameter, parameter_count as usize) >>
-        (AttrType::MethodParameters {parameters})
+        (AttributeType::MethodParameters {parameters})
     ) |
     AttrTag::Unknown => do_parse!(
         _data: take!(self_len) >>
-        (AttrType::Unknown)
+        (AttributeType::Unknown)
     )
 ));
 
@@ -640,14 +640,14 @@ named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     (inner)
 ));
 
-named_args!(attr_type(cp: ConstantPool)<AttrType>, do_parse!(
+named_args!(attr_type(cp: ConstantPool)<AttributeType>, do_parse!(
     tag: call!(attr_tag, cp.clone()) >>
     length: be_u32 >>
     attr: call!(attr_sized, tag, length as usize, cp.clone()) >>
     (attr)
 ));
 
-named_args!(attr_type_vec(cp: ConstantPool)<Vec<AttrType>>, do_parse!(
+named_args!(attr_type_vec(cp: ConstantPool)<Vec<AttributeType>>, do_parse!(
     attrs_count: be_u16 >>
     attrs: count!(call!(attr_type, cp.clone()), attrs_count as usize) >>
     (attrs)

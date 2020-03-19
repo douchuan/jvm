@@ -8,7 +8,7 @@ use crate::runtime::{
 use crate::types::*;
 use crate::util;
 use bytes::Bytes;
-use class_parser::{
+use classfile::{
     constant_pool::get_utf8 as get_cp_utf8,
     consts as cls_const,
     types::{U1, U2},
@@ -28,7 +28,7 @@ macro_rules! array_store {
             let msg = format!("length is {}, but index is {}", len, $pos);
             exception::meet_ex(
                 $thread,
-                class_parser::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                 Some(msg),
             );
         } else {
@@ -45,7 +45,7 @@ macro_rules! iarray_load {
             let msg = format!("length is {}, but index is {}", len, $pos);
             exception::meet_ex(
                 $thread,
-                class_parser::consts::J_ARRAY_INDEX_OUT_OF_BOUNDS,
+                cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                 Some(msg),
             );
         } else {

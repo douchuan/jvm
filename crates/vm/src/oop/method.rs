@@ -3,13 +3,13 @@ use crate::runtime::{self, require_class2, JavaThread};
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
-use class_parser::{
+use classfile::{
     attributes::Code,
     attributes::LineNumber,
     constant_pool, consts,
     flags::*,
-    types::{BytesRef, ConstantPool, U2},
-    AttributeType, FieldInfo, MethodInfo,
+    types::U2,
+    AttributeType, BytesRef, ConstantPool, FieldInfo, MethodInfo,
 };
 use std::collections::HashMap;
 use std::ops::Deref;

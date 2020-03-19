@@ -3,11 +3,14 @@ use crate::runtime::{require_class2, JavaThread};
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
-use class_parser::{
+use classfile::{
     constant_pool, consts,
     flags::*,
-    types::{BytesRef, ConstantPool, U2},
-    AttributeType, ConstantPoolType, FieldInfo,
+    types::U2,
+    AttributeType,
+    BytesRef,
+    ConstantPool,
+    ConstantPoolType, FieldInfo,
 };
 use std::ops::Deref;
 use std::sync::Arc;

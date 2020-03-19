@@ -1,5 +1,5 @@
 [package]
-name = "class-parser"
+name = "classfile"
 version = "0.1.0"
 authors = ["Dou Chuan <1843657913@qq.com>"]
 edition = "2018"
@@ -7,7 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-classfile = { path = "../classfile", version = "0.1.0" }
 env_logger = "0.7.1"
 log = "0.4.0"
-nom = "5.1.1"

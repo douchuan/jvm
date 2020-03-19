@@ -1,5 +1,5 @@
 #![allow(unused)]
-use class_parser::{types::BytesRef, ClassFile};
+use classfile::{BytesRef, ClassFile};
 use std::fmt;
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 

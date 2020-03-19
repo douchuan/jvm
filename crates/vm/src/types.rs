@@ -3,7 +3,7 @@ use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
 use crate::oop::RefKindDesc;
 use crate::runtime::DataArea;
-use class_parser::ClassFile;
+use classfile::ClassFile;
 use std::cell::RefCell;
 use std::sync::Arc;
 

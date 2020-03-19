@@ -1,7 +1,7 @@
 use crate::oop;
 use crate::runtime::require_class3;
 use crate::types::ClassRef;
-use class_parser::consts as cls_consts;
+use classfile::consts as cls_consts;
 use std::sync::Arc;
 
 pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {

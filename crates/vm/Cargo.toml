@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 bytes = "0.5.4"
 chrono = "0.4.9"
+classfile = { path = "../classfile", version = "0.1.0" }
 class-parser = { path="../class-parser", version="0.1.0" }
 dirs = "2.0.2"
 env_logger = "0.7.1"

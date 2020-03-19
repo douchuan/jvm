@@ -8,7 +8,7 @@ mod sys;
 
 pub use self::sys::*;
 
-use class_parser::types::BytesRef;
+use classfile::BytesRef;
 use std::sync::Arc;
 
 pub fn new_method_id(name: &[u8], desc: &[u8]) -> BytesRef {

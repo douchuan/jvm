@@ -153,9 +153,18 @@ dependencies = [
 name = "class-parser"
 version = "0.1.0"
 dependencies = [
+ "classfile",
  "env_logger",
  "log",
  "nom",
+]
+
+[[package]]
+name = "classfile"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
 ]
 
 [[package]]
@@ -534,6 +543,7 @@ dependencies = [
  "bytes",
  "chrono",
  "class-parser",
+ "classfile",
  "dirs",
  "env_logger",
  "lazy_static",

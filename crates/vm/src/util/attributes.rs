@@ -1,4 +1,4 @@
-use class_parser::{types::BytesRef, AttributeType};
+use classfile::{BytesRef, AttributeType};
 
 pub fn assemble_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     let mut vis = None;
