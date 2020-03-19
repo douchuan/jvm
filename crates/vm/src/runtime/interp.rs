@@ -26,11 +26,7 @@ macro_rules! array_store {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
             let msg = format!("length is {}, but index is {}", len, $pos);
-            exception::meet_ex(
-                $thread,
-                cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                Some(msg),
-            );
+            exception::meet_ex($thread, cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
         } else {
             $ary[$pos as usize] = $v;
         }
@@ -43,11 +39,7 @@ macro_rules! iarray_load {
         if ($pos < 0) || ($pos as usize >= len) {
             drop($area);
             let msg = format!("length is {}, but index is {}", len, $pos);
-            exception::meet_ex(
-                $thread,
-                cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                Some(msg),
-            );
+            exception::meet_ex($thread, cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
         } else {
             let stack = &mut ($area.stack);
             stack.push_int($ary[$pos as usize] as i32);

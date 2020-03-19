@@ -7,3 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = "2.33.0"
+classfile = { path = "../../crates/classfile", version = "0.1.0" }
+class-parser = { path = "../../crates/class-parser", version = "0.1.0" }
+env_logger = "0.7.1"
+log = "0.4.0"

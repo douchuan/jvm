@@ -269,6 +269,13 @@ dependencies = [
 [[package]]
 name = "javap"
 version = "0.1.0"
+dependencies = [
+ "clap",
+ "class-parser",
+ "classfile",
+ "env_logger",
+ "log",
+]
 
 [[package]]
 name = "jvm"

@@ -4,11 +4,7 @@ use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
 use classfile::{
-    attributes::Code,
-    attributes::LineNumber,
-    constant_pool, consts,
-    flags::*,
-    types::U2,
+    attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, types::U2,
     AttributeType, BytesRef, ConstantPool, FieldInfo, MethodInfo,
 };
 use std::collections::HashMap;
