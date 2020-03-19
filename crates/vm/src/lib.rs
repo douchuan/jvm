@@ -2,7 +2,6 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
 
 //contains macros, must be here
 #[macro_use]

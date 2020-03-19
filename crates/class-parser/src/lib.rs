@@ -1,8 +1,5 @@
 #![allow(unused)]
 
-#[macro_use]
-extern crate log;
-
 mod parser;
 
 pub use parser::parse as parse_class;

@@ -154,8 +154,6 @@ name = "class-parser"
 version = "0.1.0"
 dependencies = [
  "classfile",
- "env_logger",
- "log",
  "nom",
 ]
 
@@ -163,7 +161,6 @@ dependencies = [
 name = "classfile"
 version = "0.1.0"
 dependencies = [
- "env_logger",
  "log",
 ]
 
@@ -270,13 +267,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "javap"
+version = "0.1.0"
+
+[[package]]
 name = "jvm"
 version = "0.2.0"
 dependencies = [
  "clap",
  "class-parser",
  "env_logger",
- "log",
  "vm",
 ]
 
@@ -545,7 +545,6 @@ dependencies = [
  "class-parser",
  "classfile",
  "dirs",
- "env_logger",
  "lazy_static",
  "libc",
  "log",

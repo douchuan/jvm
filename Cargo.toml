@@ -3,5 +3,6 @@ members = [
   "jvm",
   "crates/classfile",
   "crates/class-parser",
-  "crates/vm"
+  "crates/vm",
+  "tools/javap"
 ]

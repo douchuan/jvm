@@ -8,15 +8,6 @@ Now, we have Rust, a better tool, let’s remake JVM!
 
 Pay tribute to  frontline medical staff! Thank you for your contribution to the fight against the epidemic.
 
-## Usage
-
-Modify the run.sh script according to your environment.
-
-If you installed JDK, but can not find jre path, try:
-
-```shell
-java -XshowSettings:properties
-```
 
 ## Roadmap
 

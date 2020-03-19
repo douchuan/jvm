@@ -8,5 +8,4 @@ edition = "2018"
 clap = "2.33.0"
 class-parser = { path = "../crates/class-parser", version = "0.1.0" }
 env_logger = "0.7.1"
-log = "0.4.0"
 vm = { path = "../crates/vm", version = "0.1.0" }
