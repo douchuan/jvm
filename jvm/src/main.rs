@@ -65,7 +65,6 @@ fn main() {
         .arg(Arg::with_name("ARGS").multiple(true).help("[args...]"))
         .get_matches();
 
-    //todo: add '.' auto
     let cp = matches.value_of("cp");
     if let Some(cp) = cp {
         runtime::add_class_paths(cp);

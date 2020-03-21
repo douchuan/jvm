@@ -1,10 +1,16 @@
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate log;
 
 extern crate clap;
 extern crate env_logger;
 
-use clap::{App, Arg};
+mod class_path_manager;
+mod util;
+
+use clap::{App, Arg, ArgMatches};
 
 /*
 Usage: javap <options> <classes>
@@ -31,14 +37,10 @@ where possible options include:
 
 //todo: can clap support '-private' style option?
 fn main() {
-    env_logger::init();
+    init();
 
     let matches = App::new("")
-        .arg(
-            Arg::with_name("version")
-                .long("version")
-                .help("Version information"),
-        )
+        .version(clap::crate_version!())
         .arg(
             Arg::with_name("verbose")
                 .long("verbose")
@@ -95,14 +97,42 @@ fn main() {
             Arg::with_name("cp")
                 .long("cp")
                 .help("Specify where to find user class files")
+                .default_value(".")
                 .takes_value(true),
         )
         .arg(
             Arg::with_name("classpath")
                 .long("classpath")
                 .help("Specify where to find user class files")
+                .default_value(".")
                 .takes_value(true),
         )
         .arg(Arg::with_name("classes").multiple(true).index(1))
         .get_matches();
+
+    setup_classpath(&matches);
+}
+
+fn init() {
+    env_logger::init();
+    class_path_manager::init();
+}
+
+fn setup_classpath(matches: &ArgMatches) {
+    let mut added = std::collections::HashSet::new();
+
+    vec![
+        matches.value_of("cp").unwrap(),
+        matches.value_of("classpath").unwrap(),
+    ]
+    .iter()
+    .for_each(|&v| {
+        let paths = v.split(util::PATH_SEP);
+        paths.for_each(|path| {
+            if !added.contains(path) {
+                class_path_manager::add_path(path);
+                added.insert(path);
+            }
+        });
+    });
 }

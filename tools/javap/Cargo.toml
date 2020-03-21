@@ -1,6 +1,6 @@
 [package]
 name = "javap"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Dou Chuan <1843657913@qq.com>"]
 edition = "2018"
 
@@ -11,4 +11,6 @@ clap = "2.33.0"
 classfile = { path = "../../crates/classfile", version = "0.1.0" }
 class-parser = { path = "../../crates/class-parser", version = "0.1.0" }
 env_logger = "0.7.1"
+lazy_static = "1.4.0"
 log = "0.4.0"
+zip = "0.5.4"
