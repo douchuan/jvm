@@ -7,7 +7,7 @@ extern crate log;
 extern crate clap;
 extern crate env_logger;
 
-mod class_path_manager;
+mod misc;
 mod util;
 
 use clap::{App, Arg, ArgMatches};
@@ -40,7 +40,11 @@ fn main() {
     init();
 
     let matches = App::new("")
-        .version(clap::crate_version!())
+        .arg(
+            Arg::with_name("version")
+                .long("version")
+                .help("Print this usage message"),
+        )
         .arg(
             Arg::with_name("verbose")
                 .long("verbose")
@@ -115,7 +119,7 @@ fn main() {
 
 fn init() {
     env_logger::init();
-    class_path_manager::init();
+    misc::class_path_manager::init();
 }
 
 fn setup_classpath(matches: &ArgMatches) {
@@ -130,7 +134,7 @@ fn setup_classpath(matches: &ArgMatches) {
         let paths = v.split(util::PATH_SEP);
         paths.for_each(|path| {
             if !added.contains(path) {
-                class_path_manager::add_path(path);
+                misc::add_cp_path(path);
                 added.insert(path);
             }
         });
