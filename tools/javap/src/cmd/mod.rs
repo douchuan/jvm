@@ -16,7 +16,4 @@ pub mod factory {
     pub fn line_number() -> impl Cmd {
         LineNumber
     }
-
 }
-
-

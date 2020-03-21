@@ -79,7 +79,7 @@ impl ClassPathManager {
         let name = name.replace("/", util::FILE_SEP);
         let name = name.replace(".", util::FILE_SEP);
 
-        trace!("search_class: {}", name);
+        // trace!("search_class: {}", name);
 
         for it in self.runtime_class_path.iter() {
             match &it.0 {

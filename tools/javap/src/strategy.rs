@@ -1,9 +1,8 @@
-
-use clap::ArgMatches;
-use classfile::ClassFile;
 use crate::cmd::{self, Cmd};
 use crate::misc;
 use crate::util;
+use clap::ArgMatches;
+use classfile::ClassFile;
 
 pub fn choose(matches: &ArgMatches) -> impl Cmd {
     cmd::factory::line_number()
@@ -16,16 +15,14 @@ pub fn setup_classpath(matches: &ArgMatches) {
         matches.value_of("cp").unwrap(),
         matches.value_of("classpath").unwrap(),
     ]
-        .iter()
-        .for_each(|&v| {
-            let paths = v.split(util::PATH_SEP);
-            paths.for_each(|path| {
-                if !added.contains(path) {
-                    misc::add_cp_path(path);
-                    added.insert(path);
-                }
-            });
+    .iter()
+    .for_each(|&v| {
+        let paths = v.split(util::PATH_SEP);
+        paths.for_each(|path| {
+            if !added.contains(path) {
+                misc::add_cp_path(path);
+                added.insert(path);
+            }
         });
+    });
 }
-
-

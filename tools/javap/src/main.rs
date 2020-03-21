@@ -10,6 +10,7 @@ extern crate env_logger;
 mod cmd;
 mod misc;
 mod strategy;
+mod trans;
 mod util;
 
 use clap::{App, Arg, ArgMatches};
@@ -137,5 +138,5 @@ fn main() {
 
 fn init() {
     env_logger::init();
-    misc::class_path_manager::init();
+    misc::cp_manager_init();
 }
