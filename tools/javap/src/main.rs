@@ -7,10 +7,14 @@ extern crate log;
 extern crate clap;
 extern crate env_logger;
 
+mod cmd;
 mod misc;
+mod strategy;
 mod util;
 
 use clap::{App, Arg, ArgMatches};
+use class_parser::parse_class;
+use cmd::Cmd;
 
 /*
 Usage: javap <options> <classes>
@@ -114,29 +118,24 @@ fn main() {
         .arg(Arg::with_name("classes").multiple(true).index(1))
         .get_matches();
 
-    setup_classpath(&matches);
+    strategy::setup_classpath(&matches);
+
+    let commander = strategy::choose(&matches);
+
+    let classes = matches.values_of("classes").unwrap();
+    for it in classes {
+        let _ = misc::find_class(it).and_then(|r| {
+            let _ = parse_class(&r.1).and_then(|(_, cf)| {
+                commander.run(cf);
+                Ok(())
+            });
+
+            Ok(())
+        });
+    }
 }
 
 fn init() {
     env_logger::init();
     misc::class_path_manager::init();
-}
-
-fn setup_classpath(matches: &ArgMatches) {
-    let mut added = std::collections::HashSet::new();
-
-    vec![
-        matches.value_of("cp").unwrap(),
-        matches.value_of("classpath").unwrap(),
-    ]
-    .iter()
-    .for_each(|&v| {
-        let paths = v.split(util::PATH_SEP);
-        paths.for_each(|path| {
-            if !added.contains(path) {
-                misc::add_cp_path(path);
-                added.insert(path);
-            }
-        });
-    });
 }

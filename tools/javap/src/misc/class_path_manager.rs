@@ -1,7 +1,7 @@
 use crate::util;
 use std::fs::File;
-use std::io::{self, BufReader, Cursor, Read, Seek};
-use std::path::{self, Path};
+use std::io::{self, Read};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
 
@@ -20,7 +20,7 @@ pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
 
 pub fn add_path(path: &str) {
     let mut cpm = CPM.lock().unwrap();
-    cpm.add_class_path(path);
+    let _ = cpm.add_class_path(path);
 }
 
 pub fn add_paths(path: &str) {
@@ -58,7 +58,7 @@ impl ClassPathManager {
                 .push(ClassPathEntry(ClassSource::DIR, path.to_string()));
         } else {
             let f = File::open(p)?;
-            let mut z = ZipArchive::new(f)?;
+            let z = ZipArchive::new(f)?;
             let handle = Arc::new(Mutex::new(Box::new(z)));
             self.runtime_class_path
                 .push(ClassPathEntry(ClassSource::JAR(handle), path.to_string()));
@@ -105,7 +105,7 @@ impl ClassPathManager {
                     p.push_str(".class");
 
                     let mut handle = handle.lock().unwrap();
-                    let mut zf = handle.by_name(&p);
+                    let zf = handle.by_name(&p);
 
                     match zf {
                         Ok(mut zf) => {
