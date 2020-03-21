@@ -1,8 +1,4 @@
-interface Printable {  
-    void print();  
-}
-
-class HelloWorld
+public final class HelloWorld
 {
     public static void main(String[] args)
     {

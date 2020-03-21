@@ -13,7 +13,7 @@ mod strategy;
 mod trans;
 mod util;
 
-use clap::{App, Arg, ArgMatches};
+use clap::{App, Arg};
 use class_parser::parse_class;
 use cmd::Cmd;
 
@@ -125,14 +125,15 @@ fn main() {
 
     let classes = matches.values_of("classes").unwrap();
     for it in classes {
-        let _ = misc::find_class(it).and_then(|r| {
-            let _ = parse_class(&r.1).and_then(|(_, cf)| {
-                commander.run(cf);
-                Ok(())
-            });
-
-            Ok(())
-        });
+        match misc::find_class(it) {
+            Ok(r) => {
+                let _ = parse_class(&r.1).and_then(|(_, cf)| {
+                    commander.run(cf);
+                    Ok(())
+                });
+            }
+            Err(e) => error!("e = {:?}", e),
+        }
     }
 }
 

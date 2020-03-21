@@ -91,7 +91,7 @@ impl ClassPathManager {
                     match File::open(&p) {
                         Ok(mut f) => {
                             let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
-                            f.read_to_end(&mut v);
+                            let _ = f.read_to_end(&mut v);
 
                             return Ok(ClassPathResult(p, v));
                         }

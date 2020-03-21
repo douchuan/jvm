@@ -2,7 +2,6 @@ use crate::cmd::{self, Cmd};
 use crate::misc;
 use crate::util;
 use clap::ArgMatches;
-use classfile::ClassFile;
 
 pub fn choose(matches: &ArgMatches) -> impl Cmd {
     cmd::factory::line_number()

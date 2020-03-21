@@ -7,8 +7,6 @@ pub trait Cmd {
 }
 
 pub mod factory {
-    use super::ClassFile;
-
     use super::Cmd;
 
     use crate::cmd::line_number::LineNumber;
