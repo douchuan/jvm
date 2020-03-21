@@ -1,3 +1,4 @@
+use super::ClassAccessFlagsTranslator;
 use classfile::constant_pool;
 use classfile::AttributeType;
 use classfile::ClassFile;
@@ -10,9 +11,7 @@ pub struct Translator<'a> {
 
 impl<'a> Translator<'a> {
     pub fn new(cf: &'a ClassFile) -> Self {
-        Self {
-            cf
-        }
+        Self { cf }
     }
 }
 
@@ -50,7 +49,25 @@ impl<'a> Translator<'a> {
         )
     }
 
-    pub fn access_flags(&self) {
+    pub fn access_flags(&self) -> String {
+        let x = ClassAccessFlagsTranslator::new(self.cf);
+        x.get()
+    }
 
+    pub fn signature(&self) -> String {
+        for it in &self.cf.attrs {
+            match it {
+                AttributeType::Signature { signature_index } => {
+                    return constant_pool::get_utf8(&self.cf.cp, *signature_index as usize)
+                        .map_or_else(
+                            || S_UNKNOWN.into(),
+                            |v| String::from_utf8_lossy(v.as_slice()).into(),
+                        );
+                }
+                _ => (),
+            }
+        }
+
+        String::from(S_UNKNOWN)
     }
 }

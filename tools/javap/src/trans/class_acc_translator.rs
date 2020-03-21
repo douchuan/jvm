@@ -1,5 +1,5 @@
-use classfile::ClassFile;
 use classfile::flags as class_flags;
+use classfile::ClassFile;
 
 type AccFlag = u16;
 
@@ -9,13 +9,11 @@ pub struct Translator<'a> {
 
 impl<'a> Translator<'a> {
     pub fn new(cf: &'a ClassFile) -> Self {
-        Self {
-            cf
-        }
+        Self { cf }
     }
 }
 
-trait AccFlagHelper {
+pub trait AccFlagHelper {
     fn is_public(&self) -> bool;
     fn is_final(&self) -> bool;
     fn is_super(&self) -> bool;
@@ -26,7 +24,6 @@ trait AccFlagHelper {
 }
 
 impl<'a> Translator<'a> {
-
     pub fn get(&self) -> String {
         let flags = self.cf.acc_flags;
 
@@ -86,4 +83,3 @@ impl AccFlagHelper for AccFlag {
         (*self & class_flags::ACC_ENUM) != 0
     }
 }
-
