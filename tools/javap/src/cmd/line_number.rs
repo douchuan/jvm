@@ -7,6 +7,9 @@ pub struct LineNumber;
 
 const TP_INTERFACE: &str = "Compiled from \"{{source_file}}\"\n\
 {{access_flags}} {{this_class}} {\n\
+{{#each methods}}
+    {{this}}
+{{/each}}
 }";
 
 impl Cmd for LineNumber {
@@ -16,12 +19,15 @@ impl Cmd for LineNumber {
         let source_file = trans::class_source_file(&cf);
         let this_class = trans::class_this_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
+        let methods = trans::class_methods(&cf);
 
+        // let methods: Vec<String> = vec![];
         if cf.acc_flags.is_interface() {
             let data = json!({
                 "source_file": source_file,
                 "access_flags": access_flags,
                 "this_class": this_class,
+                "methods": methods
             });
             println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
         } else {

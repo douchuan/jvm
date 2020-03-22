@@ -1,11 +1,11 @@
 use classfile::{BytesRef, SignatureType};
 
 pub trait Translator {
-    fn into(&self) -> String;
+    fn into_string(&self) -> String;
 }
 
 impl Translator for SignatureType {
-    fn into(&self) -> String {
+    fn into_string(&self) -> String {
         match self {
             SignatureType::Int => "int".into(),
             SignatureType::Byte => "byte".into(),

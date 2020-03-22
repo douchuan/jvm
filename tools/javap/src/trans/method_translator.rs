@@ -1,4 +1,5 @@
 use crate::trans::AccessFlagHelper;
+use crate::trans::SignatureTypeTranslator;
 use classfile::{constant_pool, ClassFile, MethodInfo, MethodSignature};
 
 pub struct Translator<'a> {
@@ -13,16 +14,30 @@ impl<'a> Translator<'a> {
 }
 
 impl<'a> Translator<'a> {
-    pub fn get(&self) {
-        let mut name = String::new();
-        self.build_access_flags(&mut name);
-        self.build_signature(&mut name);
+    pub fn get(&self) -> String {
+        vec![self.access_flags(), self.return_type(), {
+            //name
+            let mut r = self.name();
+
+            //args
+            r.push_str("(");
+            let args = self.args();
+            r.push_str(args.join(", ").as_str());
+            r.push_str(")");
+
+            r.push_str(";");
+
+            r
+        }]
+        .join(" ")
     }
 }
 
 impl<'a> Translator<'a> {
-    fn build_access_flags(&self, name: &mut String) {
+    fn access_flags(&self) -> String {
         let flags = self.method.acc_flags;
+
+        let mut name = String::new();
 
         if flags.is_public() {
             name.push_str("public");
@@ -37,13 +52,26 @@ impl<'a> Translator<'a> {
         } else if flags.is_abstract() {
             name.push_str(" abstract");
         }
+
+        name
     }
 
-    fn build_signature(&self, name: &mut String) {
+    fn return_type(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
         let signature = MethodSignature::new(desc.as_slice());
 
-        let method_name =
-            constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
+        signature.retype.into_string()
+    }
+
+    fn name(&self) -> String {
+        let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
+
+        String::from_utf8_lossy(name.as_slice()).to_string()
+    }
+
+    fn args(&self) -> Vec<String> {
+        let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
+        let signature = MethodSignature::new(desc.as_slice());
+        signature.args.iter().map(|it| it.into_string()).collect()
     }
 }

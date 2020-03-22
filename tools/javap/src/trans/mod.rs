@@ -7,8 +7,10 @@ mod method_translator;
 mod signature_type;
 
 pub use self::access_flag::{AccessFlag, AccessFlagHelper};
-use self::class_acc_translator::Translator as ClassAccessFlagsTranslator;
-use self::class_file_translator::Translator as ClassFileTranslator;
+pub use self::class_acc_translator::Translator as ClassAccessFlagsTranslator;
+pub use self::class_file_translator::Translator as ClassFileTranslator;
+pub use self::method_translator::Translator as MethodTranslator;
+pub use self::signature_type::Translator as SignatureTypeTranslator;
 
 pub fn class_source_file(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
@@ -33,4 +35,9 @@ pub fn class_access_flags(cf: &ClassFile) -> String {
 pub fn class_signature(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
     x.signature()
+}
+
+pub fn class_methods(cf: &ClassFile) -> Vec<String> {
+    let x = ClassFileTranslator::new(cf);
+    x.methods()
 }

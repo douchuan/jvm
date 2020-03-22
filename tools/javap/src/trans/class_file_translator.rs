@@ -1,4 +1,5 @@
 use super::ClassAccessFlagsTranslator;
+use super::MethodTranslator;
 use classfile::constant_pool;
 use classfile::AttributeType;
 use classfile::ClassFile;
@@ -69,5 +70,15 @@ impl<'a> Translator<'a> {
         }
 
         String::from(S_UNKNOWN)
+    }
+
+    pub fn methods(&self) -> Vec<String> {
+        let mut methods = Vec::with_capacity(self.cf.methods.len());
+        for it in self.cf.methods.iter() {
+            let t = MethodTranslator::new(self.cf, it);
+            methods.push(t.get());
+        }
+
+        methods
     }
 }
