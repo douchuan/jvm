@@ -9,8 +9,16 @@ pub trait AccessFlagHelper {
     fn is_interface(&self) -> bool;
     fn is_abstract(&self) -> bool;
     fn is_synthetic(&self) -> bool;
+    fn is_annotation(&self) -> bool;
     fn is_enum(&self) -> bool;
+    fn is_private(&self) -> bool;
+    fn is_protected(&self) -> bool;
+    fn is_static(&self) -> bool;
+    fn is_synchronized(&self) -> bool;
+    fn is_bridge(&self) -> bool;
+    fn is_varargs(&self) -> bool;
     fn is_native(&self) -> bool;
+    fn is_strict(&self) -> bool;
 }
 
 impl AccessFlagHelper for AccessFlag {
@@ -38,11 +46,43 @@ impl AccessFlagHelper for AccessFlag {
         (*self & class_flags::ACC_SYNTHETIC) != 0
     }
 
+    fn is_annotation(&self) -> bool {
+        (*self & class_flags::ACC_ANNOTATION) != 0
+    }
+
     fn is_enum(&self) -> bool {
         (*self & class_flags::ACC_ENUM) != 0
     }
 
+    fn is_private(&self) -> bool {
+        (*self & class_flags::ACC_PRIVATE) != 0
+    }
+
+    fn is_protected(&self) -> bool {
+        (*self & class_flags::ACC_PROTECTED) != 0
+    }
+
+    fn is_static(&self) -> bool {
+        (*self & class_flags::ACC_STATIC) != 0
+    }
+
+    fn is_synchronized(&self) -> bool {
+        (*self & class_flags::ACC_SYNCHRONIZED) != 0
+    }
+
+    fn is_bridge(&self) -> bool {
+        (*self & class_flags::ACC_BRIDGE) != 0
+    }
+
+    fn is_varargs(&self) -> bool {
+        (*self & class_flags::ACC_VARARGS) != 0
+    }
+
     fn is_native(&self) -> bool {
         (*self & class_flags::ACC_NATIVE) != 0
+    }
+
+    fn is_strict(&self) -> bool {
+        (*self & class_flags::ACC_STRICT) != 0
     }
 }

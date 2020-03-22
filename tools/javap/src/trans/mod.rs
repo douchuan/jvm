@@ -3,6 +3,8 @@ use classfile::ClassFile;
 mod access_flag;
 mod class_acc_translator;
 mod class_file_translator;
+mod method_translator;
+mod signature_type;
 
 pub use self::access_flag::{AccessFlag, AccessFlagHelper};
 use self::class_acc_translator::Translator as ClassAccessFlagsTranslator;

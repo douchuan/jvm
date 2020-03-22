@@ -1,6 +1,5 @@
-use classfile::flags as class_flags;
-use classfile::ClassFile;
 use crate::trans::AccessFlagHelper;
+use classfile::ClassFile;
 
 pub struct Translator<'a> {
     cf: &'a ClassFile,
@@ -29,7 +28,7 @@ impl<'a> Translator<'a> {
         if flags.is_interface() {
             name.push_str(" interface");
         } else if flags.is_enum() {
-            // name.push_str(" enum");
+            //todo: impl me
             unimplemented!()
         } else {
             if flags.is_abstract() {
@@ -42,5 +41,3 @@ impl<'a> Translator<'a> {
         name
     }
 }
-
-
