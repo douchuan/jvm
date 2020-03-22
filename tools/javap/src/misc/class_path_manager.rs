@@ -131,4 +131,3 @@ impl ClassPathManager {
         self.runtime_class_path.len()
     }
 }
-

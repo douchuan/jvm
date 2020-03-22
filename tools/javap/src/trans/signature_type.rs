@@ -71,12 +71,10 @@ mod tests {
             ("[J", "long[]"),
             ("[S", "short[]"),
             ("[Z", "boolean[]"),
-
         ];
 
         for it in tests.iter() {
             assert_eq!(to_java_style(it.0.as_bytes()), it.1);
         }
     }
-
 }
