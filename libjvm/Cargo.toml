@@ -14,3 +14,9 @@ lazy_static = "1.4.0"
 [lib]
 name = "jvm"
 crate-type = ["cdylib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

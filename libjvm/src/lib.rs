@@ -80,7 +80,7 @@ extern "C" fn JNI_CreateJavaVM(
 			}),
 		};
 		unsafe {
-			**pvm = holder.inner();
+			*pvm = Box::into_raw(Box::new(holder.inner()));
 			holder.jvm.GetEnv.unwrap()(&mut holder.inner(), penv, 0);
 		}
 		lock.replace(holder);
@@ -98,7 +98,7 @@ extern "C" fn JNI_GetCreatedJavaVMs(
 		let lock = JVM.lock().expect("jvm lock");
 		if let Some(ref holder) = lock.as_ref() {
 			unsafe {
-				**vm_buf = holder.jvm.as_ref();
+				*vm_buf = Box::into_raw(Box::new(holder.jvm.as_ref()));
 				*n_vms = 1;
 			}
 		} else {
