@@ -353,7 +353,11 @@ extern "C" fn JNI_CreateJavaVM(
 		vm::native::init();
 		vm::oop::init();
 		vm::runtime::init();
+		// To be run from jre dir
+		vm::runtime::add_class_path("./lib/rt.jar");
+		vm::runtime::add_class_path("./lib/jsse.jar");
 		let args = unsafe { &*args };
+		// TODO: Pass to jvm
 		let mut properties: std::collections::HashMap<String, String> =
 			std::collections::HashMap::new();
 		for option in args.options() {

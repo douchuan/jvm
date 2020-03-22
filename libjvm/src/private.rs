@@ -7,6 +7,7 @@ pub unsafe extern "system" fn JVM_FindClassFromBootLoader(
 	name: *const i8,
 ) -> jclass {
 	let class_name = std::ffi::CStr::from_ptr(name);
-	println!("JVM_FindClassFromBootLoader({:?})", class_name);
-	todo!();
+	let bytes = class_name.to_bytes();
+	let class = vm::runtime::require_class3(None, bytes);
+	crate::util::class_ref_to_jclass(class)
 }
