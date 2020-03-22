@@ -1,4 +1,4 @@
-use crate::trans::AccessFlagHelper;
+use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
 use classfile::{constant_pool, ClassFile, MethodInfo, MethodSignature};
 
@@ -36,24 +36,8 @@ impl<'a> Translator<'a> {
 impl<'a> Translator<'a> {
     fn access_flags(&self) -> String {
         let flags = self.method.acc_flags;
-
-        let mut name = String::new();
-
-        if flags.is_public() {
-            name.push_str("public");
-        } else if flags.is_protected() {
-            name.push_str("protected");
-        } else if flags.is_private() {
-            name.push_str("private");
-        }
-
-        if flags.is_final() {
-            name.push_str(" final");
-        } else if flags.is_abstract() {
-            name.push_str(" abstract");
-        }
-
-        name
+        let t = AccessFlagsTranslator::new(flags);
+        t.method_access_flags()
     }
 
     fn return_type(&self) -> String {

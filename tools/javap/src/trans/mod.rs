@@ -1,13 +1,12 @@
 use classfile::ClassFile;
 
 mod access_flag;
-mod class_access_flags;
 mod class_file;
 mod method;
 mod signature_type;
 
-pub use self::access_flag::{AccessFlag, AccessFlagHelper};
-pub use self::class_access_flags::Translator as ClassAccessFlagsTranslator;
+pub use self::access_flag::AccessFlagHelper;
+pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
 pub use self::method::Translator as MethodTranslator;
 pub use self::signature_type::Translator as SignatureTypeTranslator;

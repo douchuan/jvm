@@ -1,5 +1,5 @@
-use super::ClassAccessFlagsTranslator;
 use super::MethodTranslator;
+use crate::trans::AccessFlagsTranslator;
 use classfile::constant_pool;
 use classfile::AttributeType;
 use classfile::ClassFile;
@@ -51,8 +51,9 @@ impl<'a> Translator<'a> {
     }
 
     pub fn access_flags(&self) -> String {
-        let x = ClassAccessFlagsTranslator::new(self.cf);
-        x.get()
+        let flags = self.cf.acc_flags;
+        let t = AccessFlagsTranslator::new(flags);
+        t.class_access_flags()
     }
 
     pub fn signature(&self) -> String {

@@ -1,6 +1,69 @@
 use classfile::flags as class_flags;
 
-pub type AccessFlag = u16;
+pub struct Translator {
+    flags: AccessFlag,
+}
+
+impl Translator {
+    pub fn new(flags: AccessFlag) -> Self {
+        Self { flags }
+    }
+}
+
+impl Translator {
+    pub fn class_access_flags(&self) -> String {
+        let flags = self.flags;
+
+        let mut name = String::new();
+
+        if flags.is_public() {
+            name.push_str("public");
+        }
+
+        if flags.is_final() {
+            name.push_str(" final");
+        }
+
+        if flags.is_interface() {
+            name.push_str(" interface");
+        } else if flags.is_enum() {
+            //todo: impl me
+            unimplemented!()
+        } else {
+            if flags.is_abstract() {
+                name.push_str(" abstract class");
+            } else {
+                name.push_str(" class")
+            }
+        }
+
+        name
+    }
+
+    pub fn method_access_flags(&self) -> String {
+        let flags = self.flags;
+
+        let mut name = String::new();
+
+        if flags.is_public() {
+            name.push_str("public");
+        } else if flags.is_protected() {
+            name.push_str("protected");
+        } else if flags.is_private() {
+            name.push_str("private");
+        }
+
+        if flags.is_final() {
+            name.push_str(" final");
+        } else if flags.is_abstract() {
+            name.push_str(" abstract");
+        }
+
+        name
+    }
+}
+
+type AccessFlag = u16;
 
 pub trait AccessFlagHelper {
     fn is_public(&self) -> bool;
