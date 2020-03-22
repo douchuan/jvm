@@ -1,5 +1,5 @@
 use crate::cmd::Cmd;
-use crate::trans::{self, AccFlagHelper};
+use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
 use handlebars::Handlebars;
 
@@ -11,25 +11,19 @@ const TP_INTERFACE: &str = "Compiled from \"{{source_file}}\"\n\
 
 impl Cmd for LineNumber {
     fn run(&self, cf: ClassFile) {
-        let mut reg = Handlebars::new();
+        let reg = Handlebars::new();
 
         let source_file = trans::class_source_file(&cf);
         let this_class = trans::class_this_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
 
         if cf.acc_flags.is_interface() {
-            println!(
-                "{}",
-                reg.render_template(
-                    TP_INTERFACE,
-                    &json!({
-                    "source_file": source_file,
-                    "access_flags": access_flags,
-                    "this_class": this_class,
-                    })
-                )
-                .unwrap()
-            );
+            let data = json!({
+                "source_file": source_file,
+                "access_flags": access_flags,
+                "this_class": this_class,
+            });
+            println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
         } else {
         }
 

@@ -1,9 +1,10 @@
 use classfile::ClassFile;
 
+mod access_flag;
 mod class_acc_translator;
 mod class_file_translator;
 
-pub use self::class_acc_translator::AccFlagHelper;
+pub use self::access_flag::{AccessFlag, AccessFlagHelper};
 use self::class_acc_translator::Translator as ClassAccessFlagsTranslator;
 use self::class_file_translator::Translator as ClassFileTranslator;
 
