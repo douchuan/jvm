@@ -1,6 +1,7 @@
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
 use classfile::{constant_pool, ClassFile, MethodInfo, MethodSignature};
+use handlebars::Handlebars;
 
 pub struct Translator<'a> {
     cf: &'a ClassFile,
@@ -15,21 +16,16 @@ impl<'a> Translator<'a> {
 
 impl<'a> Translator<'a> {
     pub fn get(&self) -> String {
-        vec![self.access_flags(), self.return_type(), {
-            //name
-            let mut r = self.name();
+        let tp_method = "{{flags}} {{return}} {{name}}({{args}});";
 
-            //args
-            r.push_str("(");
-            let args = self.args();
-            r.push_str(args.join(", ").as_str());
-            r.push_str(")");
-
-            r.push_str(";");
-
-            r
-        }]
-        .join(" ")
+        let reg = Handlebars::new();
+        let data = json!({
+            "flags": self.access_flags(),
+            "return": self.return_type(),
+            "name": self.name(),
+            "args": self.args().join(", ")
+        });
+        reg.render_template(tp_method, &data).unwrap()
     }
 }
 
