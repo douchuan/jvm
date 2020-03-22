@@ -21,6 +21,7 @@ pub fn class_this_class(cf: &ClassFile) -> String {
     x.this_class()
 }
 
+#[allow(unused)]
 pub fn class_super_class(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
     x.super_class()
@@ -31,6 +32,7 @@ pub fn class_access_flags(cf: &ClassFile) -> String {
     x.access_flags()
 }
 
+#[allow(unused)]
 pub fn class_signature(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
     x.signature()

@@ -3,7 +3,7 @@ use crate::misc;
 use crate::util;
 use clap::ArgMatches;
 
-pub fn choose(matches: &ArgMatches) -> impl Cmd {
+pub fn choose(_matches: &ArgMatches) -> impl Cmd {
     cmd::factory::line_number()
 }
 

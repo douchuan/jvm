@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::util;
 use std::fs::File;
 use std::io::{self, Read};

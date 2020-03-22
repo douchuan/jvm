@@ -1,4 +1,4 @@
-use classfile::{BytesRef, SignatureType};
+use classfile::SignatureType;
 
 pub trait Translator {
     fn into_string(&self) -> String;
@@ -47,7 +47,7 @@ fn to_java_style(desc: &[u8]) -> String {
         }
     };
 
-    for i in 0..ary_size {
+    for _ in 0..ary_size {
         name.push_str("[]");
     }
 
