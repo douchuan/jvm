@@ -25,19 +25,43 @@ impl LineNumber {
     {{this}}
 {{/each}}
 }";
+        const TP_INTERFACE_WITH_SUPER: &str = "Compiled from \"{{source_file}}\"\n\
+{{access_flags}} {{this_class}} extends {{parent_interfaces}} {\n\
+{{#each methods}}
+    {{this}}
+{{/each}}
+}";
 
         let source_file = trans::class_source_file(&cf);
         let this_class = trans::class_this_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
         let methods = trans::class_methods(&cf);
 
-        let data = json!({
-            "source_file": source_file,
-            "access_flags": access_flags,
-            "this_class": this_class,
-            "methods": methods
-        });
+        trace!("interaces len = {}", cf.interfaces.len());
+        if cf.interfaces.len() != 0 {
+            let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
 
-        println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
+            let data = json!({
+                "source_file": source_file,
+                "access_flags": access_flags,
+                "this_class": this_class,
+                "parent_interfaces": parent_interfaces,
+                "methods": methods
+            });
+
+            println!(
+                "{}",
+                reg.render_template(TP_INTERFACE_WITH_SUPER, &data).unwrap()
+            );
+        } else {
+            let data = json!({
+                "source_file": source_file,
+                "access_flags": access_flags,
+                "this_class": this_class,
+                "methods": methods
+            });
+
+            println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
+        }
     }
 }

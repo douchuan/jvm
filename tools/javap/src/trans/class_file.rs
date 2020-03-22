@@ -50,6 +50,21 @@ impl<'a> Translator<'a> {
         )
     }
 
+    pub fn parent_interfaces(&self) -> Vec<String> {
+        assert_ne!(self.cf.interfaces.len(), 0);
+        let mut interfaces = Vec::with_capacity(self.cf.interfaces.len());
+
+        for it in self.cf.interfaces.iter() {
+            let name = constant_pool::get_class_name(&self.cf.cp, *it as usize).map_or_else(
+                || S_UNKNOWN.into(),
+                |v| String::from_utf8_lossy(v.as_slice()).into(),
+            );
+            interfaces.push(name);
+        }
+
+        interfaces
+    }
+
     pub fn access_flags(&self) -> String {
         let flags = self.cf.acc_flags;
         let t = AccessFlagsTranslator::new(flags);

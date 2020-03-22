@@ -42,3 +42,8 @@ pub fn class_methods(cf: &ClassFile) -> Vec<String> {
     let x = ClassFileTranslator::new(cf);
     x.methods()
 }
+
+pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {
+    let x = ClassFileTranslator::new(cf);
+    x.parent_interfaces()
+}

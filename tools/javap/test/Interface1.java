@@ -1,4 +1,5 @@
 import java.io.InputStream;
+
 public interface Interface1 {
         void print(byte[] b1, Object o1);
         InputStream get_is();

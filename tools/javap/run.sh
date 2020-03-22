@@ -6,4 +6,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp test AbstractGraphicObject
 #cargo run -- --cp test HelloWorld
 #cargo run -- --cp test EnumMobile
-cargo run -- --cp test Interface1
+
+#interface
+#cargo run -- --cp test Interface1
+cargo run -- --cp test Hockey
