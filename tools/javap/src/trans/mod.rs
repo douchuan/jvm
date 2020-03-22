@@ -1,15 +1,15 @@
 use classfile::ClassFile;
 
 mod access_flag;
-mod class_acc_translator;
-mod class_file_translator;
-mod method_translator;
+mod class_access_flags;
+mod class_file;
+mod method;
 mod signature_type;
 
 pub use self::access_flag::{AccessFlag, AccessFlagHelper};
-pub use self::class_acc_translator::Translator as ClassAccessFlagsTranslator;
-pub use self::class_file_translator::Translator as ClassFileTranslator;
-pub use self::method_translator::Translator as MethodTranslator;
+pub use self::class_access_flags::Translator as ClassAccessFlagsTranslator;
+pub use self::class_file::Translator as ClassFileTranslator;
+pub use self::method::Translator as MethodTranslator;
 pub use self::signature_type::Translator as SignatureTypeTranslator;
 
 pub fn class_source_file(cf: &ClassFile) -> String {
