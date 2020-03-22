@@ -408,6 +408,7 @@ dependencies = [
  "jni-sys",
  "lazy_static",
  "libc",
+ "vm",
 ]
 
 [[package]]
