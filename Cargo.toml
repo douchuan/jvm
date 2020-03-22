@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "jvm",
+  "libjvm",
   "crates/classfile",
   "crates/class-parser",
   "crates/vm",
