@@ -21,12 +21,18 @@ impl LineNumber {
         let reg = Handlebars::new();
         const TP_INTERFACE: &str = "Compiled from \"{{source_file}}\"\n\
 {{access_flags}} {{this_class}} {\n\
+{{#each fields}}
+    {{this}}
+{{/each}}
 {{#each methods}}
     {{this}}
 {{/each}}
 }";
         const TP_INTERFACE_WITH_SUPER: &str = "Compiled from \"{{source_file}}\"\n\
 {{access_flags}} {{this_class}} extends {{parent_interfaces}} {\n\
+{{#each fields}}
+    {{this}}
+{{/each}}
 {{#each methods}}
     {{this}}
 {{/each}}
@@ -35,9 +41,9 @@ impl LineNumber {
         let source_file = trans::class_source_file(&cf);
         let this_class = trans::class_this_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
+        let fields = trans::class_fields(&cf);
         let methods = trans::class_methods(&cf);
 
-        trace!("interaces len = {}", cf.interfaces.len());
         if cf.interfaces.len() != 0 {
             let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
 
@@ -46,7 +52,8 @@ impl LineNumber {
                 "access_flags": access_flags,
                 "this_class": this_class,
                 "parent_interfaces": parent_interfaces,
-                "methods": methods
+                "fields": fields,
+                "methods": methods,
             });
 
             println!(
@@ -58,6 +65,7 @@ impl LineNumber {
                 "source_file": source_file,
                 "access_flags": access_flags,
                 "this_class": this_class,
+                "fields": fields,
                 "methods": methods
             });
 

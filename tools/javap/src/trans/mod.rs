@@ -2,12 +2,14 @@ use classfile::ClassFile;
 
 mod access_flag;
 mod class_file;
+mod field;
 mod method;
 mod signature_type;
 
 pub use self::access_flag::AccessFlagHelper;
 pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
+pub use self::field::Translator as FieldTranslator;
 pub use self::method::Translator as MethodTranslator;
 pub use self::signature_type::Translator as SignatureTypeTranslator;
 
@@ -36,6 +38,11 @@ pub fn class_access_flags(cf: &ClassFile) -> String {
 pub fn class_signature(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
     x.signature()
+}
+
+pub fn class_fields(cf: &ClassFile) -> Vec<String> {
+    let x = ClassFileTranslator::new(cf);
+    x.fields()
 }
 
 pub fn class_methods(cf: &ClassFile) -> Vec<String> {

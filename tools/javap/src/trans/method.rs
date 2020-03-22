@@ -39,13 +39,11 @@ impl<'a> Translator<'a> {
     fn return_type(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
         let signature = MethodSignature::new(desc.as_slice());
-
         signature.retype.into_string()
     }
 
     fn name(&self) -> String {
         let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
-
         String::from_utf8_lossy(name.as_slice()).to_string()
     }
 

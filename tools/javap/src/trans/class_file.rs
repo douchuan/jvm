@@ -1,3 +1,4 @@
+use super::FieldTranslator;
 use super::MethodTranslator;
 use crate::trans::AccessFlagsTranslator;
 use classfile::constant_pool;
@@ -96,5 +97,15 @@ impl<'a> Translator<'a> {
         }
 
         methods
+    }
+
+    pub fn fields(&self) -> Vec<String> {
+        let mut fields = Vec::with_capacity(self.cf.fields.len());
+        for it in self.cf.fields.iter() {
+            let t = FieldTranslator::new(self.cf, it);
+            fields.push(t.get());
+        }
+
+        fields
     }
 }

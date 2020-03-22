@@ -53,10 +53,42 @@ impl Translator {
             name.push_str("private");
         }
 
+        if flags.is_static() {
+            name.push_str(" static");
+        }
+
+        if flags.is_native() {
+            name.push_str(" native");
+        }
+
         if flags.is_final() {
             name.push_str(" final");
         } else if flags.is_abstract() {
             name.push_str(" abstract");
+        }
+
+        name
+    }
+
+    pub fn field_access_flags(&self) -> String {
+        let flags = self.flags;
+
+        let mut name = String::new();
+
+        if flags.is_public() {
+            name.push_str("public");
+        } else if flags.is_protected() {
+            name.push_str("protected");
+        } else if flags.is_private() {
+            name.push_str("private");
+        }
+
+        if flags.is_static() {
+            name.push_str(" static");
+        }
+
+        if flags.is_final() {
+            name.push_str(" final");
         }
 
         name
