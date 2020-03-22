@@ -27,8 +27,7 @@ impl Translator {
         if flags.is_interface() {
             name.push_str(" interface");
         } else if flags.is_enum() {
-            //todo: impl me
-            unimplemented!()
+            name.push_str(" class");
         } else {
             if flags.is_abstract() {
                 name.push_str(" abstract class");

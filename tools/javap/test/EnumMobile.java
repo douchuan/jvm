@@ -1,7 +1,7 @@
 import java.lang.*;
 
 // enum showing Mobile prices
-enum EnumMobile {
+public enum EnumMobile {
    Samsung(400), Nokia(250);
   
    int price;

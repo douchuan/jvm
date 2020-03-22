@@ -1,5 +1,6 @@
 use super::FieldTranslator;
 use super::MethodTranslator;
+use crate::trans::AccessFlagHelper;
 use crate::trans::AccessFlagsTranslator;
 use classfile::constant_pool;
 use classfile::AttributeType;
@@ -47,7 +48,7 @@ impl<'a> Translator<'a> {
 
         constant_pool::get_class_name(&self.cf.cp, self.cf.super_class as usize).map_or_else(
             || S_UNKNOWN.into(),
-            |v| String::from_utf8_lossy(v.as_slice()).into(),
+            |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
         )
     }
 
@@ -92,6 +93,11 @@ impl<'a> Translator<'a> {
     pub fn methods(&self) -> Vec<String> {
         let mut methods = Vec::with_capacity(self.cf.methods.len());
         for it in self.cf.methods.iter() {
+            if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() || it.acc_flags.is_private()
+            {
+                continue;
+            }
+
             let t = MethodTranslator::new(self.cf, it);
             methods.push(t.get());
         }
@@ -102,8 +108,10 @@ impl<'a> Translator<'a> {
     pub fn fields(&self) -> Vec<String> {
         let mut fields = Vec::with_capacity(self.cf.fields.len());
         for it in self.cf.fields.iter() {
-            let t = FieldTranslator::new(self.cf, it);
-            fields.push(t.get());
+            if !it.acc_flags.is_synthetic() {
+                let t = FieldTranslator::new(self.cf, it);
+                fields.push(t.get());
+            }
         }
 
         fields

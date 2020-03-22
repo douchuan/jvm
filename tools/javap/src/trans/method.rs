@@ -16,16 +16,31 @@ impl<'a> Translator<'a> {
 
 impl<'a> Translator<'a> {
     pub fn get(&self) -> String {
-        let tp_method = "{{flags}} {{return}} {{name}}({{args}});";
+        let name = self.name();
 
-        let reg = Handlebars::new();
-        let data = json!({
-            "flags": self.access_flags(),
-            "return": self.return_type(),
-            "name": self.name(),
-            "args": self.args().join(", ")
-        });
-        reg.render_template(tp_method, &data).unwrap()
+        if name.as_bytes() == b"<init>" {
+            let access_flags = self.access_flags();
+            let name =
+                constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize).unwrap();
+            format!(
+                "{} {}();",
+                access_flags,
+                String::from_utf8_lossy(name.as_slice())
+            )
+        } else if name.as_bytes() == b"<clinit>" {
+            "static {};".to_string()
+        } else {
+            let tp_method = "{{flags}} {{return}} {{name}}({{args}});";
+            let reg = Handlebars::new();
+
+            let data = json!({
+                "flags": self.access_flags(),
+                "return": self.return_type(),
+                "name": name,
+                "args": self.args().join(", ")
+            });
+            reg.render_template(tp_method, &data).unwrap()
+        }
     }
 }
 
@@ -44,7 +59,14 @@ impl<'a> Translator<'a> {
 
     fn name(&self) -> String {
         let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
-        String::from_utf8_lossy(name.as_slice()).to_string()
+
+        if name.as_slice() == b"<init>" {
+            "<init>".to_string()
+        } else if name.as_slice() == b"<clinit>" {
+            "<clinit>".to_string()
+        } else {
+            String::from_utf8_lossy(name.as_slice()).to_string()
+        }
     }
 
     fn args(&self) -> Vec<String> {
