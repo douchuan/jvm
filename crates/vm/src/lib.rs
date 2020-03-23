@@ -11,7 +11,7 @@ pub mod native;
 pub mod oop;
 pub mod runtime;
 
-mod types;
+pub mod types;
 
 #[cfg(test)]
 mod tests {
