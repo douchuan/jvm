@@ -44,7 +44,14 @@ where possible options include:
 
 */
 
-//todo: can clap support '-private' style option?
+/*
+todo:
+    1. can clap support '-private' style option?
+
+    2. line_number::render_enum, Handlebars's render format looks ugly
+      custom control counts of spaces
+      try the other template engine
+*/
 fn main() {
     init();
 
