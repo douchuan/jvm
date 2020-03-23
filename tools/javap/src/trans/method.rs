@@ -1,7 +1,12 @@
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
-use classfile::{constant_pool, ClassFile, MethodInfo, MethodSignature};
+use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
 use handlebars::Handlebars;
+
+pub struct MethodTranslation {
+    pub desc: String,
+    pub line_num_table: Vec<LineNumber>,
+}
 
 pub struct Translator<'a> {
     cf: &'a ClassFile,
@@ -15,7 +20,23 @@ impl<'a> Translator<'a> {
 }
 
 impl<'a> Translator<'a> {
-    pub fn get(&self) -> String {
+    pub fn get(&self, with_line_num: bool) -> MethodTranslation {
+        let desc = self.build_desc();
+        let line_num_table = if with_line_num {
+            self.method.get_line_number_table()
+        } else {
+            vec![]
+        };
+
+        MethodTranslation {
+            desc,
+            line_num_table,
+        }
+    }
+}
+
+impl<'a> Translator<'a> {
+    fn build_desc(&self) -> String {
         let name = self.name();
 
         if name.as_bytes() == b"<init>" {

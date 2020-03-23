@@ -10,6 +10,7 @@ pub use self::access_flag::AccessFlagHelper;
 pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
 pub use self::field::Translator as FieldTranslator;
+pub use self::method::MethodTranslation;
 pub use self::method::Translator as MethodTranslator;
 pub use self::signature_type::Translator as SignatureTypeTranslator;
 
@@ -45,9 +46,9 @@ pub fn class_fields(cf: &ClassFile) -> Vec<String> {
     x.fields()
 }
 
-pub fn class_methods(cf: &ClassFile) -> Vec<String> {
+pub fn class_methods(cf: &ClassFile, with_line_num: bool) -> Vec<MethodTranslation> {
     let x = ClassFileTranslator::new(cf);
-    x.methods()
+    x.methods(with_line_num)
 }
 
 pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {

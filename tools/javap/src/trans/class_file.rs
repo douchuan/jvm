@@ -1,5 +1,5 @@
 use super::FieldTranslator;
-use super::MethodTranslator;
+use super::{MethodTranslation, MethodTranslator};
 use crate::trans::AccessFlagHelper;
 use crate::trans::AccessFlagsTranslator;
 use classfile::constant_pool;
@@ -90,7 +90,7 @@ impl<'a> Translator<'a> {
         String::from(S_UNKNOWN)
     }
 
-    pub fn methods(&self) -> Vec<String> {
+    pub fn methods(&self, with_line_num: bool) -> Vec<MethodTranslation> {
         let mut methods = Vec::with_capacity(self.cf.methods.len());
         for it in self.cf.methods.iter() {
             if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() || it.acc_flags.is_private()
@@ -99,7 +99,7 @@ impl<'a> Translator<'a> {
             }
 
             let t = MethodTranslator::new(self.cf, it);
-            methods.push(t.get());
+            methods.push(t.get(with_line_num));
         }
 
         methods
