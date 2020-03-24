@@ -1,7 +1,7 @@
 use crate::cmd::Cmd;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
-use handlebars::{to_json, Handlebars};
+use handlebars::Handlebars;
 
 pub struct LineNumber;
 
@@ -82,6 +82,7 @@ impl LineNumber {
 
     fn render_enum(&self, cf: ClassFile) {
         let mut reg = Handlebars::new();
+        // reg.register_escape_fn(handlebars::no_escape);
         const TP_ENUM: &str = "Compiled from \"{{source_file}}\"
 {{access_flags}} {{this_class}} extends {{super_class}}<{{this_class}}> {
 {{#each fields}}
@@ -89,6 +90,7 @@ impl LineNumber {
 {{/each}}
 {{#each methods as |method| ~}}
     {{method.desc}}
+
     LineNumberTable:
     {{#each method.line_number_table}}
         line {{this.line_number}}: {{this.start_pc}}
@@ -124,16 +126,27 @@ impl LineNumber {
                 .collect()
         };
 
-        let mut data = serde_json::value::Map::new();
-        data.insert("source_file".to_string(), to_json(source_file));
-        data.insert("access_flags".to_string(), to_json(access_flags));
-        data.insert("this_class".to_string(), to_json(this_class));
-        data.insert("super_class".to_string(), to_json(super_class));
-        data.insert("fields".to_string(), to_json(fields));
-        data.insert("methods".to_string(), to_json(methods));
+        let data = ClassInfoSerde {
+            source_file,
+            access_flags,
+            this_class,
+            super_class,
+            fields,
+            methods,
+        };
 
         println!("{}", reg.render_template(TP_ENUM, &data).unwrap());
     }
+}
+
+#[derive(Serialize)]
+struct ClassInfoSerde {
+    source_file: String,
+    access_flags: String,
+    this_class: String,
+    super_class: String,
+    fields: Vec<String>,
+    methods: Vec<MethodInfoSerde>,
 }
 
 #[derive(Serialize)]
