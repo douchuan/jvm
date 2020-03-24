@@ -12,89 +12,82 @@ impl Translator {
 
 impl Translator {
     pub fn class_access_flags(&self) -> String {
+        let mut parts = vec![];
         let flags = self.flags;
 
-        let mut name = String::new();
-
         if flags.is_public() {
-            name.push_str("public");
+            parts.push("public");
         }
 
         if flags.is_final() {
-            name.push_str(" final");
-        }
-
-        if !name.is_empty() {
-            name.push_str(" ");
+            parts.push("final");
         }
 
         if flags.is_interface() {
-            name.push_str("interface");
+            parts.push("interface");
         } else if flags.is_enum() {
-            name.push_str("class");
+            parts.push("class");
         } else {
             if flags.is_abstract() {
-                name.push_str("abstract class");
+                parts.push("abstract class");
             } else {
-                name.push_str("class")
+                parts.push("class")
             }
         }
 
-        name
+        parts.join(" ")
     }
 
     pub fn method_access_flags(&self) -> String {
+        let mut parts = vec![];
         let flags = self.flags;
 
-        let mut name = String::new();
-
         if flags.is_public() {
-            name.push_str("public");
+            parts.push("public");
         } else if flags.is_protected() {
-            name.push_str("protected");
+            parts.push("protected");
         } else if flags.is_private() {
-            name.push_str("private");
+            parts.push("private");
         }
 
         if flags.is_static() {
-            name.push_str(" static");
+            parts.push("static");
         }
 
         if flags.is_native() {
-            name.push_str(" native");
+            parts.push("native");
         }
 
         if flags.is_final() {
-            name.push_str(" final");
+            parts.push("final");
         } else if flags.is_abstract() {
-            name.push_str(" abstract");
+            parts.push("abstract");
         }
 
-        name
+        parts.join(" ")
     }
 
     pub fn field_access_flags(&self) -> String {
+        let mut parts = vec![];
         let flags = self.flags;
 
-        let mut name = String::new();
-
         if flags.is_public() {
-            name.push_str("public");
+            parts.push("public");
         } else if flags.is_protected() {
-            name.push_str("protected");
+            parts.push("protected");
         } else if flags.is_private() {
-            name.push_str("private");
+            parts.push("private");
         }
 
         if flags.is_static() {
-            name.push_str(" static");
+            parts.push("static");
         }
 
         if flags.is_final() {
-            name.push_str(" final");
+            parts.push("final");
         }
 
-        name
+        parts.join(" ")
     }
 }
 
