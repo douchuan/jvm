@@ -81,24 +81,22 @@ impl LineNumber {
     }
 
     fn render_enum(&self, cf: ClassFile) {
-        let mut reg = Handlebars::new();
+        let reg = Handlebars::new();
         // reg.register_escape_fn(handlebars::no_escape);
         const TP_ENUM: &str = "Compiled from \"{{source_file}}\"
 {{access_flags}} {{this_class}} extends {{super_class}}<{{this_class}}> {
-{{#each fields}}
+    {{#each fields}}
     {{this}}
-{{/each}}
-{{#each methods as |method| ~}}
-    {{method.desc}}
-
-    LineNumberTable:
-    {{#each method.line_number_table}}
-        line {{this.line_number}}: {{this.start_pc}}
     {{/each}}
-{{/each}}
-}";
-        reg.register_partial("table", "line {{table.line_number}}: {{table.start_pc}}");
 
+    {{#each methods as |method| ~}}
+        {{method.desc}}
+      LineNumberTable:\
+        {{#each method.line_number_table}}
+          line {{this.line_number}}: {{this.start_pc}}\
+        {{/each}}\n
+    {{/each}}
+}";
         let source_file = trans::class_source_file(&cf);
         let this_class = trans::class_this_class(&cf);
         let super_class = trans::class_super_class(&cf);
