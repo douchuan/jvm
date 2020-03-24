@@ -52,15 +52,26 @@ impl<'a> Translator<'a> {
             "static {};".to_string()
         } else {
             let tp_method = "{{flags}} {{return}} {{name}}({{args}});";
+            let tp_method_no_flags = "{{return}} {{name}}({{args}});";
             let reg = Handlebars::new();
 
-            let data = json!({
-                "flags": self.access_flags(),
-                "return": self.return_type(),
-                "name": name,
-                "args": self.args().join(", ")
-            });
-            reg.render_template(tp_method, &data).unwrap()
+            let flags = self.access_flags();
+            if flags.is_empty() {
+                let data = json!({
+                    "return": self.return_type(),
+                    "name": name,
+                    "args": self.args().join(", ")
+                });
+                reg.render_template(tp_method_no_flags, &data).unwrap()
+            } else {
+                let data = json!({
+                    "flags": self.access_flags(),
+                    "return": self.return_type(),
+                    "name": name,
+                    "args": self.args().join(", ")
+                });
+                reg.render_template(tp_method, &data).unwrap()
+            }
         }
     }
 }
