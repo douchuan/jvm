@@ -22,16 +22,7 @@ impl LineNumber {
     fn render_interface(&self, cf: ClassFile) {
         let reg = Handlebars::new();
         const TP_INTERFACE: &str = "Compiled from \"{{source_file}}\"
-{{access_flags}} {{this_class}} {
-{{#each fields}}
-    {{this}}
-{{/each}}
-{{#each methods}}
-    {{this}}
-{{/each}}
-}";
-        const TP_INTERFACE_WITH_SUPER: &str = "Compiled from \"{{source_file}}\"
-{{access_flags}} {{this_class}} extends {{parent_interfaces}} {
+{{class_head}} {
 {{#each fields}}
     {{this}}
 {{/each}}
@@ -40,49 +31,45 @@ impl LineNumber {
 {{/each}}
 }";
 
-        let source_file = trans::class_source_file(&cf);
+        //build class_head
+        let mut head_parts = vec![];
         let this_class = trans::class_this_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
+        head_parts.push(access_flags.as_str());
+        head_parts.push(this_class.as_str());
+
+        let class_head = if cf.interfaces.len() != 0 {
+            let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
+            head_parts.push("extends");
+            head_parts.push(parent_interfaces.as_str());
+
+            head_parts.join(" ")
+        } else {
+            head_parts.join(" ")
+        };
+
+        let source_file = trans::class_source_file(&cf);
         let fields = trans::class_fields(&cf);
         let methods: Vec<String> = {
             let methods = trans::class_methods(&cf, false);
             methods.iter().map(|it| it.desc.clone()).collect()
         };
 
-        if cf.interfaces.len() != 0 {
-            let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
+        let data = json!({
+            "source_file": source_file,
+            "class_head": class_head,
+            "fields": fields,
+            "methods": methods
+        });
 
-            let data = json!({
-                "source_file": source_file,
-                "access_flags": access_flags,
-                "this_class": this_class,
-                "parent_interfaces": parent_interfaces,
-                "fields": fields,
-                "methods": methods,
-            });
-
-            println!(
-                "{}",
-                reg.render_template(TP_INTERFACE_WITH_SUPER, &data).unwrap()
-            );
-        } else {
-            let data = json!({
-                "source_file": source_file,
-                "access_flags": access_flags,
-                "this_class": this_class,
-                "fields": fields,
-                "methods": methods
-            });
-
-            println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
-        }
+        println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
     }
 
     fn render_enum(&self, cf: ClassFile) {
-        let reg = Handlebars::new();
-        // reg.register_escape_fn(handlebars::no_escape);
+        let mut reg = Handlebars::new();
+        reg.register_escape_fn(handlebars::no_escape);
         const TP_ENUM: &str = "Compiled from \"{{source_file}}\"
-{{access_flags}} {{this_class}} extends {{super_class}}<{{this_class}}> {
+{{class_head}} {
     {{#each fields}}
     {{this}}
     {{/each}}
@@ -96,9 +83,27 @@ impl LineNumber {
     {{/each}}
 }";
         let source_file = trans::class_source_file(&cf);
+
+        //build class_head
+        let mut head_parts = vec![];
         let this_class = trans::class_this_class(&cf);
         let super_class = trans::class_super_class(&cf);
         let access_flags = trans::class_access_flags(&cf);
+        head_parts.push(access_flags.as_str());
+        head_parts.push(this_class.as_str());
+        head_parts.push("extends");
+        let class_head = {
+            let mut s = String::new();
+            s.push_str(super_class.as_str());
+            s.push_str("<");
+            s.push_str(this_class.as_str());
+            s.push_str(">");
+
+            head_parts.push(s.as_str());
+
+            head_parts.join(" ")
+        };
+
         let fields = trans::class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(&cf, true);
@@ -124,9 +129,7 @@ impl LineNumber {
 
         let data = ClassInfoSerde {
             source_file,
-            access_flags,
-            this_class,
-            super_class,
+            class_head,
             fields,
             methods,
         };
@@ -136,22 +139,8 @@ impl LineNumber {
 
     fn render_class(&self, cf: ClassFile) {
         let reg = Handlebars::new();
-        const TP_CLASS_NO_SUPER: &str = "Compiled from \"{{source_file}}\"
-{{access_flags}} {{this_class}} {
-    {{#each fields}}
-    {{this}}
-    {{/each}}
-
-    {{#each methods as |method| ~}}
-        {{method.desc}}
-      LineNumberTable:\
-        {{#each method.line_number_table}}
-          line {{this.line_number}}: {{this.start_pc}}\
-        {{/each}}\n
-    {{/each}}
-}";
         const TP_CLASS: &str = "Compiled from \"{{source_file}}\"
-{{access_flags}} {{this_class}} extends {{super_class}} {
+{{class_head}} {
     {{#each fields}}
     {{this}}
     {{/each}}
@@ -166,13 +155,22 @@ impl LineNumber {
 }";
 
         let source_file = trans::class_source_file(&cf);
+
+        //build class_head
+        let mut head_parts = vec![];
         let this_class = trans::class_this_class(&cf);
-        let super_class = if cf.super_class == 0 {
-            String::new()
-        } else {
-            trans::class_super_class(&cf)
-        };
         let access_flags = trans::class_access_flags(&cf);
+        head_parts.push(access_flags.as_str());
+        head_parts.push(this_class.as_str());
+        let class_head = if cf.super_class != 0 {
+            head_parts.push("extends");
+            let super_class = trans::class_super_class(&cf);
+            head_parts.push(super_class.as_str());
+            head_parts.join(" ")
+        } else {
+            head_parts.join(" ")
+        };
+
         let fields = trans::class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(&cf, true);
@@ -198,27 +196,19 @@ impl LineNumber {
 
         let data = ClassInfoSerde {
             source_file,
-            access_flags,
-            this_class,
-            super_class,
+            class_head,
             fields,
             methods,
         };
 
-        if cf.super_class == 0 {
-            println!("{}", reg.render_template(TP_CLASS_NO_SUPER, &data).unwrap());
-        } else {
-            println!("{}", reg.render_template(TP_CLASS, &data).unwrap());
-        }
+        println!("{}", reg.render_template(TP_CLASS, &data).unwrap());
     }
 }
 
 #[derive(Serialize)]
 struct ClassInfoSerde {
     source_file: String,
-    access_flags: String,
-    this_class: String,
-    super_class: String,
+    class_head: String,
     fields: Vec<String>,
     methods: Vec<MethodInfoSerde>,
 }
