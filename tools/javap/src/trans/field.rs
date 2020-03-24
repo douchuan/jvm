@@ -16,15 +16,28 @@ impl<'a> Translator<'a> {
 
 impl<'a> Translator<'a> {
     pub fn get(&self) -> String {
-        let tp_method = "{{flags}} {{type}} {{name}};";
-
         let reg = Handlebars::new();
-        let data = json!({
-            "flags": self.access_flags(),
-            "type": self.field_type(),
-            "name": self.name(),
-        });
-        reg.render_template(tp_method, &data).unwrap()
+
+        let tp_method = "{{flags}} {{type}} {{name}};";
+        let tp_method_no_flags = "{{type}} {{name}}";
+
+        let flags = self.access_flags();
+        if flags.is_empty() {
+            let data = json!({
+                "type": self.field_type(),
+                "name": self.name(),
+            });
+
+            reg.render_template(tp_method_no_flags, &data).unwrap()
+        } else {
+            let data = json!({
+                "flags": flags,
+                "type": self.field_type(),
+                "name": self.name(),
+            });
+
+            reg.render_template(tp_method, &data).unwrap()
+        }
     }
 }
 
@@ -32,7 +45,7 @@ impl<'a> Translator<'a> {
     fn access_flags(&self) -> String {
         let flags = self.field.acc_flags;
         let t = AccessFlagsTranslator::new(flags);
-        t.method_access_flags()
+        t.field_access_flags()
     }
 
     fn field_type(&self) -> String {
