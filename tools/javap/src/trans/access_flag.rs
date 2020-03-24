@@ -24,15 +24,19 @@ impl Translator {
             name.push_str(" final");
         }
 
+        if !name.is_empty() {
+            name.push_str(" ");
+        }
+
         if flags.is_interface() {
-            name.push_str(" interface");
+            name.push_str("interface");
         } else if flags.is_enum() {
-            name.push_str(" class");
+            name.push_str("class");
         } else {
             if flags.is_abstract() {
-                name.push_str(" abstract class");
+                name.push_str("abstract class");
             } else {
-                name.push_str(" class")
+                name.push_str("class")
             }
         }
 

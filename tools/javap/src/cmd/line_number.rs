@@ -13,9 +13,7 @@ impl Cmd for LineNumber {
         } else if cf.acc_flags.is_enum() {
             self.render_enum(cf);
         } else {
-            // let methods = trans::class_methods(&cf);
-            // trace!("{:?}", methods);
-            unimplemented!()
+            self.render_class(cf);
         }
     }
 }
@@ -134,6 +132,84 @@ impl LineNumber {
         };
 
         println!("{}", reg.render_template(TP_ENUM, &data).unwrap());
+    }
+
+    fn render_class(&self, cf: ClassFile) {
+        let reg = Handlebars::new();
+        const TP_CLASS_NO_SUPER: &str = "Compiled from \"{{source_file}}\"
+{{access_flags}} {{this_class}} {
+    {{#each fields}}
+    {{this}}
+    {{/each}}
+
+    {{#each methods as |method| ~}}
+        {{method.desc}}
+      LineNumberTable:\
+        {{#each method.line_number_table}}
+          line {{this.line_number}}: {{this.start_pc}}\
+        {{/each}}\n
+    {{/each}}
+}";
+        const TP_CLASS: &str = "Compiled from \"{{source_file}}\"
+{{access_flags}} {{this_class}} extends {{super_class}} {
+    {{#each fields}}
+    {{this}}
+    {{/each}}
+
+    {{#each methods as |method| ~}}
+        {{method.desc}}
+      LineNumberTable:\
+        {{#each method.line_number_table}}
+          line {{this.line_number}}: {{this.start_pc}}\
+        {{/each}}\n
+    {{/each}}
+}";
+
+        let source_file = trans::class_source_file(&cf);
+        let this_class = trans::class_this_class(&cf);
+        let super_class = if cf.super_class == 0 {
+            String::new()
+        } else {
+            trans::class_super_class(&cf)
+        };
+        let access_flags = trans::class_access_flags(&cf);
+        let fields = trans::class_fields(&cf);
+        let methods: Vec<MethodInfoSerde> = {
+            let methods = trans::class_methods(&cf, true);
+            methods
+                .iter()
+                .map(|it| {
+                    let line_number_table: Vec<LineNumberSerde> = it
+                        .line_num_table
+                        .iter()
+                        .map(|it| LineNumberSerde {
+                            start_pc: it.start_pc,
+                            line_number: it.number,
+                        })
+                        .collect();
+
+                    MethodInfoSerde {
+                        desc: it.desc.clone(),
+                        line_number_table,
+                    }
+                })
+                .collect()
+        };
+
+        let data = ClassInfoSerde {
+            source_file,
+            access_flags,
+            this_class,
+            super_class,
+            fields,
+            methods,
+        };
+
+        if cf.super_class == 0 {
+            println!("{}", reg.render_template(TP_CLASS_NO_SUPER, &data).unwrap());
+        } else {
+            println!("{}", reg.render_template(TP_CLASS, &data).unwrap());
+        }
     }
 }
 
