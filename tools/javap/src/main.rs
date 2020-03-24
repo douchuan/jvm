@@ -134,17 +134,21 @@ fn main() {
 
     let commander = strategy::choose(&matches);
 
-    let classes = matches.values_of("classes").unwrap();
-    for it in classes {
-        match misc::find_class(it) {
-            Ok(r) => {
-                let _ = parse_class(&r.1).and_then(|(_, cf)| {
-                    commander.run(cf);
-                    Ok(())
-                });
+    match matches.values_of("classes") {
+        Some(classes) => {
+            for it in classes {
+                match misc::find_class(it) {
+                    Ok(r) => {
+                        let _ = parse_class(&r.1).and_then(|(_, cf)| {
+                            commander.run(cf);
+                            Ok(())
+                        });
+                    }
+                    Err(e) => error!("e = {:?}", e),
+                }
             }
-            Err(e) => error!("e = {:?}", e),
         }
+        None => (),
     }
 }
 
