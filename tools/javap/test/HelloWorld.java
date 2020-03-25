@@ -13,5 +13,11 @@ public final class HelloWorld
         for (String s: args) {
             System.out.println("arg: " + s);
         }
+
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                System.out.println("arg[" + i + "] = " + args[i]);
+            }
+        }
     }
 } 

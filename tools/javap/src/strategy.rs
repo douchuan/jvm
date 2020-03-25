@@ -3,8 +3,14 @@ use crate::misc;
 use crate::util;
 use clap::ArgMatches;
 
-pub fn choose(_matches: &ArgMatches) -> impl Cmd {
-    cmd::factory::line_number()
+pub fn choose(matches: &ArgMatches) -> Box<dyn Cmd> {
+    if matches.is_present("line_number") {
+        Box::new(cmd::factory::line_number())
+    } else if matches.is_present("disassemble") {
+        Box::new(cmd::factory::disassemble())
+    } else {
+        unimplemented!()
+    }
 }
 
 pub fn setup_classpath(matches: &ArgMatches) {

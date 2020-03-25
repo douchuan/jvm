@@ -132,6 +132,10 @@ fn main() {
 
     strategy::setup_classpath(&matches);
 
+    if matches.is_present("version") {
+        println!(env!("CARGO_PKG_VERSION"));
+    }
+
     let commander = strategy::choose(&matches);
 
     match matches.values_of("classes") {
