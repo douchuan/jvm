@@ -1,4 +1,5 @@
 use crate::cmd::Cmd;
+use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
 use handlebars::Handlebars;
@@ -21,15 +22,6 @@ impl Cmd for LineNumber {
 impl LineNumber {
     fn render_interface(&self, cf: ClassFile) {
         let reg = Handlebars::new();
-        const TP_INTERFACE: &str = "Compiled from \"{{source_file}}\"
-{{class_head}} {
-{{#each fields}}
-    {{this}}
-{{/each}}
-{{#each methods}}
-    {{this}}
-{{/each}}
-}";
 
         //build class_head
         let mut head_parts = vec![];
@@ -62,26 +54,13 @@ impl LineNumber {
             "methods": methods
         });
 
-        println!("{}", reg.render_template(TP_INTERFACE, &data).unwrap());
+        println!("{}", reg.render_template(template::INTERFACE, &data).unwrap());
     }
 
     fn render_enum(&self, cf: ClassFile) {
         let mut reg = Handlebars::new();
         reg.register_escape_fn(handlebars::no_escape);
-        const TP_ENUM: &str = "Compiled from \"{{source_file}}\"
-{{class_head}} {
-    {{#each fields}}
-    {{this}}
-    {{/each}}
 
-    {{#each methods as |method| ~}}
-        {{method.desc}}
-      LineNumberTable:\
-        {{#each method.line_number_table}}
-          line {{this.line_number}}: {{this.start_pc}}\
-        {{/each}}\n
-    {{/each}}
-}";
         let source_file = trans::class_source_file(&cf);
 
         //build class_head
@@ -122,6 +101,8 @@ impl LineNumber {
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
+
+                        enable_line_number_table: true
                     }
                 })
                 .collect()
@@ -134,25 +115,11 @@ impl LineNumber {
             methods,
         };
 
-        println!("{}", reg.render_template(TP_ENUM, &data).unwrap());
+        println!("{}", reg.render_template(template::ENUM, &data).unwrap());
     }
 
     fn render_class(&self, cf: ClassFile) {
         let reg = Handlebars::new();
-        const TP_CLASS: &str = "Compiled from \"{{source_file}}\"
-{{class_head}} {
-    {{#each fields}}
-    {{this}}
-    {{/each}}
-
-    {{#each methods as |method| ~}}
-        {{method.desc}}
-      LineNumberTable:\
-        {{#each method.line_number_table}}
-          line {{this.line_number}}: {{this.start_pc}}\
-        {{/each}}\n
-    {{/each}}
-}";
 
         let source_file = trans::class_source_file(&cf);
 
@@ -189,6 +156,8 @@ impl LineNumber {
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
+
+                        enable_line_number_table: true,
                     }
                 })
                 .collect()
@@ -201,7 +170,7 @@ impl LineNumber {
             methods,
         };
 
-        println!("{}", reg.render_template(TP_CLASS, &data).unwrap());
+        println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 }
 
@@ -217,6 +186,8 @@ struct ClassInfoSerde {
 struct MethodInfoSerde {
     desc: String,
     line_number_table: Vec<LineNumberSerde>,
+
+    enable_line_number_table: bool
 }
 
 #[derive(Serialize)]
