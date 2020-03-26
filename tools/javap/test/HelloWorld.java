@@ -1,5 +1,7 @@
 public final class HelloWorld
 {
+    int count;
+    String name;
 
     public HelloWorld() {
 

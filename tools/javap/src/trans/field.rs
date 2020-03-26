@@ -19,7 +19,7 @@ impl<'a> Translator<'a> {
         let reg = Handlebars::new();
 
         let tp_method = "{{flags}} {{type}} {{name}};";
-        let tp_method_no_flags = "{{type}} {{name}}";
+        let tp_method_no_flags = "{{type}} {{name}};";
 
         let flags = self.access_flags();
         if flags.is_empty() {

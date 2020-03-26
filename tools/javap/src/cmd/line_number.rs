@@ -2,7 +2,6 @@ use crate::cmd::Cmd;
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
-use handlebars::Handlebars;
 
 pub struct LineNumber;
 
@@ -21,7 +20,7 @@ impl Cmd for LineNumber {
 
 impl LineNumber {
     fn render_interface(&self, cf: ClassFile) {
-        let reg = Handlebars::new();
+        let reg = template::get_engine();
 
         //build class_head
         let mut head_parts = vec![];
@@ -42,24 +41,30 @@ impl LineNumber {
 
         let source_file = trans::class_source_file(&cf);
         let fields = trans::class_fields(&cf);
-        let methods: Vec<String> = {
+        let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(&cf, false);
-            methods.iter().map(|it| it.desc.clone()).collect()
+            methods
+                .iter()
+                .map(|it| MethodInfoSerde {
+                    desc: it.desc.clone(),
+                    line_number_table: vec![],
+                    enable_line_number_table: false,
+                })
+                .collect()
         };
 
-        let data = json!({
-            "source_file": source_file,
-            "class_head": class_head,
-            "fields": fields,
-            "methods": methods
-        });
+        let data = ClassInfoSerde {
+            source_file,
+            class_head,
+            fields,
+            methods,
+        };
 
-        println!("{}", reg.render_template(template::INTERFACE, &data).unwrap());
+        println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 
     fn render_enum(&self, cf: ClassFile) {
-        let mut reg = Handlebars::new();
-        reg.register_escape_fn(handlebars::no_escape);
+        let reg = template::get_engine();
 
         let source_file = trans::class_source_file(&cf);
 
@@ -102,7 +107,7 @@ impl LineNumber {
                         desc: it.desc.clone(),
                         line_number_table,
 
-                        enable_line_number_table: true
+                        enable_line_number_table: true,
                     }
                 })
                 .collect()
@@ -115,11 +120,11 @@ impl LineNumber {
             methods,
         };
 
-        println!("{}", reg.render_template(template::ENUM, &data).unwrap());
+        println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 
     fn render_class(&self, cf: ClassFile) {
-        let reg = Handlebars::new();
+        let reg = template::get_engine();
 
         let source_file = trans::class_source_file(&cf);
 
@@ -187,7 +192,7 @@ struct MethodInfoSerde {
     desc: String,
     line_number_table: Vec<LineNumberSerde>,
 
-    enable_line_number_table: bool
+    enable_line_number_table: bool,
 }
 
 #[derive(Serialize)]
