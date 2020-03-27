@@ -20,7 +20,6 @@ mod util;
 
 use clap::{App, Arg};
 use class_parser::parse_class;
-use cmd::Cmd;
 
 /*
 Usage: javap <options> <classes>

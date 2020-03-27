@@ -2,6 +2,7 @@ use classfile::ClassFile;
 
 mod disassemble;
 mod line_number;
+mod sd;
 
 pub trait Cmd {
     fn run(&self, cf: ClassFile);

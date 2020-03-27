@@ -1,4 +1,5 @@
 use crate::cmd::Cmd;
+use crate::cmd::sd::{ClassInfoSerde, MethodInfoSerde, LineNumberSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
@@ -177,26 +178,4 @@ impl LineNumber {
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
-}
-
-#[derive(Serialize)]
-struct ClassInfoSerde {
-    source_file: String,
-    class_head: String,
-    fields: Vec<String>,
-    methods: Vec<MethodInfoSerde>,
-}
-
-#[derive(Serialize)]
-struct MethodInfoSerde {
-    desc: String,
-    line_number_table: Vec<LineNumberSerde>,
-
-    enable_line_number_table: bool,
-}
-
-#[derive(Serialize)]
-struct LineNumberSerde {
-    start_pc: u16,
-    line_number: u16,
 }

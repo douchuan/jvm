@@ -1,7 +1,6 @@
 use crate::cmd::Cmd;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
-use handlebars::Handlebars;
 
 pub struct Disassemble;
 

@@ -3,8 +3,7 @@ use handlebars::Handlebars;
 pub const PART_FIELDS: &str = "
 {{#each fields}}
   {{ this }}
-{{/each}}
-";
+{{/each}}";
 
 pub const PART_METHODS: &str = "
 {{#each methods as |method|}}
@@ -15,8 +14,7 @@ pub const PART_METHODS: &str = "
         line {{this.line_number}}: {{this.start_pc ~}}
       {{/each}}
   {{/if}}
-{{/each}}
-";
+{{/each}}";
 
 pub const CLASS: &str = "Compiled from \"{{source_file}}\"
 {{class_head}} {
