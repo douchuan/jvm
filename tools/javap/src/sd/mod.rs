@@ -1,4 +1,3 @@
-
 #[derive(Serialize)]
 pub struct ClassInfoSerde {
     pub source_file: String,
@@ -12,7 +11,7 @@ pub struct MethodInfoSerde {
     pub desc: String,
     pub line_number_table: Vec<LineNumberSerde>,
 
-    pub enable_line_number_table: bool,
+    pub enable_line_number: bool,
 }
 
 #[derive(Serialize)]

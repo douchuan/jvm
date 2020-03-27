@@ -13,6 +13,7 @@ extern crate env_logger;
 
 mod cmd;
 mod misc;
+mod sd;
 mod strategy;
 mod template;
 mod trans;

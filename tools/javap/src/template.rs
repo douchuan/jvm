@@ -8,7 +8,7 @@ pub const PART_FIELDS: &str = "
 pub const PART_METHODS: &str = "
 {{#each methods as |method|}}
   {{ method.desc ~}}
-  {{#if enable_line_number_table}}
+  {{#if enable_line_number}}
     LineNumberTable:
       {{~#each method.line_number_table}}
         line {{this.line_number}}: {{this.start_pc ~}}

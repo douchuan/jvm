@@ -46,7 +46,10 @@ pub fn class_fields(cf: &ClassFile) -> Vec<String> {
     x.fields()
 }
 
-pub fn class_methods(cf: &ClassFile, with_line_num: bool) -> Vec<MethodTranslation> {
+pub fn class_methods(
+    cf: &ClassFile,
+    with_line_num: bool,
+) -> Vec<MethodTranslation> {
     let x = ClassFileTranslator::new(cf);
     x.methods(with_line_num)
 }

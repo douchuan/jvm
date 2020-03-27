@@ -1,11 +1,14 @@
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
-use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
+use classfile::{
+    attributes::Code, attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature,
+};
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
+    pub code: Option<Code>,
 }
 
 pub struct Translator<'a> {
@@ -27,10 +30,12 @@ impl<'a> Translator<'a> {
         } else {
             vec![]
         };
+        let code = self.method.get_code();
 
         MethodTranslation {
             desc,
             line_num_table,
+            code,
         }
     }
 }

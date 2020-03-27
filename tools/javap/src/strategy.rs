@@ -1,13 +1,13 @@
-use crate::cmd::{self, Cmd};
+use crate::cmd::{self, Cmd, Disassemble};
 use crate::misc;
 use crate::util;
 use clap::ArgMatches;
 
 pub fn choose(matches: &ArgMatches) -> Box<dyn Cmd> {
     if matches.is_present("line_number") {
-        Box::new(cmd::factory::line_number())
+        Box::new(Disassemble::new(true, false))
     } else if matches.is_present("disassemble") {
-        Box::new(cmd::factory::disassemble())
+        Box::new(Disassemble::new(false, true))
     } else {
         unimplemented!()
     }
