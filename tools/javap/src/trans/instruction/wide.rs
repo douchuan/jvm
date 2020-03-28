@@ -11,6 +11,6 @@ impl Instruction for Wide {
             icp: 0,
         };
 
-        unimplemented!()
+        (info, pc + 1)
     }
 }

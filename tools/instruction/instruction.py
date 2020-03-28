@@ -38,7 +38,7 @@ instructions = [
     ("dconst_0", 1, 14),
     ("dconst_1", 1, 15),
     ("ddiv", 1, 111),
-    ("dload", 1, 24),
+    ("dload", 2, 24),
     ("dload_0", 1, 38),
     ("dload_1", 1, 39),
     ("dload_2", 1, 40),

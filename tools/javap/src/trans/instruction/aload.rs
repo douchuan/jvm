@@ -1,7 +1,9 @@
 use super::{Instruction, InstructionInfo};
 use classfile::OpCode;
 
-pub struct Aload;
+pub struct Aload {
+    pub wide: bool
+}
 
 impl Instruction for Aload {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
@@ -11,6 +13,14 @@ impl Instruction for Aload {
             icp: 0,
         };
 
-        (info, pc + 2)
+        if self.wide {
+            (info, pc + 3)
+        } else {
+            (info, pc + 2)
+        }
+    }
+
+    fn set_wide(&mut self, wide: bool) {
+        self.wide = wide;
     }
 }

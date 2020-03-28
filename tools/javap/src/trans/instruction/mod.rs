@@ -417,6 +417,9 @@ pub trait Instruction {
         let indexbyte2 = codes[pc + 2] as i16;
         ((indexbyte1 << 8 | indexbyte2) as i32) as usize
     }
+    fn set_wide(&mut self, wide: bool) {
+        unimplemented!()
+    }
 }
 
 pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
@@ -442,11 +445,11 @@ pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
         Box::new(Ldc),
         Box::new(Ldc_W),
         Box::new(Ldc2_W),
-        Box::new(Iload),
-        Box::new(Lload),
-        Box::new(Fload),
-        Box::new(Dload),
-        Box::new(Aload),
+        Box::new(Iload { wide: false }),
+        Box::new(Lload { wide: false }),
+        Box::new(Fload { wide: false }),
+        Box::new(Dload { wide: false }),
+        Box::new(Aload { wide: false }),
         Box::new(Iload_0),
         Box::new(Iload_1),
         Box::new(Iload_2),
@@ -475,11 +478,11 @@ pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
         Box::new(Baload),
         Box::new(Caload),
         Box::new(Saload),
-        Box::new(Istore),
-        Box::new(Lstore),
-        Box::new(Fstore),
-        Box::new(Dstore),
-        Box::new(Astore),
+        Box::new(Istore { wide: false }),
+        Box::new(Lstore { wide: false }),
+        Box::new(Fstore { wide: false }),
+        Box::new(Dstore { wide: false }),
+        Box::new(Astore { wide: false }),
         Box::new(Istore_0),
         Box::new(Istore_1),
         Box::new(Istore_2),
@@ -553,7 +556,7 @@ pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
         Box::new(Lor),
         Box::new(Ixor),
         Box::new(Lxor),
-        Box::new(Iinc),
+        Box::new(Iinc { wide: false }),
         Box::new(I2L),
         Box::new(I2F),
         Box::new(I2D),
@@ -590,7 +593,7 @@ pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
         Box::new(If_Acmpne),
         Box::new(Goto),
         Box::new(Jsr),
-        Box::new(Ret),
+        Box::new(Ret { wide: false }),
         Box::new(Tableswitch),
         Box::new(Lookupswitch),
         Box::new(Ireturn),
