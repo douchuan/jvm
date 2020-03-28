@@ -404,15 +404,13 @@ use swap::Swap;
 use tableswitch::Tableswitch;
 use wide::Wide;
 
-use classfile::OpCode;
-
 pub struct InstructionInfo {
     pub name: &'static str,
     pub code: u8,
     pub icp: usize,
 }
 
-trait Instruction {
+pub trait Instruction {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize);
     fn calc_cp_index_u16(&self, codes: &[u8], pc: usize) -> usize {
         let indexbyte1 = codes[pc + 1] as i16;

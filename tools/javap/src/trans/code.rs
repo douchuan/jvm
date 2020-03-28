@@ -1,10 +1,4 @@
-use classfile::{attributes::Code, ClassFile, OpCode};
-
-struct ByteCode {
-    pc: usize,
-    name: &'static str,
-    icp: Option<usize>,
-}
+use classfile::{attributes::Code, ClassFile};
 
 pub struct Translator<'a> {
     cf: &'a ClassFile,

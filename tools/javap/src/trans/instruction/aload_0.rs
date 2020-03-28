@@ -1,3 +1,4 @@
+#![allow(non_camel_case_types)]
 use super::{Instruction, InstructionInfo};
 use classfile::OpCode;
 
