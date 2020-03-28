@@ -11,5 +11,5 @@ pub struct ByteCodeSerde {
     pub pc: usize,
     pub desc: &'static str,
     pub cp_index: Option<usize>,
-    pub comment: String
+    pub comment: String,
 }

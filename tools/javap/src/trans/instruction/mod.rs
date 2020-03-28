@@ -417,7 +417,7 @@ trait Instruction {
     fn calc_cp_index_u16(&self, codes: &[u8], pc: usize) -> usize {
         let indexbyte1 = codes[pc + 1] as i16;
         let indexbyte2 = codes[pc + 2] as i16;
-        ((indexbyte1 << 8 |indexbyte2) as i32) as usize
+        ((indexbyte1 << 8 | indexbyte2) as i32) as usize
     }
 }
 
@@ -627,4 +627,3 @@ pub fn get_instructions() -> Vec<Box<dyn Instruction>> {
         Box::new(Jsr_W),
     ]
 }
-

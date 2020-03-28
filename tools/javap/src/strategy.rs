@@ -4,10 +4,10 @@ use crate::util;
 use clap::ArgMatches;
 
 pub fn choose(m: &ArgMatches) -> Box<dyn Cmd> {
-   match Disassemble::new(m) {
-       Some(d) => Box::new(d),
-       None => unimplemented!()
-   }
+    match Disassemble::new(m) {
+        Some(d) => Box::new(d),
+        None => unimplemented!(),
+    }
 }
 
 pub fn setup_classpath(matches: &ArgMatches) {

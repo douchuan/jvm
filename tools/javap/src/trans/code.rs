@@ -3,7 +3,7 @@ use classfile::{attributes::Code, ClassFile, OpCode};
 struct ByteCode {
     pc: usize,
     name: &'static str,
-    icp: Option<usize>
+    icp: Option<usize>,
 }
 
 pub struct Translator<'a> {
@@ -20,4 +20,3 @@ impl Interp {
         // let mut instructions = vec![];
     }
 }
-

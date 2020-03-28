@@ -2,8 +2,8 @@ use crate::cmd::Cmd;
 use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
-use classfile::ClassFile;
 use clap::ArgMatches;
+use classfile::ClassFile;
 
 pub struct Disassemble {
     enable_line_number: bool,
@@ -27,7 +27,10 @@ impl Disassemble {
         let enable_line_number = m.is_present("line_number");
         let enable_code = m.is_present("disassemble");
         if enable_line_number || enable_code {
-            Some(Self { enable_line_number, enable_code })
+            Some(Self {
+                enable_line_number,
+                enable_code,
+            })
         } else {
             None
         }
