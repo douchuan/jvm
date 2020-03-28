@@ -8,7 +8,7 @@ impl Instruction for Instanceof {
        let info = InstructionInfo {
            name: OpCode::instanceof.into(),
            code: codes[pc],
-           icp: 0
+           icp: self.calc_cp_index_u16(codes, pc)
        };
 
        (info, pc + 3)

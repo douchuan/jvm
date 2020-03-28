@@ -11,5 +11,6 @@ impl Instruction for Lookupswitch {
            icp: 0
        };
 
-unimplemented!()   }
+        unimplemented!()
+   }
 }

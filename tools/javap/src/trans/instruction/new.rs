@@ -8,7 +8,7 @@ impl Instruction for New {
        let info = InstructionInfo {
            name: OpCode::new.into(),
            code: codes[pc],
-           icp: 0
+           icp: self.calc_cp_index_u16(codes, pc)
        };
 
        (info, pc + 3)

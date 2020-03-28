@@ -8,7 +8,7 @@ impl Instruction for Invokedynamic {
        let info = InstructionInfo {
            name: OpCode::invokedynamic.into(),
            code: codes[pc],
-           icp: 0
+           icp: self.calc_cp_index_u16(codes, pc)
        };
 
        (info, pc + 5)

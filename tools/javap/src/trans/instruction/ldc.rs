@@ -8,7 +8,7 @@ impl Instruction for Ldc {
        let info = InstructionInfo {
            name: OpCode::ldc.into(),
            code: codes[pc],
-           icp: 0
+           icp: codes[pc + 1] as usize
        };
 
        (info, pc + 2)
