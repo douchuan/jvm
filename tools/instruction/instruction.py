@@ -2,6 +2,7 @@
 import sys
 
 # (name, 1 + encoded_value_length, bytecode value)
+# encoded_value to calc index in constant pool
 instructions = [
     ("aaload", 1, 50),
     ("aastore", 1, 83),
@@ -230,7 +231,7 @@ def create_uses(ary):
             f.write("use " + name + "::" + name.title() + ";\n")
 
 def create_mod(instruction):
-    (name, step) = instruction
+    (name, step, _) = instruction
     with open(name + ".rs", "w") as f:
         f.write("#![allow(non_camel_case_types)]\n")
         f.write("use classfile::OpCode;\n")
@@ -243,25 +244,26 @@ def create_mod(instruction):
         f.write("       let info = InstructionInfo {\n")
         f.write("           name: OpCode::" + name + ".into(),\n")
         f.write("           code: codes[pc],\n")
-        if name in ["instanceof", "multianewarray", "invokevirtual", "anewarray", "checkcast", "putfield", 
-            "invokespecial", "ldc2_w", "invokeinterface", "new", "invokestatic", "ldc_w", "putstatic", "invokedynamic"]:
+        if name in ["instanceof", "multianewarray", "invokevirtual", "anewarray", "checkcast", 
+            "putfield", "getfield", "getstatic", "invokespecial", "ldc2_w", "invokeinterface", 
+            "new", "invokestatic", "ldc_w", "putstatic", "invokedynamic"]:
             f.write("           icp: self.calc_cp_index_u16(codes, pc)\n")
         else:
             f.write("           icp: 0\n")
         f.write("       };\n")
         f.write("\n")
         if name in ["lookupswitch", "tableswitch", "wide"]:
-            f.write("unimplemented!()")
+            f.write("\tunimplemented!(\"" + step + "\")")
         else:
             f.write("       (info, pc + " + str(step) + ")\n")
         f.write("   }\n")
         f.write("}")
 
 if __name__ == '__main__':
-    create_get_instructions(instructions)
+    # create_get_instructions(instructions)
     # create_uses(instructions)
-    # for it in instructions:
-        # create_mod(it)
+    for it in instructions:
+        create_mod(it)
 
 
 
