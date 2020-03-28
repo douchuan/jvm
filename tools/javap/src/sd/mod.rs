@@ -1,3 +1,5 @@
+mod code;
+
 #[derive(Serialize)]
 pub struct ClassInfoSerde {
     pub source_file: String,

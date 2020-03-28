@@ -2,7 +2,9 @@ use classfile::ClassFile;
 
 mod access_flag;
 mod class_file;
+mod code;
 mod field;
+mod instruction;
 mod method;
 mod signature_type;
 

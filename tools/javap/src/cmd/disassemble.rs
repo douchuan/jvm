@@ -3,6 +3,7 @@ use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use classfile::ClassFile;
+use clap::ArgMatches;
 
 pub struct Disassemble {
     enable_line_number: bool,
@@ -22,10 +23,13 @@ impl Cmd for Disassemble {
 }
 
 impl Disassemble {
-    pub fn new(enable_line_number: bool, enable_code: bool) -> Self {
-        Self {
-            enable_line_number,
-            enable_code,
+    pub fn new(m: &ArgMatches) -> Option<Self> {
+        let enable_line_number = m.is_present("line_number");
+        let enable_code = m.is_present("disassemble");
+        if enable_line_number || enable_code {
+            Some(Self { enable_line_number, enable_code })
+        } else {
+            None
         }
     }
 }
