@@ -173,7 +173,7 @@ instructions = [
 ("lload_3", 1, 33),
 ("lmul", 1, 105),
 ("lneg", 1, 117),
-("lookupswitch", "xx", 171),
+("lookupswitch", "variable-length instruction", 171),
 ("lor", 1, 129),
 ("lrem", 1, 113),
 ("lreturn", 1, 173),
@@ -203,8 +203,8 @@ instructions = [
 ("sastore", 1, 86),
 ("sipush", 3, 17),
 ("swap", 1, 95),
-("tableswitch", "xx", 170),
-("wide", "xxx", 196),
+("tableswitch", "variable-length instruction", 170),
+("wide", "variable-length instruction", 196),
 ]
 
 def create_get_instructions(ary):
@@ -232,6 +232,7 @@ def create_uses(ary):
 def create_mod(instruction):
     (name, step) = instruction
     with open(name + ".rs", "w") as f:
+        f.write("#![allow(non_camel_case_types)]\n")
         f.write("use classfile::OpCode;\n")
         f.write("use super::{Instruction, InstructionInfo};\n")
         f.write("\n")
@@ -242,7 +243,11 @@ def create_mod(instruction):
         f.write("       let info = InstructionInfo {\n")
         f.write("           name: OpCode::" + name + ".into(),\n")
         f.write("           code: codes[pc],\n")
-        f.write("           icp: 0\n")
+        if name in ["instanceof", "multianewarray", "invokevirtual", "anewarray", "checkcast", "putfield", 
+            "invokespecial", "ldc2_w", "invokeinterface", "new", "invokestatic", "ldc_w", "putstatic", "invokedynamic"]:
+            f.write("           icp: self.calc_cp_index_u16(codes, pc)\n")
+        else:
+            f.write("           icp: 0\n")
         f.write("       };\n")
         f.write("\n")
         if name in ["lookupswitch", "tableswitch", "wide"]:
