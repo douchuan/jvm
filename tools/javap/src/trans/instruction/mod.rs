@@ -417,7 +417,7 @@ pub trait Instruction {
         let indexbyte2 = codes[pc + 2] as i16;
         ((indexbyte1 << 8 | indexbyte2) as i32) as usize
     }
-    fn set_wide(&mut self, wide: bool) {
+    fn set_wide(&mut self, _wide: bool) {
         unimplemented!()
     }
 }

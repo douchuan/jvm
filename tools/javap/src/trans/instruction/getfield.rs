@@ -8,7 +8,7 @@ impl Instruction for Getfield {
         let info = InstructionInfo {
             name: OpCode::getfield.into(),
             code: codes[pc],
-            icp: self.calc_cp_index_u16(codes, pc)
+            icp: self.calc_cp_index_u16(codes, pc),
         };
 
         (info, pc + 3)

@@ -2,7 +2,7 @@ use super::{Instruction, InstructionInfo};
 use classfile::OpCode;
 
 pub struct Istore {
-    pub wide: bool
+    pub wide: bool,
 }
 
 impl Instruction for Istore {
