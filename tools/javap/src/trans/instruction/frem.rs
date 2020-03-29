@@ -6,6 +6,7 @@ pub struct Frem;
 impl Instruction for Frem {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::frem,
             icp: 0,
         };

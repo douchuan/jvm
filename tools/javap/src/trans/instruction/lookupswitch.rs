@@ -6,6 +6,7 @@ pub struct Lookupswitch;
 impl Instruction for Lookupswitch {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::lookupswitch,
             icp: 0,
         };

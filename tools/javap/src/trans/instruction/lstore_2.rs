@@ -7,6 +7,7 @@ pub struct Lstore_2;
 impl Instruction for Lstore_2 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::lstore_2,
             icp: 0,
         };

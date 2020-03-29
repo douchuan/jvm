@@ -7,6 +7,7 @@ pub struct Jsr_W;
 impl Instruction for Jsr_W {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::jsr_w,
             icp: 0,
         };

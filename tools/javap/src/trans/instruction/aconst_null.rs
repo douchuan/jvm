@@ -7,6 +7,7 @@ pub struct Aconst_Null;
 impl Instruction for Aconst_Null {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::aconst_null,
             icp: 0,
         };

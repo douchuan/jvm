@@ -7,6 +7,7 @@ pub struct Goto_W;
 impl Instruction for Goto_W {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::goto_w,
             icp: 0,
         };

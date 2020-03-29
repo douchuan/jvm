@@ -7,6 +7,7 @@ pub struct Iconst_4;
 impl Instruction for Iconst_4 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::iconst_4,
             icp: 0,
         };

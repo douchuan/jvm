@@ -7,6 +7,7 @@ pub struct Dup_X1;
 impl Instruction for Dup_X1 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::dup_x1,
             icp: 0,
         };

@@ -406,6 +406,7 @@ use tableswitch::Tableswitch;
 use wide::Wide;
 
 pub struct InstructionInfo {
+    pub pc: usize,
     pub op_code: OpCode,
     pub icp: usize,
 }

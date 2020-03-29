@@ -7,6 +7,7 @@ pub struct Iload_0;
 impl Instruction for Iload_0 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::iload_0,
             icp: 0,
         };

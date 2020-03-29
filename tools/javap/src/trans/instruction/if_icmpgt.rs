@@ -7,6 +7,7 @@ pub struct If_Icmpgt;
 impl Instruction for If_Icmpgt {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::if_icmpgt,
             icp: 0,
         };

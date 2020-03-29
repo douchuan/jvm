@@ -7,6 +7,7 @@ pub struct Istore_0;
 impl Instruction for Istore_0 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::istore_0,
             icp: 0,
         };

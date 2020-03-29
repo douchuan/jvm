@@ -7,6 +7,7 @@ pub struct Lconst_1;
 impl Instruction for Lconst_1 {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
+            pc,
             op_code: OpCode::lconst_1,
             icp: 0,
         };
