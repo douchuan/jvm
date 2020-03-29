@@ -61,7 +61,7 @@ impl Disassemble {
         let source_file = trans::class_source_file(&cf);
         let fields = trans::class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, false);
+            let methods = trans::class_methods(&cf, false, false);
             methods
                 .iter()
                 .map(|it| MethodInfoSerde {
@@ -109,7 +109,7 @@ impl Disassemble {
 
         let fields = trans::class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, true);
+            let methods = trans::class_methods(&cf, self.enable_line_number, self.enable_code);
             methods
                 .iter()
                 .map(|it| {
@@ -164,7 +164,7 @@ impl Disassemble {
 
         let fields = trans::class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, true);
+            let methods = trans::class_methods(&cf, self.enable_line_number, self.enable_code);
             methods
                 .iter()
                 .map(|it| {

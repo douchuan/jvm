@@ -11,6 +11,7 @@ mod signature_type;
 pub use self::access_flag::AccessFlagHelper;
 pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
+pub use self::code::Translator as CodeTranslator;
 pub use self::field::Translator as FieldTranslator;
 pub use self::method::MethodTranslation;
 pub use self::method::Translator as MethodTranslator;
@@ -48,9 +49,13 @@ pub fn class_fields(cf: &ClassFile) -> Vec<String> {
     x.fields()
 }
 
-pub fn class_methods(cf: &ClassFile, with_line_num: bool) -> Vec<MethodTranslation> {
+pub fn class_methods(
+    cf: &ClassFile,
+    with_line_num: bool,
+    with_code: bool,
+) -> Vec<MethodTranslation> {
     let x = ClassFileTranslator::new(cf);
-    x.methods(with_line_num)
+    x.methods(with_line_num, with_code)
 }
 
 pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {

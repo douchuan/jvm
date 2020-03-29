@@ -1,14 +1,14 @@
+use crate::trans::instruction::InstructionInfo;
 use crate::trans::AccessFlagsTranslator;
+use crate::trans::CodeTranslator;
 use crate::trans::SignatureTypeTranslator;
-use classfile::{
-    attributes::Code, attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature,
-};
+use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
-    pub code: Option<Code>,
+    pub codes: Vec<InstructionInfo>,
 }
 
 pub struct Translator<'a> {
@@ -23,19 +23,32 @@ impl<'a> Translator<'a> {
 }
 
 impl<'a> Translator<'a> {
-    pub fn get(&self, with_line_num: bool) -> MethodTranslation {
+    pub fn get(&self, with_line_num: bool, with_code: bool) -> MethodTranslation {
         let desc = self.build_desc();
         let line_num_table = if with_line_num {
             self.method.get_line_number_table()
         } else {
             vec![]
         };
-        let code = self.method.get_code();
+        let codes = if with_code {
+            match self.method.get_code() {
+                Some(code) => {
+                    let t = CodeTranslator {
+                        cf: self.cf,
+                        code: &code,
+                    };
+                    t.get()
+                }
+                None => vec![],
+            }
+        } else {
+            vec![]
+        };
 
         MethodTranslation {
             desc,
             line_num_table,
-            code,
+            codes,
         }
     }
 }

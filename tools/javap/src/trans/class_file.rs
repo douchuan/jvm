@@ -90,7 +90,7 @@ impl<'a> Translator<'a> {
         String::from(S_UNKNOWN)
     }
 
-    pub fn methods(&self, with_line_num: bool) -> Vec<MethodTranslation> {
+    pub fn methods(&self, with_line_num: bool, with_code: bool) -> Vec<MethodTranslation> {
         let mut methods = Vec::with_capacity(self.cf.methods.len());
         for it in self.cf.methods.iter() {
             if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() || it.acc_flags.is_private()
@@ -99,7 +99,7 @@ impl<'a> Translator<'a> {
             }
 
             let t = MethodTranslator::new(self.cf, it);
-            methods.push(t.get(with_line_num));
+            methods.push(t.get(with_line_num, with_code));
         }
 
         methods

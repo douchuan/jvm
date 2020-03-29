@@ -1,16 +1,36 @@
+use super::instruction::{get_instructions, InstructionInfo};
 use classfile::{attributes::Code, ClassFile};
 
 pub struct Translator<'a> {
-    cf: &'a ClassFile,
-    code: &'a Code,
+    pub cf: &'a ClassFile,
+    pub code: &'a Code,
 }
 
-struct Interp {
-    pc: usize,
+impl<'a> Translator<'a> {
+    pub fn get(&self) -> Vec<InstructionInfo> {
+        self.interp()
+    }
 }
 
-impl Interp {
-    fn run(&mut self) {
-        // let mut instructions = vec![];
+impl<'a> Translator<'a> {
+    fn interp(&self) -> Vec<InstructionInfo> {
+        let mut infos = vec![];
+
+        let instructions = get_instructions();
+        let codes = self.code.code.as_slice();
+        let codes_len = codes.len();
+        let mut pc = 0;
+        loop {
+            if pc >= codes_len {
+                break;
+            }
+
+            let instruction = instructions.get(codes[pc] as usize).unwrap();
+            let (info, new_pc) = instruction.run(codes, pc);
+            pc = new_pc;
+            infos.push(info);
+        }
+
+        infos
     }
 }
