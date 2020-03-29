@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct Dup_X2;
 
 impl Instruction for Dup_X2 {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::dup_x2,
             icp: 0,

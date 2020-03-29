@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct Laload;
 
 impl Instruction for Laload {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::laload,
             icp: 0,

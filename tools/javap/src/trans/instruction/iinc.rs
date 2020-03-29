@@ -6,7 +6,7 @@ pub struct Iinc {
 }
 
 impl Instruction for Iinc {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::iinc,
             icp: 0,

@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct Bastore;
 
 impl Instruction for Bastore {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::bastore,
             icp: 0,

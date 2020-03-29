@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct Nop;
 
 impl Instruction for Nop {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::nop,
             icp: 0,

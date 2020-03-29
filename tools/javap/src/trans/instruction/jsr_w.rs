@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct Jsr_W;
 
 impl Instruction for Jsr_W {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::jsr_w,
             icp: 0,

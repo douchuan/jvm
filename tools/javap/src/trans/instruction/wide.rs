@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct Wide;
 
 impl Instruction for Wide {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::wide,
             icp: 0,

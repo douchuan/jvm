@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct Iload_0;
 
 impl Instruction for Iload_0 {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::iload_0,
             icp: 0,

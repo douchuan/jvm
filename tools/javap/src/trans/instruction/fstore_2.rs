@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct Fstore_2;
 
 impl Instruction for Fstore_2 {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::fstore_2,
             icp: 0,

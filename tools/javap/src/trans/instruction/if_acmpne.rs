@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct If_Acmpne;
 
 impl Instruction for If_Acmpne {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::if_acmpne,
             icp: 0,

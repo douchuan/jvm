@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct Ifnull;
 
 impl Instruction for Ifnull {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::ifnull,
             icp: 0,

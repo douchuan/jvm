@@ -4,7 +4,7 @@ use classfile::OpCode;
 pub struct D2L;
 
 impl Instruction for D2L {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::d2l,
             icp: 0,

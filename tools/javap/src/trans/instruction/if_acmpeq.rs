@@ -5,7 +5,7 @@ use classfile::OpCode;
 pub struct If_Acmpeq;
 
 impl Instruction for If_Acmpeq {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
             op_code: OpCode::if_acmpeq,
             icp: 0,
