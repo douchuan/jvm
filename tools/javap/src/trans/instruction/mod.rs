@@ -425,9 +425,19 @@ impl InstructionInfo {
             )
         } else {
             match self.op_code {
-                OpCode::astore => {
-                    let index = codes[self.pc + 1];
-                    format!("{:>4}: {:15} {}", self.pc, op_code, index)
+                OpCode::istore
+                | OpCode::fstore
+                | OpCode::astore
+                | OpCode::lstore
+                | OpCode::dstore
+                | OpCode::ret => {
+                    if self.wide {
+                        let index = construct_usize(codes, self.pc);
+                        format!("{:>4}: {:15} {}", self.pc, op_code, index)
+                    } else {
+                        let index = codes[self.pc + 1];
+                        format!("{:>4}: {:15} {}", self.pc, op_code, index)
+                    }
                 }
                 OpCode::if_acmpeq
                 | OpCode::if_acmpne
@@ -451,9 +461,20 @@ impl InstructionInfo {
                     format!("{:>4}: {:15} {}", self.pc, op_code, target)
                 }
                 OpCode::iinc => {
-                    let index = codes[self.pc + 1];
-                    let const_v = (codes[self.pc + 2] as i8) as i32;
-                    format!("{:>4}: {:15} {}, {}", self.pc, op_code, index, const_v)
+                    if self.wide {
+                        let index = construct_usize(codes, self.pc);
+                        let const_v = {
+                            let pc = self.pc;
+                            let constbyte1 = codes[pc + 3] as i16;
+                            let constbyte2 = codes[pc + 4] as i16;
+                            constbyte1 << 8 | constbyte2
+                        };
+                        format!("{:>4}: {:15} {}, {}", self.pc, op_code, index, const_v)
+                    } else {
+                        let index = codes[self.pc + 1];
+                        let const_v = (codes[self.pc + 2] as i8) as i32;
+                        format!("{:>4}: {:15} {}, {}", self.pc, op_code, index, const_v)
+                    }
                 }
                 _ => format!("{:>4}: {:15}", self.pc, op_code),
             }
