@@ -14,6 +14,12 @@ pub const PART_METHODS: &str = "
         line {{this.line_number}}: {{this.start_pc ~}}
       {{/each}}
   {{/if}}
+  {{#if enable_code}}
+    Code:
+    {{~#each method.codes}}
+      {{this ~}}
+    {{/each}}
+  {{/if}}
 {{/each}}";
 
 pub const CLASS: &str = "Compiled from \"{{source_file}}\"
