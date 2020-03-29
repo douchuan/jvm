@@ -415,12 +415,12 @@ impl InstructionInfo {
     pub fn assemble(&self, codes: &[u8]) -> String {
         let op_code: &'static str = self.op_code.into();
         if self.icp != 0 {
-            format!("{:>5}: {:15} #{:<20}", self.pc, op_code, self.icp)
+            format!("{:>4}: {:15} #{:<20}", self.pc, op_code, self.icp)
         } else {
             match self.op_code {
                 OpCode::astore => {
                     let index = codes[self.pc + 1];
-                    format!("{:>5}: {:15} {}", self.pc, op_code, index)
+                    format!("{:>4}: {:15} {}", self.pc, op_code, index)
                 }
                 OpCode::if_acmpeq
                 | OpCode::if_acmpne
@@ -441,14 +441,14 @@ impl InstructionInfo {
                 | OpCode::goto => {
                     let branch = construct_i16(codes, self.pc);
                     let target = self.pc as i32 + branch as i32;
-                    format!("{:>5}: {:15} {}", self.pc, op_code, target)
+                    format!("{:>4}: {:15} {}", self.pc, op_code, target)
                 }
                 OpCode::iinc => {
                     let index = codes[self.pc + 1];
                     let const_v = (codes[self.pc + 2] as i8) as i32;
-                    format!("{:>5}: {:15} {}, {}", self.pc, op_code, index, const_v)
+                    format!("{:>4}: {:15} {}, {}", self.pc, op_code, index, const_v)
                 }
-                _ => format!("{:>5}: {:15}", self.pc, op_code),
+                _ => format!("{:>4}: {:15}", self.pc, op_code),
             }
         }
     }

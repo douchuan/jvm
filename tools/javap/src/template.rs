@@ -8,24 +8,24 @@ pub const PART_FIELDS: &str = "
 pub const PART_METHODS: &str = "
 {{#each methods as |method|}}
   {{ method.desc ~}}
-  {{#if enable_line_number}}
-    LineNumberTable:
-      {{~#each method.line_number_table}}
-        line {{this.line_number}}: {{this.start_pc ~}}
-      {{/each}}
-  {{/if}}
-  {{#if enable_code}}
+  {{~#if enable_code}}
     Code:
     {{~#each method.codes}}
       {{this ~}}
     {{/each}}
   {{/if}}
+  {{~#if enable_line_number}}
+    LineNumberTable:
+      {{~#each method.line_number_table}}
+        line {{this.line_number}}: {{this.start_pc ~}}
+      {{/each}}
+  {{/if}}
 {{/each}}";
 
 pub const CLASS: &str = "Compiled from \"{{source_file}}\"
 {{class_head}} {
-  {{> fields }}
-  {{> methods }}
+  {{~> fields ~}}
+  {{~> methods ~}}
 }";
 
 pub fn get_engine() -> Handlebars<'static> {
