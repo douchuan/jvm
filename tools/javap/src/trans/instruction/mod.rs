@@ -405,6 +405,8 @@ use swap::Swap;
 use tableswitch::Tableswitch;
 use wide::Wide;
 
+use classfile::{constant_pool, ConstantPool, ConstantPoolType};
+
 pub struct InstructionInfo {
     pub pc: usize,
     pub op_code: OpCode,
@@ -412,10 +414,14 @@ pub struct InstructionInfo {
 }
 
 impl InstructionInfo {
-    pub fn assemble(&self, codes: &[u8]) -> String {
+    pub fn assemble(&self, codes: &[u8], cp: &ConstantPool) -> String {
         let op_code: &'static str = self.op_code.into();
         if self.icp != 0 {
-            format!("{:>4}: {:15} #{:<20}", self.pc, op_code, self.icp)
+            let comment = self.comment(cp);
+            format!(
+                "{:>4}: {:15} #{:<20}// {}",
+                self.pc, op_code, self.icp, comment
+            )
         } else {
             match self.op_code {
                 OpCode::astore => {
@@ -450,6 +456,52 @@ impl InstructionInfo {
                 }
                 _ => format!("{:>4}: {:15}", self.pc, op_code),
             }
+        }
+    }
+
+    fn comment(&self, cp: &ConstantPool) -> String {
+        assert_ne!(0, self.icp);
+
+        match cp.get(self.icp).unwrap() {
+            ConstantPoolType::Class { name_index } => {
+                let v = constant_pool::get_utf8(cp, *name_index as usize).unwrap();
+                let v = String::from_utf8_lossy(v.as_slice()).to_string();
+                format!("class {}", v)
+            }
+            ConstantPoolType::FieldRef {
+                class_index,
+                name_and_type_index,
+            } => {
+                let v = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                let class_name = String::from_utf8_lossy(v.as_slice());
+                let (name, desc) =
+                    constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
+                let name = name.unwrap();
+                let desc = desc.unwrap();
+                let name = String::from_utf8_lossy(name.as_slice());
+                let desc = String::from_utf8_lossy(desc.as_slice());
+                format!("Field {}.{}:{}", class_name, name, desc)
+            }
+            ConstantPoolType::MethodRef {
+                class_index,
+                name_and_type_index,
+            } => {
+                let v = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                let class_name = String::from_utf8_lossy(v.as_slice());
+                let (name, desc) =
+                    constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
+                let name = name.unwrap();
+                let desc = desc.unwrap();
+                let name = String::from_utf8_lossy(name.as_slice());
+                let desc = String::from_utf8_lossy(desc.as_slice());
+                format!("Method {}.{}:{}", class_name, name, desc)
+            }
+            ConstantPoolType::String { string_index } => {
+                let v = constant_pool::get_utf8(cp, *string_index as usize).unwrap();
+                let v = String::from_utf8_lossy(v.as_slice());
+                format!("String {}", v)
+            }
+            _ => unimplemented!(),
         }
     }
 }

@@ -10,7 +10,10 @@ impl<'a> Translator<'a> {
     pub fn get(&self) -> Vec<String> {
         let codes = self.code.code.as_slice();
         let infos = self.interp();
-        infos.iter().map(|it| it.assemble(codes)).collect()
+        infos
+            .iter()
+            .map(|it| it.assemble(codes, &self.cf.cp))
+            .collect()
     }
 }
 
