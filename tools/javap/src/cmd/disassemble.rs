@@ -130,7 +130,7 @@ impl Disassemble {
                         vec![]
                     };
 
-                    let codes: Vec<String> = if enable_code {
+                    let codes = if enable_code {
                         it.codes.clone()
                     } else {
                         vec![]
@@ -199,7 +199,7 @@ impl Disassemble {
                         vec![]
                     };
 
-                    let codes: Vec<String> = if enable_code {
+                    let codes = if enable_code {
                         it.codes.clone()
                     } else {
                         vec![]
