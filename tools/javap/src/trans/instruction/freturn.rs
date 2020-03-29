@@ -6,8 +6,7 @@ pub struct Freturn;
 impl Instruction for Freturn {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::freturn.into(),
-            code: codes[pc],
+            op_code: OpCode::freturn,
             icp: 0,
         };
 

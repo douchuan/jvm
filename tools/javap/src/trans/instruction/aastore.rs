@@ -4,10 +4,9 @@ use classfile::OpCode;
 pub struct Aastore;
 
 impl Instruction for Aastore {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::aastore.into(),
-            code: codes[pc],
+            op_code: OpCode::aastore,
             icp: 0,
         };
 

@@ -6,8 +6,7 @@ pub struct Lrem;
 impl Instruction for Lrem {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lrem.into(),
-            code: codes[pc],
+            op_code: OpCode::lrem,
             icp: 0,
         };
 

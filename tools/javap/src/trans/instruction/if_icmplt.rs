@@ -7,8 +7,7 @@ pub struct If_Icmplt;
 impl Instruction for If_Icmplt {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::if_icmplt.into(),
-            code: codes[pc],
+            op_code: OpCode::if_icmplt,
             icp: 0,
         };
 

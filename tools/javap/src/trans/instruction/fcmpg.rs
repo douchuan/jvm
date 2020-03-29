@@ -6,8 +6,7 @@ pub struct Fcmpg;
 impl Instruction for Fcmpg {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fcmpg.into(),
-            code: codes[pc],
+            op_code: OpCode::fcmpg,
             icp: 0,
         };
 

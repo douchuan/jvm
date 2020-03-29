@@ -6,8 +6,7 @@ pub struct Ifeq;
 impl Instruction for Ifeq {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ifeq.into(),
-            code: codes[pc],
+            op_code: OpCode::ifeq,
             icp: 0,
         };
 

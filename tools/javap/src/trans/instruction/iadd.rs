@@ -6,8 +6,7 @@ pub struct Iadd;
 impl Instruction for Iadd {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::iadd.into(),
-            code: codes[pc],
+            op_code: OpCode::iadd,
             icp: 0,
         };
 

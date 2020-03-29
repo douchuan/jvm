@@ -6,8 +6,7 @@ pub struct Idiv;
 impl Instruction for Idiv {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::idiv.into(),
-            code: codes[pc],
+            op_code: OpCode::idiv,
             icp: 0,
         };
 

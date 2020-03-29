@@ -6,8 +6,7 @@ pub struct Dastore;
 impl Instruction for Dastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::dastore.into(),
-            code: codes[pc],
+            op_code: OpCode::dastore,
             icp: 0,
         };
 

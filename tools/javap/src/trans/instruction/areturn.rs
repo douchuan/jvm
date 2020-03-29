@@ -6,8 +6,7 @@ pub struct Areturn;
 impl Instruction for Areturn {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::areturn.into(),
-            code: codes[pc],
+            op_code: OpCode::areturn,
             icp: 0,
         };
 

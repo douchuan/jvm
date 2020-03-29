@@ -6,8 +6,7 @@ pub struct Lastore;
 impl Instruction for Lastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lastore.into(),
-            code: codes[pc],
+            op_code: OpCode::lastore,
             icp: 0,
         };
 

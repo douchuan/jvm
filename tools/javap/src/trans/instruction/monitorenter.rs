@@ -6,8 +6,7 @@ pub struct Monitorenter;
 impl Instruction for Monitorenter {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::monitorenter.into(),
-            code: codes[pc],
+            op_code: OpCode::monitorenter,
             icp: 0,
         };
 

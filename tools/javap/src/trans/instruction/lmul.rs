@@ -6,8 +6,7 @@ pub struct Lmul;
 impl Instruction for Lmul {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lmul.into(),
-            code: codes[pc],
+            op_code: OpCode::lmul,
             icp: 0,
         };
 

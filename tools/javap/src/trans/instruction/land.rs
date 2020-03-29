@@ -6,8 +6,7 @@ pub struct Land;
 impl Instruction for Land {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::land.into(),
-            code: codes[pc],
+            op_code: OpCode::land,
             icp: 0,
         };
 

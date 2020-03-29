@@ -7,8 +7,7 @@ pub struct Fload_2;
 impl Instruction for Fload_2 {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fload_2.into(),
-            code: codes[pc],
+            op_code: OpCode::fload_2,
             icp: 0,
         };
 

@@ -6,8 +6,7 @@ pub struct Castore;
 impl Instruction for Castore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::castore.into(),
-            code: codes[pc],
+            op_code: OpCode::castore,
             icp: 0,
         };
 

@@ -6,8 +6,7 @@ pub struct F2D;
 impl Instruction for F2D {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::f2d.into(),
-            code: codes[pc],
+            op_code: OpCode::f2d,
             icp: 0,
         };
 

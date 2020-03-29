@@ -8,8 +8,7 @@ pub struct Fstore {
 impl Instruction for Fstore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fstore.into(),
-            code: codes[pc],
+            op_code: OpCode::fstore,
             icp: 0,
         };
 

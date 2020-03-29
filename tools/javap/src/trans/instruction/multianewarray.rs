@@ -6,8 +6,7 @@ pub struct Multianewarray;
 impl Instruction for Multianewarray {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::multianewarray.into(),
-            code: codes[pc],
+            op_code: OpCode::multianewarray,
             icp: self.calc_cp_index_u16(codes, pc),
         };
 

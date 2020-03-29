@@ -6,8 +6,7 @@ pub struct Fadd;
 impl Instruction for Fadd {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fadd.into(),
-            code: codes[pc],
+            op_code: OpCode::fadd,
             icp: 0,
         };
 

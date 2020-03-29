@@ -6,8 +6,7 @@ pub struct Tableswitch;
 impl Instruction for Tableswitch {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::tableswitch.into(),
-            code: codes[pc],
+            op_code: OpCode::tableswitch,
             icp: 0,
         };
 

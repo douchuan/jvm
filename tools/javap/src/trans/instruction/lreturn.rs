@@ -6,8 +6,7 @@ pub struct Lreturn;
 impl Instruction for Lreturn {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lreturn.into(),
-            code: codes[pc],
+            op_code: OpCode::lreturn,
             icp: 0,
         };
 

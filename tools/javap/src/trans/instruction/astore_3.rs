@@ -7,8 +7,7 @@ pub struct Astore_3;
 impl Instruction for Astore_3 {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::astore_3.into(),
-            code: codes[pc],
+            op_code: OpCode::astore_3,
             icp: 0,
         };
 

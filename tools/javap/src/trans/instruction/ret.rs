@@ -8,8 +8,7 @@ pub struct Ret {
 impl Instruction for Ret {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ret.into(),
-            code: codes[pc],
+            op_code: OpCode::ret,
             icp: 0,
         };
 

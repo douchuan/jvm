@@ -6,8 +6,7 @@ pub struct Iflt;
 impl Instruction for Iflt {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::iflt.into(),
-            code: codes[pc],
+            op_code: OpCode::iflt,
             icp: 0,
         };
 

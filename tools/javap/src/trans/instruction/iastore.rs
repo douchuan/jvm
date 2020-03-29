@@ -6,8 +6,7 @@ pub struct Iastore;
 impl Instruction for Iastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::iastore.into(),
-            code: codes[pc],
+            op_code: OpCode::iastore,
             icp: 0,
         };
 

@@ -7,8 +7,7 @@ pub struct If_Icmpne;
 impl Instruction for If_Icmpne {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::if_icmpne.into(),
-            code: codes[pc],
+            op_code: OpCode::if_icmpne,
             icp: 0,
         };
 

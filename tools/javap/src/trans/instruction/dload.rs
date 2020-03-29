@@ -8,8 +8,7 @@ pub struct Dload {
 impl Instruction for Dload {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::dload.into(),
-            code: codes[pc],
+            op_code: OpCode::dload,
             icp: 0,
         };
 

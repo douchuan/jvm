@@ -6,8 +6,7 @@ pub struct Laload;
 impl Instruction for Laload {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::laload.into(),
-            code: codes[pc],
+            op_code: OpCode::laload,
             icp: 0,
         };
 

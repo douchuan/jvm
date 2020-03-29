@@ -6,8 +6,7 @@ pub struct Lushr;
 impl Instruction for Lushr {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lushr.into(),
-            code: codes[pc],
+            op_code: OpCode::lushr,
             icp: 0,
         };
 

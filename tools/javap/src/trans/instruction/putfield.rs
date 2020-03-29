@@ -6,8 +6,7 @@ pub struct Putfield;
 impl Instruction for Putfield {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::putfield.into(),
-            code: codes[pc],
+            op_code: OpCode::putfield,
             icp: self.calc_cp_index_u16(codes, pc),
         };
 

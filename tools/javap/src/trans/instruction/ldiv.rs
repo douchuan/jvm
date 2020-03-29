@@ -6,8 +6,7 @@ pub struct Ldiv;
 impl Instruction for Ldiv {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ldiv.into(),
-            code: codes[pc],
+            op_code: OpCode::ldiv,
             icp: 0,
         };
 

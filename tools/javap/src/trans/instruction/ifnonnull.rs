@@ -6,8 +6,7 @@ pub struct Ifnonnull;
 impl Instruction for Ifnonnull {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ifnonnull.into(),
-            code: codes[pc],
+            op_code: OpCode::ifnonnull,
             icp: 0,
         };
 

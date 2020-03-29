@@ -8,8 +8,7 @@ pub struct Iinc {
 impl Instruction for Iinc {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::iinc.into(),
-            code: codes[pc],
+            op_code: OpCode::iinc,
             icp: 0,
         };
 

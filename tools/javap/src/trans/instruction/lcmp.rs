@@ -6,8 +6,7 @@ pub struct Lcmp;
 impl Instruction for Lcmp {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::lcmp.into(),
-            code: codes[pc],
+            op_code: OpCode::lcmp,
             icp: 0,
         };
 

@@ -6,8 +6,7 @@ pub struct L2D;
 impl Instruction for L2D {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::l2d.into(),
-            code: codes[pc],
+            op_code: OpCode::l2d,
             icp: 0,
         };
 

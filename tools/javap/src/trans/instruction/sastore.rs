@@ -6,8 +6,7 @@ pub struct Sastore;
 impl Instruction for Sastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::sastore.into(),
-            code: codes[pc],
+            op_code: OpCode::sastore,
             icp: 0,
         };
 

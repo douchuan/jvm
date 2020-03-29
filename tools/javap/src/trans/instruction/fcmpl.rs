@@ -6,8 +6,7 @@ pub struct Fcmpl;
 impl Instruction for Fcmpl {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fcmpl.into(),
-            code: codes[pc],
+            op_code: OpCode::fcmpl,
             icp: 0,
         };
 

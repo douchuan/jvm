@@ -6,8 +6,7 @@ pub struct Ishr;
 impl Instruction for Ishr {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ishr.into(),
-            code: codes[pc],
+            op_code: OpCode::ishr,
             icp: 0,
         };
 

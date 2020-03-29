@@ -5,10 +5,9 @@ use classfile::OpCode;
 pub struct Aload_1;
 
 impl Instruction for Aload_1 {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::aload_1.into(),
-            code: codes[pc],
+            op_code: OpCode::aload_1,
             icp: 0,
         };
 

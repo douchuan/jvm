@@ -6,8 +6,7 @@ pub struct Bastore;
 impl Instruction for Bastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::bastore.into(),
-            code: codes[pc],
+            op_code: OpCode::bastore,
             icp: 0,
         };
 

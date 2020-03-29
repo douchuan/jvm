@@ -6,8 +6,7 @@ pub struct Dneg;
 impl Instruction for Dneg {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::dneg.into(),
-            code: codes[pc],
+            op_code: OpCode::dneg,
             icp: 0,
         };
 

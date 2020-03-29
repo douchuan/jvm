@@ -7,8 +7,7 @@ pub struct Fconst_0;
 impl Instruction for Fconst_0 {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fconst_0.into(),
-            code: codes[pc],
+            op_code: OpCode::fconst_0,
             icp: 0,
         };
 

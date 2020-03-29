@@ -6,8 +6,7 @@ pub struct Swap;
 impl Instruction for Swap {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::swap.into(),
-            code: codes[pc],
+            op_code: OpCode::swap,
             icp: 0,
         };
 

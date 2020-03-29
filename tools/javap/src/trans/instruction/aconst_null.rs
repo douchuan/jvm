@@ -5,10 +5,9 @@ use classfile::OpCode;
 pub struct Aconst_Null;
 
 impl Instruction for Aconst_Null {
-    fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
+    fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::aconst_null.into(),
-            code: codes[pc],
+            op_code: OpCode::aconst_null,
             icp: 0,
         };
 

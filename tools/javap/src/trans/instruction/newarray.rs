@@ -6,8 +6,7 @@ pub struct Newarray;
 impl Instruction for Newarray {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::newarray.into(),
-            code: codes[pc],
+            op_code: OpCode::newarray,
             icp: 0,
         };
 

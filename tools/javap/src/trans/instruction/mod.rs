@@ -224,6 +224,7 @@ use bipush::Bipush;
 use caload::Caload;
 use castore::Castore;
 use checkcast::Checkcast;
+use classfile::OpCode;
 use d2f::D2F;
 use d2i::D2I;
 use d2l::D2L;
@@ -405,8 +406,7 @@ use tableswitch::Tableswitch;
 use wide::Wide;
 
 pub struct InstructionInfo {
-    pub name: &'static str,
-    pub code: u8,
+    pub op_code: OpCode,
     pub icp: usize,
 }
 

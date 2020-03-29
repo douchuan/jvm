@@ -7,8 +7,7 @@ pub struct Dstore_2;
 impl Instruction for Dstore_2 {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::dstore_2.into(),
-            code: codes[pc],
+            op_code: OpCode::dstore_2,
             icp: 0,
         };
 

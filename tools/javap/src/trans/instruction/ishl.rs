@@ -6,8 +6,7 @@ pub struct Ishl;
 impl Instruction for Ishl {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::ishl.into(),
-            code: codes[pc],
+            op_code: OpCode::ishl,
             icp: 0,
         };
 

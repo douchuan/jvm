@@ -6,8 +6,7 @@ pub struct Fastore;
 impl Instruction for Fastore {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::fastore.into(),
-            code: codes[pc],
+            op_code: OpCode::fastore,
             icp: 0,
         };
 

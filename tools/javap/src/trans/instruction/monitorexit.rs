@@ -6,8 +6,7 @@ pub struct Monitorexit;
 impl Instruction for Monitorexit {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::monitorexit.into(),
-            code: codes[pc],
+            op_code: OpCode::monitorexit,
             icp: 0,
         };
 

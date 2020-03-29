@@ -205,7 +205,7 @@ instructions = [
 ("sipush", 3, 17),
 ("swap", 1, 95),
 ("tableswitch", "variable-length instruction", 170),
-("wide", "variable-length instruction", 196),
+("wide", 1, 196),
 ]
 
 def create_get_instructions(ary):
@@ -242,8 +242,7 @@ def create_mod(instruction):
         f.write("impl Instruction for " + name.title() + " {\n")
         f.write("   fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {\n")
         f.write("       let info = InstructionInfo {\n")
-        f.write("           name: OpCode::" + name + ".into(),\n")
-        f.write("           code: codes[pc],\n")
+        f.write("           op_code: OpCode::" + name + ",\n")
         if name in ["instanceof", "multianewarray", "invokevirtual", "anewarray", "checkcast", 
             "putfield", "getfield", "getstatic", "invokespecial", "ldc2_w", "invokeinterface", 
             "new", "invokestatic", "ldc_w", "putstatic", "invokedynamic"]:
@@ -253,7 +252,7 @@ def create_mod(instruction):
         f.write("       };\n")
         f.write("\n")
         if name in ["lookupswitch", "tableswitch", "wide"]:
-            f.write("\tunimplemented!(\"" + step + "\")")
+            f.write("\tunimplemented!(\"" + str(step) + "\")")
         else:
             f.write("       (info, pc + " + str(step) + ")\n")
         f.write("   }\n")

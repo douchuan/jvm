@@ -6,8 +6,7 @@ pub struct Irem;
 impl Instruction for Irem {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::irem.into(),
-            code: codes[pc],
+            op_code: OpCode::irem,
             icp: 0,
         };
 

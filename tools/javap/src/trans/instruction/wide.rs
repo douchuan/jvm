@@ -6,8 +6,7 @@ pub struct Wide;
 impl Instruction for Wide {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
         let info = InstructionInfo {
-            name: OpCode::wide.into(),
-            code: codes[pc],
+            op_code: OpCode::wide,
             icp: 0,
         };
 
