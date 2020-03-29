@@ -67,7 +67,9 @@ impl Disassemble {
                 .map(|it| MethodInfoSerde {
                     desc: it.desc.clone(),
                     line_number_table: vec![],
+                    codes: vec![],
                     enable_line_number: false,
+                    enable_code: false,
                 })
                 .collect()
         };
@@ -113,20 +115,34 @@ impl Disassemble {
             methods
                 .iter()
                 .map(|it| {
-                    let line_number_table: Vec<LineNumberSerde> = it
-                        .line_num_table
-                        .iter()
-                        .map(|it| LineNumberSerde {
-                            start_pc: it.start_pc,
-                            line_number: it.number,
-                        })
-                        .collect();
+                    let enable_line_number = self.enable_line_number;
+                    let enable_code = self.enable_code;
+
+                    let line_number_table: Vec<LineNumberSerde> = if enable_line_number {
+                        it.line_num_table
+                            .iter()
+                            .map(|it| LineNumberSerde {
+                                start_pc: it.start_pc,
+                                line_number: it.number,
+                            })
+                            .collect()
+                    } else {
+                        vec![]
+                    };
+
+                    let codes: Vec<String> = if enable_code {
+                        it.codes.clone()
+                    } else {
+                        vec![]
+                    };
 
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
+                        codes,
 
-                        enable_line_number: self.enable_line_number,
+                        enable_line_number,
+                        enable_code,
                     }
                 })
                 .collect()
@@ -168,20 +184,34 @@ impl Disassemble {
             methods
                 .iter()
                 .map(|it| {
-                    let line_number_table: Vec<LineNumberSerde> = it
-                        .line_num_table
-                        .iter()
-                        .map(|it| LineNumberSerde {
-                            start_pc: it.start_pc,
-                            line_number: it.number,
-                        })
-                        .collect();
+                    let enable_line_number = self.enable_line_number;
+                    let enable_code = self.enable_code;
+
+                    let line_number_table: Vec<LineNumberSerde> = if enable_line_number {
+                        it.line_num_table
+                            .iter()
+                            .map(|it| LineNumberSerde {
+                                start_pc: it.start_pc,
+                                line_number: it.number,
+                            })
+                            .collect()
+                    } else {
+                        vec![]
+                    };
+
+                    let codes: Vec<String> = if enable_code {
+                        it.codes.clone()
+                    } else {
+                        vec![]
+                    };
 
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
+                        codes,
 
-                        enable_line_number: self.enable_line_number,
+                        enable_line_number,
+                        enable_code,
                     }
                 })
                 .collect()

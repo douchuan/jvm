@@ -12,8 +12,10 @@ pub struct ClassInfoSerde {
 pub struct MethodInfoSerde {
     pub desc: String,
     pub line_number_table: Vec<LineNumberSerde>,
+    pub codes: Vec<String>,
 
     pub enable_line_number: bool,
+    pub enable_code: bool,
 }
 
 #[derive(Serialize)]

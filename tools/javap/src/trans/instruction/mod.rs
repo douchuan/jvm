@@ -411,12 +411,68 @@ pub struct InstructionInfo {
     pub icp: usize,
 }
 
+impl InstructionInfo {
+    pub fn assemble(&self, codes: &[u8]) -> String {
+        let op_code: &'static str = self.op_code.into();
+        if self.icp != 0 {
+            format!("{}: {} #{}", self.pc, op_code, self.icp)
+        } else {
+            match self.op_code {
+                OpCode::astore => {
+                    let index = codes[self.pc + 1];
+                    format!("{}: {} {}", self.pc, op_code, index)
+                }
+                OpCode::if_acmpeq
+                | OpCode::if_acmpne
+                | OpCode::if_icmpeq
+                | OpCode::if_icmpne
+                | OpCode::if_icmplt
+                | OpCode::if_icmpge
+                | OpCode::if_icmpgt
+                | OpCode::if_icmple
+                | OpCode::ifeq
+                | OpCode::ifne
+                | OpCode::iflt
+                | OpCode::ifge
+                | OpCode::ifgt
+                | OpCode::ifle
+                | OpCode::ifnonnull
+                | OpCode::ifnull => {
+                    let branch = construct_i16(codes, self.pc);
+                    format!("{}: {} {}", self.pc, op_code, branch)
+                }
+                OpCode::goto => {
+                    let branch = construct_i16(codes, self.pc);
+                    let target = self.pc as i32 + branch as i32;
+                    format!("{}: {} {}", self.pc, op_code, target)
+                }
+                OpCode::iinc => {
+                    let index = codes[self.pc + 1];
+                    let const_v = (codes[self.pc + 2] as i8) as i32;
+                    format!("{}: {} {}, {}", self.pc, op_code, index, const_v)
+                }
+                _ => format!("{}: {}", self.pc, op_code),
+            }
+        }
+    }
+}
+
+fn construct_usize(codes: &[u8], pc: usize) -> usize {
+    let indexbyte1 = codes[pc + 1] as u16;
+    let indexbyte2 = codes[pc + 2] as u16;
+    (indexbyte1 << 8 | indexbyte2) as usize
+}
+
+fn construct_i16(codes: &[u8], pc: usize) -> i16 {
+    let indexbyte1 = codes[pc + 1] as i16;
+    let indexbyte2 = codes[pc + 2] as i16;
+    indexbyte1 << 8 | indexbyte2
+}
+
 pub trait Instruction {
     fn run(&self, codes: &[u8], pc: usize) -> (InstructionInfo, usize);
     fn calc_cp_index_u16(&self, codes: &[u8], pc: usize) -> usize {
-        let indexbyte1 = codes[pc + 1] as i16;
-        let indexbyte2 = codes[pc + 2] as i16;
-        ((indexbyte1 << 8 | indexbyte2) as i32) as usize
+        construct_usize(codes, pc)
     }
     fn set_wide(&mut self, _wide: bool) {
         unimplemented!()

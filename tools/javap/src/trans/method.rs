@@ -1,4 +1,3 @@
-use crate::trans::instruction::InstructionInfo;
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::CodeTranslator;
 use crate::trans::SignatureTypeTranslator;
@@ -8,7 +7,7 @@ use handlebars::Handlebars;
 pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
-    pub codes: Vec<InstructionInfo>,
+    pub codes: Vec<String>,
 }
 
 pub struct Translator<'a> {
