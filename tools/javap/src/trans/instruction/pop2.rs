@@ -9,6 +9,7 @@ impl Instruction for Pop2 {
             pc,
             op_code: OpCode::pop2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

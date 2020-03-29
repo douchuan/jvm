@@ -9,6 +9,7 @@ impl Instruction for Castore {
             pc,
             op_code: OpCode::castore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

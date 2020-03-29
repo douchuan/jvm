@@ -9,6 +9,7 @@ impl Instruction for Dastore {
             pc,
             op_code: OpCode::dastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

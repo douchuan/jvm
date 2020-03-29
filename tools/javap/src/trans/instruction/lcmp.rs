@@ -9,6 +9,7 @@ impl Instruction for Lcmp {
             pc,
             op_code: OpCode::lcmp,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

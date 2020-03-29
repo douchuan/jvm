@@ -10,6 +10,7 @@ impl Instruction for Goto_W {
             pc,
             op_code: OpCode::goto_w,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 5)

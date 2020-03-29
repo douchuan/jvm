@@ -9,6 +9,7 @@ impl Instruction for Putfield {
             pc,
             op_code: OpCode::putfield,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

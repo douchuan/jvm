@@ -9,6 +9,7 @@ impl Instruction for Dmul {
             pc,
             op_code: OpCode::dmul,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

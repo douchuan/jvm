@@ -9,6 +9,7 @@ impl Instruction for Fdiv {
             pc,
             op_code: OpCode::fdiv,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

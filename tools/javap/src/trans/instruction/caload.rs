@@ -9,6 +9,7 @@ impl Instruction for Caload {
             pc,
             op_code: OpCode::caload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

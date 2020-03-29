@@ -9,6 +9,7 @@ impl Instruction for Ldc {
             pc,
             op_code: OpCode::ldc,
             icp: codes[pc + 1] as usize,
+            wide: false,
         };
 
         (info, pc + 2)

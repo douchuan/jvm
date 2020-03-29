@@ -9,6 +9,7 @@ impl Instruction for Drem {
             pc,
             op_code: OpCode::drem,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for Fneg {
             pc,
             op_code: OpCode::fneg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

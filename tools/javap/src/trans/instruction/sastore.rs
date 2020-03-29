@@ -9,6 +9,7 @@ impl Instruction for Sastore {
             pc,
             op_code: OpCode::sastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

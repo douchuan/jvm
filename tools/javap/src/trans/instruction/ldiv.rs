@@ -9,6 +9,7 @@ impl Instruction for Ldiv {
             pc,
             op_code: OpCode::ldiv,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

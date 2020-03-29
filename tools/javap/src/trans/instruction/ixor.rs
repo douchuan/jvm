@@ -9,6 +9,7 @@ impl Instruction for Ixor {
             pc,
             op_code: OpCode::ixor,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for Goto {
             pc,
             op_code: OpCode::goto,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

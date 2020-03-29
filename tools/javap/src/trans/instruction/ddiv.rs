@@ -9,6 +9,7 @@ impl Instruction for Ddiv {
             pc,
             op_code: OpCode::ddiv,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

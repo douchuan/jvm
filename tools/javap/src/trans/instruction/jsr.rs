@@ -9,6 +9,7 @@ impl Instruction for Jsr {
             pc,
             op_code: OpCode::jsr,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

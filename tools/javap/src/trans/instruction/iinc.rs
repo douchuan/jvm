@@ -7,13 +7,15 @@ pub struct Iinc {
 
 impl Instruction for Iinc {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
-        let info = InstructionInfo {
+        let mut info = InstructionInfo {
             pc,
             op_code: OpCode::iinc,
             icp: 0,
+            wide: false,
         };
 
         if self.wide {
+            info.wide = self.wide;
             (info, pc + 5)
         } else {
             (info, pc + 3)

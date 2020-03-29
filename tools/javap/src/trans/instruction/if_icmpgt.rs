@@ -10,6 +10,7 @@ impl Instruction for If_Icmpgt {
             pc,
             op_code: OpCode::if_icmpgt,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

@@ -9,6 +9,7 @@ impl Instruction for Ishl {
             pc,
             op_code: OpCode::ishl,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

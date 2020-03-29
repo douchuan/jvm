@@ -9,6 +9,7 @@ impl Instruction for Fcmpg {
             pc,
             op_code: OpCode::fcmpg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

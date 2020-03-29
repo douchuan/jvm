@@ -9,6 +9,7 @@ impl Instruction for I2B {
             pc,
             op_code: OpCode::i2b,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for I2C {
             pc,
             op_code: OpCode::i2c,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

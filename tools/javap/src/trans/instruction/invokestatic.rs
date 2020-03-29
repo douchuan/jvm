@@ -9,6 +9,7 @@ impl Instruction for Invokestatic {
             pc,
             op_code: OpCode::invokestatic,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

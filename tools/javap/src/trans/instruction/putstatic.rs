@@ -9,6 +9,7 @@ impl Instruction for Putstatic {
             pc,
             op_code: OpCode::putstatic,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

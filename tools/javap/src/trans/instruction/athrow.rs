@@ -9,6 +9,7 @@ impl Instruction for Athrow {
             pc,
             op_code: OpCode::athrow,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

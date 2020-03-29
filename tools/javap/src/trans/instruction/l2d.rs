@@ -9,6 +9,7 @@ impl Instruction for L2D {
             pc,
             op_code: OpCode::l2d,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

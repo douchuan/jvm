@@ -9,6 +9,7 @@ impl Instruction for Iastore {
             pc,
             op_code: OpCode::iastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

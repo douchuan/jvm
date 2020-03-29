@@ -10,6 +10,7 @@ impl Instruction for Istore_3 {
             pc,
             op_code: OpCode::istore_3,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

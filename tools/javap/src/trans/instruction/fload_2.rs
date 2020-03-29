@@ -10,6 +10,7 @@ impl Instruction for Fload_2 {
             pc,
             op_code: OpCode::fload_2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

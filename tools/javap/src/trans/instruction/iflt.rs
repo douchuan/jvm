@@ -9,6 +9,7 @@ impl Instruction for Iflt {
             pc,
             op_code: OpCode::iflt,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

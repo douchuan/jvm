@@ -9,6 +9,7 @@ impl Instruction for Monitorenter {
             pc,
             op_code: OpCode::monitorenter,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for Astore_3 {
             pc,
             op_code: OpCode::astore_3,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

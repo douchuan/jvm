@@ -9,6 +9,7 @@ impl Instruction for Arraylength {
             pc,
             op_code: OpCode::arraylength,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

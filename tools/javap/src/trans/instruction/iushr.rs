@@ -9,6 +9,7 @@ impl Instruction for Iushr {
             pc,
             op_code: OpCode::iushr,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

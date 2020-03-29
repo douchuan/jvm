@@ -9,6 +9,7 @@ impl Instruction for Ifnonnull {
             pc,
             op_code: OpCode::ifnonnull,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

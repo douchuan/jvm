@@ -9,6 +9,7 @@ impl Instruction for Aastore {
             pc,
             op_code: OpCode::aastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

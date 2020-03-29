@@ -9,6 +9,7 @@ impl Instruction for I2D {
             pc,
             op_code: OpCode::i2d,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

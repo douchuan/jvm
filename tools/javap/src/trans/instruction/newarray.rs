@@ -9,6 +9,7 @@ impl Instruction for Newarray {
             pc,
             op_code: OpCode::newarray,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 2)

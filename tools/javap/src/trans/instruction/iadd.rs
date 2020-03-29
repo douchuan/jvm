@@ -9,6 +9,7 @@ impl Instruction for Iadd {
             pc,
             op_code: OpCode::iadd,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

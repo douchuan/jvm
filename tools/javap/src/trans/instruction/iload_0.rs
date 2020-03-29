@@ -10,6 +10,7 @@ impl Instruction for Iload_0 {
             pc,
             op_code: OpCode::iload_0,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

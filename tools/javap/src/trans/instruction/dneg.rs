@@ -9,6 +9,7 @@ impl Instruction for Dneg {
             pc,
             op_code: OpCode::dneg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

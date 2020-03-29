@@ -9,6 +9,7 @@ impl Instruction for Iand {
             pc,
             op_code: OpCode::iand,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

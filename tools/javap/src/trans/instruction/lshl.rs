@@ -9,6 +9,7 @@ impl Instruction for Lshl {
             pc,
             op_code: OpCode::lshl,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

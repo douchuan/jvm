@@ -9,6 +9,7 @@ impl Instruction for Swap {
             pc,
             op_code: OpCode::swap,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

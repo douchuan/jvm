@@ -10,6 +10,7 @@ impl Instruction for If_Icmpne {
             pc,
             op_code: OpCode::if_icmpne,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

@@ -9,6 +9,7 @@ impl Instruction for L2I {
             pc,
             op_code: OpCode::l2i,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

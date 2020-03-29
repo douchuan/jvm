@@ -9,6 +9,7 @@ impl Instruction for Bipush {
             pc,
             op_code: OpCode::bipush,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 2)

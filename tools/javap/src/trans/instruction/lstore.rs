@@ -7,13 +7,15 @@ pub struct Lstore {
 
 impl Instruction for Lstore {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
-        let info = InstructionInfo {
+        let mut info = InstructionInfo {
             pc,
             op_code: OpCode::lstore,
             icp: 0,
+            wide: false,
         };
 
         if self.wide {
+            info.wide = self.wide;
             (info, pc + 3)
         } else {
             (info, pc + 2)

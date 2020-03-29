@@ -9,6 +9,7 @@ impl Instruction for Dsub {
             pc,
             op_code: OpCode::dsub,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for I2L {
             pc,
             op_code: OpCode::i2l,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

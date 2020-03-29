@@ -9,6 +9,7 @@ impl Instruction for Ishr {
             pc,
             op_code: OpCode::ishr,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

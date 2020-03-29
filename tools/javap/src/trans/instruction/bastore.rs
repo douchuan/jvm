@@ -9,6 +9,7 @@ impl Instruction for Bastore {
             pc,
             op_code: OpCode::bastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for Dup_X1 {
             pc,
             op_code: OpCode::dup_x1,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

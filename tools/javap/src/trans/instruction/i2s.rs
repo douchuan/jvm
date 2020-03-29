@@ -9,6 +9,7 @@ impl Instruction for I2S {
             pc,
             op_code: OpCode::i2s,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

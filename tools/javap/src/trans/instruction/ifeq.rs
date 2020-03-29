@@ -9,6 +9,7 @@ impl Instruction for Ifeq {
             pc,
             op_code: OpCode::ifeq,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

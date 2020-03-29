@@ -9,6 +9,7 @@ impl Instruction for Lshr {
             pc,
             op_code: OpCode::lshr,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

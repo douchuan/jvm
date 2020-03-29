@@ -411,6 +411,7 @@ pub struct InstructionInfo {
     pub pc: usize,
     pub op_code: OpCode,
     pub icp: usize,
+    pub wide: bool,
 }
 
 impl InstructionInfo {
@@ -501,7 +502,10 @@ impl InstructionInfo {
                 let v = String::from_utf8_lossy(v.as_slice());
                 format!("String {}", v)
             }
-            _ => unimplemented!(),
+            _ => {
+                let op_code: &'static str = self.op_code.into();
+                unimplemented!("op_code = {}, icp = {}", op_code, self.icp)
+            }
         }
     }
 }

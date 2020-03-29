@@ -9,6 +9,7 @@ impl Instruction for Wide {
             pc,
             op_code: OpCode::wide,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

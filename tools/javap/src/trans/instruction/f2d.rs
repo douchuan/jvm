@@ -9,6 +9,7 @@ impl Instruction for F2D {
             pc,
             op_code: OpCode::f2d,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for Lmul {
             pc,
             op_code: OpCode::lmul,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

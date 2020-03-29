@@ -9,6 +9,7 @@ impl Instruction for D2I {
             pc,
             op_code: OpCode::d2i,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

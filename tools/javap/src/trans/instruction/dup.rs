@@ -9,6 +9,7 @@ impl Instruction for Dup {
             pc,
             op_code: OpCode::dup,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

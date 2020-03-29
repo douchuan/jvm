@@ -10,6 +10,7 @@ impl Instruction for Fconst_2 {
             pc,
             op_code: OpCode::fconst_2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

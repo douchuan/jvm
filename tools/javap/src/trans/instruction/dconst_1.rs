@@ -10,6 +10,7 @@ impl Instruction for Dconst_1 {
             pc,
             op_code: OpCode::dconst_1,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

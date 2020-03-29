@@ -10,6 +10,7 @@ impl Instruction for Return_Void {
             pc,
             op_code: OpCode::return_void,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

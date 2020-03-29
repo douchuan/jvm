@@ -9,6 +9,7 @@ impl Instruction for Fsub {
             pc,
             op_code: OpCode::fsub,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

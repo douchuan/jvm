@@ -9,6 +9,7 @@ impl Instruction for Ineg {
             pc,
             op_code: OpCode::ineg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

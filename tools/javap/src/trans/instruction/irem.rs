@@ -9,6 +9,7 @@ impl Instruction for Irem {
             pc,
             op_code: OpCode::irem,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

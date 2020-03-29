@@ -9,6 +9,7 @@ impl Instruction for Dup2 {
             pc,
             op_code: OpCode::dup2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

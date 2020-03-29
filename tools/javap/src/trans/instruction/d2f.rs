@@ -9,6 +9,7 @@ impl Instruction for D2F {
             pc,
             op_code: OpCode::d2f,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for Aconst_Null {
             pc,
             op_code: OpCode::aconst_null,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

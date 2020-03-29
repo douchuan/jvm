@@ -9,6 +9,7 @@ impl Instruction for Instanceof {
             pc,
             op_code: OpCode::instanceof,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

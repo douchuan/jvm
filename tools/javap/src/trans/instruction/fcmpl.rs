@@ -9,6 +9,7 @@ impl Instruction for Fcmpl {
             pc,
             op_code: OpCode::fcmpl,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

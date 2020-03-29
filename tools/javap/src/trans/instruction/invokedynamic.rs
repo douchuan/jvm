@@ -9,6 +9,7 @@ impl Instruction for Invokedynamic {
             pc,
             op_code: OpCode::invokedynamic,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 5)

@@ -9,6 +9,7 @@ impl Instruction for L2F {
             pc,
             op_code: OpCode::l2f,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

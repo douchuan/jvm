@@ -9,6 +9,7 @@ impl Instruction for Freturn {
             pc,
             op_code: OpCode::freturn,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

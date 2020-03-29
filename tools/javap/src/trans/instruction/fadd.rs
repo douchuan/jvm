@@ -9,6 +9,7 @@ impl Instruction for Fadd {
             pc,
             op_code: OpCode::fadd,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

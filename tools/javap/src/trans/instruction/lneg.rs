@@ -9,6 +9,7 @@ impl Instruction for Lneg {
             pc,
             op_code: OpCode::lneg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

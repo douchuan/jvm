@@ -9,6 +9,7 @@ impl Instruction for Iaload {
             pc,
             op_code: OpCode::iaload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

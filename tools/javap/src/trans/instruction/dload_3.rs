@@ -10,6 +10,7 @@ impl Instruction for Dload_3 {
             pc,
             op_code: OpCode::dload_3,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

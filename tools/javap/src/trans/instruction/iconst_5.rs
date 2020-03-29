@@ -10,6 +10,7 @@ impl Instruction for Iconst_5 {
             pc,
             op_code: OpCode::iconst_5,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

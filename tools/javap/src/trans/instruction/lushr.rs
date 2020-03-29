@@ -9,6 +9,7 @@ impl Instruction for Lushr {
             pc,
             op_code: OpCode::lushr,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

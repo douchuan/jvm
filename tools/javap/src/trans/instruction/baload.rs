@@ -9,6 +9,7 @@ impl Instruction for Baload {
             pc,
             op_code: OpCode::baload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for If_Acmpeq {
             pc,
             op_code: OpCode::if_acmpeq,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

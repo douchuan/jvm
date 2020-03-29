@@ -9,6 +9,7 @@ impl Instruction for Lastore {
             pc,
             op_code: OpCode::lastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

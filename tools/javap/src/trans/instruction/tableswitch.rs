@@ -9,6 +9,7 @@ impl Instruction for Tableswitch {
             pc,
             op_code: OpCode::tableswitch,
             icp: 0,
+            wide: false,
         };
 
         let mut bc = pc;

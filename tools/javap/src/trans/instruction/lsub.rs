@@ -9,6 +9,7 @@ impl Instruction for Lsub {
             pc,
             op_code: OpCode::lsub,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

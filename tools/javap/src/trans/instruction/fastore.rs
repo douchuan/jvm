@@ -9,6 +9,7 @@ impl Instruction for Fastore {
             pc,
             op_code: OpCode::fastore,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for Fstore_2 {
             pc,
             op_code: OpCode::fstore_2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

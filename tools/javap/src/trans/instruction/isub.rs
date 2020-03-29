@@ -9,6 +9,7 @@ impl Instruction for Isub {
             pc,
             op_code: OpCode::isub,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

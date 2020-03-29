@@ -9,6 +9,7 @@ impl Instruction for Ior {
             pc,
             op_code: OpCode::ior,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

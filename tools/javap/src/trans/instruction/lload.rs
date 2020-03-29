@@ -7,13 +7,15 @@ pub struct Lload {
 
 impl Instruction for Lload {
     fn run(&self, _codes: &[u8], pc: usize) -> (InstructionInfo, usize) {
-        let info = InstructionInfo {
+        let mut info = InstructionInfo {
             pc,
             op_code: OpCode::lload,
             icp: 0,
+            wide: false,
         };
 
         if self.wide {
+            info.wide = self.wide;
             (info, pc + 3)
         } else {
             (info, pc + 2)

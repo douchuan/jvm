@@ -10,6 +10,7 @@ impl Instruction for Ldc2_W {
             pc,
             op_code: OpCode::ldc2_w,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

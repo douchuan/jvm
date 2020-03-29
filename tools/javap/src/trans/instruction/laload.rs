@@ -9,6 +9,7 @@ impl Instruction for Laload {
             pc,
             op_code: OpCode::laload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

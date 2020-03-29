@@ -9,6 +9,7 @@ impl Instruction for Ireturn {
             pc,
             op_code: OpCode::ireturn,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

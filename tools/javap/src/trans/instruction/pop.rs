@@ -9,6 +9,7 @@ impl Instruction for Pop {
             pc,
             op_code: OpCode::pop,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

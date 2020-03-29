@@ -9,6 +9,7 @@ impl Instruction for Land {
             pc,
             op_code: OpCode::land,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

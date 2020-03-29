@@ -10,6 +10,7 @@ impl Instruction for If_Icmple {
             pc,
             op_code: OpCode::if_icmple,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

@@ -9,6 +9,7 @@ impl Instruction for Dadd {
             pc,
             op_code: OpCode::dadd,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for Ifge {
             pc,
             op_code: OpCode::ifge,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

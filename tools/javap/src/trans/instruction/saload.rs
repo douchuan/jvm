@@ -9,6 +9,7 @@ impl Instruction for Saload {
             pc,
             op_code: OpCode::saload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

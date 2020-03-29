@@ -9,6 +9,7 @@ impl Instruction for I2F {
             pc,
             op_code: OpCode::i2f,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

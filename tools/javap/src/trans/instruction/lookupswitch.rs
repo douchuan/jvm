@@ -9,6 +9,7 @@ impl Instruction for Lookupswitch {
             pc,
             op_code: OpCode::lookupswitch,
             icp: 0,
+            wide: false,
         };
 
         let mut bc = pc;

@@ -9,6 +9,7 @@ impl Instruction for Dreturn {
             pc,
             op_code: OpCode::dreturn,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

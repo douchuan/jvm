@@ -9,6 +9,7 @@ impl Instruction for Lxor {
             pc,
             op_code: OpCode::lxor,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -10,6 +10,7 @@ impl Instruction for Lstore_0 {
             pc,
             op_code: OpCode::lstore_0,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

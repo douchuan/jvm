@@ -9,6 +9,7 @@ impl Instruction for Getfield {
             pc,
             op_code: OpCode::getfield,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 3)

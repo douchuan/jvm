@@ -9,6 +9,7 @@ impl Instruction for Imul {
             pc,
             op_code: OpCode::imul,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

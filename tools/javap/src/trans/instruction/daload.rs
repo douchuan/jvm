@@ -9,6 +9,7 @@ impl Instruction for Daload {
             pc,
             op_code: OpCode::daload,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 2)

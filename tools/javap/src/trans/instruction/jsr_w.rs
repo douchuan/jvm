@@ -10,6 +10,7 @@ impl Instruction for Jsr_W {
             pc,
             op_code: OpCode::jsr_w,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 5)

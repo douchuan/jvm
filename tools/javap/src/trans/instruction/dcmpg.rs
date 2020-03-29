@@ -9,6 +9,7 @@ impl Instruction for Dcmpg {
             pc,
             op_code: OpCode::dcmpg,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

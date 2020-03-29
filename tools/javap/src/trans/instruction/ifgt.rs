@@ -9,6 +9,7 @@ impl Instruction for Ifgt {
             pc,
             op_code: OpCode::ifgt,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

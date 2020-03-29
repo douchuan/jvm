@@ -9,6 +9,7 @@ impl Instruction for Lrem {
             pc,
             op_code: OpCode::lrem,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

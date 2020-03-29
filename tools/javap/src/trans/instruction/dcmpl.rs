@@ -9,6 +9,7 @@ impl Instruction for Dcmpl {
             pc,
             op_code: OpCode::dcmpl,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

@@ -9,6 +9,7 @@ impl Instruction for Sipush {
             pc,
             op_code: OpCode::sipush,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

@@ -9,6 +9,7 @@ impl Instruction for Monitorexit {
             pc,
             op_code: OpCode::monitorexit,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

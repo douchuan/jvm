@@ -9,6 +9,7 @@ impl Instruction for Nop {
             pc,
             op_code: OpCode::nop,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

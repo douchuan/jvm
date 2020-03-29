@@ -9,6 +9,7 @@ impl Instruction for Lreturn {
             pc,
             op_code: OpCode::lreturn,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

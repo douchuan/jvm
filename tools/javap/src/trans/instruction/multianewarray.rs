@@ -9,6 +9,7 @@ impl Instruction for Multianewarray {
             pc,
             op_code: OpCode::multianewarray,
             icp: self.calc_cp_index_u16(codes, pc),
+            wide: false,
         };
 
         (info, pc + 4)

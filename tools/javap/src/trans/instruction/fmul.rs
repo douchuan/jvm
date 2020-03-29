@@ -9,6 +9,7 @@ impl Instruction for Fmul {
             pc,
             op_code: OpCode::fmul,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

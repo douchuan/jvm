@@ -9,6 +9,7 @@ impl Instruction for Frem {
             pc,
             op_code: OpCode::frem,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

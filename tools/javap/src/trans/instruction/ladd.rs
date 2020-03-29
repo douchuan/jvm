@@ -9,6 +9,7 @@ impl Instruction for Ladd {
             pc,
             op_code: OpCode::ladd,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

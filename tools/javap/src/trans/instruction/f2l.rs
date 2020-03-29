@@ -9,6 +9,7 @@ impl Instruction for F2L {
             pc,
             op_code: OpCode::f2l,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)

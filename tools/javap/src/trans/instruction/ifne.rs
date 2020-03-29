@@ -9,6 +9,7 @@ impl Instruction for Ifne {
             pc,
             op_code: OpCode::ifne,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 3)

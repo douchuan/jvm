@@ -10,6 +10,7 @@ impl Instruction for Dstore_2 {
             pc,
             op_code: OpCode::dstore_2,
             icp: 0,
+            wide: false,
         };
 
         (info, pc + 1)
