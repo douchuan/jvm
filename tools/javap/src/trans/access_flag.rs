@@ -110,6 +110,7 @@ pub trait AccessFlagHelper {
     fn is_varargs(&self) -> bool;
     fn is_native(&self) -> bool;
     fn is_strict(&self) -> bool;
+    fn is_package(&self) -> bool;
 }
 
 impl AccessFlagHelper for AccessFlag {
@@ -175,5 +176,9 @@ impl AccessFlagHelper for AccessFlag {
 
     fn is_strict(&self) -> bool {
         (*self & class_flags::ACC_STRICT) != 0
+    }
+
+    fn is_package(&self) -> bool {
+        *self == 0
     }
 }

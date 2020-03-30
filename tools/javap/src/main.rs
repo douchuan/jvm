@@ -76,6 +76,7 @@ fn main() {
         .arg(
             Arg::with_name("public")
                 .long("public")
+                .conflicts_with_all(&["protected", "package", "private"])
                 .help("Show only public classes and members"),
         )
         .arg(

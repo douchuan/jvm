@@ -3,11 +3,13 @@ use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use clap::ArgMatches;
+use classfile::flags as access_flags;
 use classfile::ClassFile;
 
 pub struct Disassemble {
     enable_line_number: bool,
     enable_code: bool,
+    acc_flags: u16,
 }
 
 impl Cmd for Disassemble {
@@ -26,10 +28,31 @@ impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
         let enable_line_number = m.is_present("line_number");
         let enable_code = m.is_present("disassemble");
+        let acc_flags = Self::build_acc_flags(m);
+
         Some(Self {
             enable_line_number,
             enable_code,
+            acc_flags,
         })
+    }
+
+    fn build_acc_flags(m: &ArgMatches) -> u16 {
+        let mut flags = 0;
+
+        if m.is_present("public") {
+            flags = access_flags::ACC_PUBLIC;
+        }
+
+        if m.is_present("protected") {
+            flags = access_flags::ACC_PROTECTED;
+        }
+
+        if m.is_present("private") {
+            flags = access_flags::ACC_PRIVATE;
+        }
+
+        flags
     }
 }
 
@@ -55,9 +78,9 @@ impl Disassemble {
         };
 
         let source_file = trans::class_source_file(&cf);
-        let fields = trans::class_fields(&cf);
+        let fields = trans::class_fields(&cf, self.acc_flags);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, false, false);
+            let methods = trans::class_methods(&cf, false, false, self.acc_flags);
             methods
                 .iter()
                 .map(|it| MethodInfoSerde {
@@ -105,9 +128,14 @@ impl Disassemble {
             head_parts.join(" ")
         };
 
-        let fields = trans::class_fields(&cf);
+        let fields = trans::class_fields(&cf, self.acc_flags);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, self.enable_line_number, self.enable_code);
+            let methods = trans::class_methods(
+                &cf,
+                self.enable_line_number,
+                self.enable_code,
+                self.acc_flags,
+            );
             methods
                 .iter()
                 .map(|it| {
@@ -174,9 +202,14 @@ impl Disassemble {
             head_parts.join(" ")
         };
 
-        let fields = trans::class_fields(&cf);
+        let fields = trans::class_fields(&cf, self.acc_flags);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, self.enable_line_number, self.enable_code);
+            let methods = trans::class_methods(
+                &cf,
+                self.enable_line_number,
+                self.enable_code,
+                self.acc_flags,
+            );
             methods
                 .iter()
                 .map(|it| {

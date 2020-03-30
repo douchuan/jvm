@@ -44,18 +44,19 @@ pub fn class_signature(cf: &ClassFile) -> String {
     x.signature()
 }
 
-pub fn class_fields(cf: &ClassFile) -> Vec<String> {
+pub fn class_fields(cf: &ClassFile, flags: u16) -> Vec<String> {
     let x = ClassFileTranslator::new(cf);
-    x.fields()
+    x.fields(flags)
 }
 
 pub fn class_methods(
     cf: &ClassFile,
     with_line_num: bool,
     with_code: bool,
+    flags: u16,
 ) -> Vec<MethodTranslation> {
     let x = ClassFileTranslator::new(cf);
-    x.methods(with_line_num, with_code)
+    x.methods(with_line_num, with_code, flags)
 }
 
 pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {

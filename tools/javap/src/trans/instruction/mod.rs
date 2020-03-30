@@ -500,7 +500,7 @@ impl InstructionInfo {
                 }
             }
             ConstantPoolType::FieldRef {
-                class_index,
+                class_index: _,
                 name_and_type_index,
             } => {
                 // let class_name = constant_pool::get_class_name(cp, *class_index as usize).unwrap();

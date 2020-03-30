@@ -1,13 +1,13 @@
 use handlebars::Handlebars;
 
 pub const PART_FIELDS: &str = "
-{{#each fields}}
+{{~#each fields}}
   {{ this }}
 {{/each}}";
 
 pub const PART_METHODS: &str = "
-{{#each methods as |method|}}
-  {{ method.desc ~}}
+{{~#each methods as |method|}}
+  {{ method.desc }}
   {{~#if enable_code}}
     Code:
     {{~#each method.codes}}
@@ -24,8 +24,8 @@ pub const PART_METHODS: &str = "
 
 pub const CLASS: &str = "Compiled from \"{{source_file}}\"
 {{class_head}} {
-  {{~> fields ~}}
-  {{~> methods ~}}
+  {{~> fields }}
+  {{~> methods }}
 }";
 
 pub fn get_engine() -> Handlebars<'static> {

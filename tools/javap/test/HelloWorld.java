@@ -22,4 +22,20 @@ public final class HelloWorld
             }
         }
     }
+
+    private void private_method() {
+        System.out.println("I'm private method");
+    }
+
+    protected void protected_method() {
+        System.out.println("I'm protected method");
+    }
+
+    void package_method() {
+        System.out.println("I'm package method");
+    }
+
+    public void public_method() {
+        System.out.println("I'm public method");
+    }
 } 

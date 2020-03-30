@@ -88,12 +88,38 @@ impl<'a> Translator<'a> {
         String::from(S_UNKNOWN)
     }
 
-    pub fn methods(&self, with_line_num: bool, with_code: bool) -> Vec<MethodTranslation> {
+    /*
+    desc = public HelloWorld();, acc_flags = 1
+    desc = public static void main(java.lang.String[]);, acc_flags = 9
+    desc = private void private_method();, acc_flags = 2
+    desc = protected void protected_method();, acc_flags = 4
+    desc = void package_method();, acc_flags = 0
+    desc = public void public_method();, acc_flags = 1
+    */
+    pub fn methods(
+        &self,
+        with_line_num: bool,
+        with_code: bool,
+        flags: u16,
+    ) -> Vec<MethodTranslation> {
         let mut methods = Vec::with_capacity(self.cf.methods.len());
         for it in self.cf.methods.iter() {
-            if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() || it.acc_flags.is_private()
-            {
+            if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() {
                 continue;
+            }
+
+            if flags == 0 {
+                if it.acc_flags.is_private() {
+                    continue;
+                }
+            } else if flags.is_public() {
+                if !it.acc_flags.is_public() {
+                    continue;
+                }
+            } else if flags.is_protected() {
+                if it.acc_flags == 0 || it.acc_flags.is_private() {
+                    continue;
+                }
             }
 
             let t = MethodTranslator::new(self.cf, it);
@@ -103,13 +129,30 @@ impl<'a> Translator<'a> {
         methods
     }
 
-    pub fn fields(&self) -> Vec<String> {
+    pub fn fields(&self, flags: u16) -> Vec<String> {
         let mut fields = Vec::with_capacity(self.cf.fields.len());
         for it in self.cf.fields.iter() {
-            if !it.acc_flags.is_synthetic() {
-                let t = FieldTranslator::new(self.cf, it);
-                fields.push(t.get());
+            let t = FieldTranslator::new(self.cf, it);
+
+            if it.acc_flags.is_synthetic() {
+                continue;
             }
+
+            if flags == 0 {
+                if it.acc_flags.is_private() {
+                    continue;
+                }
+            } else if flags.is_public() {
+                if !it.acc_flags.is_public() {
+                    continue;
+                }
+            } else if flags.is_protected() {
+                if it.acc_flags == 0 || it.acc_flags.is_private() {
+                    continue;
+                }
+            }
+
+            fields.push(t.get());
         }
 
         fields
