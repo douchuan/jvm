@@ -26,14 +26,10 @@ impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
         let enable_line_number = m.is_present("line_number");
         let enable_code = m.is_present("disassemble");
-        if enable_line_number || enable_code {
-            Some(Self {
-                enable_line_number,
-                enable_code,
-            })
-        } else {
-            None
-        }
+        Some(Self {
+            enable_line_number,
+            enable_code,
+        })
     }
 }
 
@@ -169,9 +165,9 @@ impl Disassemble {
         let access_flags = trans::class_access_flags(&cf);
         head_parts.push(access_flags.as_str());
         head_parts.push(this_class.as_str());
-        let class_head = if cf.super_class != 0 {
+        let super_class = trans::class_super_class(&cf);
+        let class_head = if super_class != "java.lang.Object" {
             head_parts.push("extends");
-            let super_class = trans::class_super_class(&cf);
             head_parts.push(super_class.as_str());
             head_parts.join(" ")
         } else {

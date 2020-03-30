@@ -44,8 +44,6 @@ impl<'a> Translator<'a> {
     }
 
     pub fn super_class(&self) -> String {
-        assert_ne!(self.cf.super_class, 0);
-
         constant_pool::get_class_name(&self.cf.cp, self.cf.super_class as usize).map_or_else(
             || S_UNKNOWN.into(),
             |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
