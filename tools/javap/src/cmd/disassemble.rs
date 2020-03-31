@@ -12,18 +12,6 @@ pub struct Disassemble {
     acc_flags: u16,
 }
 
-impl Cmd for Disassemble {
-    fn run(&self, cf: ClassFile) {
-        if cf.acc_flags.is_interface() {
-            self.render_interface(cf);
-        } else if cf.acc_flags.is_enum() {
-            self.render_enum(cf);
-        } else {
-            self.render_class(cf);
-        }
-    }
-}
-
 impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
         let enable_line_number = m.is_present("line_number");
@@ -36,23 +24,17 @@ impl Disassemble {
             acc_flags,
         })
     }
+}
 
-    fn build_acc_flags(m: &ArgMatches) -> u16 {
-        let mut flags = 0;
-
-        if m.is_present("public") {
-            flags = access_flags::ACC_PUBLIC;
+impl Cmd for Disassemble {
+    fn run(&self, cf: ClassFile) {
+        if cf.acc_flags.is_interface() {
+            self.render_interface(cf);
+        } else if cf.acc_flags.is_enum() {
+            self.render_enum(cf);
+        } else {
+            self.render_class(cf);
         }
-
-        if m.is_present("protected") {
-            flags = access_flags::ACC_PROTECTED;
-        }
-
-        if m.is_present("private") {
-            flags = access_flags::ACC_PRIVATE;
-        }
-
-        flags
     }
 }
 
@@ -254,5 +236,25 @@ impl Disassemble {
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
+    }
+}
+
+impl Disassemble {
+    fn build_acc_flags(m: &ArgMatches) -> u16 {
+        let mut flags = 0;
+
+        if m.is_present("public") {
+            flags = access_flags::ACC_PUBLIC;
+        }
+
+        if m.is_present("protected") {
+            flags = access_flags::ACC_PROTECTED;
+        }
+
+        if m.is_present("private") {
+            flags = access_flags::ACC_PRIVATE;
+        }
+
+        flags
     }
 }

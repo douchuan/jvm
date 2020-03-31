@@ -108,18 +108,8 @@ impl<'a> Translator<'a> {
                 continue;
             }
 
-            if flags == 0 {
-                if it.acc_flags.is_private() {
-                    continue;
-                }
-            } else if flags.is_public() {
-                if !it.acc_flags.is_public() {
-                    continue;
-                }
-            } else if flags.is_protected() {
-                if it.acc_flags == 0 || it.acc_flags.is_private() {
-                    continue;
-                }
+            if flags.compare(it.acc_flags) > 0 {
+                continue;
             }
 
             let t = MethodTranslator::new(self.cf, it);
@@ -138,18 +128,8 @@ impl<'a> Translator<'a> {
                 continue;
             }
 
-            if flags == 0 {
-                if it.acc_flags.is_private() {
-                    continue;
-                }
-            } else if flags.is_public() {
-                if !it.acc_flags.is_public() {
-                    continue;
-                }
-            } else if flags.is_protected() {
-                if it.acc_flags == 0 || it.acc_flags.is_private() {
-                    continue;
-                }
+            if flags.compare(it.acc_flags) > 0 {
+                continue;
             }
 
             fields.push(t.get());

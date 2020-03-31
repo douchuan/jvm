@@ -111,6 +111,7 @@ pub trait AccessFlagHelper {
     fn is_native(&self) -> bool;
     fn is_strict(&self) -> bool;
     fn is_package(&self) -> bool;
+    fn compare(&self, other: u16) -> i32;
 }
 
 impl AccessFlagHelper for AccessFlag {
@@ -180,5 +181,32 @@ impl AccessFlagHelper for AccessFlag {
 
     fn is_package(&self) -> bool {
         *self == 0
+    }
+
+    //compare access permission
+    //  *self >  other,  1
+    //  *self == other,  0
+    //  *self <  other, -1
+    fn compare(&self, other: u16) -> i32 {
+        let flags = *self;
+        if flags == other {
+            return 0;
+        }
+
+        if flags == 0 {
+            if other.is_private() {
+                return 1;
+            }
+        } else if flags.is_public() {
+            if !other.is_public() {
+                return 1;
+            }
+        } else if flags.is_protected() {
+            if other == 0 || other.is_private() {
+                return 1;
+            }
+        }
+
+        -1
     }
 }
