@@ -5,5 +5,5 @@ mod disassemble;
 pub use disassemble::Disassemble;
 
 pub trait Cmd {
-    fn run(&self, cf: ClassFile);
+    fn run(&self, class_path: &str, cf: ClassFile);
 }

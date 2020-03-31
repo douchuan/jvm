@@ -1,5 +1,5 @@
 use crate::cmd::Cmd;
-use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde};
+use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde, SysInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use clap::ArgMatches;
@@ -10,6 +10,7 @@ pub struct Disassemble {
     enable_line_number: bool,
     enable_code: bool,
     acc_flags: u16,
+    enable_sys_info: bool,
 }
 
 impl Disassemble {
@@ -17,17 +18,19 @@ impl Disassemble {
         let enable_line_number = m.is_present("line_number");
         let enable_code = m.is_present("disassemble");
         let acc_flags = Self::build_acc_flags(m);
+        let enable_sys_info = m.is_present("sysinfo");
 
         Some(Self {
             enable_line_number,
             enable_code,
             acc_flags,
+            enable_sys_info,
         })
     }
 }
 
 impl Cmd for Disassemble {
-    fn run(&self, cf: ClassFile) {
+    fn run(&self, class_path: &str, cf: ClassFile) {
         if cf.acc_flags.is_interface() {
             self.render_interface(cf);
         } else if cf.acc_flags.is_enum() {
@@ -42,6 +45,7 @@ impl Disassemble {
     fn render_interface(&self, cf: ClassFile) {
         let reg = template::get_engine();
 
+        let sys_info = self.get_sys_info(&cf);
         //build class_head
         let mut head_parts = vec![];
         let this_class = trans::class_this_class(&cf);
@@ -76,6 +80,8 @@ impl Disassemble {
         };
 
         let data = ClassInfoSerde {
+            enable_sys_info: self.enable_sys_info,
+            sys_info,
             source_file,
             class_head,
             fields,
@@ -88,6 +94,7 @@ impl Disassemble {
     fn render_enum(&self, cf: ClassFile) {
         let reg = template::get_engine();
 
+        let mut sys_info = self.get_sys_info(&cf);
         let source_file = trans::class_source_file(&cf);
 
         //build class_head
@@ -155,6 +162,8 @@ impl Disassemble {
         };
 
         let data = ClassInfoSerde {
+            enable_sys_info: self.enable_sys_info,
+            sys_info,
             source_file,
             class_head,
             fields,
@@ -167,6 +176,7 @@ impl Disassemble {
     fn render_class(&self, cf: ClassFile) {
         let reg = template::get_engine();
 
+        let sys_info = self.get_sys_info(&cf);
         let source_file = trans::class_source_file(&cf);
 
         //build class_head
@@ -229,6 +239,8 @@ impl Disassemble {
         };
 
         let data = ClassInfoSerde {
+            enable_sys_info: self.enable_sys_info,
+            sys_info,
             source_file,
             class_head,
             fields,
@@ -236,6 +248,27 @@ impl Disassemble {
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
+    }
+
+    fn get_sys_info(&self, cf: &ClassFile) -> SysInfoSerde {
+        if self.enable_sys_info {
+            let source_file = trans::class_source_file(&cf);
+            SysInfoSerde {
+                class_file: "xxxx".to_string(),
+                last_modified: "xxx".to_string(),
+                size: 0,
+                checksum: "xxxx".to_string(),
+                compiled_from: source_file
+            }
+        } else {
+            SysInfoSerde {
+                class_file: "".to_string(),
+                last_modified: "".to_string(),
+                size: 0,
+                checksum: "".to_string(),
+                compiled_from: "".to_string()
+            }
+        }
     }
 }
 

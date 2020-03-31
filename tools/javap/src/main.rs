@@ -146,7 +146,7 @@ fn main() {
                 match misc::find_class(it) {
                     Ok(r) => {
                         let _ = parse_class(&r.1).and_then(|(_, cf)| {
-                            commander.run(cf);
+                            commander.run(r.0.as_str(), cf);
                             Ok(())
                         });
                     }
