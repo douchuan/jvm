@@ -258,7 +258,7 @@ impl Disassemble {
                 last_modified: "xxx".to_string(),
                 size: 0,
                 checksum: "xxxx".to_string(),
-                compiled_from: source_file
+                compiled_from: source_file,
             }
         } else {
             SysInfoSerde {
@@ -266,7 +266,7 @@ impl Disassemble {
                 last_modified: "".to_string(),
                 size: 0,
                 checksum: "".to_string(),
-                compiled_from: "".to_string()
+                compiled_from: "".to_string(),
             }
         }
     }
