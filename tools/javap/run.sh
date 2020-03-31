@@ -36,3 +36,9 @@ export RUST_BACKTRACE=full
 
 ### conflict args, error
 #cargo run -- --cp test --private --public HelloWorld
+
+### sysinfo
+#cargo run -q -- --cp test --sysinfo HelloWorld
+#cargo run -q -- --cp test/testng-6.8.21.jar --sysinfo org.testng.collections.Lists
+#cargo run -q -- --cp test HelloWorld
+

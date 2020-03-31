@@ -1,3 +1,4 @@
+use crate::misc::SysInfo;
 use classfile::ClassFile;
 
 mod disassemble;
@@ -5,5 +6,5 @@ mod disassemble;
 pub use disassemble::Disassemble;
 
 pub trait Cmd {
-    fn run(&self, class_path: &str, cf: ClassFile);
+    fn run(&self, si: &SysInfo, cf: ClassFile);
 }

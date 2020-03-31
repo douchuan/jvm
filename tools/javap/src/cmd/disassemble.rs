@@ -1,4 +1,5 @@
 use crate::cmd::Cmd;
+use crate::misc::SysInfo;
 use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde, SysInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
@@ -30,22 +31,22 @@ impl Disassemble {
 }
 
 impl Cmd for Disassemble {
-    fn run(&self, class_path: &str, cf: ClassFile) {
+    fn run(&self, si: &SysInfo, cf: ClassFile) {
         if cf.acc_flags.is_interface() {
-            self.render_interface(cf);
+            self.render_interface(si, cf);
         } else if cf.acc_flags.is_enum() {
-            self.render_enum(cf);
+            self.render_enum(si, cf);
         } else {
-            self.render_class(cf);
+            self.render_class(si, cf);
         }
     }
 }
 
 impl Disassemble {
-    fn render_interface(&self, cf: ClassFile) {
+    fn render_interface(&self, si: &SysInfo, cf: ClassFile) {
         let reg = template::get_engine();
 
-        let sys_info = self.get_sys_info(&cf);
+        let sys_info = self.get_sys_info(si, &cf);
         //build class_head
         let mut head_parts = vec![];
         let this_class = trans::class_this_class(&cf);
@@ -91,10 +92,10 @@ impl Disassemble {
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 
-    fn render_enum(&self, cf: ClassFile) {
+    fn render_enum(&self, si: &SysInfo, cf: ClassFile) {
         let reg = template::get_engine();
 
-        let mut sys_info = self.get_sys_info(&cf);
+        let sys_info = self.get_sys_info(si, &cf);
         let source_file = trans::class_source_file(&cf);
 
         //build class_head
@@ -173,10 +174,10 @@ impl Disassemble {
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 
-    fn render_class(&self, cf: ClassFile) {
+    fn render_class(&self, si: &SysInfo, cf: ClassFile) {
         let reg = template::get_engine();
 
-        let sys_info = self.get_sys_info(&cf);
+        let sys_info = self.get_sys_info(si, &cf);
         let source_file = trans::class_source_file(&cf);
 
         //build class_head
@@ -250,14 +251,14 @@ impl Disassemble {
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
     }
 
-    fn get_sys_info(&self, cf: &ClassFile) -> SysInfoSerde {
+    fn get_sys_info(&self, si: &SysInfo, cf: &ClassFile) -> SysInfoSerde {
         if self.enable_sys_info {
             let source_file = trans::class_source_file(&cf);
             SysInfoSerde {
-                class_file: "xxxx".to_string(),
-                last_modified: "xxx".to_string(),
-                size: 0,
-                checksum: "xxxx".to_string(),
+                class_file: si.class_file.clone(),
+                last_modified: si.last_modified.clone(),
+                size: si.size,
+                checksum: si.checksum.clone(),
                 compiled_from: source_file,
             }
         } else {

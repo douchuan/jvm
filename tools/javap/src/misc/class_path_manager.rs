@@ -5,6 +5,8 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
+use time::OffsetDateTime;
 use zip::ZipArchive;
 
 lazy_static! {
@@ -31,7 +33,16 @@ pub fn add_paths(path: &str) {
 }
 
 #[derive(Debug)]
-pub struct ClassPathResult(pub String, pub Vec<u8>);
+// pub struct ClassPathResult(pub SysInfo, pub Vec<u8>);
+pub struct ClassPathResult(pub SysInfo, pub Vec<u8>);
+
+#[derive(Debug, Clone)]
+pub struct SysInfo {
+    pub class_file: String,
+    pub last_modified: String,
+    pub size: usize,
+    pub checksum: String,
+}
 
 type ZipRef = Arc<Mutex<Box<ZipArchive<File>>>>;
 
@@ -90,10 +101,19 @@ impl ClassPathManager {
                     p.push_str(".class");
                     match File::open(&p) {
                         Ok(mut f) => {
-                            let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
+                            //todo: process error
+                            let meta = f.metadata().unwrap();
+                            let mut v = Vec::with_capacity(meta.len() as usize);
                             let _ = f.read_to_end(&mut v);
 
-                            return Ok(ClassPathResult(p, v));
+                            let sys_info = SysInfo {
+                                class_file: build_abs_path(&p),
+                                last_modified: last_modified(meta.modified().unwrap()),
+                                size: meta.len() as usize,
+                                checksum: md5_checksum(v.as_slice()),
+                            };
+
+                            return Ok(ClassPathResult(sys_info, v));
                         }
 
                         _ => (),
@@ -112,7 +132,22 @@ impl ClassPathManager {
                             let mut v = Vec::with_capacity(zf.size() as usize);
                             let r = zf.read_to_end(&mut v);
                             assert!(r.is_ok());
-                            return Ok(ClassPathResult(path.clone(), v));
+
+                            let mut class_file = String::from("jar:file:");
+                            let jar_abs = build_abs_path(path);
+                            class_file.push_str(jar_abs.as_str());
+                            class_file.push_str("!/");
+                            class_file.push_str(p.as_str());
+
+                            let t = zf.last_modified().to_time().to_timespec().sec;
+                            let sys_info = SysInfo {
+                                class_file,
+                                last_modified: last_modified2(t),
+                                size: zf.size() as usize,
+                                checksum: md5_checksum(v.as_slice()),
+                            };
+
+                            return Ok(ClassPathResult(sys_info, v));
                         }
 
                         _ => (),
@@ -130,4 +165,32 @@ impl ClassPathManager {
     pub fn size(&self) -> usize {
         self.runtime_class_path.len()
     }
+}
+
+fn build_abs_path(p: &str) -> String {
+    let src = std::path::PathBuf::from(p);
+    match std::fs::canonicalize(&src) {
+        Ok(pb) => pb.to_string_lossy().to_string(),
+        Err(_) => String::new(),
+    }
+}
+
+fn md5_checksum(data: &[u8]) -> String {
+    let digest = md5::compute(data);
+    format!("{:x}", digest)
+}
+
+fn last_modified(t: SystemTime) -> String {
+    match t.duration_since(std::time::SystemTime::UNIX_EPOCH) {
+        Ok(t) => {
+            let odt = OffsetDateTime::from_unix_timestamp(t.as_secs() as i64);
+            odt.format("%b %-d, %Y")
+        }
+        Err(_) => "".to_string(),
+    }
+}
+
+fn last_modified2(sec: i64) -> String {
+    let odt = OffsetDateTime::from_unix_timestamp(sec);
+    odt.format("%b %-d, %Y")
 }
