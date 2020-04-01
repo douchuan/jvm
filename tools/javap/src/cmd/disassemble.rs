@@ -18,12 +18,12 @@ pub struct Disassemble {
 
 impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
-        let enable_line_number = m.is_present("line_number");
-        let enable_code = m.is_present("disassemble");
-        let acc_flags = Self::build_acc_flags(m);
-        let enable_sys_info = m.is_present("sysinfo");
-        let enable_inner_signature = m.is_present("signatures");
         let enable_verbose = m.is_present("verbose");
+        let enable_line_number = enable_verbose || m.is_present("line_number");
+        let enable_code = enable_verbose || m.is_present("disassemble");
+        let acc_flags = Self::build_acc_flags(m);
+        let enable_sys_info = enable_verbose || m.is_present("sysinfo");
+        let enable_inner_signature = enable_verbose || m.is_present("signatures");
 
         Some(Self {
             enable_line_number,
@@ -31,7 +31,7 @@ impl Disassemble {
             acc_flags,
             enable_sys_info,
             enable_inner_signature,
-            enable_verbose
+            enable_verbose,
         })
     }
 }
@@ -79,7 +79,7 @@ impl Disassemble {
                 .map(|it| MethodInfoSerde {
                     desc: it.desc.clone(),
                     line_number_table: vec![],
-                    codes: vec![],
+                    code: Default::default(),
                     signature: it.signature.clone(),
                     enable_line_number: false,
                     enable_code: false,
@@ -152,16 +152,18 @@ impl Disassemble {
                         vec![]
                     };
 
-                    let codes = if enable_code {
-                        it.codes.clone()
+                    let code = if enable_code {
+                        let mut code = it.code.clone();
+                        code.enable_verbose = self.enable_verbose;
+                        code
                     } else {
-                        vec![]
+                        Default::default()
                     };
 
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
-                        codes,
+                        code,
                         signature: it.signature.clone(),
                         enable_line_number,
                         enable_code,
@@ -230,16 +232,18 @@ impl Disassemble {
                         vec![]
                     };
 
-                    let codes = if enable_code {
-                        it.codes.clone()
+                    let code = if enable_code {
+                        let mut code = it.code.clone();
+                        code.enable_verbose = self.enable_verbose;
+                        code
                     } else {
-                        vec![]
+                        Default::default()
                     };
 
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
-                        codes,
+                        code,
                         signature: it.signature.clone(),
                         enable_line_number,
                         enable_code,

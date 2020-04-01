@@ -1,13 +1,14 @@
-use crate::trans::AccessFlagsTranslator;
+use crate::sd::CodeSerde;
 use crate::trans::CodeTranslator;
 use crate::trans::SignatureTypeTranslator;
+use crate::trans::{AccessFlagHelper, AccessFlagsTranslator};
 use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
-    pub codes: Vec<String>,
+    pub code: CodeSerde,
     pub signature: String,
 }
 
@@ -30,26 +31,38 @@ impl<'a> Translator<'a> {
         } else {
             vec![]
         };
-        let codes = if with_code {
+        let code = if with_code {
             match self.method.get_code() {
                 Some(code) => {
                     let t = CodeTranslator {
                         cf: self.cf,
                         code: &code,
                     };
-                    t.get()
+                    let codes = t.get();
+                    let args_size = if self.method.acc_flags.is_static() {
+                        self.args().len()
+                    } else {
+                        self.args().len() + 1
+                    };
+                    CodeSerde {
+                        max_stack: code.max_stack,
+                        max_locals: code.max_locals,
+                        args_size,
+                        codes,
+                        enable_verbose: false,
+                    }
                 }
-                None => vec![],
+                None => Default::default(),
             }
         } else {
-            vec![]
+            Default::default()
         };
         let signature = self.signature();
 
         MethodTranslation {
             desc,
             line_num_table,
-            codes,
+            code,
             signature,
         }
     }

@@ -12,12 +12,22 @@ pub struct ClassInfoSerde {
 pub struct MethodInfoSerde {
     pub desc: String,
     pub line_number_table: Vec<LineNumberSerde>,
-    pub codes: Vec<String>,
     pub signature: String,
+    pub code: CodeSerde,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
     pub enable_inner_signature: bool,
+}
+
+#[derive(Serialize, Clone)]
+pub struct CodeSerde {
+    pub max_stack: u16,
+    pub max_locals: u16,
+    pub args_size: usize,
+    pub codes: Vec<String>,
+
+    pub enable_verbose: bool,
 }
 
 #[derive(Serialize)]
@@ -51,6 +61,19 @@ impl Default for SysInfoSerde {
             size: 0,
             checksum: "".to_string(),
             compiled_from: "".to_string(),
+        }
+    }
+}
+
+impl Default for CodeSerde {
+    fn default() -> Self {
+        Self {
+            max_stack: 0,
+            max_locals: 0,
+            args_size: 0,
+            codes: vec![],
+
+            enable_verbose: false,
         }
     }
 }

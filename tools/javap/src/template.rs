@@ -16,14 +16,17 @@ pub const PART_FIELDS: &str = "
 {{/each}}";
 
 pub const PART_METHODS: &str = "
-{{~#each methods as |method|}}
+{{~#each methods}}
   {{ desc }}
   {{~#if enable_inner_signature}}
     descriptor: {{signature~}}
   {{/if}}
   {{~#if enable_code}}
     Code:
-    {{~#each method.codes}}
+    {{~#if code.enable_verbose}}
+      stack={{code.max_stack}}, locals={{code.max_locals}}, args_size={{code.args_size~}}
+    {{/if}}
+    {{~#each code.codes}}
       {{this ~}}
     {{/each}}
   {{/if}}
