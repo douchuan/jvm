@@ -8,30 +8,33 @@ use classfile::flags as access_flags;
 use classfile::ClassFile;
 
 pub struct Disassemble {
+    acc_flags: u16,
+
+    enable_verbose: bool,
     enable_line_number: bool,
     enable_code: bool,
-    acc_flags: u16,
     enable_sys_info: bool,
     enable_inner_signature: bool,
-    enable_verbose: bool,
 }
 
 impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
+        let acc_flags = Self::build_acc_flags(m);
+
         let enable_verbose = m.is_present("verbose");
         let enable_line_number = enable_verbose || m.is_present("line_number");
         let enable_code = enable_verbose || m.is_present("disassemble");
-        let acc_flags = Self::build_acc_flags(m);
         let enable_sys_info = enable_verbose || m.is_present("sysinfo");
         let enable_inner_signature = enable_verbose || m.is_present("signatures");
 
         Some(Self {
+            acc_flags,
+
+            enable_verbose,
             enable_line_number,
             enable_code,
-            acc_flags,
             enable_sys_info,
             enable_inner_signature,
-            enable_verbose,
         })
     }
 }

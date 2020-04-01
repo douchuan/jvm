@@ -32,7 +32,7 @@ pub const PART_METHODS: &str = "
   {{/if}}
   {{~#if enable_line_number}}
     LineNumberTable:
-      {{~#each method.line_number_table}}
+      {{~#each line_number_table}}
         line {{line_number}}: {{start_pc ~}}
       {{/each}}
   {{/if}}
