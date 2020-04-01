@@ -32,28 +32,7 @@ impl<'a> Translator<'a> {
             vec![]
         };
         let code = if with_code {
-            match self.method.get_code() {
-                Some(code) => {
-                    let t = CodeTranslator {
-                        cf: self.cf,
-                        code: &code,
-                    };
-                    let codes = t.get();
-                    let args_size = if self.method.acc_flags.is_static() {
-                        self.args().len()
-                    } else {
-                        self.args().len() + 1
-                    };
-                    CodeSerde {
-                        max_stack: code.max_stack,
-                        max_locals: code.max_locals,
-                        args_size,
-                        codes,
-                        enable_verbose: false,
-                    }
-                }
-                None => Default::default(),
-            }
+            self.code()
         } else {
             Default::default()
         };
@@ -143,5 +122,30 @@ impl<'a> Translator<'a> {
     fn signature(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
         String::from_utf8_lossy(desc.as_slice()).to_string()
+    }
+
+    fn code(&self) -> CodeSerde {
+        match self.method.get_code() {
+            Some(code) => {
+                let t = CodeTranslator {
+                    cf: self.cf,
+                    code: &code,
+                };
+                let codes = t.get();
+                let args_size = if self.method.acc_flags.is_static() {
+                    self.args().len()
+                } else {
+                    self.args().len() + 1
+                };
+                CodeSerde {
+                    max_stack: code.max_stack,
+                    max_locals: code.max_locals,
+                    args_size,
+                    codes,
+                    enable_verbose: false,
+                }
+            }
+            None => Default::default(),
+        }
     }
 }
