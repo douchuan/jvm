@@ -262,13 +262,7 @@ impl Disassemble {
                 compiled_from: source_file,
             }
         } else {
-            SysInfoSerde {
-                class_file: "".to_string(),
-                last_modified: "".to_string(),
-                size: 0,
-                checksum: "".to_string(),
-                compiled_from: "".to_string(),
-            }
+            SysInfoSerde::default()
         }
     }
 }

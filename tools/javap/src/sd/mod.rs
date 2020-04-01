@@ -34,3 +34,15 @@ pub struct SysInfoSerde {
     pub checksum: String,
     pub compiled_from: String,
 }
+
+impl Default for SysInfoSerde {
+    fn default() -> Self {
+        Self {
+            class_file: "".to_string(),
+            last_modified: "".to_string(),
+            size: 0,
+            checksum: "".to_string(),
+            compiled_from: "".to_string(),
+        }
+    }
+}
