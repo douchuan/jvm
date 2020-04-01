@@ -1,5 +1,3 @@
-mod code;
-
 #[derive(Serialize)]
 pub struct ClassInfoSerde {
     pub enable_sys_info: bool,

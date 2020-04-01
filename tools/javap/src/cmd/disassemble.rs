@@ -13,6 +13,7 @@ pub struct Disassemble {
     acc_flags: u16,
     enable_sys_info: bool,
     enable_inner_signature: bool,
+    enable_verbose: bool,
 }
 
 impl Disassemble {
@@ -22,6 +23,7 @@ impl Disassemble {
         let acc_flags = Self::build_acc_flags(m);
         let enable_sys_info = m.is_present("sysinfo");
         let enable_inner_signature = m.is_present("signatures");
+        let enable_verbose = m.is_present("verbose");
 
         Some(Self {
             enable_line_number,
@@ -29,6 +31,7 @@ impl Disassemble {
             acc_flags,
             enable_sys_info,
             enable_inner_signature,
+            enable_verbose
         })
     }
 }
