@@ -8,6 +8,7 @@ pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
     pub codes: Vec<String>,
+    pub signature: String,
 }
 
 pub struct Translator<'a> {
@@ -43,11 +44,13 @@ impl<'a> Translator<'a> {
         } else {
             vec![]
         };
+        let signature = self.signature();
 
         MethodTranslation {
             desc,
             line_num_table,
             codes,
+            signature,
         }
     }
 }
@@ -122,5 +125,10 @@ impl<'a> Translator<'a> {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
         let signature = MethodSignature::new(desc.as_slice());
         signature.args.iter().map(|it| it.into_string()).collect()
+    }
+
+    fn signature(&self) -> String {
+        let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
+        String::from_utf8_lossy(desc.as_slice()).to_string()
     }
 }

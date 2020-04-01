@@ -6,7 +6,7 @@ pub struct ClassInfoSerde {
     pub sys_info: SysInfoSerde,
     pub source_file: String,
     pub class_head: String,
-    pub fields: Vec<String>,
+    pub fields: Vec<FieldInfoSerde>,
     pub methods: Vec<MethodInfoSerde>,
 }
 
@@ -15,9 +15,19 @@ pub struct MethodInfoSerde {
     pub desc: String,
     pub line_number_table: Vec<LineNumberSerde>,
     pub codes: Vec<String>,
+    pub signature: String,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
+    pub enable_inner_signature: bool,
+}
+
+#[derive(Serialize)]
+pub struct FieldInfoSerde {
+    pub desc: String,
+    pub signature: String,
+
+    pub enable_inner_signature: bool,
 }
 
 #[derive(Serialize)]

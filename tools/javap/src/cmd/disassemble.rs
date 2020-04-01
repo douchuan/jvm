@@ -1,6 +1,6 @@
 use crate::cmd::Cmd;
 use crate::misc::SysInfo;
-use crate::sd::{ClassInfoSerde, LineNumberSerde, MethodInfoSerde, SysInfoSerde};
+use crate::sd::{ClassInfoSerde, FieldInfoSerde, LineNumberSerde, MethodInfoSerde, SysInfoSerde};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use clap::ArgMatches;
@@ -12,6 +12,7 @@ pub struct Disassemble {
     enable_code: bool,
     acc_flags: u16,
     enable_sys_info: bool,
+    enable_inner_signature: bool,
 }
 
 impl Disassemble {
@@ -20,12 +21,14 @@ impl Disassemble {
         let enable_code = m.is_present("disassemble");
         let acc_flags = Self::build_acc_flags(m);
         let enable_sys_info = m.is_present("sysinfo");
+        let enable_inner_signature = m.is_present("signatures");
 
         Some(Self {
             enable_line_number,
             enable_code,
             acc_flags,
             enable_sys_info,
+            enable_inner_signature,
         })
     }
 }
@@ -65,7 +68,7 @@ impl Disassemble {
         };
 
         let source_file = trans::class_source_file(&cf);
-        let fields = trans::class_fields(&cf, self.acc_flags);
+        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(&cf, false, false, self.acc_flags);
             methods
@@ -74,8 +77,10 @@ impl Disassemble {
                     desc: it.desc.clone(),
                     line_number_table: vec![],
                     codes: vec![],
+                    signature: it.signature.clone(),
                     enable_line_number: false,
                     enable_code: false,
+                    enable_inner_signature: self.enable_inner_signature,
                 })
                 .collect()
         };
@@ -118,7 +123,7 @@ impl Disassemble {
             head_parts.join(" ")
         };
 
-        let fields = trans::class_fields(&cf, self.acc_flags);
+        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(
                 &cf,
@@ -154,9 +159,10 @@ impl Disassemble {
                         desc: it.desc.clone(),
                         line_number_table,
                         codes,
-
+                        signature: it.signature.clone(),
                         enable_line_number,
                         enable_code,
+                        enable_inner_signature: self.enable_inner_signature,
                     }
                 })
                 .collect()
@@ -195,7 +201,7 @@ impl Disassemble {
             head_parts.join(" ")
         };
 
-        let fields = trans::class_fields(&cf, self.acc_flags);
+        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
             let methods = trans::class_methods(
                 &cf,
@@ -231,9 +237,10 @@ impl Disassemble {
                         desc: it.desc.clone(),
                         line_number_table,
                         codes,
-
+                        signature: it.signature.clone(),
                         enable_line_number,
                         enable_code,
+                        enable_inner_signature: self.enable_inner_signature,
                     }
                 })
                 .collect()
@@ -264,6 +271,18 @@ impl Disassemble {
         } else {
             SysInfoSerde::default()
         }
+    }
+
+    fn class_fields(&self, cf: &ClassFile) -> Vec<FieldInfoSerde> {
+        let fields = trans::class_fields(&cf, self.acc_flags);
+        fields
+            .iter()
+            .map(|it| FieldInfoSerde {
+                desc: it.desc.clone(),
+                signature: it.signature.clone(),
+                enable_inner_signature: self.enable_inner_signature,
+            })
+            .collect()
     }
 }
 

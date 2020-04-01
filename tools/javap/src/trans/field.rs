@@ -3,6 +3,11 @@ use crate::trans::SignatureTypeTranslator;
 use classfile::{constant_pool, ClassFile, FieldInfo, FieldSignature};
 use handlebars::Handlebars;
 
+pub struct FieldTranslation {
+    pub desc: String,
+    pub signature: String,
+}
+
 pub struct Translator<'a> {
     cf: &'a ClassFile,
     field: &'a FieldInfo,
@@ -15,14 +20,14 @@ impl<'a> Translator<'a> {
 }
 
 impl<'a> Translator<'a> {
-    pub fn get(&self) -> String {
+    pub fn get(&self) -> FieldTranslation {
         let reg = Handlebars::new();
 
         let tp_method = "{{flags}} {{type}} {{name}};";
         let tp_method_no_flags = "{{type}} {{name}};";
 
         let flags = self.access_flags();
-        if flags.is_empty() {
+        let desc = if flags.is_empty() {
             let data = json!({
                 "type": self.field_type(),
                 "name": self.name(),
@@ -37,7 +42,10 @@ impl<'a> Translator<'a> {
             });
 
             reg.render_template(tp_method, &data).unwrap()
-        }
+        };
+        let signature = self.signature();
+
+        FieldTranslation { desc, signature }
     }
 }
 
@@ -57,5 +65,10 @@ impl<'a> Translator<'a> {
     fn name(&self) -> String {
         let name = constant_pool::get_utf8(&self.cf.cp, self.field.name_index as usize).unwrap();
         String::from_utf8_lossy(name.as_slice()).to_string()
+    }
+
+    fn signature(&self) -> String {
+        let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize).unwrap();
+        String::from_utf8_lossy(desc.as_slice()).to_string()
     }
 }

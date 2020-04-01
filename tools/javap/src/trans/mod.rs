@@ -12,6 +12,7 @@ pub use self::access_flag::AccessFlagHelper;
 pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
 pub use self::code::Translator as CodeTranslator;
+pub use self::field::FieldTranslation;
 pub use self::field::Translator as FieldTranslator;
 pub use self::method::MethodTranslation;
 pub use self::method::Translator as MethodTranslator;
@@ -44,7 +45,7 @@ pub fn class_signature(cf: &ClassFile) -> String {
     x.signature()
 }
 
-pub fn class_fields(cf: &ClassFile, flags: u16) -> Vec<String> {
+pub fn class_fields(cf: &ClassFile, flags: u16) -> Vec<FieldTranslation> {
     let x = ClassFileTranslator::new(cf);
     x.fields(flags)
 }

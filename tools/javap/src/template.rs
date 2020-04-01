@@ -8,13 +8,19 @@ Classfile {{sys_info.class_file}}
   Compiled from \"{{sys_info.compiled_from}}\"";
 
 pub const PART_FIELDS: &str = "
-{{~#each fields}}
-  {{ this }}
+{{~#each fields as |field|}}
+  {{ desc }}
+  {{~#if enable_inner_signature}}
+    descriptor: {{signature~}}
+  {{/if}}
 {{/each}}";
 
 pub const PART_METHODS: &str = "
 {{~#each methods as |method|}}
-  {{ method.desc }}
+  {{ desc }}
+  {{~#if enable_inner_signature}}
+    descriptor: {{signature~}}
+  {{/if}}
   {{~#if enable_code}}
     Code:
     {{~#each method.codes}}
@@ -24,7 +30,7 @@ pub const PART_METHODS: &str = "
   {{~#if enable_line_number}}
     LineNumberTable:
       {{~#each method.line_number_table}}
-        line {{this.line_number}}: {{this.start_pc ~}}
+        line {{line_number}}: {{start_pc ~}}
       {{/each}}
   {{/if}}
 {{/each}}";
