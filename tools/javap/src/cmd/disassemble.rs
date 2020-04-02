@@ -300,6 +300,13 @@ impl Disassemble {
                 head_parts.push("extends".to_string());
                 head_parts.push(super_class);
             }
+
+            if cf.interfaces.len() != 0 {
+                head_parts.push("implements".to_string());
+
+                let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
+                head_parts.push(parent_interfaces);
+            }
         }
 
         head_parts.join(" ")
