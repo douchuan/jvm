@@ -19,7 +19,7 @@ pub struct Disassemble {
 
 impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
-        let acc_flags = Self::build_acc_flags(m);
+        let acc_flags = Self::build_show_access_flags(m);
 
         let enable_verbose = m.is_present("verbose");
         let enable_line_number = enable_verbose || m.is_present("line_number");
@@ -41,39 +41,19 @@ impl Disassemble {
 
 impl Cmd for Disassemble {
     fn run(&self, si: &SysInfo, cf: ClassFile) {
-        if cf.acc_flags.is_interface() {
-            self.render_interface(si, cf);
-        } else if cf.acc_flags.is_enum() {
-            self.render_enum(si, cf);
-        } else {
-            self.render_class(si, cf);
-        }
+        self.do_render(si, cf);
     }
 }
 
 impl Disassemble {
-    fn render_interface(&self, si: &SysInfo, cf: ClassFile) {
+    fn do_render(&self, si: &SysInfo, cf: ClassFile) {
         let reg = template::get_engine();
 
-        let sys_info = self.get_sys_info(si, &cf);
-        let class_head = self.build_class_define(&cf);
+        let sys_info = self.build_sys_info(si, &cf);
         let source_file = trans::class_source_file(&cf);
-        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
-        let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, false, false, self.show_access_flags);
-            methods
-                .iter()
-                .map(|it| MethodInfoSerde {
-                    desc: it.desc.clone(),
-                    line_number_table: vec![],
-                    code: Default::default(),
-                    signature: it.signature.clone(),
-                    enable_line_number: false,
-                    enable_code: false,
-                    enable_inner_signature: self.enable_inner_signature,
-                })
-                .collect()
-        };
+        let class_head = self.build_class_define(&cf);
+        let fields = self.class_fields(&cf);
+        let methods = self.build_methods(&cf);
 
         let data = ClassInfoSerde {
             enable_sys_info: self.enable_sys_info,
@@ -85,153 +65,6 @@ impl Disassemble {
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
-    }
-
-    fn render_enum(&self, si: &SysInfo, cf: ClassFile) {
-        let reg = template::get_engine();
-
-        let sys_info = self.get_sys_info(si, &cf);
-        let source_file = trans::class_source_file(&cf);
-        let class_head = self.build_class_define(&cf);
-
-        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
-        let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(
-                &cf,
-                self.enable_line_number,
-                self.enable_code,
-                self.show_access_flags,
-            );
-            methods
-                .iter()
-                .map(|it| {
-                    let enable_line_number = self.enable_line_number;
-                    let enable_code = self.enable_code;
-
-                    let line_number_table: Vec<LineNumberSerde> = if enable_line_number {
-                        it.line_num_table
-                            .iter()
-                            .map(|it| LineNumberSerde {
-                                start_pc: it.start_pc,
-                                line_number: it.number,
-                            })
-                            .collect()
-                    } else {
-                        vec![]
-                    };
-
-                    let code = if enable_code {
-                        let mut code = it.code.clone();
-                        code.enable_verbose = self.enable_verbose;
-                        code
-                    } else {
-                        Default::default()
-                    };
-
-                    MethodInfoSerde {
-                        desc: it.desc.clone(),
-                        line_number_table,
-                        code,
-                        signature: it.signature.clone(),
-                        enable_line_number,
-                        enable_code,
-                        enable_inner_signature: self.enable_inner_signature,
-                    }
-                })
-                .collect()
-        };
-
-        let data = ClassInfoSerde {
-            enable_sys_info: self.enable_sys_info,
-            sys_info,
-            source_file,
-            class_head,
-            fields,
-            methods,
-        };
-
-        println!("{}", reg.render_template(template::CLASS, &data).unwrap());
-    }
-
-    fn render_class(&self, si: &SysInfo, cf: ClassFile) {
-        let reg = template::get_engine();
-
-        let sys_info = self.get_sys_info(si, &cf);
-        let source_file = trans::class_source_file(&cf);
-        let class_head = self.build_class_define(&cf);
-
-        let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
-        let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(
-                &cf,
-                self.enable_line_number,
-                self.enable_code,
-                self.show_access_flags,
-            );
-            methods
-                .iter()
-                .map(|it| {
-                    let enable_line_number = self.enable_line_number;
-                    let enable_code = self.enable_code;
-
-                    let line_number_table: Vec<LineNumberSerde> = if enable_line_number {
-                        it.line_num_table
-                            .iter()
-                            .map(|it| LineNumberSerde {
-                                start_pc: it.start_pc,
-                                line_number: it.number,
-                            })
-                            .collect()
-                    } else {
-                        vec![]
-                    };
-
-                    let code = if enable_code {
-                        let mut code = it.code.clone();
-                        code.enable_verbose = self.enable_verbose;
-                        code
-                    } else {
-                        Default::default()
-                    };
-
-                    MethodInfoSerde {
-                        desc: it.desc.clone(),
-                        line_number_table,
-                        code,
-                        signature: it.signature.clone(),
-                        enable_line_number,
-                        enable_code,
-                        enable_inner_signature: self.enable_inner_signature,
-                    }
-                })
-                .collect()
-        };
-
-        let data = ClassInfoSerde {
-            enable_sys_info: self.enable_sys_info,
-            sys_info,
-            source_file,
-            class_head,
-            fields,
-            methods,
-        };
-
-        println!("{}", reg.render_template(template::CLASS, &data).unwrap());
-    }
-
-    fn get_sys_info(&self, si: &SysInfo, cf: &ClassFile) -> SysInfoSerde {
-        if self.enable_sys_info {
-            let source_file = trans::class_source_file(&cf);
-            SysInfoSerde {
-                class_file: si.class_file.clone(),
-                last_modified: si.last_modified.clone(),
-                size: si.size,
-                checksum: si.checksum.clone(),
-                compiled_from: source_file,
-            }
-        } else {
-            SysInfoSerde::default()
-        }
     }
 
     fn class_fields(&self, cf: &ClassFile) -> Vec<FieldInfoSerde> {
@@ -248,7 +81,7 @@ impl Disassemble {
 }
 
 impl Disassemble {
-    fn build_acc_flags(m: &ArgMatches) -> u16 {
+    fn build_show_access_flags(m: &ArgMatches) -> u16 {
         let mut flags = 0;
 
         if m.is_present("public") {
@@ -310,5 +143,81 @@ impl Disassemble {
         }
 
         head_parts.join(" ")
+    }
+
+    fn build_sys_info(&self, si: &SysInfo, cf: &ClassFile) -> SysInfoSerde {
+        if self.enable_sys_info {
+            let source_file = trans::class_source_file(&cf);
+            SysInfoSerde {
+                class_file: si.class_file.clone(),
+                last_modified: si.last_modified.clone(),
+                size: si.size,
+                checksum: si.checksum.clone(),
+                compiled_from: source_file,
+            }
+        } else {
+            SysInfoSerde::default()
+        }
+    }
+
+    fn build_methods(&self, cf: &ClassFile) -> Vec<MethodInfoSerde> {
+        let is_interface = cf.acc_flags.is_interface();
+
+        let methods = trans::class_methods(
+            cf,
+            self.enable_line_number,
+            self.enable_code,
+            self.show_access_flags,
+        );
+
+        methods
+            .iter()
+            .map(|it| {
+                if is_interface {
+                    MethodInfoSerde {
+                        desc: it.desc.clone(),
+                        line_number_table: vec![],
+                        code: Default::default(),
+                        signature: it.signature.clone(),
+                        enable_line_number: false,
+                        enable_code: false,
+                        enable_inner_signature: self.enable_inner_signature,
+                    }
+                } else {
+                    let enable_line_number = self.enable_line_number;
+                    let enable_code = self.enable_code;
+
+                    let line_number_table: Vec<LineNumberSerde> = if enable_line_number {
+                        it.line_num_table
+                            .iter()
+                            .map(|it| LineNumberSerde {
+                                start_pc: it.start_pc,
+                                line_number: it.number,
+                            })
+                            .collect()
+                    } else {
+                        vec![]
+                    };
+
+                    let code = if enable_code {
+                        let mut code = it.code.clone();
+                        code.enable_verbose = self.enable_verbose;
+                        code
+                    } else {
+                        Default::default()
+                    };
+
+                    MethodInfoSerde {
+                        desc: it.desc.clone(),
+                        line_number_table,
+                        code,
+                        signature: it.signature.clone(),
+                        enable_line_number,
+                        enable_code,
+                        enable_inner_signature: self.enable_inner_signature,
+                    }
+                }
+            })
+            .collect()
     }
 }
