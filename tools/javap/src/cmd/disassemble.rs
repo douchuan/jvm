@@ -8,7 +8,7 @@ use classfile::flags as access_flags;
 use classfile::ClassFile;
 
 pub struct Disassemble {
-    acc_flags: u16,
+    show_access_flags: u16,
 
     enable_verbose: bool,
     enable_line_number: bool,
@@ -28,7 +28,7 @@ impl Disassemble {
         let enable_inner_signature = enable_verbose || m.is_present("signatures");
 
         Some(Self {
-            acc_flags,
+            show_access_flags: acc_flags,
 
             enable_verbose,
             enable_line_number,
@@ -56,27 +56,11 @@ impl Disassemble {
         let reg = template::get_engine();
 
         let sys_info = self.get_sys_info(si, &cf);
-        //build class_head
-        let mut head_parts = vec![];
-        let this_class = trans::class_this_class(&cf);
-        let access_flags = trans::class_access_flags(&cf);
-        head_parts.push(access_flags.as_str());
-        head_parts.push(this_class.as_str());
-
-        let class_head = if cf.interfaces.len() != 0 {
-            let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
-            head_parts.push("extends");
-            head_parts.push(parent_interfaces.as_str());
-
-            head_parts.join(" ")
-        } else {
-            head_parts.join(" ")
-        };
-
+        let class_head = self.build_class_define(&cf);
         let source_file = trans::class_source_file(&cf);
         let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
-            let methods = trans::class_methods(&cf, false, false, self.acc_flags);
+            let methods = trans::class_methods(&cf, false, false, self.show_access_flags);
             methods
                 .iter()
                 .map(|it| MethodInfoSerde {
@@ -108,26 +92,7 @@ impl Disassemble {
 
         let sys_info = self.get_sys_info(si, &cf);
         let source_file = trans::class_source_file(&cf);
-
-        //build class_head
-        let mut head_parts = vec![];
-        let this_class = trans::class_this_class(&cf);
-        let super_class = trans::class_super_class(&cf);
-        let access_flags = trans::class_access_flags(&cf);
-        head_parts.push(access_flags.as_str());
-        head_parts.push(this_class.as_str());
-        head_parts.push("extends");
-        let class_head = {
-            let mut s = String::new();
-            s.push_str(super_class.as_str());
-            s.push_str("<");
-            s.push_str(this_class.as_str());
-            s.push_str(">");
-
-            head_parts.push(s.as_str());
-
-            head_parts.join(" ")
-        };
+        let class_head = self.build_class_define(&cf);
 
         let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
@@ -135,7 +100,7 @@ impl Disassemble {
                 &cf,
                 self.enable_line_number,
                 self.enable_code,
-                self.acc_flags,
+                self.show_access_flags,
             );
             methods
                 .iter()
@@ -193,21 +158,7 @@ impl Disassemble {
 
         let sys_info = self.get_sys_info(si, &cf);
         let source_file = trans::class_source_file(&cf);
-
-        //build class_head
-        let mut head_parts = vec![];
-        let this_class = trans::class_this_class(&cf);
-        let access_flags = trans::class_access_flags(&cf);
-        head_parts.push(access_flags.as_str());
-        head_parts.push(this_class.as_str());
-        let super_class = trans::class_super_class(&cf);
-        let class_head = if super_class != "java.lang.Object" {
-            head_parts.push("extends");
-            head_parts.push(super_class.as_str());
-            head_parts.join(" ")
-        } else {
-            head_parts.join(" ")
-        };
+        let class_head = self.build_class_define(&cf);
 
         let fields: Vec<FieldInfoSerde> = self.class_fields(&cf);
         let methods: Vec<MethodInfoSerde> = {
@@ -215,7 +166,7 @@ impl Disassemble {
                 &cf,
                 self.enable_line_number,
                 self.enable_code,
-                self.acc_flags,
+                self.show_access_flags,
             );
             methods
                 .iter()
@@ -284,7 +235,7 @@ impl Disassemble {
     }
 
     fn class_fields(&self, cf: &ClassFile) -> Vec<FieldInfoSerde> {
-        let fields = trans::class_fields(&cf, self.acc_flags);
+        let fields = trans::class_fields(&cf, self.show_access_flags);
         fields
             .iter()
             .map(|it| FieldInfoSerde {
@@ -313,5 +264,44 @@ impl Disassemble {
         }
 
         flags
+    }
+
+    fn build_class_define(&self, cf: &ClassFile) -> String {
+        let mut head_parts = vec![];
+
+        let class_flags = trans::class_access_flags(&cf);
+        let this_class = trans::class_this_class(&cf);
+        head_parts.push(class_flags);
+        head_parts.push(this_class.clone());
+
+        if cf.acc_flags.is_interface() {
+            if cf.interfaces.len() != 0 {
+                head_parts.push("extends".to_string());
+
+                let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
+                head_parts.push(parent_interfaces);
+            }
+        } else if cf.acc_flags.is_enum() {
+            head_parts.push("extends".to_string());
+
+            let super_class = {
+                let mut super_class = trans::class_super_class(&cf);
+                super_class.push_str("<");
+                super_class.push_str(this_class.as_str());
+                super_class.push_str(">");
+
+                super_class
+            };
+
+            head_parts.push(super_class);
+        } else {
+            let super_class = trans::class_super_class(&cf);
+            if super_class != "java.lang.Object" {
+                head_parts.push("extends".to_string());
+                head_parts.push(super_class);
+            }
+        }
+
+        head_parts.join(" ")
     }
 }
