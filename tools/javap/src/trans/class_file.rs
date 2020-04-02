@@ -71,6 +71,12 @@ impl<'a> Translator<'a> {
         t.class_access_flags()
     }
 
+    pub fn access_flags_name(&self) -> String {
+        let flags = self.cf.acc_flags;
+        let t = AccessFlagsTranslator::new(flags);
+        t.class_access_flags_name()
+    }
+
     pub fn signature(&self) -> String {
         for it in &self.cf.attrs {
             match it {

@@ -39,6 +39,11 @@ pub fn class_access_flags(cf: &ClassFile) -> String {
     x.access_flags()
 }
 
+pub fn class_access_flags_name(cf: &ClassFile) -> String {
+    let x = ClassFileTranslator::new(cf);
+    x.access_flags_name()
+}
+
 #[allow(unused)]
 pub fn class_signature(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);

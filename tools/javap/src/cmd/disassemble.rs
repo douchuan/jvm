@@ -1,6 +1,9 @@
 use crate::cmd::Cmd;
 use crate::misc::SysInfo;
-use crate::sd::{ClassInfoSerde, FieldInfoSerde, LineNumberSerde, MethodInfoSerde, SysInfoSerde};
+use crate::sd::{
+    ClassInfoSerde, ClassVersionSerde, FieldInfoSerde, LineNumberSerde, MethodInfoSerde,
+    SysInfoSerde,
+};
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
 use clap::ArgMatches;
@@ -19,7 +22,7 @@ pub struct Disassemble {
 
 impl Disassemble {
     pub fn new(m: &ArgMatches) -> Option<Self> {
-        let acc_flags = Self::build_show_access_flags(m);
+        let show_access_flags = Self::build_show_access_flags(m);
 
         let enable_verbose = m.is_present("verbose");
         let enable_line_number = enable_verbose || m.is_present("line_number");
@@ -28,7 +31,7 @@ impl Disassemble {
         let enable_inner_signature = enable_verbose || m.is_present("signatures");
 
         Some(Self {
-            show_access_flags: acc_flags,
+            show_access_flags,
 
             enable_verbose,
             enable_line_number,
@@ -50,33 +53,30 @@ impl Disassemble {
         let reg = template::get_engine();
 
         let sys_info = self.build_sys_info(si, &cf);
+        let version = ClassVersionSerde {
+            minor: cf.version.minor,
+            major: cf.version.major,
+        };
+        let flags = trans::class_access_flags_name(&cf);
         let source_file = trans::class_source_file(&cf);
         let class_head = self.build_class_define(&cf);
-        let fields = self.class_fields(&cf);
+        let fields = self.build_fields(&cf);
         let methods = self.build_methods(&cf);
 
         let data = ClassInfoSerde {
-            enable_sys_info: self.enable_sys_info,
             sys_info,
+            version,
+            flags,
             source_file,
             class_head,
             fields,
             methods,
+
+            enable_verbose: self.enable_verbose,
+            enable_sys_info: self.enable_sys_info,
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
-    }
-
-    fn class_fields(&self, cf: &ClassFile) -> Vec<FieldInfoSerde> {
-        let fields = trans::class_fields(&cf, self.show_access_flags);
-        fields
-            .iter()
-            .map(|it| FieldInfoSerde {
-                desc: it.desc.clone(),
-                signature: it.signature.clone(),
-                enable_inner_signature: self.enable_inner_signature,
-            })
-            .collect()
     }
 }
 
@@ -158,6 +158,18 @@ impl Disassemble {
         } else {
             SysInfoSerde::default()
         }
+    }
+
+    fn build_fields(&self, cf: &ClassFile) -> Vec<FieldInfoSerde> {
+        let fields = trans::class_fields(&cf, self.show_access_flags);
+        fields
+            .iter()
+            .map(|it| FieldInfoSerde {
+                desc: it.desc.clone(),
+                signature: it.signature.clone(),
+                enable_inner_signature: self.enable_inner_signature,
+            })
+            .collect()
     }
 
     fn build_methods(&self, cf: &ClassFile) -> Vec<MethodInfoSerde> {

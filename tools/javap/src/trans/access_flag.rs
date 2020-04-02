@@ -89,6 +89,41 @@ impl Translator {
 
         parts.join(" ")
     }
+
+    pub fn class_access_flags_name(&self) -> String {
+        let mut parts = vec![];
+        let flags = self.flags;
+
+        if flags.is_public() {
+            parts.push("ACC_PUBLIC");
+        }
+
+        if flags.is_final() {
+            parts.push("ACC_FINAL");
+        }
+
+        if flags.is_super() {
+            parts.push("ACC_SUPER");
+        }
+
+        if flags.is_interface() {
+            parts.push("ACC_INTERFACE");
+        }
+
+        if flags.is_abstract() {
+            parts.push("ACC_ABSTRACT");
+        }
+
+        if flags.is_annotation() {
+            parts.push("ACC_ANNOTATION");
+        }
+
+        if flags.is_enum() {
+            parts.push("ACC_ENUM");
+        }
+
+        parts.join(", ")
+    }
 }
 
 type AccessFlag = u16;

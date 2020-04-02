@@ -1,11 +1,15 @@
 #[derive(Serialize)]
 pub struct ClassInfoSerde {
-    pub enable_sys_info: bool,
     pub sys_info: SysInfoSerde,
+    pub version: ClassVersionSerde,
+    pub flags: String,
     pub source_file: String,
     pub class_head: String,
     pub fields: Vec<FieldInfoSerde>,
     pub methods: Vec<MethodInfoSerde>,
+
+    pub enable_verbose: bool,
+    pub enable_sys_info: bool,
 }
 
 #[derive(Serialize)]
@@ -51,6 +55,12 @@ pub struct SysInfoSerde {
     pub size: usize,
     pub checksum: String,
     pub compiled_from: String,
+}
+
+#[derive(Serialize)]
+pub struct ClassVersionSerde {
+    pub minor: u16,
+    pub major: u16,
 }
 
 impl Default for SysInfoSerde {

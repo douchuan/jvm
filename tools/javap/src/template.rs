@@ -44,7 +44,15 @@ pub const CLASS: &str = "
 {{~else~}}
 {{~> compiled_from ~}}
 {{/if}}
+{{~#if enable_verbose }}
+{{class_head}}
+  minor version: {{version.minor}}
+  major version: {{version.major}}
+  flags: {{flags}}
+{
+{{~else~}}
 {{class_head}} {
+{{/if}}
   {{~> fields }}
   {{~> methods }}
 }";
