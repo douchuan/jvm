@@ -38,6 +38,13 @@ pub const PART_METHODS: &str = "
   {{/if}}
 {{/each}}";
 
+pub const PART_CP: &str = "
+Constant pool:
+{{~#each cp}}
+{{this ~}}
+{{/each}}
+";
+
 pub const CLASS: &str = "
 {{~#if enable_sys_info}}
 {{~> sys_info ~}}
@@ -49,6 +56,7 @@ pub const CLASS: &str = "
   minor version: {{version.minor}}
   major version: {{version.major}}
   flags: {{flags}}
+{{~> constant_pool ~}}
 {
 {{~else~}}
 {{class_head}} {
@@ -63,6 +71,7 @@ pub fn get_engine() -> Handlebars<'static> {
     let _ = h.register_partial("sys_info", PART_SYS_INFO);
     let _ = h.register_partial("fields", PART_FIELDS);
     let _ = h.register_partial("methods", PART_METHODS);
+    let _ = h.register_partial("constant_pool", PART_CP);
     h.register_escape_fn(handlebars::no_escape);
 
     h

@@ -62,6 +62,11 @@ impl Disassemble {
         let class_head = self.build_class_define(&cf);
         let fields = self.build_fields(&cf);
         let methods = self.build_methods(&cf);
+        let cp = if self.enable_verbose {
+            trans::class_constant_pool(&cf)
+        } else {
+            vec![]
+        };
 
         let data = ClassInfoSerde {
             sys_info,
@@ -71,6 +76,7 @@ impl Disassemble {
             class_head,
             fields,
             methods,
+            cp,
 
             enable_verbose: self.enable_verbose,
             enable_sys_info: self.enable_sys_info,

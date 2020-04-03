@@ -7,6 +7,7 @@ pub struct ClassInfoSerde {
     pub class_head: String,
     pub fields: Vec<FieldInfoSerde>,
     pub methods: Vec<MethodInfoSerde>,
+    pub cp: Vec<String>,
 
     pub enable_verbose: bool,
     pub enable_sys_info: bool,

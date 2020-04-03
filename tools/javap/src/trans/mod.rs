@@ -3,6 +3,7 @@ use classfile::ClassFile;
 mod access_flag;
 mod class_file;
 mod code;
+mod constant_pool_trans;
 mod field;
 mod instruction;
 mod method;
@@ -12,6 +13,7 @@ pub use self::access_flag::AccessFlagHelper;
 pub use self::access_flag::Translator as AccessFlagsTranslator;
 pub use self::class_file::Translator as ClassFileTranslator;
 pub use self::code::Translator as CodeTranslator;
+pub use self::constant_pool_trans::Translator as ConstantPoolTranslator;
 pub use self::field::FieldTranslation;
 pub use self::field::Translator as FieldTranslator;
 pub use self::method::MethodTranslation;
@@ -68,4 +70,9 @@ pub fn class_methods(
 pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {
     let x = ClassFileTranslator::new(cf);
     x.parent_interfaces()
+}
+
+pub fn class_constant_pool(cf: &ClassFile) -> Vec<String> {
+    let x = ConstantPoolTranslator { cf };
+    x.get()
 }
