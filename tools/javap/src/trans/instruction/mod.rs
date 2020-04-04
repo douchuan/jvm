@@ -405,6 +405,7 @@ use swap::Swap;
 use tableswitch::Tableswitch;
 use wide::Wide;
 
+use classfile::constant_pool::Type;
 use classfile::{constant_pool, ConstantPool, ConstantPoolType};
 
 pub struct InstructionInfo {
@@ -542,10 +543,41 @@ impl InstructionInfo {
                 let v = String::from_utf8_lossy(v.as_slice());
                 format!("String {}", v)
             }
-            _ => {
-                let op_code: &'static str = self.op_code.into();
-                unimplemented!("op_code = {}, icp = {}", op_code, self.icp)
+            ConstantPoolType::Float { v } => {
+                let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                let v = f32::from_bits(v);
+                format!("float {}f", v)
             }
+            ConstantPoolType::Double { v } => {
+                let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                let v = f64::from_bits(v);
+                format!("double {}d", v)
+            }
+            ConstantPoolType::Long { v } => {
+                let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                format!("long {}l", v)
+            }
+            Type::Nop => unreachable!(),
+            Type::InterfaceMethodRef {
+                class_index: _,
+                name_and_type_index: _,
+            } => "todo: InterfaceMethodRef".to_string(),
+            Type::Integer { v: _ } => "todo: Integer".to_string(),
+            Type::NameAndType {
+                name_index: _,
+                desc_index: _,
+            } => "todo: NameAndType".to_string(),
+            Type::Utf8 { bytes: _ } => "todo: Utf8".to_string(),
+            Type::MethodHandle {
+                ref_kind: _,
+                ref_index: _,
+            } => "todo: MethodHandle".to_string(),
+            Type::MethodType { desc_index: _ } => "todo: MethodType".to_string(),
+            Type::InvokeDynamic {
+                bootstrap_method_attr_index: _,
+                name_and_type_index: _,
+            } => "todo: InvokeDynamic".to_string(),
+            Type::Unknown => unreachable!(),
         }
     }
 }

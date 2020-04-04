@@ -1,5 +1,10 @@
 public final class HelloWorld
 {
+    float v_float = 2.5f;
+    double v_double = 2.0;
+    int v_int = 100;
+    long v_long = 20000l;
+
     int count;
     String name;
 
