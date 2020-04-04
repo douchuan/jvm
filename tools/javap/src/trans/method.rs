@@ -10,6 +10,7 @@ pub struct MethodTranslation {
     pub code: CodeSerde,
     pub signature: String,
     pub flags: String,
+    pub throws: String,
 }
 
 pub struct Translator<'a> {
@@ -38,6 +39,7 @@ impl<'a> Translator<'a> {
         };
         let signature = self.signature();
         let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
+        let throws = self.throws().unwrap_or("".to_string());
 
         MethodTranslation {
             desc,
@@ -45,6 +47,7 @@ impl<'a> Translator<'a> {
             code,
             signature,
             flags,
+            throws,
         }
     }
 }

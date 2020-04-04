@@ -39,6 +39,10 @@ pub const PART_METHODS: &str = "
         line {{line_number}}: {{start_pc ~}}
       {{/each}}
   {{/if}}
+  {{~#if enable_throws}}
+    Exceptions:
+      throws {{throws}}
+  {{/if}}
 {{/each}}";
 
 pub const PART_CP: &str = "

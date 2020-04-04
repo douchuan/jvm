@@ -20,11 +20,13 @@ pub struct MethodInfoSerde {
     pub signature: String,
     pub code: CodeSerde,
     pub flags: String,
+    pub throws: String,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
     pub enable_signature: bool,
     pub enable_flags: bool,
+    pub enable_throws: bool,
 }
 
 #[derive(Serialize, Clone)]

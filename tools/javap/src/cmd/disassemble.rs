@@ -197,11 +197,14 @@ impl Disassemble {
                         line_number_table: vec![],
                         code: Default::default(),
                         signature: it.signature.clone(),
+                        flags: "".to_string(),
+                        throws: "".to_string(),
+
                         enable_line_number: false,
                         enable_code: false,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: false,
-                        flags: "".to_string(),
+                        enable_throws: false,
                     }
                 } else {
                     let enable_line_number = self.enable_line_number;
@@ -232,11 +235,14 @@ impl Disassemble {
                         line_number_table,
                         code,
                         signature: it.signature.clone(),
+                        flags: it.flags.clone(),
+                        throws: it.throws.clone(),
+
                         enable_line_number,
                         enable_code,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: self.enable_verbose,
-                        flags: it.flags.clone(),
+                        enable_throws: !it.throws.is_empty() && self.enable_verbose,
                     }
                 }
             })
