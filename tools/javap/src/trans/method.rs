@@ -179,7 +179,7 @@ impl<'a> Translator<'a> {
     fn ex_table(&self) -> Vec<String> {
         let ext = self.method.get_ex_table();
         match ext {
-            Some(ext) if !ext.is_empty() => {
+            Some(ext) => {
                 let mut table = Vec::with_capacity(1 + ext.len());
                 let v = format!("{:5} {:>5} {:6} {:4}", "from", "to ", "target", "type");
                 table.push(v);

@@ -60,7 +60,7 @@ impl MethodInfo {
     pub fn get_ex_table(&self) -> Option<Vec<CodeException>> {
         for it in self.attrs.iter() {
             match it {
-                Type::Code(code) => return Some(code.exceptions.clone()),
+                Type::Code(code) if !code.exceptions.is_empty() => return Some(code.exceptions.clone()),
                 _ => (),
             }
         }
