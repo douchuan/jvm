@@ -45,4 +45,15 @@ impl MethodInfo {
 
         line_num_table
     }
+
+    pub fn get_exceptions(&self) -> Option<Vec<U2>> {
+        for it in self.attrs.iter() {
+            match it {
+                Type::Exceptions { exceptions } => return Some(exceptions.clone()),
+                _ => (),
+            }
+        }
+
+        None
+    }
 }
