@@ -22,27 +22,29 @@ impl<'a> Translator<'a> {
 impl<'a> Translator<'a> {
     pub fn get(&self) -> FieldTranslation {
         let reg = Handlebars::new();
-
-        let tp_method = "{{flags}} {{type}} {{name}};";
-        let tp_method_no_flags = "{{type}} {{name}};";
-
         let flags = self.access_flags();
-        let desc = if flags.is_empty() {
-            let data = json!({
-                "type": self.field_type(),
-                "name": self.name(),
-            });
+        let desc = match flags.is_empty() {
+            true => {
+                let data = json!({
+                    "type": self.field_type(),
+                    "name": self.name(),
+                });
 
-            reg.render_template(tp_method_no_flags, &data).unwrap()
-        } else {
-            let data = json!({
-                "flags": flags,
-                "type": self.field_type(),
-                "name": self.name(),
-            });
+                let tp = "{{type}} {{name}};";
+                reg.render_template(tp, &data).unwrap()
+            }
+            false => {
+                let data = json!({
+                    "flags": flags,
+                    "type": self.field_type(),
+                    "name": self.name(),
+                });
 
-            reg.render_template(tp_method, &data).unwrap()
+                let tp = "{{flags}} {{type}} {{name}};";
+                reg.render_template(tp, &data).unwrap()
+            }
         };
+
         let signature = self.signature();
 
         FieldTranslation { desc, signature }

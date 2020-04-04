@@ -236,7 +236,7 @@ impl Disassemble {
                         enable_code,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: self.enable_verbose,
-                        flags: it.flags_inner.clone(),
+                        flags: it.flags.clone(),
                     }
                 }
             })

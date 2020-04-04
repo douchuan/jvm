@@ -9,7 +9,7 @@ pub struct MethodTranslation {
     pub line_num_table: Vec<LineNumber>,
     pub code: CodeSerde,
     pub signature: String,
-    pub flags_inner: String,
+    pub flags: String,
 }
 
 pub struct Translator<'a> {
@@ -37,54 +37,59 @@ impl<'a> Translator<'a> {
             Default::default()
         };
         let signature = self.signature();
-        let flags_inner = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
+        let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
 
         MethodTranslation {
             desc,
             line_num_table,
             code,
             signature,
-            flags_inner,
+            flags,
         }
     }
 }
 
 impl<'a> Translator<'a> {
     fn build_desc(&self) -> String {
-        let name = self.name();
+        let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
+        match name.as_slice() {
+            b"<init>" => {
+                let access_flags = self.access_flags();
+                let name = constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize)
+                    .unwrap();
+                format!(
+                    "{} {}();",
+                    access_flags,
+                    String::from_utf8_lossy(name.as_slice())
+                )
+            }
+            b"<clinit>" => "static {};".to_string(),
+            _ => {
+                let reg = Handlebars::new();
+                let flags = self.access_flags();
+                match flags.is_empty() {
+                    true => {
+                        let data = json!({
+                            "return_type": self.return_type(),
+                            "name": String::from_utf8_lossy(name.as_slice()),
+                            "args": self.args().join(", ")
+                        });
 
-        if name.as_bytes() == b"<init>" {
-            let access_flags = self.access_flags();
-            let name =
-                constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize).unwrap();
-            format!(
-                "{} {}();",
-                access_flags,
-                String::from_utf8_lossy(name.as_slice())
-            )
-        } else if name.as_bytes() == b"<clinit>" {
-            "static {};".to_string()
-        } else {
-            let tp_method = "{{flags}} {{return}} {{name}}({{args}});";
-            let tp_method_no_flags = "{{return}} {{name}}({{args}});";
-            let reg = Handlebars::new();
+                        let tp = "{{return_type}} {{name}}({{args}});";
+                        reg.render_template(tp, &data).unwrap()
+                    }
+                    false => {
+                        let data = json!({
+                            "flags": self.access_flags(),
+                            "return_type": self.return_type(),
+                            "name": String::from_utf8_lossy(name.as_slice()),
+                            "args": self.args().join(", ")
+                        });
 
-            let flags = self.access_flags();
-            if flags.is_empty() {
-                let data = json!({
-                    "return": self.return_type(),
-                    "name": name,
-                    "args": self.args().join(", ")
-                });
-                reg.render_template(tp_method_no_flags, &data).unwrap()
-            } else {
-                let data = json!({
-                    "flags": self.access_flags(),
-                    "return": self.return_type(),
-                    "name": name,
-                    "args": self.args().join(", ")
-                });
-                reg.render_template(tp_method, &data).unwrap()
+                        let tp = "{{flags}} {{return_type}} {{name}}({{args}});";
+                        reg.render_template(tp, &data).unwrap()
+                    }
+                }
             }
         }
     }
@@ -101,18 +106,6 @@ impl<'a> Translator<'a> {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
         let signature = MethodSignature::new(desc.as_slice());
         signature.retype.into_string()
-    }
-
-    fn name(&self) -> String {
-        let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
-
-        if name.as_slice() == b"<init>" {
-            "<init>".to_string()
-        } else if name.as_slice() == b"<clinit>" {
-            "<clinit>".to_string()
-        } else {
-            String::from_utf8_lossy(name.as_slice()).to_string()
-        }
     }
 
     fn args(&self) -> Vec<String> {

@@ -52,7 +52,7 @@ pub const CLASS: &str = "
 {{~#if enable_sys_info}}
 {{~> sys_info ~}}
 {{~else~}}
-{{~> compiled_from ~}}
+{{~> compiled_from}}
 {{/if}}
 {{~#if enable_verbose }}
 {{class_head}}
