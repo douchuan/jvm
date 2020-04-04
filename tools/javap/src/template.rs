@@ -33,6 +33,12 @@ pub const PART_METHODS: &str = "
       {{this ~}}
     {{/each}}
   {{/if}}
+  {{~#if has_ex_table}}
+    Exception table:
+    {{~#each ex_table}}
+      {{this ~}}
+    {{/each}}
+  {{/if}}
   {{~#if enable_line_number}}
     LineNumberTable:
       {{~#each line_number_table}}

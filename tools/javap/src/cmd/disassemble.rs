@@ -199,12 +199,14 @@ impl Disassemble {
                         signature: it.signature.clone(),
                         flags: "".to_string(),
                         throws: "".to_string(),
+                        ex_table: vec![],
 
                         enable_line_number: false,
                         enable_code: false,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: false,
                         enable_throws: false,
+                        has_ex_table: false,
                     }
                 } else {
                     let enable_line_number = self.enable_line_number;
@@ -237,12 +239,14 @@ impl Disassemble {
                         signature: it.signature.clone(),
                         flags: it.flags.clone(),
                         throws: it.throws.clone(),
+                        ex_table: it.ex_table.clone(),
 
                         enable_line_number,
                         enable_code,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: self.enable_verbose,
                         enable_throws: !it.throws.is_empty() && self.enable_verbose,
+                        has_ex_table: !it.ex_table.is_empty() && enable_code,
                     }
                 }
             })

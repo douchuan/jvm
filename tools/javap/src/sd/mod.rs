@@ -21,12 +21,15 @@ pub struct MethodInfoSerde {
     pub code: CodeSerde,
     pub flags: String,
     pub throws: String,
+    pub ex_table: Vec<String>,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
     pub enable_signature: bool,
     pub enable_flags: bool,
     pub enable_throws: bool,
+
+    pub has_ex_table: bool,
 }
 
 #[derive(Serialize, Clone)]

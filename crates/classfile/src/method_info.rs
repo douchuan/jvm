@@ -1,4 +1,4 @@
-use crate::attributes::{Code, LineNumber, Type};
+use crate::attributes::{Code, LineNumber, Type, CodeException};
 use crate::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
@@ -46,10 +46,21 @@ impl MethodInfo {
         line_num_table
     }
 
-    pub fn get_exceptions(&self) -> Option<Vec<U2>> {
+    pub fn get_throws(&self) -> Option<Vec<U2>> {
         for it in self.attrs.iter() {
             match it {
                 Type::Exceptions { exceptions } => return Some(exceptions.clone()),
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    pub fn get_ex_table(&self) -> Option<Vec<CodeException>> {
+        for it in self.attrs.iter() {
+            match it {
+                Type::Code(code) => return Some(code.exceptions.clone()),
                 _ => (),
             }
         }

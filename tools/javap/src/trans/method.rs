@@ -11,6 +11,7 @@ pub struct MethodTranslation {
     pub signature: String,
     pub flags: String,
     pub throws: String,
+    pub ex_table: Vec<String>,
 }
 
 pub struct Translator<'a> {
@@ -40,6 +41,7 @@ impl<'a> Translator<'a> {
         let signature = self.signature();
         let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
         let throws = self.throws().unwrap_or("".to_string());
+        let ex_table = self.ex_table();
 
         MethodTranslation {
             desc,
@@ -48,6 +50,7 @@ impl<'a> Translator<'a> {
             signature,
             flags,
             throws,
+            ex_table,
         }
     }
 }
@@ -160,7 +163,7 @@ impl<'a> Translator<'a> {
     }
 
     fn throws(&self) -> Option<String> {
-        self.method.get_exceptions().map(|v| {
+        self.method.get_throws().map(|v| {
             let exs: Vec<String> = v
                 .iter()
                 .map(|it| {
@@ -171,5 +174,33 @@ impl<'a> Translator<'a> {
 
             exs.join(", ")
         })
+    }
+
+    fn ex_table(&self) -> Vec<String> {
+        let ext = self.method.get_ex_table();
+        match ext {
+            Some(ext) if !ext.is_empty() => {
+                let mut table = Vec::with_capacity(1 + ext.len());
+                let v = format!("{:5} {:>5} {:6} {:4}", "from", "to ", "target", "type");
+                table.push(v);
+
+                for ex in ext.iter() {
+                    let name =
+                        constant_pool::get_class_name(&self.cf.cp, ex.catch_type as usize).unwrap();
+                    let v = format!(
+                        "{:>5} {:>5} {:>5} {} {}",
+                        ex.start_pc,
+                        ex.end_pc,
+                        ex.handler_pc,
+                        "  Class",
+                        String::from_utf8_lossy(name.as_slice())
+                    );
+                    table.push(v)
+                }
+
+                table
+            }
+            _ => vec![],
+        }
     }
 }
