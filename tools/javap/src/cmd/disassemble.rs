@@ -199,7 +199,9 @@ impl Disassemble {
                         signature: it.signature.clone(),
                         enable_line_number: false,
                         enable_code: false,
-                        enable_inner_signature: self.enable_inner_signature,
+                        enable_signature: self.enable_inner_signature,
+                        enable_flags: false,
+                        flags: "".to_string(),
                     }
                 } else {
                     let enable_line_number = self.enable_line_number;
@@ -232,7 +234,9 @@ impl Disassemble {
                         signature: it.signature.clone(),
                         enable_line_number,
                         enable_code,
-                        enable_inner_signature: self.enable_inner_signature,
+                        enable_signature: self.enable_inner_signature,
+                        enable_flags: self.enable_verbose,
+                        flags: it.flags_inner.clone(),
                     }
                 }
             })

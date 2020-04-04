@@ -1,7 +1,6 @@
 use crate::sd::CodeSerde;
-use crate::trans::CodeTranslator;
 use crate::trans::SignatureTypeTranslator;
-use crate::trans::{AccessFlagHelper, AccessFlagsTranslator};
+use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
 use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
 use handlebars::Handlebars;
 
@@ -10,6 +9,7 @@ pub struct MethodTranslation {
     pub line_num_table: Vec<LineNumber>,
     pub code: CodeSerde,
     pub signature: String,
+    pub flags_inner: String,
 }
 
 pub struct Translator<'a> {
@@ -37,12 +37,14 @@ impl<'a> Translator<'a> {
             Default::default()
         };
         let signature = self.signature();
+        let flags_inner = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
 
         MethodTranslation {
             desc,
             line_num_table,
             code,
             signature,
+            flags_inner,
         }
     }
 }

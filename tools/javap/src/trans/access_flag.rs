@@ -90,12 +90,20 @@ impl Translator {
         parts.join(" ")
     }
 
-    pub fn class_access_flags_name(&self) -> String {
+    pub fn access_flag_inner(&self) -> String {
         let mut parts = vec![];
         let flags = self.flags;
 
         if flags.is_public() {
             parts.push("ACC_PUBLIC");
+        }
+
+        if flags.is_protected() {
+            parts.push("ACC_PROTECTED");
+        }
+
+        if flags.is_static() {
+            parts.push("ACC_STATIC");
         }
 
         if flags.is_final() {

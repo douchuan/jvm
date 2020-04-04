@@ -19,10 +19,12 @@ pub struct MethodInfoSerde {
     pub line_number_table: Vec<LineNumberSerde>,
     pub signature: String,
     pub code: CodeSerde,
+    pub flags: String,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
-    pub enable_inner_signature: bool,
+    pub enable_signature: bool,
+    pub enable_flags: bool,
 }
 
 #[derive(Serialize, Clone)]

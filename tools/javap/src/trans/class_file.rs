@@ -74,7 +74,7 @@ impl<'a> Translator<'a> {
     pub fn access_flags_name(&self) -> String {
         let flags = self.cf.acc_flags;
         let t = AccessFlagsTranslator::new(flags);
-        t.class_access_flags_name()
+        t.access_flag_inner()
     }
 
     pub fn signature(&self) -> String {
