@@ -201,6 +201,7 @@ impl Disassemble {
                         throws: "".to_string(),
                         ex_table: vec![],
                         stack_map_table: Default::default(),
+                        local_var_table: vec![],
 
                         enable_line_number: false,
                         enable_code: false,
@@ -208,6 +209,7 @@ impl Disassemble {
                         enable_flags: false,
                         enable_throws: false,
                         enable_stack_map: false,
+                        enable_local_var_table: false,
 
                         has_ex_table: false,
                     }
@@ -254,8 +256,11 @@ impl Disassemble {
                     } else {
                         Default::default()
                     };
+                    let local_var_table = it.local_variable_table.clone();
                     let enable_stack_map =
                         !stack_map_table.frames.is_empty() && self.enable_verbose;
+                    let enable_local_var_table = !local_var_table.is_empty()
+                        && (self.enable_verbose || self.enable_line_number);
 
                     MethodInfoSerde {
                         desc: it.desc.clone(),
@@ -266,6 +271,7 @@ impl Disassemble {
                         throws: it.throws.clone(),
                         ex_table: it.ex_table.clone(),
                         stack_map_table,
+                        local_var_table,
 
                         enable_line_number,
                         enable_code,
@@ -273,6 +279,7 @@ impl Disassemble {
                         enable_flags: self.enable_verbose,
                         enable_throws: !it.throws.is_empty() && self.enable_verbose,
                         enable_stack_map,
+                        enable_local_var_table,
 
                         has_ex_table: !it.ex_table.is_empty() && enable_code,
                     }

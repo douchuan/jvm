@@ -31,7 +31,7 @@ pub const PART_METHODS: &str = "
     {{/if}}
     {{~#each code.codes}}
       {{this ~}}
-    {{/each}}
+    {{/each~}}
   {{/if}}
   {{~#if has_ex_table}}
     Exception table:
@@ -43,6 +43,12 @@ pub const PART_METHODS: &str = "
     LineNumberTable:
       {{~#each line_number_table}}
         line {{line_number}}: {{start_pc ~}}
+      {{/each~}}
+  {{/if}}
+  {{~#if enable_local_var_table}}
+    LocalVariableTable:
+      {{~#each local_var_table}}
+        {{this ~}}
       {{/each}}
   {{/if}}
   {{~#if enable_throws}}

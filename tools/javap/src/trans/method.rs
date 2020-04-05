@@ -16,6 +16,7 @@ pub struct MethodTranslation {
     pub throws: String,
     pub ex_table: Vec<String>,
     pub stack_map_table: Vec<StackMapTableTranslation>,
+    pub local_variable_table: Vec<String>,
 }
 
 pub struct StackMapTableTranslation {
@@ -53,6 +54,7 @@ impl<'a> Translator<'a> {
         let throws = self.throws().unwrap_or("".to_string());
         let ex_table = self.ex_table();
         let stack_map_table = self.stack_map_table();
+        let local_variable_table = self.local_variable_table();
 
         MethodTranslation {
             desc,
@@ -63,6 +65,7 @@ impl<'a> Translator<'a> {
             throws,
             ex_table,
             stack_map_table,
+            local_variable_table,
         }
     }
 }
@@ -251,6 +254,7 @@ impl<'a> Translator<'a> {
                             offset_delta: _,
                             stack: _,
                         } => {
+                            trace!("todo: StackMapFrame::SameLocals1StackItem");
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
                                 comment: "/* todo: SameLocals1StackItem */",
@@ -262,6 +266,7 @@ impl<'a> Translator<'a> {
                             offset_delta: _,
                             stack: _,
                         } => {
+                            trace!("todo: StackMapFrame::SameLocals1StackItemExtended");
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
                                 comment: "/* todo: SameLocals1StackItemExtended */",
@@ -279,6 +284,7 @@ impl<'a> Translator<'a> {
                             tag,
                             offset_delta: _,
                         } => {
+                            trace!("todo: StackMapFrame::SameExtended");
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
                                 comment: "/* todo: SameExtended */",
@@ -291,6 +297,7 @@ impl<'a> Translator<'a> {
                             locals: _,
                             stack: _,
                         } => {
+                            trace!("todo: StackMapFrame::Full");
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
                                 comment: "/* todo: Full */",
@@ -346,5 +353,33 @@ impl<'a> Translator<'a> {
         }
 
         format!("locals = [ {} ]", infos.join(", "))
+    }
+
+    fn local_variable_table(&self) -> Vec<String> {
+        match self.method.get_local_variable_table() {
+            Some(local_var_table) => {
+                let mut table = Vec::with_capacity(1 + local_var_table.len());
+                table.push(format!(
+                    "{:5}  {:6}  {:4}  {:>5}  {}",
+                    "Start", "Length", "Slot", "Name", "Signature"
+                ));
+                for it in local_var_table.iter() {
+                    let name =
+                        constant_pool::get_utf8(&self.cf.cp, it.name_index as usize).unwrap();
+                    let name = String::from_utf8_lossy(name.as_slice());
+                    let signature =
+                        constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize).unwrap();
+                    let signature = String::from_utf8_lossy(signature.as_slice());
+                    let v = format!(
+                        "{:>5}  {:>6}  {:>4}  {:>5}  {}",
+                        it.start_pc, it.length, it.index, name, signature
+                    );
+                    table.push(v);
+                }
+
+                table
+            }
+            None => vec![],
+        }
     }
 }

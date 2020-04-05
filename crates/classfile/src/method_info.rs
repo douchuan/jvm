@@ -1,4 +1,4 @@
-use crate::attributes::{Code, CodeException, LineNumber, StackMapFrame, Type};
+use crate::attributes::{Code, CodeException, LineNumber, StackMapFrame, Type, LocalVariable};
 use crate::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
@@ -76,6 +76,22 @@ impl MethodInfo {
                 for it in code.attrs.iter() {
                     match it {
                         Type::StackMapTable { entries } => return Some(entries.clone()),
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        None
+    }
+
+    pub fn get_local_variable_table(&self) -> Option<Vec<LocalVariable>> {
+        match self.get_code() {
+            Some(code) => {
+                for it in code.attrs.iter() {
+                    match it {
+                        Type::LocalVariableTable { tables } => return Some(tables.clone()),
                         _ => (),
                     }
                 }

@@ -23,6 +23,7 @@ pub struct MethodInfoSerde {
     pub throws: String,
     pub ex_table: Vec<String>,
     pub stack_map_table: StackMapTableSerde,
+    pub local_var_table: Vec<String>,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
@@ -30,6 +31,7 @@ pub struct MethodInfoSerde {
     pub enable_flags: bool,
     pub enable_throws: bool,
     pub enable_stack_map: bool,
+    pub enable_local_var_table: bool,
 
     pub has_ex_table: bool,
 }
