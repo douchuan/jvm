@@ -49,7 +49,13 @@ pub const PART_METHODS: &str = "
     LocalVariableTable:
       {{~#each local_var_table}}
         {{this ~}}
-      {{/each}}
+      {{/each~}}
+  {{/if}}
+  {{~#if enable_local_var_type_table}}
+    LocalVariableTypeTable:
+      {{~#each local_var_type_table}}
+        {{this ~}}
+      {{/each~}}
   {{/if}}
   {{~#if enable_throws}}
     Exceptions:

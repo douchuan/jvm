@@ -101,4 +101,20 @@ impl MethodInfo {
 
         None
     }
+
+    pub fn get_local_variable_type_table(&self) -> Option<Vec<LocalVariable>> {
+        match self.get_code() {
+            Some(code) => {
+                for it in code.attrs.iter() {
+                    match it {
+                        Type::LocalVariableTypeTable { tables } => return Some(tables.clone()),
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        None
+    }
 }

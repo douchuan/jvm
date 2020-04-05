@@ -1,6 +1,7 @@
 use crate::sd::CodeSerde;
 use crate::trans::SignatureTypeTranslator;
 use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
+use classfile::attributes::LocalVariable;
 use classfile::{
     attributes::LineNumber, attributes::StackMapFrame, attributes::VerificationTypeInfo,
     constant_pool, ClassFile, MethodInfo, MethodSignature,
@@ -17,6 +18,7 @@ pub struct MethodTranslation {
     pub ex_table: Vec<String>,
     pub stack_map_table: Vec<StackMapTableTranslation>,
     pub local_variable_table: Vec<String>,
+    pub local_variable_type_table: Vec<String>,
 }
 
 pub struct StackMapTableTranslation {
@@ -55,6 +57,7 @@ impl<'a> Translator<'a> {
         let ex_table = self.ex_table();
         let stack_map_table = self.stack_map_table();
         let local_variable_table = self.local_variable_table();
+        let local_variable_type_table = self.local_variable_type_table();
 
         MethodTranslation {
             desc,
@@ -66,6 +69,7 @@ impl<'a> Translator<'a> {
             ex_table,
             stack_map_table,
             local_variable_table,
+            local_variable_type_table,
         }
     }
 }
@@ -314,6 +318,22 @@ impl<'a> Translator<'a> {
         }
     }
 
+    fn local_variable_table(&self) -> Vec<String> {
+        match self.method.get_local_variable_table() {
+            Some(vars) => self.build_variable_table(&vars),
+            None => vec![],
+        }
+    }
+
+    fn local_variable_type_table(&self) -> Vec<String> {
+        match self.method.get_local_variable_type_table() {
+            Some(vars) => self.build_variable_table(&vars),
+            None => vec![],
+        }
+    }
+}
+
+impl<'a> Translator<'a> {
     fn build_stack_map_frame_locals(&self, locals: &Vec<VerificationTypeInfo>) -> String {
         let mut infos = Vec::with_capacity(locals.len());
         for it in locals.iter() {
@@ -355,31 +375,25 @@ impl<'a> Translator<'a> {
         format!("locals = [ {} ]", infos.join(", "))
     }
 
-    fn local_variable_table(&self) -> Vec<String> {
-        match self.method.get_local_variable_table() {
-            Some(local_var_table) => {
-                let mut table = Vec::with_capacity(1 + local_var_table.len());
-                table.push(format!(
-                    "{:5}  {:6}  {:4}  {:>5}  {}",
-                    "Start", "Length", "Slot", "Name", "Signature"
-                ));
-                for it in local_var_table.iter() {
-                    let name =
-                        constant_pool::get_utf8(&self.cf.cp, it.name_index as usize).unwrap();
-                    let name = String::from_utf8_lossy(name.as_slice());
-                    let signature =
-                        constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize).unwrap();
-                    let signature = String::from_utf8_lossy(signature.as_slice());
-                    let v = format!(
-                        "{:>5}  {:>6}  {:>4}  {:>5}  {}",
-                        it.start_pc, it.length, it.index, name, signature
-                    );
-                    table.push(v);
-                }
-
-                table
-            }
-            None => vec![],
+    fn build_variable_table(&self, local_vars: &Vec<LocalVariable>) -> Vec<String> {
+        let mut table = Vec::with_capacity(1 + local_vars.len());
+        table.push(format!(
+            "{:5}  {:6}  {:4}  {:>5}  {}",
+            "Start", "Length", "Slot", "Name", "Signature"
+        ));
+        for it in local_vars.iter() {
+            let name = constant_pool::get_utf8(&self.cf.cp, it.name_index as usize).unwrap();
+            let name = String::from_utf8_lossy(name.as_slice());
+            let signature =
+                constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize).unwrap();
+            let signature = String::from_utf8_lossy(signature.as_slice());
+            let v = format!(
+                "{:>5}  {:>6}  {:>4}  {:>5}  {}",
+                it.start_pc, it.length, it.index, name, signature
+            );
+            table.push(v);
         }
+
+        table
     }
 }
