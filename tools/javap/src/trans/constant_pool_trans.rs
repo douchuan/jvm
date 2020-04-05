@@ -83,10 +83,28 @@ impl<'a> Translator<'a> {
                     pool.push(v);
                 }
                 Type::InterfaceMethodRef {
-                    class_index: _,
-                    name_and_type_index: _,
+                    class_index,
+                    name_and_type_index,
                 } => {
-                    pool.push("todo: InterfaceMethodRef".to_string());
+                    let index = format!("#{}.#{}", *class_index, *name_and_type_index);
+                    let class_name =
+                        constant_pool::get_class_name(&self.cf.cp, *class_index as usize).unwrap();
+                    let (name, desc) = constant_pool::get_name_and_type(
+                        &self.cf.cp,
+                        *name_and_type_index as usize,
+                    );
+                    let name = name.unwrap();
+                    let desc = desc.unwrap();
+
+                    let class_name = String::from_utf8_lossy(class_name.as_slice());
+                    let name = String::from_utf8_lossy(name.as_slice());
+                    let desc = String::from_utf8_lossy(desc.as_slice());
+                    let v = format!(
+                        "{:>6} = {:18} {:14} // {}.{}:{}",
+                        pos, "InterfaceMethodref", index, class_name, name, desc
+                    );
+
+                    pool.push(v);
                 }
                 Type::String { string_index } => {
                     let index = format!("#{}", *string_index);
