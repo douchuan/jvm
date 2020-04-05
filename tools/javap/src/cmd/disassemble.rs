@@ -2,7 +2,7 @@ use crate::cmd::Cmd;
 use crate::misc::SysInfo;
 use crate::sd::{
     ClassInfoSerde, ClassVersionSerde, FieldInfoSerde, LineNumberSerde, MethodInfoSerde,
-    SysInfoSerde,
+    StackMapFrameSerde, StackMapTableSerde, SysInfoSerde,
 };
 use crate::template;
 use crate::trans::{self, AccessFlagHelper};
@@ -200,12 +200,15 @@ impl Disassemble {
                         flags: "".to_string(),
                         throws: "".to_string(),
                         ex_table: vec![],
+                        stack_map_table: Default::default(),
 
                         enable_line_number: false,
                         enable_code: false,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: false,
                         enable_throws: false,
+                        enable_stack_map: false,
+
                         has_ex_table: false,
                     }
                 } else {
@@ -232,6 +235,28 @@ impl Disassemble {
                         Default::default()
                     };
 
+                    let stack_map_table = if self.enable_verbose {
+                        let frames: Vec<StackMapFrameSerde> = it
+                            .stack_map_table
+                            .iter()
+                            .map(|frame| {
+                                let desc = format!("frame_type = {} {}", frame.tag, frame.comment);
+                                StackMapFrameSerde {
+                                    desc,
+                                    items: frame.items.clone(),
+                                }
+                            })
+                            .collect();
+                        StackMapTableSerde {
+                            number_of_entries: frames.len(),
+                            frames,
+                        }
+                    } else {
+                        Default::default()
+                    };
+                    let enable_stack_map =
+                        !stack_map_table.frames.is_empty() && self.enable_verbose;
+
                     MethodInfoSerde {
                         desc: it.desc.clone(),
                         line_number_table,
@@ -240,12 +265,15 @@ impl Disassemble {
                         flags: it.flags.clone(),
                         throws: it.throws.clone(),
                         ex_table: it.ex_table.clone(),
+                        stack_map_table,
 
                         enable_line_number,
                         enable_code,
                         enable_signature: self.enable_inner_signature,
                         enable_flags: self.enable_verbose,
                         enable_throws: !it.throws.is_empty() && self.enable_verbose,
+                        enable_stack_map,
+
                         has_ex_table: !it.ex_table.is_empty() && enable_code,
                     }
                 }

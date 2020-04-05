@@ -49,6 +49,15 @@ pub const PART_METHODS: &str = "
     Exceptions:
       throws {{throws}}
   {{/if}}
+  {{~#if enable_stack_map}}
+    StackMapTable: number_of_entries = {{stack_map_table.number_of_entries}}
+      {{~#each stack_map_table.frames}}
+        {{desc}}
+        {{~#each items}}
+          {{this ~}}
+        {{/each~}}
+      {{/each}}
+  {{/if}}
 {{/each}}";
 
 pub const PART_CP: &str = "
@@ -57,6 +66,16 @@ Constant pool:
 {{this ~}}
 {{/each}}
 ";
+
+// pub const PART_STACK_MAP_TABLE: &str = "
+// StackMapTable: number_of_entries = {{stack_map_table.number_of_entries}}
+//   {{~#each stack_map_table.frames}}
+//     {{desc}}
+//     {{~#each items}}
+//       {{this ~}}
+//     {{/each}}
+//   {{/each}}
+// ";
 
 pub const CLASS: &str = "
 {{~#if enable_sys_info}}
@@ -85,6 +104,7 @@ pub fn get_engine() -> Handlebars<'static> {
     let _ = h.register_partial("fields", PART_FIELDS);
     let _ = h.register_partial("methods", PART_METHODS);
     let _ = h.register_partial("constant_pool", PART_CP);
+    // let _ = h.register_partial("stack_map_table", PART_STACK_MAP_TABLE);
     h.register_escape_fn(handlebars::no_escape);
 
     h

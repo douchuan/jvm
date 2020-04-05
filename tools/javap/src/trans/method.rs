@@ -1,7 +1,10 @@
 use crate::sd::CodeSerde;
 use crate::trans::SignatureTypeTranslator;
 use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
-use classfile::{attributes::LineNumber, constant_pool, ClassFile, MethodInfo, MethodSignature};
+use classfile::{
+    attributes::LineNumber, attributes::StackMapFrame, attributes::VerificationTypeInfo,
+    constant_pool, ClassFile, MethodInfo, MethodSignature,
+};
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {
@@ -12,6 +15,13 @@ pub struct MethodTranslation {
     pub flags: String,
     pub throws: String,
     pub ex_table: Vec<String>,
+    pub stack_map_table: Vec<StackMapTableTranslation>,
+}
+
+pub struct StackMapTableTranslation {
+    pub tag: u8,
+    pub comment: &'static str,
+    pub items: Vec<String>,
 }
 
 pub struct Translator<'a> {
@@ -42,6 +52,7 @@ impl<'a> Translator<'a> {
         let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
         let throws = self.throws().unwrap_or("".to_string());
         let ex_table = self.ex_table();
+        let stack_map_table = self.stack_map_table();
 
         MethodTranslation {
             desc,
@@ -51,6 +62,7 @@ impl<'a> Translator<'a> {
             flags,
             throws,
             ex_table,
+            stack_map_table,
         }
     }
 }
@@ -202,5 +214,137 @@ impl<'a> Translator<'a> {
             }
             _ => vec![],
         }
+    }
+
+    fn stack_map_table(&self) -> Vec<StackMapTableTranslation> {
+        match self.method.get_stack_map_table() {
+            Some(t) => {
+                let mut table = Vec::with_capacity(t.len());
+
+                for it in t.iter() {
+                    match it {
+                        StackMapFrame::Append {
+                            tag,
+                            offset_delta,
+                            locals,
+                        } => {
+                            let items = vec![
+                                format!("offset_delta = {}", *offset_delta),
+                                self.build_stack_map_frame_locals(locals),
+                            ];
+
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* append */",
+                                items,
+                            });
+                        }
+                        StackMapFrame::Same { tag, offset_delta } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* same */",
+                                items: vec![format!("offset_delta = {}", *offset_delta)],
+                            });
+                        }
+                        StackMapFrame::SameLocals1StackItem {
+                            tag,
+                            offset_delta: _,
+                            stack: _,
+                        } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* todo: SameLocals1StackItem */",
+                                items: vec![],
+                            });
+                        }
+                        StackMapFrame::SameLocals1StackItemExtended {
+                            tag,
+                            offset_delta: _,
+                            stack: _,
+                        } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* todo: SameLocals1StackItemExtended */",
+                                items: vec![],
+                            });
+                        }
+                        StackMapFrame::Chop { tag, offset_delta } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* chop */",
+                                items: vec![format!("offset_delta = {}", *offset_delta)],
+                            });
+                        }
+                        StackMapFrame::SameExtended {
+                            tag,
+                            offset_delta: _,
+                        } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* todo: SameExtended */",
+                                items: vec![],
+                            });
+                        }
+                        StackMapFrame::Full {
+                            tag,
+                            offset_delta: _,
+                            locals: _,
+                            stack: _,
+                        } => {
+                            table.push(StackMapTableTranslation {
+                                tag: *tag,
+                                comment: "/* todo: Full */",
+                                items: vec![],
+                            });
+                        }
+                        StackMapFrame::Reserved(_) => {}
+                    }
+                }
+
+                table
+            }
+            None => vec![],
+        }
+    }
+
+    fn build_stack_map_frame_locals(&self, locals: &Vec<VerificationTypeInfo>) -> String {
+        let mut infos = Vec::with_capacity(locals.len());
+        for it in locals.iter() {
+            match it {
+                VerificationTypeInfo::Float => {
+                    infos.push("float".to_string());
+                }
+                VerificationTypeInfo::Top => {
+                    infos.push("top".to_string());
+                }
+                VerificationTypeInfo::Integer => {
+                    infos.push("int".to_string());
+                }
+                VerificationTypeInfo::Long => {
+                    infos.push("long".to_string());
+                }
+                VerificationTypeInfo::Double => {
+                    infos.push("double".to_string());
+                }
+                VerificationTypeInfo::Null => {
+                    infos.push("null".to_string());
+                }
+                VerificationTypeInfo::UninitializedThis => {
+                    infos.push("UninitializedThis".to_string());
+                }
+                VerificationTypeInfo::Object { cpool_index } => {
+                    let name =
+                        constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize).unwrap();
+                    let name = String::from_utf8_lossy(name.as_slice());
+                    let v = format!("class \"{}\"", name);
+                    infos.push(v);
+                }
+                VerificationTypeInfo::Uninitialized { offset: _ } => {
+                    infos.push("Uninitialized".to_string());
+                }
+            }
+        }
+
+        format!("locals = [ {} ]", infos.join(", "))
     }
 }

@@ -319,32 +319,39 @@ pub enum VerificationTypeInfo {
 #[derive(Debug, Clone)]
 pub enum StackMapFrame {
     Same {
+        tag: U1,
         offset_delta: U2,
     },
     SameLocals1StackItem {
+        tag: U1,
         offset_delta: U2,
         stack: [VerificationTypeInfo; 1],
     },
     SameLocals1StackItemExtended {
+        tag: U1,
         offset_delta: U2,
         stack: [VerificationTypeInfo; 1],
     },
     Chop {
+        tag: U1,
         offset_delta: U2,
     },
     SameExtended {
+        tag: U1,
         offset_delta: U2,
     },
     Append {
+        tag: U1,
         offset_delta: U2,
         locals: Vec<VerificationTypeInfo>,
     },
     Full {
+        tag: U1,
         offset_delta: U2,
         locals: Vec<VerificationTypeInfo>,
         stack: Vec<VerificationTypeInfo>,
     },
-    Reserved,
+    Reserved(U1),
 }
 
 #[derive(Debug, Clone)]

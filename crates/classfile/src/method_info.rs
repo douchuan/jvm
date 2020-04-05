@@ -1,4 +1,4 @@
-use crate::attributes::{Code, LineNumber, Type, CodeException};
+use crate::attributes::{Code, CodeException, LineNumber, StackMapFrame, Type};
 use crate::constant_pool;
 use crate::types::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
@@ -60,9 +60,27 @@ impl MethodInfo {
     pub fn get_ex_table(&self) -> Option<Vec<CodeException>> {
         for it in self.attrs.iter() {
             match it {
-                Type::Code(code) if !code.exceptions.is_empty() => return Some(code.exceptions.clone()),
+                Type::Code(code) if !code.exceptions.is_empty() => {
+                    return Some(code.exceptions.clone())
+                }
                 _ => (),
             }
+        }
+
+        None
+    }
+
+    pub fn get_stack_map_table(&self) -> Option<Vec<StackMapFrame>> {
+        match self.get_code() {
+            Some(code) => {
+                for it in code.attrs.iter() {
+                    match it {
+                        Type::StackMapTable { entries } => return Some(entries.clone()),
+                        _ => (),
+                    }
+                }
+            }
+            _ => (),
         }
 
         None

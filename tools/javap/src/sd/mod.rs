@@ -22,12 +22,14 @@ pub struct MethodInfoSerde {
     pub flags: String,
     pub throws: String,
     pub ex_table: Vec<String>,
+    pub stack_map_table: StackMapTableSerde,
 
     pub enable_line_number: bool,
     pub enable_code: bool,
     pub enable_signature: bool,
     pub enable_flags: bool,
     pub enable_throws: bool,
+    pub enable_stack_map: bool,
 
     pub has_ex_table: bool,
 }
@@ -71,6 +73,18 @@ pub struct ClassVersionSerde {
     pub major: u16,
 }
 
+#[derive(Serialize)]
+pub struct StackMapTableSerde {
+    pub number_of_entries: usize,
+    pub frames: Vec<StackMapFrameSerde>,
+}
+
+#[derive(Serialize)]
+pub struct StackMapFrameSerde {
+    pub desc: String,
+    pub items: Vec<String>,
+}
+
 impl Default for SysInfoSerde {
     fn default() -> Self {
         Self {
@@ -92,6 +106,24 @@ impl Default for CodeSerde {
             codes: vec![],
 
             enable_verbose: false,
+        }
+    }
+}
+
+impl Default for StackMapTableSerde {
+    fn default() -> Self {
+        Self {
+            number_of_entries: 0,
+            frames: vec![],
+        }
+    }
+}
+
+impl Default for StackMapFrameSerde {
+    fn default() -> Self {
+        Self {
+            desc: "".to_string(),
+            items: vec![],
         }
     }
 }

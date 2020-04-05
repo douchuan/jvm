@@ -174,20 +174,22 @@ named!(
         frame_type: be_u8
             >> inner:
                 switch!(value!(frame_type),
-                    0..=63 => value!(attributes::StackMapFrame::Same {offset_delta: frame_type as u16}) |
+                    0..=63 => value!(attributes::StackMapFrame::Same {tag: frame_type, offset_delta: frame_type as u16}) |
                     64..=127 => do_parse!(
                         offset_delta: value!((frame_type-64) as u16) >>
                         type_info: verification_type_info >>
                         (attributes::StackMapFrame::SameLocals1StackItem {
+                            tag: frame_type,
                             offset_delta,
                             stack: [type_info],
                         })
                     ) |
-                    128..=246 => value!(attributes::StackMapFrame::Reserved) |
+                    128..=246 => value!(attributes::StackMapFrame::Reserved(frame_type)) |
                     247 => do_parse!(
                         offset_delta: be_u16 >>
                         type_info: verification_type_info >>
                         (attributes::StackMapFrame::SameLocals1StackItem {
+                            tag: frame_type,
                             offset_delta,
                             stack: [type_info],
                         })
@@ -195,12 +197,14 @@ named!(
                     248..=250 => do_parse!(
                         offset_delta: be_u16 >>
                         (attributes::StackMapFrame::Chop {
+                            tag: frame_type,
                             offset_delta,
                         })
                     ) |
                     251 => do_parse!(
                         offset_delta: be_u16 >>
                         (attributes::StackMapFrame::SameExtended {
+                            tag: frame_type,
                             offset_delta
                         })
                     ) |
@@ -209,6 +213,7 @@ named!(
                         locals_count: value!(frame_type - 251) >>
                         locals: count!(verification_type_info, locals_count as usize) >>
                         (attributes::StackMapFrame::Append {
+                            tag: frame_type,
                             offset_delta,
                             locals,
                         })
@@ -220,6 +225,7 @@ named!(
                         stack_count: be_u16 >>
                         stack: count!(verification_type_info, stack_count as usize) >>
                         (attributes::StackMapFrame::Full {
+                            tag: frame_type,
                             offset_delta,
                             locals,
                             stack,
