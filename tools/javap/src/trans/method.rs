@@ -85,7 +85,7 @@ impl<'a> Translator<'a> {
                 format!(
                     "{} {}()",
                     access_flags,
-                    String::from_utf8_lossy(name.as_slice())
+                    String::from_utf8_lossy(name.as_slice()).replace("/", ".")
                 )
             }
             b"<clinit>" => "static {}".to_string(),
@@ -141,6 +141,17 @@ impl<'a> Translator<'a> {
 
     fn return_type(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
+        /*
+        for it in self.method.attrs.iter() {
+            match it {
+               classfile::attributes::Type::Signature { signature_index } => {
+                   let desc = constant_pool::get_utf8(&self.cf.cp, *signature_index as usize).unwrap();
+                   trace!("xxx {}", String::from_utf8_lossy(desc.as_slice()));
+               }
+                _ => (),
+            }
+        }
+        */
         let signature = MethodSignature::new(desc.as_slice());
         signature.retype.into_string()
     }

@@ -39,7 +39,7 @@ impl<'a> Translator<'a> {
     pub fn this_class(&self) -> String {
         constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize).map_or_else(
             || S_UNKNOWN.into(),
-            |v| String::from_utf8_lossy(v.as_slice()).into(),
+            |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
         )
     }
 
