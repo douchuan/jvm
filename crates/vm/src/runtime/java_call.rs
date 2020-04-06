@@ -359,7 +359,7 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
                 let v = area.stack.pop_double();
                 Oop::new_double(v)
             }
-            SignatureType::Object(_) | SignatureType::Array(_) => {
+            SignatureType::Object(_, _) | SignatureType::Array(_) => {
                 let mut area = area.borrow_mut();
                 area.stack.pop_ref()
             }
@@ -398,7 +398,7 @@ pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: O
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_double(v);
         }
-        SignatureType::Object(_) | SignatureType::Array(_) => {
+        SignatureType::Object(_, _) | SignatureType::Array(_) => {
             let v = v.unwrap();
             let mut area = caller.unwrap().borrow_mut();
             area.stack.push_ref(v);

@@ -13,7 +13,7 @@ impl Translator for SignatureType {
             SignatureType::Double => "double".into(),
             SignatureType::Float => "float".into(),
             SignatureType::Long => "long".into(),
-            SignatureType::Object(desc) => to_java_style(&desc),
+            SignatureType::Object(desc, _) => to_java_style(&desc),
             SignatureType::Short => "short".into(),
             SignatureType::Boolean => "boolean".into(),
             SignatureType::Array(desc) => to_java_style(&desc),

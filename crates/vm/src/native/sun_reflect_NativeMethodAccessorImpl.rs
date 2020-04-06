@@ -116,7 +116,7 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 let v = area.stack.pop_long();
                 Some(oop::Oop::new_long(v))
             }
-            SignatureType::Object(_) | SignatureType::Array(_) => Some(area.stack.pop_ref()),
+            SignatureType::Object(_, _) | SignatureType::Array(_) => Some(area.stack.pop_ref()),
             SignatureType::Void => Some(oop::consts::get_null()),
         }
     };

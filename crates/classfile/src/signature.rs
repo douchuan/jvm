@@ -3,15 +3,16 @@ use crate::BytesRef;
 use nom::bytes::complete::{take, take_till};
 use nom::character::complete::{char, one_of};
 use nom::combinator::peek;
+use nom::lib::std::fmt::{Error, Formatter};
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     error::{ErrorKind, ParseError, VerboseError},
     sequence::delimited,
-    Err, IResult,
+    AsBytes, Err, IResult,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Type {
     Byte,
     Char,
@@ -19,7 +20,10 @@ pub enum Type {
     Float,
     Int,
     Long,
-    Object(BytesRef),
+    //the 1st, container class
+    //the 2nd, generic class's arg
+    //Ljava/util/List<Ljava/lang/String;>;
+    Object(BytesRef, Option<Vec<Type>>),
     Short,
     Boolean,
     Array(BytesRef),
@@ -61,6 +65,28 @@ impl FieldSignature {
     }
 }
 
+impl std::fmt::Debug for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Byte => write!(f, "Byte"),
+            Type::Char => write!(f, "Char"),
+            Type::Double => write!(f, "Double"),
+            Type::Float => write!(f, "Float"),
+            Type::Int => write!(f, "Int"),
+            Type::Long => write!(f, "Long"),
+            Type::Object(container, args) => {
+                write!(f, "Object(");
+                write!(f, "\"{}\"", String::from_utf8_lossy(container.as_slice()));
+                write!(f, ")")
+            }
+            Type::Short => write!(f, "Short"),
+            Type::Boolean => write!(f, "Boolean"),
+            Type::Array(desc) => write!(f, "Array({})", String::from_utf8_lossy(desc.as_slice())),
+            Type::Void => write!(f, "Void"),
+        }
+    }
+}
+
 ///////////////////////////
 //parser
 ///////////////////////////
@@ -94,10 +120,39 @@ fn object_desc<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, BytesRef
     Ok((i, desc))
 }
 
-fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    let (i, _) = tag("L")(i)?;
+    let (i, container) = take_till(|c| c == '<')(i)?;
+    let (i, _) = tag("<")(i)?;
+    let (i, generic_args) = take_till(|c| c == '>')(i)?;
+    let (i, _) = tag(">")(i)?;
+    let (i, _) = tag(";")(i)?;
+
+    //parse generic args
+    let r = parse_types::<'a, E>(generic_args);
+    let generic_args = match r {
+        Ok((_, generic_args)) => Some(generic_args),
+        _ => None,
+    };
+
+    //build results
+    let mut buf = Vec::with_capacity(1 + container.len() + 1);
+    buf.push(b'L');
+    buf.extend_from_slice(container.as_bytes());
+    buf.push(b';');
+    let desc = std::sync::Arc::new(buf);
+    Ok((i, Type::Object(desc, generic_args)))
+}
+
+fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     let (i, _) = tag("L")(i)?;
     let (i, desc) = object_desc(i)?;
-    Ok((i, Type::Object(desc)))
+    Ok((i, Type::Object(desc, None)))
+}
+
+fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    // object_normal(i)
+    alt((object_generic, object_normal))(i)
 }
 
 fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
@@ -119,14 +174,37 @@ fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     Ok((i, Type::Array(desc)))
 }
 
-fn parse<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+fn parse_type<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     alt((primitive, object, array))(i)
+}
+
+fn parse_types<'a, E: ParseError<&'a str>>(mut input: &'a str) -> IResult<&str, Vec<Type>, E> {
+    let it = std::iter::from_fn(move || {
+        match parse_type::<'a, E>(input) {
+            // when successful, a nom parser returns a tuple of
+            // the remaining input and the output value.
+            // So we replace the captured input data with the
+            // remaining input, to be parsed on the next call
+            Ok((i, o)) => {
+                input = i;
+                Some(o)
+            }
+            _ => None,
+        }
+    });
+
+    let mut args = vec![];
+    for v in it {
+        args.push(v);
+    }
+
+    Ok((input, args))
 }
 
 fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
     fn arg0(i: &str) -> IResult<&str, MethodSignature> {
         let (i, _) = tag("()")(i)?;
-        let (i, retype) = parse(i)?;
+        let (i, retype) = parse_type(i)?;
         Ok((
             i,
             MethodSignature {
@@ -137,32 +215,9 @@ fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
     }
 
     fn args(i: &str) -> IResult<&str, MethodSignature> {
-        fn parse_multi<'a, E: ParseError<&'a str>>(mut input: &'a str) -> IResult<&str, Vec<Type>, E> {
-            let it = std::iter::from_fn(move || {
-                match parse::<'a, E>(input) {
-                    // when successful, a nom parser returns a tuple of
-                    // the remaining input and the output value.
-                    // So we replace the captured input data with the
-                    // remaining input, to be parsed on the next call
-                    Ok((i, o)) => {
-                        input = i;
-                        Some(o)
-                    }
-                    _ => None,
-                }
-            });
-
-            let mut args = vec![];
-            for v in it {
-                args.push(v);
-            }
-
-            Ok((input, args))
-        }
-
         let (i_return, i_args) = delimited(char('('), is_not(")"), char(')'))(i)?;
-        let (_, args) = parse_multi(i_args)?;
-        let (i, retype) = parse(i_return)?;
+        let (_, args) = parse_types(i_args)?;
+        let (i, retype) = parse_type(i_return)?;
         Ok((i, MethodSignature { args, retype }))
     }
 
@@ -170,7 +225,7 @@ fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
 }
 
 fn parse_field(mut i: &str) -> IResult<&str, FieldSignature> {
-    let (i, field_type) = parse(i)?;
+    let (i, field_type) = parse_type(i)?;
     Ok((i, FieldSignature { field_type }))
 }
 
@@ -286,11 +341,47 @@ mod tests {
                 SignatureType::Long,
                 SignatureType::Short,
                 SignatureType::Boolean,
-                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Integer;")), None),
             ],
-            retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
+            retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;")), None),
         };
         let (_, r) = parse_method("(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn method_arg_generic() {
+        let generic_args = vec![SignatureType::Object(
+            Arc::new(Vec::from("Ljava/lang/String;")),
+            None,
+        )];
+        let expected = MethodSignature {
+            args: vec![SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/List;")),
+                Some(generic_args),
+            )],
+            retype: SignatureType::Void,
+        };
+        let (_, r) = parse_method("(Ljava/util/List<Ljava/lang/String;>;)V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn method_return_generic() {
+        let generic_args = vec![SignatureType::Object(
+            Arc::new(Vec::from("Lorg/testng/ITestNGListener;")),
+            None,
+        )];
+        let expected = MethodSignature {
+            args: vec![],
+            retype: SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/List;")),
+                Some(generic_args),
+            ),
+        };
+        let (_, r) = parse_method("()Ljava/util/List<Lorg/testng/ITestNGListener;>;").unwrap();
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -313,7 +404,7 @@ mod tests {
 
         let v = Vec::from("Ljava/lang/Object;");
         let v = Arc::new(v);
-        setup_test!("Ljava/lang/Object;", SignatureType::Object(v));
+        setup_test!("Ljava/lang/Object;", SignatureType::Object(v, None));
         setup_test!("S", SignatureType::Short);
         setup_test!("Z", SignatureType::Boolean);
 
