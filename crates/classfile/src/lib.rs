@@ -2,6 +2,7 @@
 
 #[macro_use]
 extern crate log;
+extern crate nom;
 
 pub mod attributes;
 mod checker;
@@ -16,8 +17,8 @@ mod signature;
 pub mod types;
 mod version;
 
+pub use crate::classfile::ClassFile;
 pub use attributes::Type as AttributeType;
-pub use classfile::ClassFile;
 pub use constant_pool::Type as ConstantPoolType;
 pub use field_info::FieldInfo;
 pub use method_info::MethodInfo;

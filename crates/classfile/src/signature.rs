@@ -1,5 +1,15 @@
-use crate::types::BytesRef;
-use std::sync::Arc;
+use crate::BytesRef;
+
+use nom::bytes::complete::{take, take_till};
+use nom::character::complete::{char, one_of};
+use nom::combinator::peek;
+use nom::{
+    branch::alt,
+    bytes::complete::{is_not, tag},
+    error::{ErrorKind, ParseError, VerboseError},
+    sequence::delimited,
+    Err, IResult,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Type {
@@ -24,11 +34,9 @@ pub struct MethodSignature {
 
 impl MethodSignature {
     pub fn new(raw: &[u8]) -> Self {
-        let mut ts = parse(raw);
-        match ts.pop() {
-            Some(retype) => Self { args: ts, retype },
-            None => Self::default(),
-        }
+        let s = unsafe { std::str::from_utf8_unchecked(raw) };
+        let (_, r) = parse_method(s).unwrap();
+        r
     }
 }
 
@@ -47,208 +55,277 @@ pub struct FieldSignature {
 
 impl FieldSignature {
     pub fn new(raw: &[u8]) -> Self {
-        let mut v = parse(raw);
-        Self {
-            field_type: v.pop().unwrap(),
-        }
+        let s = unsafe { std::str::from_utf8_unchecked(raw) };
+        let (_, r) = parse_field(s).unwrap();
+        r
     }
 }
 
-fn parse(raw: &[u8]) -> Vec<Type> {
-    enum State {
-        One,
-        Obj,
-        Ary,
-    }
+///////////////////////////
+//parser
+///////////////////////////
 
-    let mut state = State::One;
-    let mut types: Vec<Type> = Vec::new();
-    let mut buf = Vec::new();
+fn primitive<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    let (i, t) = one_of("BCDFIJSZV")(i)?;
+    Ok((
+        i,
+        match t {
+            'B' => Type::Byte,
+            'C' => Type::Char,
+            'D' => Type::Double,
+            'F' => Type::Float,
+            'I' => Type::Int,
+            'J' => Type::Long,
+            'S' => Type::Short,
+            'Z' => Type::Boolean,
+            'V' => Type::Void,
+            _ => unreachable!(),
+        },
+    ))
+}
 
-    for v in raw {
-        match state {
-            State::One => match v {
-                b'B' => types.push(Type::Byte),
-                b'C' => types.push(Type::Char),
-                b'D' => types.push(Type::Double),
-                b'F' => types.push(Type::Float),
-                b'I' => types.push(Type::Int),
-                b'J' => types.push(Type::Long),
-                b'S' => types.push(Type::Short),
-                b'Z' => types.push(Type::Boolean),
-                b'V' => types.push(Type::Void),
-                b'L' => {
-                    buf.push(v.clone());
-                    state = State::Obj;
-                }
-                b'[' => {
-                    buf.push(v.clone());
-                    state = State::Ary;
-                }
-                _ => (),
-            },
-            State::Obj => match v {
-                b';' => {
-                    buf.push(v.clone());
+fn object_desc<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, BytesRef, E> {
+    let (i, desc) = take_till(|c| c == ';')(i)?;
+    let (i, _) = tag(";")(i)?;
+    let mut buf = Vec::with_capacity(1 + desc.len() + 1);
+    buf.push(b'L');
+    buf.extend_from_slice(desc.as_bytes());
+    buf.push(b';');
+    let desc = std::sync::Arc::new(buf);
+    Ok((i, desc))
+}
 
-                    let v = Vec::from(&buf[..]);
-                    let v = Arc::new(v);
+fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    let (i, _) = tag("L")(i)?;
+    let (i, desc) = object_desc(i)?;
+    Ok((i, Type::Object(desc)))
+}
 
-                    if buf[0] == b'[' {
-                        types.push(Type::Array(v));
-                    } else {
-                        types.push(Type::Object(v));
-                    }
+fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    let (i, _) = peek(tag("["))(i)?;
+    let (i, ary_tags) = take_till(|c| c != '[')(i)?;
+    let (mut i, t) = take(1u8)(i)?;
 
-                    buf.clear();
-                    state = State::One;
-                }
-                _ => buf.push(v.clone()),
-            },
-            State::Ary => match v {
-                b'L' => {
-                    buf.push(v.clone());
-                    state = State::Obj;
-                }
-                b'[' => buf.push(v.clone()),
-                _ => {
-                    let t = match v {
-                        b'B' => Type::Byte,
-                        b'C' => Type::Char,
-                        b'D' => Type::Double,
-                        b'F' => Type::Float,
-                        b'I' => Type::Int,
-                        b'J' => Type::Long,
-                        b'S' => Type::Short,
-                        b'Z' => Type::Boolean,
-                        _ => unreachable!("unknown type v={}", v),
-                    };
-
-                    let mut v1 = Vec::from(&buf[..]);
-                    v1.push(*v);
-                    let v = Arc::new(v1);
-                    types.push(Type::Array(v));
-
-                    buf.clear();
-                    state = State::One;
-                }
-            },
+    let mut buf = vec![];
+    buf.extend_from_slice(ary_tags.as_bytes());
+    match t {
+        "L" => {
+            let (i2, desc) = object_desc(i)?;
+            i = i2;
+            buf.extend_from_slice(desc.as_slice());
         }
+        v => buf.extend_from_slice(v.as_bytes()),
+    }
+    let desc = std::sync::Arc::new(buf);
+    Ok((i, Type::Array(desc)))
+}
+
+fn parse<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
+    alt((primitive, object, array))(i)
+}
+
+fn parse_multi<'a, E: ParseError<&'a str>>(
+    mut input: &'a str,
+) -> IResult<&str, Vec<Type>, E> {
+    let it = std::iter::from_fn(move || {
+        match parse::<'a, E>(input) {
+            // when successful, a nom parser returns a tuple of
+            // the remaining input and the output value.
+            // So we replace the captured input data with the
+            // remaining input, to be parsed on the next call
+            Ok((i, o)) => {
+                input = i;
+                Some(o)
+            }
+            _ => None,
+        }
+    });
+
+    let mut args = vec![];
+    for v in it {
+        args.push(v);
     }
 
-    types
+    Ok((input, args))
+}
+
+fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
+    fn arg0(i: &str) -> IResult<&str, MethodSignature> {
+        let (i, _) = tag("()")(i)?;
+        let (i, retype) = parse(i)?;
+        Ok((
+            i,
+            MethodSignature {
+                args: vec![],
+                retype,
+            },
+        ))
+    }
+
+    fn args(i: &str) -> IResult<&str, MethodSignature> {
+        let (i_return, i_args) = delimited(char('('), is_not(")"), char(')'))(i)?;
+        let (_, args) = parse_multi(i_args)?;
+        let (i, retype) = parse(i_return)?;
+        Ok((i, MethodSignature { args, retype }))
+    }
+
+    alt((arg0, args))(i)
+}
+
+fn parse_field(mut i: &str) -> IResult<&str, FieldSignature> {
+    let (i, field_type) = parse(i)?;
+    Ok((i, FieldSignature { field_type }))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{parse_field, parse_method};
+    use crate::FieldSignature;
+    use crate::MethodSignature;
+    use crate::SignatureType;
+    use std::sync::Arc;
 
     #[test]
-    fn t_parse() {
-        let args = "()V";
-        let ts = vec![Type::Void];
-        assert_eq!(parse(args.as_bytes()), ts);
-
-        let args = "([[Ljava/lang/String;)V";
-        let ts = vec![
-            Type::Array(Arc::new(Vec::from("[[Ljava/lang/String;"))),
-            Type::Void,
-        ];
-        assert_eq!(parse(args.as_bytes()), ts);
-
-        let args = "(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;";
-        let ts = vec![
-            Type::Byte,
-            Type::Char,
-            Type::Double,
-            Type::Float,
-            Type::Int,
-            Type::Long,
-            Type::Short,
-            Type::Boolean,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
-        ];
-        assert_eq!(parse(args.as_bytes()), ts);
+    fn t_method_no_arg() {
+        let expected = MethodSignature {
+            args: vec![],
+            retype: SignatureType::Void,
+        };
+        let (_, r) = parse_method("()V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
     }
 
     #[test]
-    fn t_parse2() {
-        let args = "()V";
-        let sig = MethodSignature::new(args.as_bytes());
-        assert_eq!(sig.args, vec![]);
-        assert_eq!(sig.retype, Type::Void);
-
-        let args = "([[Ljava/lang/String;)V";
-        let sig = MethodSignature::new(args.as_bytes());
-        assert_eq!(
-            sig.args,
-            vec![Type::Array(Arc::new(Vec::from("[[Ljava/lang/String;")))]
-        );
-        assert_eq!(sig.retype, Type::Void);
-
-        let args = "(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;";
-        let ts = vec![
-            Type::Byte,
-            Type::Char,
-            Type::Double,
-            Type::Float,
-            Type::Int,
-            Type::Long,
-            Type::Short,
-            Type::Boolean,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
+    fn method_primitive() {
+        let table = vec![
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Byte],
+                    retype: SignatureType::Void,
+                },
+                "(B)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Char],
+                    retype: SignatureType::Void,
+                },
+                "(C)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Double],
+                    retype: SignatureType::Void,
+                },
+                "(D)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Float],
+                    retype: SignatureType::Void,
+                },
+                "(F)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Int],
+                    retype: SignatureType::Void,
+                },
+                "(I)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Long],
+                    retype: SignatureType::Void,
+                },
+                "(J)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Short],
+                    retype: SignatureType::Void,
+                },
+                "(S)V",
+            ),
+            (
+                MethodSignature {
+                    args: vec![SignatureType::Boolean],
+                    retype: SignatureType::Void,
+                },
+                "(Z)V",
+            ),
         ];
-        let sig = MethodSignature::new(args.as_bytes());
-        assert_eq!(
-            sig.args,
-            vec![
-                Type::Byte,
-                Type::Char,
-                Type::Double,
-                Type::Float,
-                Type::Int,
-                Type::Long,
-                Type::Short,
-                Type::Boolean,
-                Type::Object(Arc::new(Vec::from("Ljava/lang/Integer;")))
-            ]
-        );
-        assert_eq!(
-            sig.retype,
-            Type::Object(Arc::new(Vec::from("Ljava/lang/String;")))
-        );
+
+        for (expected, desc) in table.iter() {
+            let (_, r) = parse_method(desc).unwrap();
+            assert_eq!(r.args, expected.args);
+            assert_eq!(r.retype, expected.retype);
+        }
     }
 
     #[test]
-    fn t_parse3() {
+    fn method_array_object() {
+        let expected = MethodSignature {
+            args: vec![SignatureType::Array(Arc::new(Vec::from(
+                "[[Ljava/lang/String;",
+            )))],
+            retype: SignatureType::Void,
+        };
+        let (_, r) = parse_method("([[Ljava/lang/String;)V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn method_mix() {
+        let expected = MethodSignature {
+            args: vec![
+                SignatureType::Byte,
+                SignatureType::Char,
+                SignatureType::Double,
+                SignatureType::Float,
+                SignatureType::Int,
+                SignatureType::Long,
+                SignatureType::Short,
+                SignatureType::Boolean,
+                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Integer;"))),
+            ],
+            retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;"))),
+        };
+        let (_, r) = parse_method("(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn field() {
         macro_rules! setup_test {
             ($desc: expr, $tp: expr) => {
-                let sig = crate::classfile::signature::FieldSignature::new($desc);
+                let (_, sig) = parse_field($desc).unwrap();
                 assert_eq!(sig.field_type, $tp);
             };
         }
 
-        setup_test!("B".as_bytes(), Type::Byte);
-        setup_test!("C".as_bytes(), Type::Char);
-        setup_test!("D".as_bytes(), Type::Double);
-        setup_test!("F".as_bytes(), Type::Float);
-        setup_test!("I".as_bytes(), Type::Int);
-        setup_test!("J".as_bytes(), Type::Long);
+        setup_test!("B", SignatureType::Byte);
+        setup_test!("C", SignatureType::Char);
+        setup_test!("D", SignatureType::Double);
+        setup_test!("F", SignatureType::Float);
+        setup_test!("I", SignatureType::Int);
+        setup_test!("J", SignatureType::Long);
 
         let v = Vec::from("Ljava/lang/Object;");
         let v = Arc::new(v);
-        setup_test!("Ljava/lang/Object;".as_bytes(), Type::Object(v));
-        setup_test!("S".as_bytes(), Type::Short);
-        setup_test!("Z".as_bytes(), Type::Boolean);
+        setup_test!("Ljava/lang/Object;", SignatureType::Object(v));
+        setup_test!("S", SignatureType::Short);
+        setup_test!("Z", SignatureType::Boolean);
 
         let v = Vec::from("[Ljava/lang/Object;");
         let v = Arc::new(v);
-        setup_test!("[Ljava/lang/Object;".as_bytes(), Type::Array(v));
+        setup_test!("[Ljava/lang/Object;", SignatureType::Array(v));
 
         let v = Vec::from("[[[D");
         let v = Arc::new(v);
-        setup_test!("[[[D".as_bytes(), Type::Array(v));
+        setup_test!("[[[D", SignatureType::Array(v));
     }
 }

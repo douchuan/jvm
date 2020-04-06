@@ -4,7 +4,7 @@ use crate::consts::{
     CONSTANT_INTERFACE_METHOD_REF_TAG, CONSTANT_METHOD_REF_TAG, METHOD_NAME_CLINIT,
     METHOD_NAME_INIT,
 };
-use crate::signature::{MethodSignature, Type as SigType};
+use crate::{MethodSignature, SignatureType};
 use crate::types::{BytesRef, ConstantPool};
 use fmt::Debug;
 use std::fmt;
@@ -166,7 +166,7 @@ impl Checker for Type {
                         if name.starts_with(b"<") {
                             if name.as_slice() == METHOD_NAME_INIT {
                                 let sig = MethodSignature::new(desc.as_slice());
-                                if sig.retype == SigType::Void {
+                                if sig.retype == SignatureType::Void {
                                     Ok(())
                                 } else {
                                     Err(checker::Err::InvalidCpMethodRefNameAndTypeIdx)
