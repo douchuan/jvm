@@ -68,21 +68,21 @@ impl FieldSignature {
 impl std::fmt::Debug for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Type::Byte => write!(f, "Byte"),
-            Type::Char => write!(f, "Char"),
-            Type::Double => write!(f, "Double"),
-            Type::Float => write!(f, "Float"),
-            Type::Int => write!(f, "Int"),
-            Type::Long => write!(f, "Long"),
+            Type::Byte => write!(f, "B"),
+            Type::Char => write!(f, "C"),
+            Type::Double => write!(f, "D"),
+            Type::Float => write!(f, "F"),
+            Type::Int => write!(f, "I"),
+            Type::Long => write!(f, "J"),
             Type::Object(container, args) => {
                 write!(f, "Object(");
                 write!(f, "\"{}\"", String::from_utf8_lossy(container.as_slice()));
                 write!(f, ")")
             }
-            Type::Short => write!(f, "Short"),
-            Type::Boolean => write!(f, "Boolean"),
+            Type::Short => write!(f, "S"),
+            Type::Boolean => write!(f, "B"),
             Type::Array(desc) => write!(f, "Array({})", String::from_utf8_lossy(desc.as_slice())),
-            Type::Void => write!(f, "Void"),
+            Type::Void => write!(f, "V"),
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
 use classfile::attributes::LocalVariable;
 use classfile::{
     attributes::LineNumber, attributes::StackMapFrame, attributes::VerificationTypeInfo,
-    constant_pool, ClassFile, MethodInfo, MethodSignature,
+    constant_pool, BytesRef, ClassFile, MethodInfo, MethodSignature,
 };
 use handlebars::Handlebars;
 
@@ -51,7 +51,8 @@ impl<'a> Translator<'a> {
         } else {
             Default::default()
         };
-        let signature = self.signature();
+        let signature = self.signature(false);
+        let signature = String::from_utf8_lossy(signature.as_slice()).to_string();
         let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
         let throws = self.throws().unwrap_or("".to_string());
         let ex_table = self.ex_table();
@@ -90,7 +91,9 @@ impl<'a> Translator<'a> {
             }
             b"<clinit>" => "static {}".to_string(),
             _ => {
-                let reg = Handlebars::new();
+                let mut reg = Handlebars::new();
+                reg.register_escape_fn(handlebars::no_escape);
+
                 let flags = self.access_flags();
                 match flags.is_empty() {
                     true => {
@@ -140,31 +143,13 @@ impl<'a> Translator<'a> {
     }
 
     fn return_type(&self) -> String {
-        let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
-        /*
-        for it in self.method.attrs.iter() {
-            match it {
-               classfile::attributes::Type::Signature { signature_index } => {
-                   let desc = constant_pool::get_utf8(&self.cf.cp, *signature_index as usize).unwrap();
-                   trace!("xxx {}", String::from_utf8_lossy(desc.as_slice()));
-               }
-                _ => (),
-            }
-        }
-        */
-        let signature = MethodSignature::new(desc.as_slice());
-        signature.retype.into_string()
+        let signature = self.method_signature();
+        return signature.retype.into_string();
     }
 
     fn args(&self) -> Vec<String> {
-        let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
-        let signature = MethodSignature::new(desc.as_slice());
+        let signature = self.method_signature();
         signature.args.iter().map(|it| it.into_string()).collect()
-    }
-
-    fn signature(&self) -> String {
-        let desc = constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
-        String::from_utf8_lossy(desc.as_slice()).to_string()
     }
 
     fn code(&self) -> CodeSerde {
@@ -406,5 +391,39 @@ impl<'a> Translator<'a> {
         }
 
         table
+    }
+
+    //Attribute::Signature contains signature details
+    //such as, generics info; but constant pool only contains container info
+    //
+    // Attribute::Signature
+    //()Ljava/util/List<Lorg/testng/ITestNGListener;>;
+    //
+    //constant pool
+    //()Ljava/util/List;
+    fn signature(&self, try_fetch_attribute: bool) -> BytesRef {
+        let mut desc = None;
+
+        if try_fetch_attribute {
+            for it in self.method.attrs.iter() {
+                match it {
+                    classfile::attributes::Type::Signature { signature_index } => {
+                        let v = constant_pool::get_utf8(&self.cf.cp, *signature_index as usize)
+                            .unwrap();
+                        desc = Some(v);
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+        desc.unwrap_or_else(|| {
+            constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap()
+        })
+    }
+
+    fn method_signature(&self) -> MethodSignature {
+        let desc = self.signature(true);
+        MethodSignature::new(desc.as_slice())
     }
 }
