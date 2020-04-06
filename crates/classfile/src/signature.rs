@@ -67,21 +67,20 @@ impl FieldSignature {
 
 fn primitive<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     let (i, t) = one_of("BCDFIJSZV")(i)?;
-    Ok((
-        i,
-        match t {
-            'B' => Type::Byte,
-            'C' => Type::Char,
-            'D' => Type::Double,
-            'F' => Type::Float,
-            'I' => Type::Int,
-            'J' => Type::Long,
-            'S' => Type::Short,
-            'Z' => Type::Boolean,
-            'V' => Type::Void,
-            _ => unreachable!(),
-        },
-    ))
+    let t = match t {
+        'B' => Type::Byte,
+        'C' => Type::Char,
+        'D' => Type::Double,
+        'F' => Type::Float,
+        'I' => Type::Int,
+        'J' => Type::Long,
+        'S' => Type::Short,
+        'Z' => Type::Boolean,
+        'V' => Type::Void,
+        _ => unreachable!(),
+    };
+
+    Ok((i, t))
 }
 
 fn object_desc<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, BytesRef, E> {
@@ -124,31 +123,6 @@ fn parse<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     alt((primitive, object, array))(i)
 }
 
-fn parse_multi<'a, E: ParseError<&'a str>>(
-    mut input: &'a str,
-) -> IResult<&str, Vec<Type>, E> {
-    let it = std::iter::from_fn(move || {
-        match parse::<'a, E>(input) {
-            // when successful, a nom parser returns a tuple of
-            // the remaining input and the output value.
-            // So we replace the captured input data with the
-            // remaining input, to be parsed on the next call
-            Ok((i, o)) => {
-                input = i;
-                Some(o)
-            }
-            _ => None,
-        }
-    });
-
-    let mut args = vec![];
-    for v in it {
-        args.push(v);
-    }
-
-    Ok((input, args))
-}
-
 fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
     fn arg0(i: &str) -> IResult<&str, MethodSignature> {
         let (i, _) = tag("()")(i)?;
@@ -163,6 +137,29 @@ fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
     }
 
     fn args(i: &str) -> IResult<&str, MethodSignature> {
+        fn parse_multi<'a, E: ParseError<&'a str>>(mut input: &'a str) -> IResult<&str, Vec<Type>, E> {
+            let it = std::iter::from_fn(move || {
+                match parse::<'a, E>(input) {
+                    // when successful, a nom parser returns a tuple of
+                    // the remaining input and the output value.
+                    // So we replace the captured input data with the
+                    // remaining input, to be parsed on the next call
+                    Ok((i, o)) => {
+                        input = i;
+                        Some(o)
+                    }
+                    _ => None,
+                }
+            });
+
+            let mut args = vec![];
+            for v in it {
+                args.push(v);
+            }
+
+            Ok((input, args))
+        }
+
         let (i_return, i_args) = delimited(char('('), is_not(")"), char(')'))(i)?;
         let (_, args) = parse_multi(i_args)?;
         let (i, retype) = parse(i_return)?;

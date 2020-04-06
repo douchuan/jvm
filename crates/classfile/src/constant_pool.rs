@@ -4,8 +4,8 @@ use crate::consts::{
     CONSTANT_INTERFACE_METHOD_REF_TAG, CONSTANT_METHOD_REF_TAG, METHOD_NAME_CLINIT,
     METHOD_NAME_INIT,
 };
-use crate::{MethodSignature, SignatureType};
 use crate::types::{BytesRef, ConstantPool};
+use crate::{MethodSignature, SignatureType};
 use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;
