@@ -57,10 +57,6 @@ pub const PART_METHODS: &str = "
         {{this ~}}
       {{/each~}}
   {{/if}}
-  {{~#if enable_throws}}
-    Exceptions:
-      throws {{throws}}
-  {{/if}}
   {{~#if enable_stack_map}}
     StackMapTable: number_of_entries = {{stack_map_table.number_of_entries}}
       {{~#each stack_map_table.frames}}
@@ -68,7 +64,11 @@ pub const PART_METHODS: &str = "
         {{~#each items}}
           {{this ~}}
         {{/each~}}
-      {{/each}}
+      {{/each~}}
+  {{/if}}
+  {{~#if enable_throws}}
+    Exceptions:
+      throws {{throws}}
   {{/if}}
 {{/each}}";
 

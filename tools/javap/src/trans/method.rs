@@ -231,9 +231,10 @@ impl<'a> Translator<'a> {
                             offset_delta,
                             locals,
                         } => {
+                            let infos = self.build_verification_type_infos(locals);
                             let items = vec![
                                 format!("offset_delta = {}", *offset_delta),
-                                self.build_stack_map_frame_locals(locals),
+                                format!("locals = [ {} ]", infos.join(", ")),
                             ];
 
                             table.push(StackMapTableTranslation {
@@ -242,23 +243,27 @@ impl<'a> Translator<'a> {
                                 items,
                             });
                         }
-                        StackMapFrame::Same { tag, offset_delta } => {
+                        StackMapFrame::Same {
+                            tag,
+                            offset_delta: _,
+                        } => {
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
                                 comment: "/* same */",
-                                items: vec![format!("offset_delta = {}", *offset_delta)],
+                                items: vec![],
                             });
                         }
                         StackMapFrame::SameLocals1StackItem {
                             tag,
                             offset_delta: _,
-                            stack: _,
+                            stack,
                         } => {
-                            trace!("todo: StackMapFrame::SameLocals1StackItem");
+                            let stack = stack.to_vec();
+                            let infos = self.build_verification_type_infos(&stack);
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
-                                comment: "/* todo: SameLocals1StackItem */",
-                                items: vec![],
+                                comment: "/* same_locals_1_stack_item */",
+                                items: vec![format!("stack = [ {} ]", infos.join(", "))],
                             });
                         }
                         StackMapFrame::SameLocals1StackItemExtended {
@@ -293,15 +298,20 @@ impl<'a> Translator<'a> {
                         }
                         StackMapFrame::Full {
                             tag,
-                            offset_delta: _,
-                            locals: _,
-                            stack: _,
+                            offset_delta,
+                            locals,
+                            stack,
                         } => {
-                            trace!("todo: StackMapFrame::Full");
+                            let locals = self.build_verification_type_infos(locals);
+                            let stack = self.build_verification_type_infos(stack);
+                            let mut items = Vec::with_capacity(3);
+                            items.push(format!("offset_delta = {}", *offset_delta));
+                            items.push(format!("locals = [ {} ]", locals.join(", ")));
+                            items.push(format!("stack = [ {} ]", stack.join(", ")));
                             table.push(StackMapTableTranslation {
                                 tag: *tag,
-                                comment: "/* todo: Full */",
-                                items: vec![],
+                                comment: "/* full_frame */",
+                                items,
                             });
                         }
                         StackMapFrame::Reserved(_) => {}
@@ -330,8 +340,9 @@ impl<'a> Translator<'a> {
 }
 
 impl<'a> Translator<'a> {
-    fn build_stack_map_frame_locals(&self, locals: &Vec<VerificationTypeInfo>) -> String {
+    fn build_verification_type_infos(&self, locals: &Vec<VerificationTypeInfo>) -> Vec<String> {
         let mut infos = Vec::with_capacity(locals.len());
+
         for it in locals.iter() {
             match it {
                 VerificationTypeInfo::Float => {
@@ -359,7 +370,11 @@ impl<'a> Translator<'a> {
                     let name =
                         constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize).unwrap();
                     let name = String::from_utf8_lossy(name.as_slice());
-                    let v = format!("class \"{}\"", name);
+                    let v = if name.starts_with("[") {
+                        format!("class \"{}\"", name)
+                    } else {
+                        format!("class {}", name)
+                    };
                     infos.push(v);
                 }
                 VerificationTypeInfo::Uninitialized { offset: _ } => {
@@ -368,7 +383,7 @@ impl<'a> Translator<'a> {
             }
         }
 
-        format!("locals = [ {} ]", infos.join(", "))
+        infos
     }
 
     fn build_variable_table(&self, local_vars: &Vec<LocalVariable>) -> Vec<String> {
