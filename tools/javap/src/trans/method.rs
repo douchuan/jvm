@@ -200,15 +200,17 @@ impl<'a> Translator<'a> {
                 table.push(v);
 
                 for ex in ext.iter() {
-                    let name =
-                        constant_pool::get_class_name(&self.cf.cp, ex.catch_type as usize).unwrap();
+                    let t = if ex.is_finally() {
+                        "any".to_string()
+                    } else {
+                        let name =
+                            constant_pool::get_class_name(&self.cf.cp, ex.catch_type as usize)
+                                .unwrap();
+                        format!("Class {}", String::from_utf8_lossy(name.as_slice()))
+                    };
                     let v = format!(
-                        "{:>5} {:>5} {:>5} {} {}",
-                        ex.start_pc,
-                        ex.end_pc,
-                        ex.handler_pc,
-                        "  Class",
-                        String::from_utf8_lossy(name.as_slice())
+                        "{:>5} {:>5} {:>5}   {}",
+                        ex.start_pc, ex.end_pc, ex.handler_pc, t
                     );
                     table.push(v)
                 }
