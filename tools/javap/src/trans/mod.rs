@@ -30,7 +30,6 @@ pub fn class_this_class(cf: &ClassFile) -> String {
     x.this_class()
 }
 
-#[allow(unused)]
 pub fn class_super_class(cf: &ClassFile) -> String {
     let x = ClassFileTranslator::new(cf);
     x.super_class()
@@ -75,4 +74,9 @@ pub fn class_parent_interfaces(cf: &ClassFile) -> Vec<String> {
 pub fn class_constant_pool(cf: &ClassFile) -> Vec<String> {
     let x = ConstantPoolTranslator { cf };
     x.get()
+}
+
+pub fn class_inner_classes(cf: &ClassFile) -> Vec<String> {
+    let x = ClassFileTranslator::new(cf);
+    x.inner_classes()
 }

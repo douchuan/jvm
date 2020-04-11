@@ -3,6 +3,7 @@ use crate::{
     attributes::Type, checker::CheckResult, checker::Checker, field_info::FieldInfo,
     method_info::MethodInfo, version::Version,
 };
+use crate::attributes::InnerClass;
 
 #[derive(Debug)]
 pub struct ClassFile {
@@ -20,6 +21,19 @@ pub struct ClassFile {
 impl ClassFile {
     pub fn check_format(&self) -> CheckResult {
         self.check(&self.cp)
+    }
+
+    pub fn inner_classes(&self) -> Option<Vec<InnerClass>> {
+        for it in self.attrs.iter() {
+            match it {
+                Type::InnerClasses { classes } => {
+                    return Some(classes.clone());
+                },
+                _ => ()
+            }
+        }
+
+        None
     }
 }
 

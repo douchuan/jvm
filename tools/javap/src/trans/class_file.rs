@@ -68,7 +68,7 @@ impl<'a> Translator<'a> {
     pub fn access_flags(&self) -> String {
         let flags = self.cf.acc_flags;
         let t = AccessFlagsTranslator::new(flags);
-        t.class_access_flags()
+        t.class_access_flags(false)
     }
 
     pub fn access_flags_name(&self) -> String {
@@ -142,5 +142,70 @@ impl<'a> Translator<'a> {
         }
 
         fields
+    }
+
+    pub fn inner_classes(&self) -> Vec<String> {
+        let mut r = vec![];
+        match self.cf.inner_classes() {
+            Some(inners) => {
+                for it in inners.iter() {
+                    let inner_class_info_index = it.inner_class_info_index;
+                    let outer_class_info_index = it.outer_class_info_index;
+                    let inner_name_index = it.inner_name_index;
+                    let inner_class_access_flags = it.inner_class_access_flags;
+                    let flags = AccessFlagsTranslator::new(inner_class_access_flags);
+
+                    //top-level class or interface
+                    if outer_class_info_index == 0 {
+                        let inner_class_info = constant_pool::get_class_name(
+                            &self.cf.cp,
+                            inner_class_info_index as usize,
+                        )
+                        .unwrap();
+                        let v = format!(
+                            "#{}; //class {}",
+                            inner_class_info_index,
+                            String::from_utf8_lossy(inner_class_info.as_slice())
+                        );
+                        r.push(v);
+                    } else {
+                        if inner_class_access_flags.is_public() {
+                            let inner_class_info = constant_pool::get_class_name(
+                                &self.cf.cp,
+                                inner_class_info_index as usize,
+                            )
+                            .unwrap();
+                            let inner_class_info =
+                                String::from_utf8_lossy(inner_class_info.as_slice());
+                            let inner_name =
+                                constant_pool::get_utf8(&self.cf.cp, inner_name_index as usize)
+                                    .unwrap();
+                            let inner_name = String::from_utf8_lossy(inner_name.as_slice());
+                            let outer_class_info = constant_pool::get_class_name(
+                                &self.cf.cp,
+                                outer_class_info_index as usize,
+                            )
+                            .unwrap();
+                            let outer_class_info =
+                                String::from_utf8_lossy(outer_class_info.as_slice());
+                            let flags = flags.class_access_flags(true);
+                            let v = format!(
+                                "{} #{}= #{} of #{}; //{}=class {} of class {}",
+                                flags,
+                                inner_name_index,
+                                inner_class_info_index,
+                                outer_class_info_index,
+                                inner_name,
+                                inner_class_info,
+                                outer_class_info
+                            );
+                            r.push(v);
+                        }
+                    }
+                }
+            }
+            None => (),
+        }
+        r
     }
 }

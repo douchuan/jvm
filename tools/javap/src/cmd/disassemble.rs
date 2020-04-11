@@ -67,6 +67,8 @@ impl Disassemble {
         } else {
             vec![]
         };
+        let inner_classes = trans::class_inner_classes(&cf);
+        let enable_inner_classes = self.enable_verbose && !inner_classes.is_empty();
 
         let data = ClassInfoSerde {
             sys_info,
@@ -77,9 +79,11 @@ impl Disassemble {
             fields,
             methods,
             cp,
+            inner_classes,
 
             enable_verbose: self.enable_verbose,
             enable_sys_info: self.enable_sys_info,
+            enable_inner_classes,
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());

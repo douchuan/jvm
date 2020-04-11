@@ -8,9 +8,11 @@ pub struct ClassInfoSerde {
     pub fields: Vec<FieldInfoSerde>,
     pub methods: Vec<MethodInfoSerde>,
     pub cp: Vec<String>,
+    pub inner_classes: Vec<String>,
 
     pub enable_verbose: bool,
     pub enable_sys_info: bool,
+    pub enable_inner_classes: bool,
 }
 
 #[derive(Serialize)]

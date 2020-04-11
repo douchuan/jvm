@@ -79,16 +79,6 @@ Constant pool:
 {{/each}}
 ";
 
-// pub const PART_STACK_MAP_TABLE: &str = "
-// StackMapTable: number_of_entries = {{stack_map_table.number_of_entries}}
-//   {{~#each stack_map_table.frames}}
-//     {{desc}}
-//     {{~#each items}}
-//       {{this ~}}
-//     {{/each}}
-//   {{/each}}
-// ";
-
 pub const CLASS: &str = "
 {{~#if enable_sys_info}}
 {{~> sys_info ~}}
@@ -107,7 +97,14 @@ pub const CLASS: &str = "
 {{/if}}
   {{~> fields }}
   {{~> methods }}
-}";
+}
+{{~#if enable_inner_classes}}
+InnerClasses:
+{{~#each inner_classes}}
+    {{this ~}}
+{{/each}}
+{{/if}}
+";
 
 pub fn get_engine() -> Handlebars<'static> {
     let mut h = Handlebars::new();

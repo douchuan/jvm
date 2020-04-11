@@ -11,7 +11,7 @@ impl Translator {
 }
 
 impl Translator {
-    pub fn class_access_flags(&self) -> String {
+    pub fn class_access_flags(&self, only_flag: bool) -> String {
         let mut parts = vec![];
         let flags = self.flags;
 
@@ -19,19 +19,25 @@ impl Translator {
             parts.push("public");
         }
 
+        if flags.is_static() {
+            parts.push("static");
+        }
+
         if flags.is_final() {
             parts.push("final");
         }
 
-        if flags.is_interface() {
-            parts.push("interface");
-        } else if flags.is_enum() {
-            parts.push("class");
-        } else {
-            if flags.is_abstract() {
-                parts.push("abstract class");
+        if !only_flag {
+            if flags.is_interface() {
+                parts.push("interface");
+            } else if flags.is_enum() {
+                parts.push("class");
             } else {
-                parts.push("class")
+                if flags.is_abstract() {
+                    parts.push("abstract class");
+                } else {
+                    parts.push("class")
+                }
             }
         }
 
