@@ -101,6 +101,9 @@ pub const CLASS: &str = "
 {{~#if has_signature}}
 {{signature~}}
 {{/if}}
+{{~#if enable_verbose}}
+SourceFile: \"{{source_file}}\"
+{{~/if~}}
 {{~#if has_inner_classes}}
 InnerClasses:
 {{~#each inner_classes}}
