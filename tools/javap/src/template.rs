@@ -98,7 +98,10 @@ pub const CLASS: &str = "
   {{~> fields }}
   {{~> methods }}
 }
-{{~#if enable_inner_classes}}
+{{~#if has_signature}}
+{{signature~}}
+{{/if}}
+{{~#if has_inner_classes}}
 InnerClasses:
 {{~#each inner_classes}}
     {{this ~}}

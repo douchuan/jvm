@@ -77,21 +77,12 @@ impl<'a> Translator<'a> {
         t.access_flag_inner()
     }
 
-    pub fn signature(&self) -> String {
-        for it in &self.cf.attrs {
-            match it {
-                AttributeType::Signature { signature_index } => {
-                    return constant_pool::get_utf8(&self.cf.cp, *signature_index as usize)
-                        .map_or_else(
-                            || S_UNKNOWN.into(),
-                            |v| String::from_utf8_lossy(v.as_slice()).into(),
-                        );
-                }
-                _ => (),
-            }
-        }
-
-        String::from(S_UNKNOWN)
+    pub fn signature(&self) -> Option<String> {
+        self.cf.signature().map(|idx| {
+            let v = constant_pool::get_utf8(&self.cf.cp, idx).unwrap();
+            let signature = String::from_utf8_lossy(v.as_slice());
+            format!("Signature: #{:<28} // {}", idx, signature)
+        })
     }
 
     /*

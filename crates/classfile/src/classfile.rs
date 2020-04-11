@@ -1,9 +1,9 @@
+use crate::attributes::InnerClass;
 use crate::types::{ConstantPool, U2};
 use crate::{
     attributes::Type, checker::CheckResult, checker::Checker, field_info::FieldInfo,
     method_info::MethodInfo, version::Version,
 };
-use crate::attributes::InnerClass;
 
 #[derive(Debug)]
 pub struct ClassFile {
@@ -28,8 +28,21 @@ impl ClassFile {
             match it {
                 Type::InnerClasses { classes } => {
                     return Some(classes.clone());
-                },
-                _ => ()
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    pub fn signature(&self) -> Option<usize> {
+        for it in self.attrs.iter() {
+            match it {
+                Type::Signature { signature_index } => {
+                    return Some(*signature_index as usize);
+                }
+                _ => (),
             }
         }
 

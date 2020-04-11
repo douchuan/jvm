@@ -68,7 +68,9 @@ impl Disassemble {
             vec![]
         };
         let inner_classes = trans::class_inner_classes(&cf);
-        let enable_inner_classes = self.enable_verbose && !inner_classes.is_empty();
+        let has_inner_classes = self.enable_verbose && !inner_classes.is_empty();
+        let signature = trans::class_signature(&cf).unwrap_or("".to_string());
+        let has_signature = self.enable_verbose && !signature.is_empty();
 
         let data = ClassInfoSerde {
             sys_info,
@@ -80,10 +82,12 @@ impl Disassemble {
             methods,
             cp,
             inner_classes,
+            signature,
 
             enable_verbose: self.enable_verbose,
             enable_sys_info: self.enable_sys_info,
-            enable_inner_classes,
+            has_inner_classes,
+            has_signature,
         };
 
         println!("{}", reg.render_template(template::CLASS, &data).unwrap());
