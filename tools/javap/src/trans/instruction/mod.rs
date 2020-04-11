@@ -420,10 +420,20 @@ impl InstructionInfo {
         let op_code: &'static str = self.op_code.into();
         if self.icp != 0 {
             let comment = self.comment(cp);
-            format!(
-                "{:>4}: {:15} #{:<20}// {}",
-                self.pc, op_code, self.icp, comment
-            )
+            match self.op_code {
+                OpCode::invokeinterface => {
+                    let count = codes[self.pc + 3];
+                    let stack_info = format!("#{}, {:2}", self.icp, count);
+                    format!(
+                        "{:>4}: {:15} {:<20} // {}",
+                        self.pc, op_code, stack_info, comment
+                    )
+                }
+                _ => format!(
+                    "{:>4}: {:15} #{:<20}// {}",
+                    self.pc, op_code, self.icp, comment
+                ),
+            }
         } else {
             match self.op_code {
                 OpCode::istore
@@ -559,9 +569,21 @@ impl InstructionInfo {
             }
             Type::Nop => unreachable!(),
             Type::InterfaceMethodRef {
-                class_index: _,
-                name_and_type_index: _,
-            } => "todo: InterfaceMethodRef".to_string(),
+                class_index,
+                name_and_type_index,
+            } => {
+                let class_name = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                let name_and_type =
+                    constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
+                let method_name = name_and_type.0.unwrap();
+                let method_type = name_and_type.1.unwrap();
+                format!(
+                    "InterfaceMethod {}.{}:{}",
+                    String::from_utf8_lossy(class_name.as_slice()),
+                    String::from_utf8_lossy(method_name.as_slice()),
+                    String::from_utf8_lossy(method_type.as_slice())
+                )
+            }
             Type::Integer { v: _ } => "todo: Integer".to_string(),
             Type::NameAndType {
                 name_index: _,
