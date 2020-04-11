@@ -101,7 +101,7 @@ impl<'a> Translator<'a> {
     ) -> Vec<MethodTranslation> {
         let mut methods = Vec::with_capacity(self.cf.methods.len());
         for it in self.cf.methods.iter() {
-            if it.acc_flags.is_bridge() || it.acc_flags.is_synthetic() {
+            if it.acc_flags.is_bridge() {
                 continue;
             }
 
