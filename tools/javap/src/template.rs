@@ -18,8 +18,8 @@ pub const PART_FIELDS: &str = "
 pub const PART_METHODS: &str = "
 {{~#each methods}}
   {{ desc }}
-  {{~#if enable_signature}}
-    descriptor: {{signature~}}
+  {{~#if enable_descriptor}}
+    descriptor: {{descriptor~}}
   {{/if}}
   {{~#if enable_flags}}
     flags: {{flags~}}
@@ -69,6 +69,9 @@ pub const PART_METHODS: &str = "
   {{~#if enable_throws}}
     Exceptions:
       throws {{throws}}
+  {{/if}}
+  {{~#if enable_attr_signature}}
+    Signature: {{signature}}
   {{/if}}
 {{/each}}";
 

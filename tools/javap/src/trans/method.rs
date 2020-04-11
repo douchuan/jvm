@@ -12,6 +12,7 @@ pub struct MethodTranslation {
     pub desc: String,
     pub line_num_table: Vec<LineNumber>,
     pub code: CodeSerde,
+    pub descriptor: String,
     pub signature: String,
     pub flags: String,
     pub throws: String,
@@ -51,8 +52,18 @@ impl<'a> Translator<'a> {
         } else {
             Default::default()
         };
-        let signature = self.signature(false);
-        let signature = String::from_utf8_lossy(signature.as_slice()).to_string();
+        let descriptor = self.method_signature_plain(false);
+        let descriptor = String::from_utf8_lossy(descriptor.as_slice()).to_string();
+        let signature = self.attr_signature().map_or_else(
+            || "".to_string(),
+            |(idx, v)| {
+                format!(
+                    "#{:<28} // {}",
+                    idx,
+                    String::from_utf8_lossy(v.as_slice()).to_string()
+                )
+            },
+        );
         let flags = AccessFlagsTranslator::new(self.method.acc_flags).access_flag_inner();
         let throws = self.throws().unwrap_or("".to_string());
         let ex_table = self.ex_table();
@@ -64,6 +75,7 @@ impl<'a> Translator<'a> {
             desc,
             line_num_table,
             code,
+            descriptor,
             signature,
             flags,
             throws,
@@ -143,12 +155,12 @@ impl<'a> Translator<'a> {
     }
 
     fn return_type(&self) -> String {
-        let signature = self.method_signature();
+        let signature = self.method_signature(true);
         return signature.retype.into_string();
     }
 
     fn args(&self) -> Vec<String> {
-        let signature = self.method_signature();
+        let signature = self.method_signature(true);
         signature.args.iter().map(|it| it.into_string()).collect()
     }
 
@@ -418,29 +430,35 @@ impl<'a> Translator<'a> {
     //
     //constant pool
     //()Ljava/util/List;
-    fn signature(&self, try_fetch_attribute: bool) -> BytesRef {
-        let mut desc = None;
-
-        if try_fetch_attribute {
-            for it in self.method.attrs.iter() {
-                match it {
-                    classfile::attributes::Type::Signature { signature_index } => {
-                        let v = constant_pool::get_utf8(&self.cf.cp, *signature_index as usize)
-                            .unwrap();
-                        desc = Some(v);
-                    }
-                    _ => (),
+    fn attr_signature(&self) -> Option<(usize, BytesRef)> {
+        for it in self.method.attrs.iter() {
+            match it {
+                classfile::attributes::Type::Signature { signature_index } => {
+                    let signature_index = *signature_index as usize;
+                    let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
+                    return Some((signature_index, v));
                 }
+                _ => (),
             }
         }
 
-        desc.unwrap_or_else(|| {
-            constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap()
-        })
+        None
     }
 
-    fn method_signature(&self) -> MethodSignature {
-        let desc = self.signature(true);
+    fn method_signature_plain(&self, try_fetch_attr_signature: bool) -> BytesRef {
+        let mut desc =
+            constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
+        if try_fetch_attr_signature {
+            if let Some((_, v)) = self.attr_signature() {
+                desc = v;
+            }
+        }
+
+        desc
+    }
+
+    fn method_signature(&self, try_fetch_attr_signature: bool) -> MethodSignature {
+        let desc = self.method_signature_plain(try_fetch_attr_signature);
         MethodSignature::new(desc.as_slice())
     }
 }

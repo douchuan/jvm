@@ -22,6 +22,7 @@ pub struct ClassInfoSerde {
 pub struct MethodInfoSerde {
     pub desc: String,
     pub line_number_table: Vec<LineNumberSerde>,
+    pub descriptor: String,
     pub signature: String,
     pub code: CodeSerde,
     pub flags: String,
@@ -33,12 +34,13 @@ pub struct MethodInfoSerde {
 
     pub enable_line_number: bool,
     pub enable_code: bool,
-    pub enable_signature: bool,
+    pub enable_descriptor: bool,
     pub enable_flags: bool,
     pub enable_throws: bool,
     pub enable_stack_map: bool,
     pub enable_local_var_table: bool,
     pub enable_local_var_type_table: bool,
+    pub enable_attr_signature: bool,
 
     pub has_ex_table: bool,
 }

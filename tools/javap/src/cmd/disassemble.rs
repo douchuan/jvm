@@ -204,6 +204,7 @@ impl Disassemble {
                         desc: it.desc.clone(),
                         line_number_table: vec![],
                         code: Default::default(),
+                        descriptor: it.descriptor.clone(),
                         signature: it.signature.clone(),
                         flags: "".to_string(),
                         throws: "".to_string(),
@@ -214,12 +215,13 @@ impl Disassemble {
 
                         enable_line_number: false,
                         enable_code: false,
-                        enable_signature: self.enable_inner_signature,
+                        enable_descriptor: self.enable_inner_signature,
                         enable_flags: false,
                         enable_throws: false,
                         enable_stack_map: false,
                         enable_local_var_table: false,
                         enable_local_var_type_table: false,
+                        enable_attr_signature: false,
 
                         has_ex_table: false,
                     }
@@ -279,6 +281,7 @@ impl Disassemble {
                         desc: it.desc.clone(),
                         line_number_table,
                         code,
+                        descriptor: it.descriptor.clone(),
                         signature: it.signature.clone(),
                         flags: it.flags.clone(),
                         throws: it.throws.clone(),
@@ -289,12 +292,13 @@ impl Disassemble {
 
                         enable_line_number,
                         enable_code,
-                        enable_signature: self.enable_inner_signature,
+                        enable_descriptor: self.enable_inner_signature,
                         enable_flags: self.enable_verbose,
                         enable_throws: !it.throws.is_empty() && self.enable_verbose,
                         enable_stack_map,
                         enable_local_var_table,
                         enable_local_var_type_table,
+                        enable_attr_signature: !it.signature.is_empty() && self.enable_verbose,
 
                         has_ex_table: !it.ex_table.is_empty() && enable_code,
                     }
