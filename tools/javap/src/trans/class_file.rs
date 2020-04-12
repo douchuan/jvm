@@ -57,7 +57,7 @@ impl<'a> Translator<'a> {
         for it in self.cf.interfaces.iter() {
             let name = constant_pool::get_class_name(&self.cf.cp, *it as usize).map_or_else(
                 || S_UNKNOWN.into(),
-                |v| String::from_utf8_lossy(v.as_slice()).into(),
+                |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
             );
             interfaces.push(name);
         }
