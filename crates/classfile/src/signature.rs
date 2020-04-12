@@ -2,7 +2,8 @@ use crate::BytesRef;
 
 use nom::bytes::complete::{take, take_till};
 use nom::character::complete::{char, one_of};
-use nom::combinator::peek;
+use nom::combinator::{peek, verify};
+use nom::error::make_error;
 use nom::lib::std::fmt::{Error, Formatter};
 use nom::{
     branch::alt,
@@ -78,13 +79,15 @@ impl std::fmt::Debug for Type {
             Type::Float => write!(f, "F"),
             Type::Int => write!(f, "I"),
             Type::Long => write!(f, "J"),
-            Type::Object(container, _args, _prefix) => {
+            Type::Object(container, args, prefix) => {
                 write!(f, "Object(");
-                write!(f, "\"{}\"", String::from_utf8_lossy(container.as_slice()));
+                write!(f, "\"{}\",", String::from_utf8_lossy(container.as_slice()));
+                write!(f, "{:?},", args);
+                write!(f, "{:?}", prefix);
                 write!(f, ")")
             }
             Type::Short => write!(f, "S"),
-            Type::Boolean => write!(f, "B"),
+            Type::Boolean => write!(f, "Z"),
             Type::Array(desc) => write!(f, "Array({})", String::from_utf8_lossy(desc.as_slice())),
             Type::Void => write!(f, "V"),
         }
@@ -113,8 +116,13 @@ fn primitive<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     Ok((i, t))
 }
 
-fn object_desc<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, BytesRef, E> {
-    let (i, desc) = take_till(|c| c == ';')(i)?;
+fn object_desc<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&str, BytesRef, E> {
+    // should stop when reach ';' or '<'
+    //such as:
+    //(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V
+    // if only take_till(|c| c == ';'), can't process like:
+    //    Lxx/xx/xx<Lxx/xx/xx;>;
+    let (i, desc) = take_till(|c| c == ';' || c == '<')(input)?;
     let (i, _) = tag(";")(i)?;
     let mut buf = Vec::with_capacity(1 + desc.len() + 1);
     buf.push(b'L');
@@ -165,7 +173,7 @@ fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, 
 
 fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     // object_normal(i)
-    alt((object_generic, object_normal))(i)
+    alt((object_normal, object_generic))(i)
 }
 
 fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
@@ -368,17 +376,51 @@ mod tests {
         let generic_args = vec![SignatureType::Object(
             Arc::new(Vec::from("Ljava/lang/String;")),
             None,
-            None
+            None,
         )];
         let expected = MethodSignature {
             args: vec![SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/List;")),
                 Some(generic_args),
-                None
+                None,
             )],
             retype: SignatureType::Void,
         };
         let (_, r) = parse_method("(Ljava/util/List<Ljava/lang/String;>;)V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+
+        let expected = MethodSignature {
+            args: vec![
+                SignatureType::Object(
+                    Arc::new(Vec::from("Lorg/testng/internal/IConfiguration;")),
+                    None,
+                    None,
+                ),
+                SignatureType::Object(Arc::new(Vec::from("Lorg/testng/ISuite;")), None, None),
+                SignatureType::Object(Arc::new(Vec::from("Lorg/testng/xml/XmlTest;")), None, None),
+                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;")), None, None),
+                SignatureType::Object(
+                    Arc::new(Vec::from(
+                        "Lorg/testng/internal/annotations/IAnnotationFinder;",
+                    )),
+                    None,
+                    None,
+                ),
+                SignatureType::Boolean,
+                SignatureType::Object(
+                    Arc::new(Vec::from("Ljava/util/List;")),
+                    Some(vec![SignatureType::Object(
+                        Arc::new(Vec::from("Lorg/testng/IInvokedMethodListener;")),
+                        None,
+                        None,
+                    )]),
+                    None,
+                ),
+            ],
+            retype: SignatureType::Void,
+        };
+        let (_, r) = parse_method("(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V").unwrap();
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -421,7 +463,7 @@ mod tests {
 
         let v = Vec::from("Ljava/lang/Object;");
         let v = Arc::new(v);
-        setup_test!("Ljava/lang/Object;", SignatureType::Object(v, None));
+        setup_test!("Ljava/lang/Object;", SignatureType::Object(v, None, None));
         setup_test!("S", SignatureType::Short);
         setup_test!("Z", SignatureType::Boolean);
 
