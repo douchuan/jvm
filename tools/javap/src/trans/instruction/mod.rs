@@ -543,7 +543,7 @@ impl InstructionInfo {
                 let is_ctor = name.as_slice() == b"<init>";
                 let desc = String::from_utf8_lossy(desc.as_slice());
                 if is_ctor {
-                    format!("Method \"<init>\":{}", desc)
+                    format!("Method {}.\"<init>\":{}", class_name, desc)
                 } else {
                     let name = String::from_utf8_lossy(name.as_slice());
                     if is_ary_class {
