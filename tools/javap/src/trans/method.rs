@@ -91,27 +91,27 @@ impl<'a> Translator<'a> {
     fn build_desc(&self) -> String {
         let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
         let mut desc = match name.as_slice() {
-            b"<init>" => {
-                let access_flags = self.access_flags();
-                let name = constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize)
-                    .unwrap();
-                format!(
-                    "{} {}()",
-                    access_flags,
-                    String::from_utf8_lossy(name.as_slice()).replace("/", ".")
-                )
-            }
             b"<clinit>" => "static {}".to_string(),
             _ => {
                 let mut reg = Handlebars::new();
                 reg.register_escape_fn(handlebars::no_escape);
+
+                let name = match name.as_slice() {
+                    b"<init>" => {
+                        let class_name =
+                            constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize)
+                                .unwrap();
+                        String::from_utf8_lossy(class_name.as_slice()).replace("/", ".")
+                    }
+                    _ => String::from_utf8_lossy(name.as_slice()).to_string(),
+                };
 
                 let flags = self.access_flags();
                 match flags.is_empty() {
                     true => {
                         let data = json!({
                             "return_type": self.return_type(),
-                            "name": String::from_utf8_lossy(name.as_slice()),
+                            "name": name,
                             "args": self.args().join(", ")
                         });
 
@@ -122,7 +122,7 @@ impl<'a> Translator<'a> {
                         let data = json!({
                             "flags": self.access_flags(),
                             "return_type": self.return_type(),
-                            "name": String::from_utf8_lossy(name.as_slice()),
+                            "name": name,
                             "args": self.args().join(", ")
                         });
 
