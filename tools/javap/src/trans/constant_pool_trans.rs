@@ -137,7 +137,7 @@ impl<'a> Translator<'a> {
                 Type::Long { v } => {
                     let value =
                         i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                    let v = format!("{:>6} = {:18} {}f", pos, "Long", value,);
+                    let v = format!("{:>6} = {:18} {}l", pos, "Long", value,);
 
                     pool.push(v);
                 }
@@ -156,14 +156,22 @@ impl<'a> Translator<'a> {
                 } => {
                     let index = format!("#{}.#{}", *name_index, *desc_index);
                     let name = constant_pool::get_utf8(&self.cf.cp, *name_index as usize).unwrap();
+                    let is_ctor = name.as_slice() == b"<init>";
                     let name = String::from_utf8_lossy(name.as_ref());
                     let desc = constant_pool::get_utf8(&self.cf.cp, *desc_index as usize).unwrap();
                     let desc = String::from_utf8_lossy(desc.as_ref());
 
-                    let v = format!(
-                        "{:>6} = {:18} {:14} // {}:{}",
-                        pos, "NameAndType", index, name, desc
-                    );
+                    let v = if is_ctor {
+                        format!(
+                            "{:>6} = {:18} {:14} // \"{}\":{}",
+                            pos, "NameAndType", index, name, desc
+                        )
+                    } else {
+                        format!(
+                            "{:>6} = {:18} {:14} // {}:{}",
+                            pos, "NameAndType", index, name, desc
+                        )
+                    };
 
                     pool.push(v);
                 }
