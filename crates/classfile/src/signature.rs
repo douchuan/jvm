@@ -132,6 +132,9 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
     let (i, _) = tag(">")(i)?;
     let (i, _) = tag(";")(i)?;
 
+    //signature like:
+    //Ljava/lang/Class<+Lcom/google/inject/Module;>;
+    //<=> 'java.lang.Class<? extends com.google.inject.Module>'
     let mut prefix = None;
     if generic_args.starts_with("+") {
         prefix = Some(b'+');

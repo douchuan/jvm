@@ -436,7 +436,12 @@ impl InstructionInfo {
             }
         } else {
             match self.op_code {
-                OpCode::istore
+                OpCode::aload
+                | OpCode::iload
+                | OpCode::fload
+                | OpCode::lload
+                | OpCode::dload
+                | OpCode::istore
                 | OpCode::fstore
                 | OpCode::astore
                 | OpCode::lstore
