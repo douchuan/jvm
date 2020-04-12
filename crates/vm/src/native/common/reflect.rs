@@ -277,7 +277,7 @@ fn create_value_type(t: SignatureType) -> Oop {
         SignatureType::Double => java_lang_Class::get_primitive_class_mirror("D").unwrap(),
         SignatureType::Float => java_lang_Class::get_primitive_class_mirror("F").unwrap(),
         SignatureType::Long => java_lang_Class::get_primitive_class_mirror("J").unwrap(),
-        SignatureType::Object(desc, _) => {
+        SignatureType::Object(desc, _, _) => {
             let len = desc.len();
             let name = &desc.as_slice()[1..len - 1];
             let cls = require_class3(None, name).unwrap();

@@ -13,7 +13,7 @@ impl Translator for SignatureType {
             SignatureType::Double => "double".into(),
             SignatureType::Float => "float".into(),
             SignatureType::Long => "long".into(),
-            SignatureType::Object(desc, generics) => match generics {
+            SignatureType::Object(desc, generics, prefix) => match generics {
                 Some(generics) => {
                     let generics: Vec<String> =
                         generics.iter().map(|it| it.into_string()).collect();
@@ -21,6 +21,10 @@ impl Translator for SignatureType {
 
                     let mut s = to_java_style(&desc);
                     s.push('<');
+                    match prefix {
+                        Some(b'+') => s.push_str("? extends "),
+                        _ => (),
+                    }
                     s.push_str(&generics);
                     s.push('>');
                     s

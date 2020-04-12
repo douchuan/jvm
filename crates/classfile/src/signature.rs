@@ -22,8 +22,12 @@ pub enum Type {
     Long,
     //the 1st, container class
     //the 2nd, generic class's arg
-    //Ljava/util/List<Ljava/lang/String;>;
-    Object(BytesRef, Option<Vec<Type>>),
+    //the 3rd, if there is a '+'
+    //  Ljava/util/List<Lcom/google/inject/Module;>;)
+    //    => java.util.List<com.google.inject.Module>
+    //  Ljava/lang/Class<+Lcom/google/inject/Module;>;
+    //    => java.lang.Class<? extends com.google.inject.Module>
+    Object(BytesRef, Option<Vec<Type>>, Option<u8>),
     Short,
     Boolean,
     Array(BytesRef),
@@ -74,7 +78,7 @@ impl std::fmt::Debug for Type {
             Type::Float => write!(f, "F"),
             Type::Int => write!(f, "I"),
             Type::Long => write!(f, "J"),
-            Type::Object(container, args) => {
+            Type::Object(container, _args, _prefix) => {
                 write!(f, "Object(");
                 write!(f, "\"{}\"", String::from_utf8_lossy(container.as_slice()));
                 write!(f, ")")
@@ -124,9 +128,15 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
     let (i, _) = tag("L")(i)?;
     let (i, container) = take_till(|c| c == '<')(i)?;
     let (i, _) = tag("<")(i)?;
-    let (i, generic_args) = take_till(|c| c == '>')(i)?;
+    let (i, mut generic_args) = take_till(|c| c == '>')(i)?;
     let (i, _) = tag(">")(i)?;
     let (i, _) = tag(";")(i)?;
+
+    let mut prefix = None;
+    if generic_args.starts_with("+") {
+        prefix = Some(b'+');
+        generic_args = &generic_args[1..];
+    }
 
     //parse generic args
     let r = parse_types::<'a, E>(generic_args);
@@ -141,13 +151,13 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
     buf.extend_from_slice(container.as_bytes());
     buf.push(b';');
     let desc = std::sync::Arc::new(buf);
-    Ok((i, Type::Object(desc, generic_args)))
+    Ok((i, Type::Object(desc, generic_args, prefix)))
 }
 
 fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     let (i, _) = tag("L")(i)?;
     let (i, desc) = object_desc(i)?;
-    Ok((i, Type::Object(desc, None)))
+    Ok((i, Type::Object(desc, None, None)))
 }
 
 fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
@@ -341,9 +351,9 @@ mod tests {
                 SignatureType::Long,
                 SignatureType::Short,
                 SignatureType::Boolean,
-                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Integer;")), None),
+                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Integer;")), None, None),
             ],
-            retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;")), None),
+            retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;")), None, None),
         };
         let (_, r) = parse_method("(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;").unwrap();
         assert_eq!(r.args, expected.args);
@@ -355,11 +365,13 @@ mod tests {
         let generic_args = vec![SignatureType::Object(
             Arc::new(Vec::from("Ljava/lang/String;")),
             None,
+            None
         )];
         let expected = MethodSignature {
             args: vec![SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/List;")),
                 Some(generic_args),
+                None
             )],
             retype: SignatureType::Void,
         };
@@ -373,12 +385,14 @@ mod tests {
         let generic_args = vec![SignatureType::Object(
             Arc::new(Vec::from("Lorg/testng/ITestNGListener;")),
             None,
+            None,
         )];
         let expected = MethodSignature {
             args: vec![],
             retype: SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/List;")),
                 Some(generic_args),
+                None,
             ),
         };
         let (_, r) = parse_method("()Ljava/util/List<Lorg/testng/ITestNGListener;>;").unwrap();
