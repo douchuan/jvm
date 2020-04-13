@@ -36,9 +36,26 @@ pub enum Type {
 }
 
 #[derive(Debug)]
+pub struct ClassSignature {
+    pub items: Vec<Type>,
+}
+
+#[derive(Debug)]
 pub struct MethodSignature {
     pub args: Vec<Type>,
     pub retype: Type,
+}
+
+pub struct FieldSignature {
+    pub field_type: Type,
+}
+
+impl ClassSignature {
+    pub fn new(raw: &[u8]) -> Self {
+        let s = unsafe { std::str::from_utf8_unchecked(raw) };
+        let (_, cs) = parse_class(s).unwrap();
+        cs
+    }
 }
 
 impl MethodSignature {
@@ -49,24 +66,20 @@ impl MethodSignature {
     }
 }
 
+impl FieldSignature {
+    pub fn new(raw: &[u8]) -> Self {
+        let s = unsafe { std::str::from_utf8_unchecked(raw) };
+        let (_, r) = parse_field(s).unwrap();
+        r
+    }
+}
+
 impl Default for MethodSignature {
     fn default() -> Self {
         Self {
             args: Vec::new(),
             retype: Type::Void,
         }
-    }
-}
-
-pub struct FieldSignature {
-    pub field_type: Type,
-}
-
-impl FieldSignature {
-    pub fn new(raw: &[u8]) -> Self {
-        let s = unsafe { std::str::from_utf8_unchecked(raw) };
-        let (_, r) = parse_field(s).unwrap();
-        r
     }
 }
 
@@ -222,6 +235,11 @@ fn parse_types<'a, E: ParseError<&'a str>>(mut input: &'a str) -> IResult<&str, 
     Ok((input, args))
 }
 
+fn parse_class(i: &str) -> IResult<&str, ClassSignature> {
+    let (i, items) = parse_types(i)?;
+    Ok((i, ClassSignature { items }))
+}
+
 fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
     fn arg0(i: &str) -> IResult<&str, MethodSignature> {
         let (i, _) = tag("()")(i)?;
@@ -253,6 +271,7 @@ fn parse_field(mut i: &str) -> IResult<&str, FieldSignature> {
 #[cfg(test)]
 mod tests {
     use super::{parse_field, parse_method};
+    use crate::signature::{parse_class, ClassSignature};
     use crate::FieldSignature;
     use crate::MethodSignature;
     use crate::SignatureType;
@@ -474,5 +493,33 @@ mod tests {
         let v = Vec::from("[[[D");
         let v = Arc::new(v);
         setup_test!("[[[D", SignatureType::Array(v));
+    }
+
+    #[test]
+    fn t_class_signature() {
+        let (_, cs) = parse_class("Ljava/lang/Object;Lorg/testng/ITestContext;Lorg/testng/internal/ITestResultNotifier;Lorg/testng/internal/thread/graph/IThreadWorkerFactory<Lorg/testng/ITestNGMethod;>;").unwrap();
+        let expected = ClassSignature {
+            items: vec![
+                SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Object;")), None, None),
+                SignatureType::Object(Arc::new(Vec::from("Lorg/testng/ITestContext;")), None, None),
+                SignatureType::Object(
+                    Arc::new(Vec::from("Lorg/testng/internal/ITestResultNotifier;")),
+                    None,
+                    None,
+                ),
+                SignatureType::Object(
+                    Arc::new(Vec::from(
+                        "Lorg/testng/internal/thread/graph/IThreadWorkerFactory;",
+                    )),
+                    Some(vec![SignatureType::Object(
+                        Arc::new(Vec::from("Lorg/testng/ITestNGMethod;")),
+                        None,
+                        None,
+                    )]),
+                    None,
+                ),
+            ],
+        };
+        assert_eq!(cs.items, expected.items);
     }
 }
