@@ -145,10 +145,11 @@ fn main() {
             for it in classes {
                 match misc::find_class(it) {
                     Ok(r) => {
-                        let _ = parse_class(&r.1).and_then(|(_, cf)| {
+                        if let Ok((_, cf)) = parse_class(&r.1) {
                             commander.run(&r.0, cf);
-                            Ok(())
-                        });
+                        } else {
+                            error!("parse class error: {}", it);
+                        }
                     }
                     Err(e) => error!("e = {:?}", e),
                 }
