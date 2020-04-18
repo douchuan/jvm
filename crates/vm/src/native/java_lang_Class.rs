@@ -114,7 +114,7 @@ enum ClassMirrorState {
 }
 
 lazy_static! {
-    static ref MIRROR_STATE: RwLock<ClassMirrorState> = { RwLock::new(ClassMirrorState::NotFixed) };
+    static ref MIRROR_STATE: RwLock<ClassMirrorState> = RwLock::new(ClassMirrorState::NotFixed);
     static ref PRIM_MIRROS: RwLock<HashMap<String, Oop>> = {
         let hm = HashMap::new();
         RwLock::new(hm)
