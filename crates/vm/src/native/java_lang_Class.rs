@@ -402,7 +402,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
                 oop::class::init_class_fully(jt, cls.clone());
             }
 
-            let mirror = { cls.read().unwrap().get_mirror() };
+            let mirror =  cls.read().unwrap().get_mirror() ;
 
             Ok(Some(mirror))
         }

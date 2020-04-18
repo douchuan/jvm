@@ -76,11 +76,11 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     for caller in backtrace.iter().rev() {
         let (mir, pc) = {
             let caller = caller.try_read().unwrap();
-            let pc = { caller.area.borrow().pc };
+            let pc =  caller.area.borrow().pc ;
             (caller.mir.clone(), pc)
         };
 
-        let cls_name = { mir.method.class.read().unwrap().name.clone() };
+        let cls_name =  mir.method.class.read().unwrap().name.clone() ;
         let cls_name = String::from_utf8_lossy(cls_name.as_slice()).replace("/", ".");
         let method_name = mir.method.name.clone();
         let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };

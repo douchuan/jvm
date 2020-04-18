@@ -24,7 +24,7 @@ pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRe
     let v = match v {
         Oop::Null => Oop::new_int(0),
         Oop::Ref(rf) => {
-            let hash = { rf.read().unwrap().hash_code.clone() };
+            let hash =  rf.read().unwrap().hash_code.clone() ;
             match hash {
                 Some(hash) => Oop::new_int(hash),
                 None => {
