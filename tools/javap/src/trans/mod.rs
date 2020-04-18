@@ -1,4 +1,4 @@
-use classfile::ClassFile;
+use classfile::{ClassFile, SignatureType};
 
 mod access_flag;
 mod class_file;
@@ -45,7 +45,12 @@ pub fn class_access_flags_name(cf: &ClassFile) -> String {
     x.access_flags_name()
 }
 
-pub fn class_signature(cf: &ClassFile) -> Option<String> {
+pub fn class_signature_raw(cf: &ClassFile) -> Option<String> {
+    let x = ClassFileTranslator::new(cf);
+    x.signature_raw()
+}
+
+pub fn class_signature(cf: &ClassFile) -> Option<Vec<SignatureType>> {
     let x = ClassFileTranslator::new(cf);
     x.signature()
 }

@@ -2,9 +2,10 @@ use super::FieldTranslator;
 use super::{MethodTranslation, MethodTranslator};
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::{AccessFlagHelper, FieldTranslation};
-use classfile::constant_pool;
 use classfile::AttributeType;
 use classfile::ClassFile;
+use classfile::ClassSignature;
+use classfile::{constant_pool, SignatureType};
 
 const S_UNKNOWN: &str = "unknown";
 
@@ -77,11 +78,19 @@ impl<'a> Translator<'a> {
         t.access_flag_inner()
     }
 
-    pub fn signature(&self) -> Option<String> {
+    pub fn signature_raw(&self) -> Option<String> {
         self.cf.signature().map(|idx| {
             let v = constant_pool::get_utf8(&self.cf.cp, idx).unwrap();
             let signature = String::from_utf8_lossy(v.as_slice());
             format!("Signature: #{:<28} // {}", idx, signature)
+        })
+    }
+
+    pub fn signature(&self) -> Option<Vec<SignatureType>> {
+        self.cf.signature().map(|idx| {
+            let v = constant_pool::get_utf8(&self.cf.cp, idx).unwrap();
+            let v = ClassSignature::new(v.as_slice());
+            v.items.clone()
         })
     }
 

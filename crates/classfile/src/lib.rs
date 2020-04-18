@@ -23,6 +23,7 @@ pub use constant_pool::Type as ConstantPoolType;
 pub use field_info::FieldInfo;
 pub use method_info::MethodInfo;
 pub use opcode::OpCode;
+pub use signature::ClassSignature;
 pub use signature::FieldSignature;
 pub use signature::MethodSignature;
 pub use signature::Type as SignatureType;

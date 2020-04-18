@@ -5,7 +5,7 @@ use crate::sd::{
     StackMapFrameSerde, StackMapTableSerde, SysInfoSerde,
 };
 use crate::template;
-use crate::trans::{self, AccessFlagHelper};
+use crate::trans::{self, AccessFlagHelper, SignatureTypeTranslator};
 use clap::ArgMatches;
 use classfile::flags as access_flags;
 use classfile::ClassFile;
@@ -69,7 +69,7 @@ impl Disassemble {
         };
         let inner_classes = trans::class_inner_classes(&cf);
         let has_inner_classes = self.enable_verbose && !inner_classes.is_empty();
-        let signature = trans::class_signature(&cf).unwrap_or("".to_string());
+        let signature = trans::class_signature_raw(&cf).unwrap_or("".to_string());
         let has_signature = self.enable_verbose && !signature.is_empty();
 
         let data = ClassInfoSerde {
@@ -142,17 +142,36 @@ impl Disassemble {
 
             head_parts.push(super_class);
         } else {
-            let super_class = trans::class_super_class(&cf);
-            if super_class != "java.lang.Object" {
-                head_parts.push("extends".to_string());
-                head_parts.push(super_class);
-            }
+            let class_signature = trans::class_signature(&cf);
+            //build from Signature Attribute
+            match class_signature {
+                Some(cs) => {
+                    assert_eq!(cs.len(), cf.interfaces.len() + 1);
+                    let super_class = cs.get(0).unwrap();
+                    head_parts.push("extends".to_string());
+                    head_parts.push(super_class.into_string());
 
-            if cf.interfaces.len() != 0 {
-                head_parts.push("implements".to_string());
+                    if cs.len() > 1 {
+                        head_parts.push("implements".to_string());
+                        for it in &cs[1..] {
+                            head_parts.push(it.into_string());
+                        }
+                    }
+                }
+                None => {
+                    let super_class = trans::class_super_class(&cf);
+                    if super_class != "java.lang.Object" {
+                        head_parts.push("extends".to_string());
+                        head_parts.push(super_class);
+                    }
 
-                let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
-                head_parts.push(parent_interfaces);
+                    if cf.interfaces.len() != 0 {
+                        head_parts.push("implements".to_string());
+
+                        let parent_interfaces = trans::class_parent_interfaces(&cf).join(", ");
+                        head_parts.push(parent_interfaces);
+                    }
+                }
             }
         }
 
