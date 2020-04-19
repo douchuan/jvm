@@ -65,11 +65,11 @@ pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
 
 pub fn get_string(cp: &ConstantPool, idx: usize) -> Option<String> {
     match cp.get(idx) {
-        Some(Type::String { string_index}) => {
+        Some(Type::String { string_index }) => {
             let v = get_utf8(cp, *string_index as usize).unwrap();
             let raw = construct_string_raw(v.as_slice());
             Some(String::from_utf16_lossy(raw.as_slice()))
-        },
+        }
         _ => None,
     }
 }

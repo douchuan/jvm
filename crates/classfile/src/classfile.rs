@@ -1,9 +1,6 @@
 use crate::attributes::InnerClass;
 use crate::types::{ConstantPool, U2};
-use crate::{
-    attributes::Type, field_info::FieldInfo,
-    method_info::MethodInfo, version::Version,
-};
+use crate::{attributes::Type, field_info::FieldInfo, method_info::MethodInfo, version::Version};
 
 #[derive(Debug)]
 pub struct ClassFile {

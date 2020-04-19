@@ -135,10 +135,10 @@ fn object_desc<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&str, Byte
     //(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V
     // if only take_till(|c| c == ';'), can't process like:
     //    Lxx/xx/xx<Lxx/xx/xx;>;
+    let (_, _) = alt((tag("L"), tag("T")))(input)?;
     let (i, desc) = take_till(|c| c == ';' || c == '<')(input)?;
     let (i, _) = tag(";")(i)?;
     let mut buf = Vec::with_capacity(1 + desc.len() + 1);
-    buf.push(b'L');
     buf.extend_from_slice(desc.as_bytes());
     buf.push(b';');
     let desc = std::sync::Arc::new(buf);
@@ -179,7 +179,7 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
 }
 
 fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, _) = tag("L")(i)?;
+    let (i, _) = peek(alt((tag("L"), tag("T"))))(i)?;
     let (i, desc) = object_desc(i)?;
     Ok((i, Type::Object(desc, None, None)))
 }
@@ -192,17 +192,21 @@ fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
 fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     let (i, _) = peek(tag("["))(i)?;
     let (i, ary_tags) = take_till(|c| c != '[')(i)?;
-    let (mut i, t) = take(1u8)(i)?;
+    let (mut i, t) = peek(take(1u8))(i)?;
 
     let mut buf = vec![];
     buf.extend_from_slice(ary_tags.as_bytes());
     match t {
-        "L" => {
+        "L" | "T" => {
             let (i2, desc) = object_desc(i)?;
             i = i2;
             buf.extend_from_slice(desc.as_slice());
         }
-        v => buf.extend_from_slice(v.as_bytes()),
+        v => {
+            let (i2, _) = take(1u8)(i)?;
+            i = i2;
+            buf.extend_from_slice(v.as_bytes())
+        }
     }
     let desc = std::sync::Arc::new(buf);
     Ok((i, Type::Array(desc)))
@@ -440,6 +444,20 @@ mod tests {
             retype: SignatureType::Void,
         };
         let (_, r) = parse_method("(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn generic1() {
+        let expected = MethodSignature {
+            args: vec![
+                SignatureType::Object(Arc::new(Vec::from("TK;")), None, None),
+                SignatureType::Object(Arc::new(Vec::from("TV;")), None, None),
+            ],
+            retype: SignatureType::Void,
+        };
+        let (_, r) = parse_method("(TK;TV;)V").unwrap();
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
