@@ -119,7 +119,7 @@ impl<'a> Translator<'a> {
             }
         });
 
-        idx.map(|idx| match self.cf.cp.get(idx as usize) {
+        idx.map(|idx| match self.cf.cp.get(idx) {
             Some(ConstantPoolType::Long { v }) => {
                 let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                 format!("long {}", v)
@@ -138,9 +138,9 @@ impl<'a> Translator<'a> {
                 let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
                 format!("int {}", v)
             }
-            Some(ConstantPoolType::String { string_index }) => {
-                let v = constant_pool::get_utf8(&self.cf.cp, *string_index as usize).unwrap();
-                format!("String {}", String::from_utf8_lossy(v.as_slice()))
+            Some(ConstantPoolType::String { string_index: _ }) => {
+                let v = constant_pool::get_string(&self.cf.cp, idx).unwrap();
+                format!("String {}", v.escape_default())
             }
             _ => format!("todo"),
         })

@@ -9,8 +9,8 @@ impl<'a> Translator<'a> {
     pub fn get(&self) -> Vec<String> {
         let mut pool = Vec::with_capacity(self.cf.cp.len());
 
-        for (pos, it) in self.cf.cp.iter().enumerate() {
-            let pos = format!("#{}", pos);
+        for (cp_idx, it) in self.cf.cp.iter().enumerate() {
+            let pos = format!("#{}", cp_idx);
 
             match it {
                 ConstantPoolType::Nop => (),
@@ -108,15 +108,13 @@ impl<'a> Translator<'a> {
                 }
                 Type::String { string_index } => {
                     let index = format!("#{}", *string_index);
-                    let bytes =
-                        constant_pool::get_utf8(&self.cf.cp, *string_index as usize).unwrap();
-                    let string = build_constant_string(bytes.as_slice());
+                    let constant_val = constant_pool::get_string(&self.cf.cp, cp_idx).unwrap();
                     let v = format!(
                         "{:>6} = {:18} {:14} // {}",
                         pos,
                         "String",
                         index,
-                        String::from_utf16_lossy(string.as_slice())
+                        constant_val.escape_default()
                     );
 
                     pool.push(v);
@@ -205,53 +203,4 @@ impl<'a> Translator<'a> {
 
         pool
     }
-}
-
-pub fn build_constant_string(bs: &[u8]) -> Vec<u16> {
-    let length = bs.len();
-    let mut buffer: Vec<u16> = Vec::with_capacity(length);
-    let mut pos = 0;
-    while pos < length {
-        if bs[pos] & 0x80 == 0 {
-            let v = bs[pos] as u16;
-            buffer.push(v);
-            pos += 1;
-        } else if bs[pos] & 0xE0 == 0xC0 && (bs[pos + 1] & 0xC0) == 0x80 {
-            let x = bs[pos] as u16;
-            let y = bs[pos + 1] as u16;
-            let v = ((x & 0x1f) << 6) + (y & 0x3f);
-            buffer.push(v);
-            pos += 2;
-        } else if bs[pos] & 0xF0 == 0xE0
-            && (bs[pos + 1] & 0xC0) == 0x80
-            && (bs[pos + 2] & 0xC0) == 0x80
-        {
-            let x = bs[pos] as u16;
-            let y = bs[pos + 1] as u16;
-            let z = bs[pos + 2] as u16;
-            let v = ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f);
-            buffer.push(v);
-            pos += 3;
-        } else if bs[pos] == 0xED
-            && (bs[pos + 1] & 0xF0 == 0xA0)
-            && (bs[pos + 2] & 0xC0 == 0x80)
-            && (bs[pos + 3] == 0xED)
-            && (bs[pos + 4] & 0xF0 == 0xB0)
-            && (bs[pos + 5] & 0xC0 == 0x80)
-        {
-            let v = bs[pos + 1] as u32;
-            let w = bs[pos + 2] as u32;
-            let y = bs[pos + 4] as u32;
-            let z = bs[pos + 5] as u32;
-            let vv =
-                0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f);
-            buffer.push(vv as u16);
-
-            pos += 6;
-        } else {
-            unreachable!()
-        }
-    }
-
-    buffer
 }

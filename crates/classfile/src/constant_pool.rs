@@ -63,6 +63,66 @@ pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
     }
 }
 
+pub fn get_string(cp: &ConstantPool, idx: usize) -> Option<String> {
+    match cp.get(idx) {
+        Some(Type::String { string_index}) => {
+            let v = get_utf8(cp, *string_index as usize).unwrap();
+            let raw = construct_string_raw(v.as_slice());
+            Some(String::from_utf16_lossy(raw.as_slice()))
+        },
+        _ => None,
+    }
+}
+
+pub fn construct_string_raw(bs: &[u8]) -> Vec<u16> {
+    let length = bs.len();
+    let mut buffer: Vec<u16> = Vec::with_capacity(length);
+    let mut pos = 0;
+    while pos < length {
+        if bs[pos] & 0x80 == 0 {
+            let v = bs[pos] as u16;
+            buffer.push(v);
+            pos += 1;
+        } else if bs[pos] & 0xE0 == 0xC0 && (bs[pos + 1] & 0xC0) == 0x80 {
+            let x = bs[pos] as u16;
+            let y = bs[pos + 1] as u16;
+            let v = ((x & 0x1f) << 6) + (y & 0x3f);
+            buffer.push(v);
+            pos += 2;
+        } else if bs[pos] & 0xF0 == 0xE0
+            && (bs[pos + 1] & 0xC0) == 0x80
+            && (bs[pos + 2] & 0xC0) == 0x80
+        {
+            let x = bs[pos] as u16;
+            let y = bs[pos + 1] as u16;
+            let z = bs[pos + 2] as u16;
+            let v = ((x & 0xf) << 12) + ((y & 0x3f) << 6) + (z & 0x3f);
+            buffer.push(v);
+            pos += 3;
+        } else if bs[pos] == 0xED
+            && (bs[pos + 1] & 0xF0 == 0xA0)
+            && (bs[pos + 2] & 0xC0 == 0x80)
+            && (bs[pos + 3] == 0xED)
+            && (bs[pos + 4] & 0xF0 == 0xB0)
+            && (bs[pos + 5] & 0xC0 == 0x80)
+        {
+            let v = bs[pos + 1] as u32;
+            let w = bs[pos + 2] as u32;
+            let y = bs[pos + 4] as u32;
+            let z = bs[pos + 5] as u32;
+            let vv =
+                0x10000 + ((v & 0x0f) << 16) + ((w & 0x3f) << 10) + ((y & 0x0f) << 6) + (z & 0x3f);
+            buffer.push(vv as u16);
+
+            pos += 6;
+        } else {
+            unreachable!()
+        }
+    }
+
+    buffer
+}
+
 #[derive(Debug, Clone)]
 pub enum Type {
     Nop,

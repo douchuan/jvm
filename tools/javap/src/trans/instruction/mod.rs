@@ -553,10 +553,9 @@ impl InstructionInfo {
                     }
                 }
             }
-            ConstantPoolType::String { string_index } => {
-                let v = constant_pool::get_utf8(cp, *string_index as usize).unwrap();
-                let v = String::from_utf8_lossy(v.as_slice());
-                format!("String {}", v)
+            ConstantPoolType::String { string_index: _ } => {
+                let v = constant_pool::get_string(cp, self.icp).unwrap();
+                format!("String {}", v.escape_default())
             }
             ConstantPoolType::Float { v } => {
                 let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
@@ -589,7 +588,10 @@ impl InstructionInfo {
                     String::from_utf8_lossy(method_type.as_slice())
                 )
             }
-            Type::Integer { v: _ } => "todo: Integer".to_string(),
+            Type::Integer { v } => {
+                let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                format!("int {}", v)
+            }
             Type::NameAndType {
                 name_index: _,
                 desc_index: _,

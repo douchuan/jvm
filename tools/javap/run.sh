@@ -58,6 +58,10 @@ export RUST_BACKTRACE=full
 #cargo run -q -- --cp test/testng-6.8.21.jar -v org.testng.TestNG
 
 ### contains generic params
-#cargo run -q -- --cp test/testng-6.8.21.jar  org.testng.TestNG
+#cargo run -q -- --cp test/testng-6.8.21.jar  -v org.testng.TestNG
 #cargo run -q -- --cp test/testng-6.8.21.jar  -s org.testng.TestNG
-cargo run -q -- --cp test/testng-6.8.21.jar  -v org.testng.TestRunner
+#cargo run -q -- --cp test/testng-6.8.21.jar  -v org.testng.TestRunner
+#cargo run -q -- --cp test/testng-6.8.21.jar  -v org.testng.reporters.Files
+
+### test Not Found
+#cargo run -q -- --cp test/testng-6.8.21.jar  -v passed.png

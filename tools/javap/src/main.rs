@@ -151,7 +151,9 @@ fn main() {
                             error!("parse class error: {}", it);
                         }
                     }
-                    Err(e) => error!("e = {:?}", e),
+                    Err(_e) => {
+                        println!("Error: class not found: {}", it);
+                    }
                 }
             }
         }
