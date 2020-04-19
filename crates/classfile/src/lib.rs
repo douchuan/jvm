@@ -1,11 +1,17 @@
 #![allow(unused)]
 
+//! Provides types for working with class file.
+//!
+//! The `classfile` crate provides types for describing the
+//! class file format of the Java Virtual Machine.
+//!
+//! It's not class file parser.
+
 #[macro_use]
 extern crate log;
 extern crate nom;
 
 pub mod attributes;
-mod checker;
 mod classfile;
 pub mod constant_pool;
 pub mod consts;

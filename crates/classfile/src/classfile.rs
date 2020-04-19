@@ -1,7 +1,7 @@
 use crate::attributes::InnerClass;
 use crate::types::{ConstantPool, U2};
 use crate::{
-    attributes::Type, checker::CheckResult, checker::Checker, field_info::FieldInfo,
+    attributes::Type, field_info::FieldInfo,
     method_info::MethodInfo, version::Version,
 };
 
@@ -19,10 +19,6 @@ pub struct ClassFile {
 }
 
 impl ClassFile {
-    pub fn check_format(&self) -> CheckResult {
-        self.check(&self.cp)
-    }
-
     pub fn inner_classes(&self) -> Option<Vec<InnerClass>> {
         for it in self.attrs.iter() {
             match it {
@@ -47,18 +43,5 @@ impl ClassFile {
         }
 
         None
-    }
-}
-
-impl Checker for ClassFile {
-    fn check(&self, cp: &ConstantPool) -> CheckResult {
-        for it in self.cp.as_slice() {
-            let r = it.check(cp);
-            if r.is_err() {
-                return r;
-            }
-        }
-
-        Ok(())
     }
 }

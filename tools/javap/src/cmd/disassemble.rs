@@ -146,7 +146,7 @@ impl Disassemble {
             //build from Signature Attribute
             match class_signature {
                 Some(cs) => {
-                    assert_eq!(cs.len(), cf.interfaces.len() + 1);
+                    assert_eq!(cs.len(), cf.interfaces.len() + 1); //1 means super Class
                     let super_class = cs.get(0).unwrap();
                     head_parts.push("extends".to_string());
                     head_parts.push(super_class.into_string());
