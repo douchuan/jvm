@@ -121,7 +121,7 @@ impl<'a> Translator<'a> {
                 }
                 Type::Integer { v } => {
                     let value = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                    let v = format!("{:>6} = {:18} {}f", pos, "Int", value);
+                    let v = format!("{:>6} = {:18} {}", pos, "Int", value);
 
                     pool.push(v);
                 }
@@ -178,7 +178,7 @@ impl<'a> Translator<'a> {
                         "{:>6} = {:18} {}",
                         pos,
                         "Utf8",
-                        String::from_utf8_lossy(bytes.as_slice())
+                        String::from_utf8_lossy(bytes.as_slice()).escape_default()
                     );
                     pool.push(v);
                 }
