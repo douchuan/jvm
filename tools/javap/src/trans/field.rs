@@ -5,7 +5,8 @@ use handlebars::Handlebars;
 
 pub struct FieldTranslation {
     pub desc: String,
-    pub signature: String,
+    pub descriptor: String,
+    pub flags: String,
 }
 
 pub struct Translator<'a> {
@@ -45,9 +46,14 @@ impl<'a> Translator<'a> {
             }
         };
 
-        let signature = self.signature();
+        let descriptor = self.descriptor();
+        let flags = AccessFlagsTranslator::new(self.field.acc_flags).access_flag_inner();
 
-        FieldTranslation { desc, signature }
+        FieldTranslation {
+            desc,
+            descriptor,
+            flags,
+        }
     }
 }
 
@@ -69,7 +75,7 @@ impl<'a> Translator<'a> {
         String::from_utf8_lossy(name.as_slice()).to_string()
     }
 
-    fn signature(&self) -> String {
+    fn descriptor(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize).unwrap();
         String::from_utf8_lossy(desc.as_slice()).to_string()
     }

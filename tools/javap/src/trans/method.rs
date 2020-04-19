@@ -52,7 +52,7 @@ impl<'a> Translator<'a> {
         } else {
             Default::default()
         };
-        let descriptor = self.method_signature_plain(false);
+        let descriptor = self.descriptor();
         let descriptor = String::from_utf8_lossy(descriptor.as_slice()).to_string();
         let signature = self.attr_signature().map_or_else(
             || "".to_string(),
@@ -155,12 +155,12 @@ impl<'a> Translator<'a> {
     }
 
     fn return_type(&self) -> String {
-        let signature = self.method_signature(true);
+        let signature = self.method_signature();
         return signature.retype.into_string();
     }
 
     fn args(&self) -> Vec<String> {
-        let signature = self.method_signature(true);
+        let signature = self.method_signature();
         signature.args.iter().map(|it| it.into_string()).collect()
     }
 
@@ -445,20 +445,15 @@ impl<'a> Translator<'a> {
         None
     }
 
-    fn method_signature_plain(&self, try_fetch_attr_signature: bool) -> BytesRef {
-        let mut desc =
-            constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap();
-        if try_fetch_attr_signature {
-            if let Some((_, v)) = self.attr_signature() {
-                desc = v;
-            }
-        }
-
-        desc
+    fn descriptor(&self) -> BytesRef {
+        constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap()
     }
 
-    fn method_signature(&self, try_fetch_attr_signature: bool) -> MethodSignature {
-        let desc = self.method_signature_plain(try_fetch_attr_signature);
+    fn method_signature(&self) -> MethodSignature {
+        let desc = match self.attr_signature() {
+            Some((_, v)) => v,
+            None => self.descriptor(),
+        };
         MethodSignature::new(desc.as_slice())
     }
 }

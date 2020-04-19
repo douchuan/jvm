@@ -10,8 +10,11 @@ Classfile {{sys_info.class_file}}
 pub const PART_FIELDS: &str = "
 {{~#each fields as |field|}}
   {{ desc }}
-  {{~#if enable_inner_signature}}
-    descriptor: {{signature~}}
+  {{~#if enable_descriptor}}
+    descriptor: {{descriptor~}}
+  {{/if}}
+  {{~#if enable_flags}}
+    flags: {{flags~}}
   {{/if}}
 {{/each}}";
 

@@ -21,6 +21,7 @@ pub struct ClassInfoSerde {
 #[derive(Serialize)]
 pub struct MethodInfoSerde {
     pub desc: String,
+
     pub line_number_table: Vec<LineNumberSerde>,
     pub descriptor: String,
     pub signature: String,
@@ -58,9 +59,12 @@ pub struct CodeSerde {
 #[derive(Serialize)]
 pub struct FieldInfoSerde {
     pub desc: String,
-    pub signature: String,
 
-    pub enable_inner_signature: bool,
+    pub descriptor: String,
+    pub flags: String,
+
+    pub enable_descriptor: bool,
+    pub enable_flags: bool,
 }
 
 #[derive(Serialize)]
