@@ -47,7 +47,7 @@ fn to_java_style(desc: &[u8]) -> String {
     }
     let ary_size = i;
 
-    let mut name = if desc[i] == b'L' {
+    let mut name = if desc[i] == b'L' || desc[i] == b'T' {
         let desc = &desc[(i + 1)..(desc.len() - 1)];
         String::from_utf8_lossy(desc).replace("/", ".")
     } else {

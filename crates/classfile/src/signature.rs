@@ -9,6 +9,7 @@ use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
     error::{ErrorKind, ParseError, VerboseError},
+    multi::many1,
     sequence::delimited,
     AsBytes, Err, IResult,
 };
@@ -42,6 +43,15 @@ pub struct ClassSignature {
 
 #[derive(Debug)]
 pub struct MethodSignature {
+    /*
+    TestNG, org.testng.collections.Maps
+
+    <K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;
+
+    public static <K extends java.lang.Object, V extends java.lang.Object> java.util.Map<K, V> newHashMap(java.util.Map<K, V>);
+    */
+    pub generics: Vec<(BytesRef, Type)>,
+
     pub args: Vec<Type>,
     pub retype: Type,
 }
@@ -77,6 +87,7 @@ impl FieldSignature {
 impl Default for MethodSignature {
     fn default() -> Self {
         Self {
+            generics: Vec::new(),
             args: Vec::new(),
             retype: Type::Void,
         }
@@ -150,7 +161,6 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
     let (i, container) = take_till(|c| c == '<')(i)?;
     let (mut i, _) = tag("<")(i)?;
 
-    // println!("1, i = {}", i);
     //signature like:
     //Ljava/lang/Class<+Lcom/google/inject/Module;>;
     //<=> 'java.lang.Class<? extends com.google.inject.Module>'
@@ -161,17 +171,7 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
         i = i2;
     }
 
-    let mut generic_args = vec![];
-    loop {
-        match parse_type::<'a, E>(i) {
-            Ok((i2, arg)) => {
-                generic_args.push(arg);
-                i = i2;
-            }
-            _ => break,
-        }
-    }
-
+    let (i, generic_args) = many1(parse_type)(i)?;
     let (i, _) = tag(">")(i)?;
     let (i, _) = tag(";")(i)?;
 
@@ -191,7 +191,6 @@ fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, 
 }
 
 fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    // object_normal(i)
     alt((object_normal, object_generic))(i)
 }
 
@@ -216,6 +215,14 @@ fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
     }
     let desc = std::sync::Arc::new(buf);
     Ok((i, Type::Array(desc)))
+}
+
+fn generic_declare<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, (BytesRef, Type), E> {
+    let (i, generic_type) = take_till(|c| c == ':')(i)?;
+    let (i, _) = tag(":")(i)?;
+    let (i, t) = parse_type(i)?;
+    let generic_type = std::sync::Arc::new(Vec::from(generic_type));
+    Ok((i, (generic_type, t)))
 }
 
 fn parse_type<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
@@ -257,6 +264,7 @@ fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
         Ok((
             i,
             MethodSignature {
+                generics: vec![],
                 args: vec![],
                 retype,
             },
@@ -267,10 +275,28 @@ fn parse_method(i: &str) -> IResult<&str, MethodSignature> {
         let (i_return, i_args) = delimited(char('('), is_not(")"), char(')'))(i)?;
         let (_, args) = parse_types(i_args)?;
         let (i, retype) = parse_type(i_return)?;
-        Ok((i, MethodSignature { args, retype }))
+        Ok((
+            i,
+            MethodSignature {
+                generics: vec![],
+                args,
+                retype,
+            },
+        ))
     }
 
-    alt((arg0, args))(i)
+    fn generic(i: &str) -> IResult<&str, MethodSignature> {
+        let (i, _) = tag("<")(i)?;
+        let (i, generics) = many1(generic_declare)(i)?;
+        let (i, _) = tag(">")(i)?;
+        let (i, mut r) = parse_method(i)?;
+
+        r.generics = generics;
+
+        Ok((i, r))
+    }
+
+    alt((arg0, args, generic))(i)
 }
 
 fn parse_field(mut i: &str) -> IResult<&str, FieldSignature> {
@@ -290,6 +316,7 @@ mod tests {
     #[test]
     fn t_method_no_arg() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![],
             retype: SignatureType::Void,
         };
@@ -303,6 +330,7 @@ mod tests {
         let table = vec![
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Byte],
                     retype: SignatureType::Void,
                 },
@@ -310,6 +338,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Char],
                     retype: SignatureType::Void,
                 },
@@ -317,6 +346,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Double],
                     retype: SignatureType::Void,
                 },
@@ -324,6 +354,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Float],
                     retype: SignatureType::Void,
                 },
@@ -331,6 +362,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Int],
                     retype: SignatureType::Void,
                 },
@@ -338,6 +370,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Long],
                     retype: SignatureType::Void,
                 },
@@ -345,6 +378,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Short],
                     retype: SignatureType::Void,
                 },
@@ -352,6 +386,7 @@ mod tests {
             ),
             (
                 MethodSignature {
+                    generics: vec![],
                     args: vec![SignatureType::Boolean],
                     retype: SignatureType::Void,
                 },
@@ -369,6 +404,7 @@ mod tests {
     #[test]
     fn method_array_object() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![SignatureType::Array(Arc::new(Vec::from(
                 "[[Ljava/lang/String;",
             )))],
@@ -382,6 +418,7 @@ mod tests {
     #[test]
     fn method_mix() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![
                 SignatureType::Byte,
                 SignatureType::Char,
@@ -408,6 +445,7 @@ mod tests {
             None,
         )];
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/List;")),
                 Some(generic_args),
@@ -420,6 +458,7 @@ mod tests {
         assert_eq!(r.retype, expected.retype);
 
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![
                 SignatureType::Object(
                     Arc::new(Vec::from("Lorg/testng/internal/IConfiguration;")),
@@ -457,6 +496,7 @@ mod tests {
     #[test]
     fn generic1() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![
                 SignatureType::Object(Arc::new(Vec::from("TK;")), None, None),
                 SignatureType::Object(Arc::new(Vec::from("TV;")), None, None),
@@ -472,6 +512,7 @@ mod tests {
     #[test]
     fn generic2() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![SignatureType::Object(
                 Arc::new(Vec::from("TK;")),
                 None,
@@ -495,6 +536,7 @@ mod tests {
     #[test]
     fn generic_nest1() {
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![],
             retype: SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/Set;")),
@@ -525,6 +567,41 @@ mod tests {
     }
 
     #[test]
+    fn generic_method() {
+        let expected = MethodSignature {
+            generics: vec![
+                (
+                    Arc::new(Vec::from("K")),
+                    SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Object;")), None, None),
+                ),
+                (
+                    Arc::new(Vec::from("V")),
+                    SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Object;")), None, None),
+                ),
+            ],
+            args: vec![SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/Map;")),
+                Some(vec![
+                    SignatureType::Object(Arc::new(Vec::from("TK;")), None, None),
+                    SignatureType::Object(Arc::new(Vec::from("TV;")), None, None),
+                ]),
+                None,
+            )],
+            retype: SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/Map;")),
+                Some(vec![
+                    SignatureType::Object(Arc::new(Vec::from("TK;")), None, None),
+                    SignatureType::Object(Arc::new(Vec::from("TV;")), None, None),
+                ]),
+                None,
+            ),
+        };
+        let (_, r) = parse_method("<K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
     fn method_return_generic() {
         let generic_args = vec![SignatureType::Object(
             Arc::new(Vec::from("Lorg/testng/ITestNGListener;")),
@@ -532,6 +609,7 @@ mod tests {
             None,
         )];
         let expected = MethodSignature {
+            generics: vec![],
             args: vec![],
             retype: SignatureType::Object(
                 Arc::new(Vec::from("Ljava/util/List;")),
