@@ -146,36 +146,42 @@ fn object_desc<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&str, Byte
 }
 
 fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, _) = tag("L")(i)?;
+    let (i, tag_prefix) = alt((tag("L"), tag("T")))(i)?;
     let (i, container) = take_till(|c| c == '<')(i)?;
-    let (i, _) = tag("<")(i)?;
-    let (i, mut generic_args) = take_till(|c| c == '>')(i)?;
-    let (i, _) = tag(">")(i)?;
-    let (i, _) = tag(";")(i)?;
+    let (mut i, _) = tag("<")(i)?;
 
+    // println!("1, i = {}", i);
     //signature like:
     //Ljava/lang/Class<+Lcom/google/inject/Module;>;
     //<=> 'java.lang.Class<? extends com.google.inject.Module>'
     let mut prefix = None;
-    if generic_args.starts_with("+") {
+    if i.chars().nth(0) == Some('+') {
         prefix = Some(b'+');
-        generic_args = &generic_args[1..];
+        let (i2, _) = tag("+")(i)?;
+        i = i2;
     }
 
-    //parse generic args
-    let r = parse_types::<'a, E>(generic_args);
-    let generic_args = match r {
-        Ok((_, generic_args)) => Some(generic_args),
-        _ => None,
-    };
+    let mut generic_args = vec![];
+    loop {
+        match parse_type::<'a, E>(i) {
+            Ok((i2, arg)) => {
+                generic_args.push(arg);
+                i = i2;
+            }
+            _ => break,
+        }
+    }
+
+    let (i, _) = tag(">")(i)?;
+    let (i, _) = tag(";")(i)?;
 
     //build results
     let mut buf = Vec::with_capacity(1 + container.len() + 1);
-    buf.push(b'L');
+    buf.extend_from_slice(tag_prefix.as_bytes());
     buf.extend_from_slice(container.as_bytes());
     buf.push(b';');
     let desc = std::sync::Arc::new(buf);
-    Ok((i, Type::Object(desc, generic_args, prefix)))
+    Ok((i, Type::Object(desc, Some(generic_args), prefix)))
 }
 
 fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
@@ -458,6 +464,62 @@ mod tests {
             retype: SignatureType::Void,
         };
         let (_, r) = parse_method("(TK;TV;)V").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    //'T' tag in args
+    #[test]
+    fn generic2() {
+        let expected = MethodSignature {
+            args: vec![SignatureType::Object(
+                Arc::new(Vec::from("TK;")),
+                None,
+                None,
+            )],
+            retype: SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/Set;")),
+                Some(vec![SignatureType::Object(
+                    Arc::new(Vec::from("TV;")),
+                    None,
+                    None,
+                )]),
+                None,
+            ),
+        };
+        let (_, r) = parse_method("(TK;)Ljava/util/Set<TV;>;").unwrap();
+        assert_eq!(r.args, expected.args);
+        assert_eq!(r.retype, expected.retype);
+    }
+
+    #[test]
+    fn generic_nest1() {
+        let expected = MethodSignature {
+            args: vec![],
+            retype: SignatureType::Object(
+                Arc::new(Vec::from("Ljava/util/Set;")),
+                Some(vec![SignatureType::Object(
+                    Arc::new(Vec::from("Ljava/util/Map$Entry;")),
+                    Some(vec![
+                        SignatureType::Object(Arc::new(Vec::from("TK;")), None, None),
+                        SignatureType::Object(
+                            Arc::new(Vec::from("Ljava/util/Set;")),
+                            Some(vec![SignatureType::Object(
+                                Arc::new(Vec::from("TV;")),
+                                None,
+                                None,
+                            )]),
+                            None,
+                        ),
+                    ]),
+                    None,
+                )]),
+                None,
+            ),
+        };
+        let (_, r) =
+            parse_method("()Ljava/util/Set<Ljava/util/Map$Entry<TK;Ljava/util/Set<TV;>;>;>;")
+                .unwrap();
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
