@@ -1,6 +1,9 @@
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
-use classfile::{constant_pool, BytesRef, ClassFile, FieldInfo, FieldSignature};
+use classfile::{
+    constant_pool, constant_pool::Type as ConstantPoolType, BytesRef, ClassFile, FieldInfo,
+    FieldSignature,
+};
 use handlebars::Handlebars;
 
 pub struct FieldTranslation {
@@ -8,6 +11,7 @@ pub struct FieldTranslation {
     pub descriptor: String,
     pub signature: String,
     pub flags: String,
+    pub constant: String,
 }
 
 pub struct Translator<'a> {
@@ -50,12 +54,14 @@ impl<'a> Translator<'a> {
         let descriptor = self.descriptor();
         let signature = self.signature();
         let flags = AccessFlagsTranslator::new(self.field.acc_flags).access_flag_inner();
+        let constant = self.attr_constant_value().unwrap_or("".to_string());
 
         FieldTranslation {
             desc,
             descriptor,
             signature,
             flags,
+            constant,
         }
     }
 }
@@ -96,6 +102,53 @@ impl<'a> Translator<'a> {
                     let signature_index = *signature_index as usize;
                     let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
                     return Some((signature_index, v));
+                }
+                _ => (),
+            }
+        }
+
+        None
+    }
+
+    fn attr_constant_value(&self) -> Option<String> {
+        for it in self.field.attrs.iter() {
+            match it {
+                classfile::attributes::Type::ConstantValue {
+                    constant_value_index,
+                } => {
+                    let v = match self.cf.cp.get(*constant_value_index as usize) {
+                        Some(ConstantPoolType::Long { v }) => {
+                            let v = i64::from_be_bytes([
+                                v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
+                            ]);
+                            format!("long {}", v)
+                        }
+                        Some(ConstantPoolType::Float { v }) => {
+                            let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                            let v = f32::from_bits(v);
+                            format!("float {}", v)
+                        }
+                        Some(ConstantPoolType::Double { v }) => {
+                            let v = u64::from_be_bytes([
+                                v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
+                            ]);
+                            let v = f64::from_bits(v);
+                            format!("double {}", v)
+                        }
+                        Some(ConstantPoolType::Integer { v }) => {
+                            let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                            format!("int {}", v)
+                        }
+                        //                    此处没有javathread，如何创建String?
+                        Some(ConstantPoolType::String { string_index }) => {
+                            let v = constant_pool::get_utf8(&self.cf.cp, *string_index as usize)
+                                .unwrap();
+                            format!("String {}", String::from_utf8_lossy(v.as_slice()))
+                        }
+                        _ => format!("todo"),
+                    };
+
+                    return Some(v);
                 }
                 _ => (),
             }
