@@ -16,6 +16,9 @@ pub const PART_FIELDS: &str = "
   {{~#if enable_flags}}
     flags: {{flags~}}
   {{/if}}
+  {{~#if enable_attr_signature}}
+    Signature: {{signature~}}
+  {{/if}}
 {{/each}}";
 
 pub const PART_METHODS: &str = "

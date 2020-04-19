@@ -200,8 +200,10 @@ impl Disassemble {
             .map(|it| FieldInfoSerde {
                 desc: it.desc.clone(),
                 descriptor: it.descriptor.clone(),
+                signature: it.signature.clone(),
                 flags: it.flags.clone(),
                 enable_descriptor: self.enable_inner_signature,
+                enable_attr_signature: !it.signature.is_empty() && self.enable_verbose,
                 enable_flags: self.enable_verbose,
             })
             .collect()

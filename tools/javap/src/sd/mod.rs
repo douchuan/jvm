@@ -60,11 +60,13 @@ pub struct CodeSerde {
 pub struct FieldInfoSerde {
     pub desc: String,
 
-    pub descriptor: String,
+    pub descriptor: String, //constant pool descriptor
+    pub signature: String,  //Attribute Signature
     pub flags: String,
 
     pub enable_descriptor: bool,
     pub enable_flags: bool,
+    pub enable_attr_signature: bool,
 }
 
 #[derive(Serialize)]

@@ -1,11 +1,12 @@
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
-use classfile::{constant_pool, ClassFile, FieldInfo, FieldSignature};
+use classfile::{constant_pool, BytesRef, ClassFile, FieldInfo, FieldSignature};
 use handlebars::Handlebars;
 
 pub struct FieldTranslation {
     pub desc: String,
     pub descriptor: String,
+    pub signature: String,
     pub flags: String,
 }
 
@@ -47,11 +48,13 @@ impl<'a> Translator<'a> {
         };
 
         let descriptor = self.descriptor();
+        let signature = self.signature();
         let flags = AccessFlagsTranslator::new(self.field.acc_flags).access_flag_inner();
 
         FieldTranslation {
             desc,
             descriptor,
+            signature,
             flags,
         }
     }
@@ -78,5 +81,26 @@ impl<'a> Translator<'a> {
     fn descriptor(&self) -> String {
         let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize).unwrap();
         String::from_utf8_lossy(desc.as_slice()).to_string()
+    }
+
+    fn signature(&self) -> String {
+        self.attr_signature().map_or("".to_string(), |(idx, v)| {
+            format!("#{:<28} // {}", idx, String::from_utf8_lossy(v.as_slice()))
+        })
+    }
+
+    fn attr_signature(&self) -> Option<(usize, BytesRef)> {
+        for it in self.field.attrs.iter() {
+            match it {
+                classfile::attributes::Type::Signature { signature_index } => {
+                    let signature_index = *signature_index as usize;
+                    let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
+                    return Some((signature_index, v));
+                }
+                _ => (),
+            }
+        }
+
+        None
     }
 }
