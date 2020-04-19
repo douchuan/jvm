@@ -96,64 +96,53 @@ impl<'a> Translator<'a> {
     }
 
     fn attr_signature(&self) -> Option<(usize, BytesRef)> {
-        for it in self.field.attrs.iter() {
-            match it {
-                classfile::attributes::Type::Signature { signature_index } => {
-                    let signature_index = *signature_index as usize;
-                    let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
-                    return Some((signature_index, v));
-                }
-                _ => (),
+        self.field.attrs.iter().find_map(|v| {
+            if let classfile::attributes::Type::Signature { signature_index } = v {
+                let signature_index = *signature_index as usize;
+                let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
+                Some((signature_index, v))
+            } else {
+                None
             }
-        }
-
-        None
+        })
     }
 
     fn attr_constant_value(&self) -> Option<String> {
-        for it in self.field.attrs.iter() {
-            match it {
-                classfile::attributes::Type::ConstantValue {
-                    constant_value_index,
-                } => {
-                    let v = match self.cf.cp.get(*constant_value_index as usize) {
-                        Some(ConstantPoolType::Long { v }) => {
-                            let v = i64::from_be_bytes([
-                                v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
-                            ]);
-                            format!("long {}", v)
-                        }
-                        Some(ConstantPoolType::Float { v }) => {
-                            let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                            let v = f32::from_bits(v);
-                            format!("float {}", v)
-                        }
-                        Some(ConstantPoolType::Double { v }) => {
-                            let v = u64::from_be_bytes([
-                                v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
-                            ]);
-                            let v = f64::from_bits(v);
-                            format!("double {}", v)
-                        }
-                        Some(ConstantPoolType::Integer { v }) => {
-                            let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                            format!("int {}", v)
-                        }
-                        //                    此处没有javathread，如何创建String?
-                        Some(ConstantPoolType::String { string_index }) => {
-                            let v = constant_pool::get_utf8(&self.cf.cp, *string_index as usize)
-                                .unwrap();
-                            format!("String {}", String::from_utf8_lossy(v.as_slice()))
-                        }
-                        _ => format!("todo"),
-                    };
-
-                    return Some(v);
-                }
-                _ => (),
+        let idx = self.field.attrs.iter().find_map(|v| {
+            if let classfile::attributes::Type::ConstantValue {
+                constant_value_index,
+            } = v
+            {
+                Some(*constant_value_index as usize)
+            } else {
+                None
             }
-        }
+        });
 
-        None
+        idx.map(|idx| match self.cf.cp.get(idx as usize) {
+            Some(ConstantPoolType::Long { v }) => {
+                let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                format!("long {}", v)
+            }
+            Some(ConstantPoolType::Float { v }) => {
+                let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                let v = f32::from_bits(v);
+                format!("float {}", v)
+            }
+            Some(ConstantPoolType::Double { v }) => {
+                let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                let v = f64::from_bits(v);
+                format!("double {}", v)
+            }
+            Some(ConstantPoolType::Integer { v }) => {
+                let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                format!("int {}", v)
+            }
+            Some(ConstantPoolType::String { string_index }) => {
+                let v = constant_pool::get_utf8(&self.cf.cp, *string_index as usize).unwrap();
+                format!("String {}", String::from_utf8_lossy(v.as_slice()))
+            }
+            _ => format!("todo"),
+        })
     }
 }
