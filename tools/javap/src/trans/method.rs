@@ -157,7 +157,38 @@ impl<'a> Translator<'a> {
 
     fn return_type(&self) -> String {
         let signature = self.method_signature();
-        return signature.retype.into_string();
+        let mut retype = String::new();
+
+        /*
+        build generics, if exists
+
+    for example:
+    TestNG, org.testng.collections.Maps
+
+    <K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;
+
+    public static <K extends java.lang.Object, V extends java.lang.Object> java.util.Map<K, V> newHashMap(java.util.Map<K, V>);
+    */
+        if !signature.generics.is_empty() {
+            retype.push_str("<");
+
+            let lst: Vec<String> = signature.generics.iter().map(|(holder, t)| {
+                let mut s = String::from_utf8_lossy(holder.as_slice()).to_string();
+                s.push_str(" extends ");
+                let t = t.into_string();
+                s.push_str(&t);
+                s
+            }).collect();
+            let s = lst.join(", ");
+
+            retype.push_str(&s);
+            retype.push_str("> ");
+        }
+
+        let s = signature.retype.into_string();
+        retype.push_str(&s);
+
+        retype
     }
 
     fn args(&self) -> Vec<String> {
