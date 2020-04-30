@@ -1,8 +1,10 @@
 #![allow(unused)]
 
-mod parser;
+mod class;
+mod signature;
 
-pub use parser::parse as parse_class;
+pub use class::parse as parse_class;
+pub use signature::{ClassSignature, FieldSignature, MethodSignature};
 
 #[cfg(test)]
 mod tests {

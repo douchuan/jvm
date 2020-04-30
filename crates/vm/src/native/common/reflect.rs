@@ -5,8 +5,9 @@ use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::*;
 use crate::util;
+use classfile::SignatureType;
 use classfile::consts as cls_const;
-use classfile::{FieldSignature, MethodSignature, SignatureType};
+use class_parser::{FieldSignature, MethodSignature};
 
 pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();

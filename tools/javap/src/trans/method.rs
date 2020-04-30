@@ -4,8 +4,9 @@ use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
 use classfile::attributes::LocalVariable;
 use classfile::{
     attributes::LineNumber, attributes::StackMapFrame, attributes::VerificationTypeInfo,
-    constant_pool, BytesRef, ClassFile, MethodInfo, MethodSignature,
+    constant_pool, BytesRef, ClassFile, MethodInfo,
 };
+use class_parser::MethodSignature;
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {

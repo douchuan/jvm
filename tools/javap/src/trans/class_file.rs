@@ -4,7 +4,7 @@ use crate::trans::AccessFlagsTranslator;
 use crate::trans::{AccessFlagHelper, FieldTranslation};
 use classfile::AttributeType;
 use classfile::ClassFile;
-use classfile::ClassSignature;
+use class_parser::ClassSignature;
 use classfile::{constant_pool, SignatureType};
 
 const S_UNKNOWN: &str = "unknown";

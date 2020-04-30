@@ -3,7 +3,6 @@ use crate::consts::{
     METHOD_NAME_INIT,
 };
 use crate::types::{BytesRef, ConstantPool};
-use crate::{MethodSignature, SignatureType};
 use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;

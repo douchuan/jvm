@@ -2,8 +2,8 @@ use crate::trans::AccessFlagsTranslator;
 use crate::trans::SignatureTypeTranslator;
 use classfile::{
     constant_pool, constant_pool::Type as ConstantPoolType, BytesRef, ClassFile, FieldInfo,
-    FieldSignature,
 };
+use class_parser::FieldSignature;
 use handlebars::Handlebars;
 
 pub struct FieldTranslation {
