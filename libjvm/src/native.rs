@@ -1,3 +1,7 @@
+#![allow(non_snake_case)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
 use jni_sys::{
 	jarray, jboolean, jbooleanArray, jbyte, jbyteArray, jchar, jcharArray, jclass, jdouble,
 	jdoubleArray, jfieldID, jfloat, jfloatArray, jint, jintArray, jlong, jlongArray, jmethodID,

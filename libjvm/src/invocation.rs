@@ -1,3 +1,6 @@
+#![allow(non_snake_case)]
+#![allow(unused_imports)]
+
 //https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/invocation.html
 
 use jni_sys::{jboolean, jint, jsize, JNIInvokeInterface_, JNINativeInterface_, JavaVM};

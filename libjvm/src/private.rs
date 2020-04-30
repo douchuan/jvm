@@ -1,3 +1,5 @@
+#![allow(unused_variables)]
+
 use jni_sys::{jclass, JNIEnv};
 
 /// Used by java launcher as entry point

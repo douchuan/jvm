@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 /// Conversions between jvm and jni api
 use jni_sys::{jclass, JNIEnv};
 
