@@ -1,12 +1,12 @@
 use crate::sd::CodeSerde;
 use crate::trans::SignatureTypeTranslator;
 use crate::trans::{AccessFlagHelper, AccessFlagsTranslator, CodeTranslator};
+use class_parser::MethodSignature;
 use classfile::attributes::LocalVariable;
 use classfile::{
     attributes::LineNumber, attributes::StackMapFrame, attributes::VerificationTypeInfo,
     constant_pool, BytesRef, ClassFile, MethodInfo,
 };
-use class_parser::MethodSignature;
 use handlebars::Handlebars;
 
 pub struct MethodTranslation {
@@ -160,25 +160,29 @@ impl<'a> Translator<'a> {
         let mut retype = String::new();
 
         /*
-        build generics, if exists
+            build generics, if exists
 
-    for example:
-    TestNG, org.testng.collections.Maps
+        for example:
+        TestNG, org.testng.collections.Maps
 
-    <K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;
+        <K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;
 
-    public static <K extends java.lang.Object, V extends java.lang.Object> java.util.Map<K, V> newHashMap(java.util.Map<K, V>);
-    */
+        public static <K extends java.lang.Object, V extends java.lang.Object> java.util.Map<K, V> newHashMap(java.util.Map<K, V>);
+        */
         if !signature.generics.is_empty() {
             retype.push_str("<");
 
-            let lst: Vec<String> = signature.generics.iter().map(|(holder, t)| {
-                let mut s = String::from_utf8_lossy(holder.as_slice()).to_string();
-                s.push_str(" extends ");
-                let t = t.into_string();
-                s.push_str(&t);
-                s
-            }).collect();
+            let lst: Vec<String> = signature
+                .generics
+                .iter()
+                .map(|(holder, t)| {
+                    let mut s = String::from_utf8_lossy(holder.as_slice()).to_string();
+                    s.push_str(" extends ");
+                    let t = t.into_string();
+                    s.push_str(&t);
+                    s
+                })
+                .collect();
             let s = lst.join(", ");
 
             retype.push_str(&s);

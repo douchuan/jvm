@@ -2,9 +2,9 @@ use super::FieldTranslator;
 use super::{MethodTranslation, MethodTranslator};
 use crate::trans::AccessFlagsTranslator;
 use crate::trans::{AccessFlagHelper, FieldTranslation};
+use class_parser::ClassSignature;
 use classfile::AttributeType;
 use classfile::ClassFile;
-use class_parser::ClassSignature;
 use classfile::{constant_pool, SignatureType};
 
 const S_UNKNOWN: &str = "unknown";
