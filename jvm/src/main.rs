@@ -133,13 +133,13 @@ mod tests {
             bytes: Arc<Vec<u8>>,
         }
 
-        let mut ref_bytes = None;
-        {
+        let ref_bytes = {
             let bytes = Arc::new(vec![1, 2, 3, 4]);
             let t = TestArc { bytes };
-            ref_bytes = Some(t.bytes.clone());
+            let ref_bytes = Some(t.bytes.clone());
             assert_eq!(2, Arc::strong_count(&t.bytes));
-        }
+            ref_bytes
+        };
         assert!(ref_bytes.is_some());
         assert_eq!(ref_bytes, Some(Arc::new(vec![1, 2, 3, 4])));
         assert_eq!(1, Arc::strong_count(&ref_bytes.unwrap()));
@@ -277,9 +277,17 @@ mod tests {
             f1.stack.borrow_mut().push(300);
         }
 
-        let f2 = frame.read().unwrap();
+        let _f2 = frame.read().unwrap();
         {
             assert_eq!(f1.stack.borrow().len(), 3);
         }
+    }
+
+    #[test]
+    fn t_bytes_ref() {
+        use std::sync::Arc;
+        let br1 = Arc::new(Vec::from("abc"));
+        let br2 = Arc::new(Vec::from("abc"));
+        assert_eq!(br1, br2);
     }
 }

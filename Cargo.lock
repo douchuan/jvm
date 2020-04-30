@@ -386,7 +386,9 @@ version = "0.2.0"
 dependencies = [
  "clap",
  "class-parser",
+ "classfile",
  "env_logger",
+ "libc",
  "vm",
 ]
 

@@ -9,3 +9,7 @@ clap = "2.33.0"
 class-parser = { path = "../crates/class-parser", version = "0.1.0" }
 env_logger = "0.7.1"
 vm = { path = "../crates/vm", version = "0.1.0" }
+
+[dev-dependencies]
+classfile = { path = "../crates/classfile", version = "0.1.0" }
+libc = "0.2.66"
