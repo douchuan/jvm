@@ -40,7 +40,7 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
                     oop::RefKind::Inst(inst) => {
                         let m = {
                             let cls = inst.class.read().unwrap();
-                            cls.get_virtual_method("run", "()Ljava/lang/Object;").unwrap()
+                            cls.get_virtual_method(b"run", b"()Ljava/lang/Object;").unwrap()
                         };
 
                         m

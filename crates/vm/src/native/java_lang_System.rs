@@ -178,7 +178,7 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
 
     let mir = {
         let cls = cls.read().unwrap();
-        cls.get_virtual_method("put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;").unwrap()
+        cls.get_virtual_method(b"put", b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;").unwrap()
     };
 
     let k = util::oop::new_java_lang_string2(jt, k);

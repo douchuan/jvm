@@ -44,9 +44,9 @@ fn jvm_getUTF8At0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
 
     let r = match s {
         Some(s) => {
-            let s = String::from_utf8_lossy(s.as_slice());
+            let s = unsafe {std::str::from_utf8_unchecked(s.as_slice())};
             // error!("s = {}", s);
-            util::oop::new_java_lang_string2(jt, s.as_ref())
+            util::oop::new_java_lang_string2(jt, s)
         }
         None => oop::consts::get_null(),
     };

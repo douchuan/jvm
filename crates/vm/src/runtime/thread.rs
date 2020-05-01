@@ -91,7 +91,7 @@ impl JavaMainThread {
                 panic!("Error: Could not find or load main class {}", self.class);
             }
 
-            cls.get_static_method("main", "([Ljava/lang/String;)V")
+            cls.get_static_method(b"main", b"([Ljava/lang/String;)V")
         };
 
         match mir {
@@ -155,8 +155,8 @@ impl JavaMainThread {
                 let mir = {
                     let cls = cls.read().unwrap();
                     cls.get_this_class_method(
-                        "dispatchUncaughtException",
-                        "(Ljava/lang/Throwable;)V",
+                        b"dispatchUncaughtException",
+                        b"(Ljava/lang/Throwable;)V",
                     )
                 };
 

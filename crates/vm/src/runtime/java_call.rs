@@ -18,8 +18,7 @@ pub struct JavaCall {
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
-        let desc = String::from_utf8_lossy(desc);
-        cls.get_this_class_method("<init>", &desc).unwrap()
+        cls.get_this_class_method(b"<init>", &desc).unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);
@@ -293,16 +292,17 @@ impl JavaCall {
             match &this.v {
                 oop::RefKind::Inst(inst) => {
                     let cls = inst.class.read().unwrap();
-                    let name = String::from_utf8_lossy(self.mir.method.name.as_slice());
-                    let desc = String::from_utf8_lossy(self.mir.method.desc.as_slice());
-                    match cls.get_virtual_method(&name, &desc) {
+                    let name = self.mir.method.name.clone();
+                    let desc = self.mir.method.desc.clone();
+                    match cls.get_virtual_method(name.as_slice(), desc.as_slice()) {
                         Ok(mir) => self.mir = mir,
                         _ => {
                             let cls = self.mir.method.class.read().unwrap();
                             warn!(
                                 "resolve again failed, {}:{}:{}, acc_flags = {}",
                                 String::from_utf8_lossy(cls.name.as_slice()),
-                                name, desc,
+                                String::from_utf8_lossy(name.as_slice()),
+                                String::from_utf8_lossy(desc.as_slice()),
                                 self.mir.method.acc_flags
                             );
                         }

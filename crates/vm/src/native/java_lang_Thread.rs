@@ -62,7 +62,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
         let mir = {
             let cls = cls.read().unwrap();
-            cls.get_virtual_method("run", "()V").unwrap()
+            cls.get_virtual_method(b"run", b"()V").unwrap()
         };
 
         let mut jt = JavaThread::new();

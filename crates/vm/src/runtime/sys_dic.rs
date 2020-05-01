@@ -15,7 +15,8 @@ lazy_static! {
 pub fn put(key: &[u8], klass: ClassRef) {
     assert!(!key.contains(&b'.'));
 
-    let key = String::from_utf8_lossy(key);
+    let key = Vec::from(key);
+    let key = unsafe {String::from_utf8_unchecked(key)};
     let mut dict = SYS_DIC.lock().unwrap();
     dict.insert(key.to_string(), klass);
 }

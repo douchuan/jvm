@@ -33,7 +33,7 @@ pub fn get_method_ref(
         class.init_class(thread);
     }
 
-    let (name, typ) = {
+    let (name, desc) = {
         let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
         let typ = typ.unwrap();
@@ -44,21 +44,20 @@ pub fn get_method_ref(
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.read().unwrap();
-    let name = String::from_utf8_lossy(name.as_slice());
-    let typ = String::from_utf8_lossy(typ.as_slice());
 
     trace!(
-        "get_method_ref cls={}, name={}, typ={}",
+        "get_method_ref cls={}, name={}, desc={}",
         unsafe { std::str::from_utf8_unchecked(class.name.as_slice()) },
-        name, typ,
+        unsafe { std::str::from_utf8_unchecked(name.as_slice()) },
+        unsafe { std::str::from_utf8_unchecked(desc.as_slice()) },
     );
 
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_class_method(&name, &typ)
+        class.get_class_method(name.as_slice(), desc.as_slice())
     } else {
         // invokeinterface
-        class.get_interface_method(&name, &typ)
+        class.get_interface_method(name.as_slice(), desc.as_slice())
     };
 
     mir

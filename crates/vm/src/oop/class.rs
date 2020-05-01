@@ -81,8 +81,8 @@ pub struct ClassObject {
     // pub all_methods: HashMap<BytesRef, MethodIdRef>,
     //2 level:
     //  HashMap<name, HashMap<desc, MethodIdRef>>
-    pub all_methods: HashMap<String, HashMap<String, MethodIdRef>>,
-    v_table: HashMap<String, HashMap<String, MethodIdRef>>,
+    pub all_methods: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
+    v_table: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
 
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
     pub inst_fields: HashMap<BytesRef, FieldIdRef>,
@@ -121,13 +121,13 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             let mut class = class.write().unwrap();
             class.state = State::FullyIni;
 
-            let mir = class.get_this_class_method("<clinit>", "()V");
+            let mir = class.get_this_class_method(b"<clinit>", b"()V");
             (mir, class.name.clone())
         };
 
         match mir {
             Ok(mir) => {
-                info!("call {}:<clinit>", String::from_utf8_lossy(name.as_slice()));
+                info!("call {}:<clinit>", unsafe{std::str::from_utf8_unchecked(name.as_slice())});
                 let area = runtime::DataArea::new(0, 0);
                 let mut jc = JavaCall::new_with_args(thread, mir, vec![]);
                 jc.invoke(thread, Some(&area), true);
@@ -384,23 +384,23 @@ impl ArrayClassObject {
 //open api
 impl Class {
     //todo: confirm static method
-    pub fn get_static_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_static_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_class_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_class_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_this_class_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_this_class_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, false)
     }
 
-    pub fn get_virtual_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_virtual_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_virtual_method_inner(name, desc)
     }
 
-    pub fn get_interface_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         self.get_interface_method_inner(name, desc)
     }
 
@@ -547,29 +547,26 @@ impl Class {
         }
     }
 
-    pub fn hack_as_native(&mut self, name: &str, desc: &str) {
+    pub fn hack_as_native(&mut self, name: &[u8], desc: &[u8]) {
         let cls_name = self.name.clone();
         match &mut self.kind {
             ClassKind::Instance(cls) => {
-                {
-                    let map = cls.all_methods.get_mut(name).unwrap();
-                    let mid = map.get(desc).unwrap();
-                    let mut method = mid.method.clone();
-                    method.acc_flags |= ACC_NATIVE;
-                    let m = Arc::new(method::MethodId {
-                        offset: mid.offset,
-                        method,
-                    });
-                    map.insert(desc.into(), m);
-                }
+                let map = cls.all_methods.get_mut(&Vec::from(name)).unwrap();
+                let it = map.get(&Vec::from(desc)).unwrap();
+                let mut method = it.method.clone();
+                method.acc_flags |= ACC_NATIVE;
+                let m = Arc::new(method::MethodId {
+                    offset: it.offset,
+                    method,
+                });
+                let desc = Arc::new(Vec::from(desc));
+                map.insert(desc.clone(), m.clone());
 
-                let m = cls.all_methods.get(name).unwrap();
-                let m = m.get(desc).unwrap();
                 info!(
                     "hack_as_native: {}:{}:{}, native={}",
-                    String::from_utf8_lossy(cls_name.as_slice()),
-                    name,
-                    desc,
+                    unsafe {std::str::from_utf8_unchecked(cls_name.as_slice())},
+                    unsafe {std::str::from_utf8_unchecked(name)},
+                    unsafe {std::str::from_utf8_unchecked(desc.as_slice())},
                     m.method.is_native()
                 );
             }
@@ -802,30 +799,28 @@ impl ClassObject {
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
             let name = method_id.method.name.clone();
-            let name = String::from_utf8_lossy(name.as_slice());
             let desc = method_id.method.desc.clone();
-            let desc = String::from_utf8_lossy(desc.as_slice());
 
             match self.all_methods.get_mut(name.as_ref()) {
                 Some(map) => {
-                    map.insert(desc.clone().into_owned(), method_id.clone());
+                    map.insert(desc.clone(), method_id.clone());
                 }
                 None => {
                     let mut map = HashMap::new();
-                    map.insert(desc.clone().into_owned(), method_id.clone());
-                    self.all_methods.insert(name.clone().into_owned(), map);
+                    map.insert(desc.clone(), method_id.clone());
+                    self.all_methods.insert(name.clone(), map);
                 }
             }
 
             if !method_id.method.is_static() {
                 match self.v_table.get_mut(name.as_ref()) {
                     Some(map) => {
-                        map.insert(desc.into_owned(), method_id.clone());
+                        map.insert(desc, method_id.clone());
                     }
                     None => {
                         let mut map = HashMap::new();
-                        map.insert(desc.into_owned(), method_id.clone());
-                        self.v_table.insert(name.into_owned(), map);
+                        map.insert(desc, method_id.clone());
+                        self.v_table.insert(name, map);
                     }
                 }
             }
@@ -875,13 +870,13 @@ impl ClassObject {
 impl Class {
     pub fn get_class_method_inner(
         &self,
-        name: &str,
-        desc: &str,
+        name: &[u8],
+        desc: &[u8],
         with_super: bool,
     ) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(name) {
-                Some(m) => match m.get(desc) {
+            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&Vec::from(name)) {
+                Some(m) => match m.get(&Vec::from(desc)) {
                     Some(m) => return Ok(m.clone()),
                     None => (),
                 },
@@ -909,10 +904,10 @@ impl Class {
         Err(())
     }
 
-    fn get_virtual_method_inner(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(name) {
-                Some(m) => match m.get(desc) {
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&Vec::from(name)) {
+                Some(m) => match m.get(&Vec::from(desc)) {
                     Some(m) => return Ok(m.clone()),
                     None => (),
                 },
@@ -929,10 +924,10 @@ impl Class {
         }
     }
 
-    pub fn get_interface_method_inner(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method_inner(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(name) {
-                Some(m) => match m.get(desc) {
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&Vec::from(name)) {
+                Some(m) => match m.get(&Vec::from(desc)) {
                     Some(m) => return Ok(m.clone()),
                     None => {
                         for (_, itf) in cls_obj.interfaces.iter() {

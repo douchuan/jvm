@@ -53,7 +53,7 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let mir = {
         let clz = clz.read().unwrap();
-        clz.get_class_method(&m_name, &m_signature).unwrap()
+        clz.get_class_method(m_name.as_bytes(), m_signature.as_bytes()).unwrap()
     };
 
     // {

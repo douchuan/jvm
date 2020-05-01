@@ -699,9 +699,9 @@ impl<'a> Interp<'a> {
         };
 
         let method_cls_name = { self.frame.mir.method.class.read().unwrap().name.clone() };
-        let method_cls_name = String::from_utf8_lossy(method_cls_name.as_slice());
+        let method_cls_name = unsafe {std::str::from_utf8_unchecked(method_cls_name.as_slice())};
         let method_name = self.frame.mir.method.get_id();
-        let method_name = String::from_utf8_lossy(method_name.as_slice());
+        let method_name = unsafe {std::str::from_utf8_unchecked(method_name.as_slice())};
 
         let handler = {
             let area = self.frame.area.borrow();
