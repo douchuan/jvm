@@ -176,7 +176,7 @@ pub fn create_mirror(cls: ClassRef) {
         let cls_back = cls.clone();
         let cls = cls.read().unwrap();
         let name = Vec::from(cls.name.as_slice());
-        let name = unsafe {String::from_utf8_unchecked(name)};
+        let name = unsafe { String::from_utf8_unchecked(name) };
         warn!("mirror create delayed: {}", name);
         match cls.kind {
             oop::class::ClassKind::Instance(_) => {
@@ -353,7 +353,7 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     };
 
     let name = Vec::from(name.as_slice());
-    let name = unsafe {String::from_utf8_unchecked(name)};
+    let name = unsafe { String::from_utf8_unchecked(name) };
     let name = name.replace("/", ".");
     let v = util::oop::new_java_lang_string2(jt, &name);
     Ok(Some(v))

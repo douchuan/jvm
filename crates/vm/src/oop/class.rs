@@ -127,7 +127,9 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
 
         match mir {
             Ok(mir) => {
-                info!("call {}:<clinit>", unsafe{std::str::from_utf8_unchecked(name.as_slice())});
+                info!("call {}:<clinit>", unsafe {
+                    std::str::from_utf8_unchecked(name.as_slice())
+                });
                 let area = runtime::DataArea::new(0, 0);
                 let mut jc = JavaCall::new_with_args(thread, mir, vec![]);
                 jc.invoke(thread, Some(&area), true);
@@ -564,9 +566,9 @@ impl Class {
 
                 info!(
                     "hack_as_native: {}:{}:{}, native={}",
-                    unsafe {std::str::from_utf8_unchecked(cls_name.as_slice())},
-                    unsafe {std::str::from_utf8_unchecked(name)},
-                    unsafe {std::str::from_utf8_unchecked(desc.as_slice())},
+                    unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) },
+                    unsafe { std::str::from_utf8_unchecked(name) },
+                    unsafe { std::str::from_utf8_unchecked(desc.as_slice()) },
                     m.method.is_native()
                 );
             }
@@ -918,7 +920,10 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.read().unwrap().get_virtual_method_inner(name, desc);
+                return super_class
+                    .read()
+                    .unwrap()
+                    .get_virtual_method_inner(name, desc);
             }
             None => return Err(()),
         }
@@ -954,7 +959,10 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.read().unwrap().get_interface_method_inner(name, desc);
+                return super_class
+                    .read()
+                    .unwrap()
+                    .get_interface_method_inner(name, desc);
             }
             None => return Err(()),
         }
