@@ -84,8 +84,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::hash::{Hash, Hasher};
     use classfile::BytesRef;
+    use std::hash::{Hash, Hasher};
 
     #[test]
     fn t_basic() {
@@ -286,10 +286,10 @@ mod tests {
 
     #[test]
     fn t_bytes_ref() {
-        use std::sync::Arc;
-        use std::collections::HashMap;
         use std::borrow::{Borrow, Cow};
-        let br1  = Arc::new(Vec::from("abc".as_bytes()));
+        use std::collections::HashMap;
+        use std::sync::Arc;
+        let br1 = Arc::new(Vec::from("abc".as_bytes()));
         let br2 = Arc::new(Vec::from("abc"));
         assert_eq!(br1, br2);
 

@@ -82,7 +82,7 @@ pub struct ClassObject {
     //2 level:
     //  HashMap<name, HashMap<desc, MethodIdRef>>
     pub all_methods: HashMap<String, HashMap<String, MethodIdRef>>,
-    v_table: HashMap<BytesRef, MethodIdRef>,
+    v_table: HashMap<String, HashMap<String, MethodIdRef>>,
 
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
     pub inst_fields: HashMap<BytesRef, FieldIdRef>,
@@ -396,12 +396,12 @@ impl Class {
         self.get_class_method_inner(name, desc, false)
     }
 
-    pub fn get_virtual_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        self.get_virtual_method_inner(id)
+    pub fn get_virtual_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+        self.get_virtual_method_inner(name, desc)
     }
 
-    pub fn get_interface_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        self.get_interface_method_inner(id)
+    pub fn get_interface_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+        self.get_interface_method_inner(name, desc)
     }
 
     pub fn get_field_id(&self, name: &[u8], desc: &[u8], is_static: bool) -> FieldIdRef {
@@ -808,17 +808,26 @@ impl ClassObject {
 
             match self.all_methods.get_mut(name.as_ref()) {
                 Some(map) => {
-                    map.insert(desc.into_owned(), method_id.clone());
+                    map.insert(desc.clone().into_owned(), method_id.clone());
                 }
                 None => {
                     let mut map = HashMap::new();
-                    map.insert(desc.into_owned(), method_id.clone());
-                    self.all_methods.insert(name.into_owned(), map);
+                    map.insert(desc.clone().into_owned(), method_id.clone());
+                    self.all_methods.insert(name.clone().into_owned(), map);
                 }
             }
 
             if !method_id.method.is_static() {
-                self.v_table.insert(id, method_id);
+                match self.v_table.get_mut(name.as_ref()) {
+                    Some(map) => {
+                        map.insert(desc.into_owned(), method_id.clone());
+                    }
+                    None => {
+                        let mut map = HashMap::new();
+                        map.insert(desc.into_owned(), method_id.clone());
+                        self.v_table.insert(name.into_owned(), map);
+                    }
+                }
             }
         });
     }
@@ -900,10 +909,13 @@ impl Class {
         Err(())
     }
 
-    fn get_virtual_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&id) {
-                Some(m) => return Ok(m.clone()),
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(name) {
+                Some(m) => match m.get(desc) {
+                    Some(m) => return Ok(m.clone()),
+                    None => (),
+                },
                 None => (),
             },
             _ => unreachable!(),
@@ -911,20 +923,31 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.read().unwrap().get_virtual_method_inner(id);
+                return super_class.read().unwrap().get_virtual_method_inner(name, desc);
             }
             None => return Err(()),
         }
     }
 
-    pub fn get_interface_method_inner(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method_inner(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&id) {
-                Some(m) => return Ok(m.clone()),
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(name) {
+                Some(m) => match m.get(desc) {
+                    Some(m) => return Ok(m.clone()),
+                    None => {
+                        for (_, itf) in cls_obj.interfaces.iter() {
+                            let cls = itf.read().unwrap();
+                            match cls.get_interface_method(name, desc) {
+                                Ok(m) => return Ok(m.clone()),
+                                _ => (),
+                            }
+                        }
+                    }
+                },
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
                         let cls = itf.read().unwrap();
-                        match cls.get_interface_method(id.clone()) {
+                        match cls.get_interface_method(name, desc) {
                             Ok(m) => return Ok(m.clone()),
                             _ => (),
                         }
@@ -936,7 +959,7 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class.read().unwrap().get_interface_method_inner(id);
+                return super_class.read().unwrap().get_interface_method_inner(name, desc);
             }
             None => return Err(()),
         }

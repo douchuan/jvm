@@ -3,7 +3,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, JavaCall, JavaThread};
-use crate::util::{self, new_method_id};
+use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -62,8 +62,7 @@ fn jvm_start0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
         let mir = {
             let cls = cls.read().unwrap();
-            let id = new_method_id(b"run", b"()V");
-            cls.get_virtual_method(id).unwrap()
+            cls.get_virtual_method("run", "()V").unwrap()
         };
 
         let mut jt = JavaThread::new();

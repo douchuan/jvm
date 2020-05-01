@@ -44,23 +44,21 @@ pub fn get_method_ref(
     oop::class::init_class_fully(thread, class.clone());
 
     let class = class.read().unwrap();
+    let name = String::from_utf8_lossy(name.as_slice());
+    let typ = String::from_utf8_lossy(typ.as_slice());
 
     trace!(
         "get_method_ref cls={}, name={}, typ={}",
         unsafe { std::str::from_utf8_unchecked(class.name.as_slice()) },
-        unsafe { std::str::from_utf8_unchecked(name.as_slice()) },
-        unsafe { std::str::from_utf8_unchecked(typ.as_slice()) },
+        name, typ,
     );
 
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        let name = String::from_utf8_lossy(name.as_slice());
-        let typ = String::from_utf8_lossy(typ.as_slice());
         class.get_class_method(&name, &typ)
     } else {
-        let id = util::new_method_id(name.as_slice(), typ.as_slice());
         // invokeinterface
-        class.get_interface_method(id)
+        class.get_interface_method(&name, &typ)
     };
 
     mir
