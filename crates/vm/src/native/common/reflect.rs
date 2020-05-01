@@ -5,14 +5,14 @@ use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3, JavaThread};
 use crate::types::*;
 use crate::util;
-use classfile::SignatureType;
-use classfile::consts as cls_const;
 use class_parser::{FieldSignature, MethodSignature};
+use classfile::consts as cls_const;
+use classfile::SignatureType;
 
 pub fn new_field(jt: &mut JavaThread, fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();
 
-    let clazz =  fir.field.class.read().unwrap().get_mirror() ;
+    let clazz = fir.field.class.read().unwrap().get_mirror();
 
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
@@ -54,7 +54,7 @@ pub fn new_method_ctor(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD_CTOR).unwrap();
 
     //declaringClass
-    let declaring_cls =  mir.method.class.read().unwrap().get_mirror() ;
+    let declaring_cls = mir.method.class.read().unwrap().get_mirror();
 
     //parameterTypes
     let signature = MethodSignature::new(mir.method.desc.as_slice());
@@ -127,7 +127,7 @@ pub fn new_method_normal(jt: &mut JavaThread, mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD).unwrap();
 
     //declaringClass
-    let declaring_cls =  mir.method.class.read().unwrap().get_mirror() ;
+    let declaring_cls = mir.method.class.read().unwrap().get_mirror();
 
     //name
     let name = {

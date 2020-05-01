@@ -78,7 +78,10 @@ pub struct ClassObject {
 
     pub n_inst_fields: usize,
 
-    pub all_methods: HashMap<BytesRef, MethodIdRef>,
+    // pub all_methods: HashMap<BytesRef, MethodIdRef>,
+    //2 level:
+    //  HashMap<name, HashMap<desc, MethodIdRef>>
+    pub all_methods: HashMap<String, HashMap<String, MethodIdRef>>,
     v_table: HashMap<BytesRef, MethodIdRef>,
 
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
@@ -118,8 +121,7 @@ pub fn init_class_fully(thread: &mut JavaThread, class: ClassRef) {
             let mut class = class.write().unwrap();
             class.state = State::FullyIni;
 
-            let id = util::new_method_id(b"<clinit>", b"()V");
-            let mir = class.get_this_class_method(id);
+            let mir = class.get_this_class_method("<clinit>", "()V");
             (mir, class.name.clone())
         };
 
@@ -382,16 +384,16 @@ impl ArrayClassObject {
 //open api
 impl Class {
     //todo: confirm static method
-    pub fn get_static_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        self.get_class_method_inner(id, true)
+    pub fn get_static_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+        self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_class_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        self.get_class_method_inner(id, true)
+    pub fn get_class_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+        self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_this_class_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
-        self.get_class_method_inner(id, false)
+    pub fn get_this_class_method(&self, name: &str, desc: &str) -> Result<MethodIdRef, ()> {
+        self.get_class_method_inner(name, desc, false)
     }
 
     pub fn get_virtual_method(&self, id: BytesRef) -> Result<MethodIdRef, ()> {
@@ -545,26 +547,29 @@ impl Class {
         }
     }
 
-    pub fn hack_as_native(&mut self, id: BytesRef) {
+    pub fn hack_as_native(&mut self, name: &str, desc: &str) {
         let cls_name = self.name.clone();
         match &mut self.kind {
             ClassKind::Instance(cls) => {
                 {
-                    let m = cls.all_methods.get(&id).unwrap();
-                    let mut method = m.method.clone();
+                    let map = cls.all_methods.get_mut(name).unwrap();
+                    let mid = map.get(desc).unwrap();
+                    let mut method = mid.method.clone();
                     method.acc_flags |= ACC_NATIVE;
                     let m = Arc::new(method::MethodId {
-                        offset: m.offset,
+                        offset: mid.offset,
                         method,
                     });
-                    cls.all_methods.insert(id.clone(), m);
+                    map.insert(desc.into(), m);
                 }
 
-                let m = cls.all_methods.get(&id).unwrap();
+                let m = cls.all_methods.get(name).unwrap();
+                let m = m.get(desc).unwrap();
                 info!(
-                    "hack_as_native: {}:{}, native={}",
+                    "hack_as_native: {}:{}:{}, native={}",
                     String::from_utf8_lossy(cls_name.as_slice()),
-                    String::from_utf8_lossy(id.as_slice()),
+                    name,
+                    desc,
                     m.method.is_native()
                 );
             }
@@ -796,7 +801,21 @@ impl ClassObject {
             let id = method.get_id();
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
-            self.all_methods.insert(id.clone(), method_id.clone());
+            let name = method_id.method.name.clone();
+            let name = String::from_utf8_lossy(name.as_slice());
+            let desc = method_id.method.desc.clone();
+            let desc = String::from_utf8_lossy(desc.as_slice());
+
+            match self.all_methods.get_mut(name.as_ref()) {
+                Some(map) => {
+                    map.insert(desc.into_owned(), method_id.clone());
+                }
+                None => {
+                    let mut map = HashMap::new();
+                    map.insert(desc.into_owned(), method_id.clone());
+                    self.all_methods.insert(name.into_owned(), map);
+                }
+            }
 
             if !method_id.method.is_static() {
                 self.v_table.insert(id, method_id);
@@ -847,12 +866,16 @@ impl ClassObject {
 impl Class {
     pub fn get_class_method_inner(
         &self,
-        id: BytesRef,
+        name: &str,
+        desc: &str,
         with_super: bool,
     ) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&id) {
-                Some(m) => return Ok(m.clone()),
+            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(name) {
+                Some(m) => match m.get(desc) {
+                    Some(m) => return Ok(m.clone()),
+                    None => (),
+                },
                 None => (),
             },
 
@@ -868,7 +891,7 @@ impl Class {
                     return super_class
                         .read()
                         .unwrap()
-                        .get_class_method_inner(id, with_super);
+                        .get_class_method_inner(name, desc, with_super);
                 }
                 None => return Err(()),
             }

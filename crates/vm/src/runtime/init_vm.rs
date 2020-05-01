@@ -83,8 +83,8 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
         let cls = cls.read().unwrap();
-        let id = util::new_method_id(b"initializeSystemClass", b"()V");
-        cls.get_static_method(id).unwrap()
+        cls.get_static_method("initializeSystemClass", "()V")
+            .unwrap()
     };
     let mut jc =
         runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
@@ -158,20 +158,17 @@ fn hack_classes(jt: &mut JavaThread) {
     let encoder = oop::class::load_and_init(jt, b"sun/nio/cs/StreamEncoder");
     {
         let mut cls = encoder.write().unwrap();
-        let id = util::new_method_id(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
-        cls.hack_as_native(id);
+        cls.hack_as_native("forOutputStreamWriter", "(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
     }
 
     let system = oop::class::load_and_init(jt, b"java/lang/System");
 
     {
         let mut cls = system.write().unwrap();
-        let id = util::new_method_id(b"load", b"(Ljava/lang/String;)V");
-        cls.hack_as_native(id);
+        cls.hack_as_native("load", "(Ljava/lang/String;)V");
 
         //todo: support load lib
-        let id = util::new_method_id(b"loadLibrary", b"(Ljava/lang/String;)V");
-        cls.hack_as_native(id);
+        cls.hack_as_native("loadLibrary", "(Ljava/lang/String;)V");
 
         //fixme: rm, just for debug
         //        let id = util::new_method_id(b"getProperty", b"(Ljava/lang/String;)Ljava/lang/String;");

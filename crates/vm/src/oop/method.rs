@@ -52,11 +52,13 @@ pub fn get_method_ref(
         unsafe { std::str::from_utf8_unchecked(typ.as_slice()) },
     );
 
-    let id = util::new_method_id(name.as_slice(), typ.as_slice());
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_class_method(id)
+        let name = String::from_utf8_lossy(name.as_slice());
+        let typ = String::from_utf8_lossy(typ.as_slice());
+        class.get_class_method(&name, &typ)
     } else {
+        let id = util::new_method_id(name.as_slice(), typ.as_slice());
         // invokeinterface
         class.get_interface_method(id)
     };

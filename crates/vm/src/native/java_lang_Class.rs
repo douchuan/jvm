@@ -402,7 +402,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
                 oop::class::init_class_fully(jt, cls.clone());
             }
 
-            let mirror =  cls.read().unwrap().get_mirror() ;
+            let mirror = cls.read().unwrap().get_mirror();
 
             Ok(Some(mirror))
         }
@@ -881,31 +881,47 @@ fn get_declared_method_helper(
     let public_only = util::oop::extract_int(arg1) == 1;
 
     //fixme: super methods
-    let all_methods = {
+    let selected_methods = {
         let cls = mirror_target.read().unwrap();
         match &cls.kind {
-            oop::class::ClassKind::Instance(inst) => inst.all_methods.clone(),
-            oop::class::ClassKind::ObjectArray(_ary) => HashMap::new(),
+            oop::class::ClassKind::Instance(inst) => {
+                fn chooser1(want_constructor: bool, name: &str) -> bool {
+                    return if want_constructor {
+                        name == "<init>"
+                    } else {
+                        name != "<init>"
+                    };
+                }
+
+                fn chooser2(want_constructor: bool, m: &MethodIdRef) -> bool {
+                    return if want_constructor {
+                        m.method.name.as_slice() == b"<init>" && !m.method.is_static()
+                    } else {
+                        m.method.name.as_slice() != b"<init>"
+                    };
+                }
+
+                let mut selected_methods = Vec::new();
+                for (name, m1) in inst.all_methods.iter() {
+                    if !chooser1(want_constructor, name) {
+                        continue;
+                    }
+
+                    for (_, m) in m1 {
+                        if chooser2(want_constructor, &m) {
+                            if !public_only || m.method.is_public() {
+                                selected_methods.push(m.clone());
+                            }
+                        }
+                    }
+                }
+
+                selected_methods
+            }
+            oop::class::ClassKind::ObjectArray(_ary) => vec![],
             t => unreachable!("{:?}", t),
         }
     };
-
-    fn select_method(want_constructor: bool, m: &MethodIdRef) -> bool {
-        return if want_constructor {
-            m.method.name.as_slice() == b"<init>" && !m.method.is_static()
-        } else {
-            m.method.name.as_slice() != b"<init>"
-        };
-    }
-
-    let mut selected_methods = Vec::new();
-    for (_, m) in all_methods {
-        if select_method(want_constructor, &m) {
-            if !public_only || m.method.is_public() {
-                selected_methods.push(m.clone());
-            }
-        }
-    }
 
     //build methods ary
     let mut methods = Vec::new();

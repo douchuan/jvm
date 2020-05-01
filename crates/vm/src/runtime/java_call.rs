@@ -3,8 +3,8 @@ use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
 use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
 use crate::util;
-use classfile::{consts as cls_const, SignatureType};
 use class_parser::MethodSignature;
+use classfile::{consts as cls_const, SignatureType};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -18,8 +18,8 @@ pub struct JavaCall {
 pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
-        let id = util::new_method_id(b"<init>", desc);
-        cls.get_this_class_method(id).unwrap()
+        let desc = String::from_utf8_lossy(desc);
+        cls.get_this_class_method("<init>", &desc).unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(jt, ctor, args);

@@ -91,8 +91,7 @@ impl JavaMainThread {
                 panic!("Error: Could not find or load main class {}", self.class);
             }
 
-            let id = util::new_method_id(b"main", b"([Ljava/lang/String;)V");
-            cls.get_static_method(id)
+            cls.get_static_method("main", "([Ljava/lang/String;)V")
         };
 
         match mir {
@@ -155,9 +154,10 @@ impl JavaMainThread {
 
                 let mir = {
                     let cls = cls.read().unwrap();
-                    let id =
-                        new_method_id(b"dispatchUncaughtException", b"(Ljava/lang/Throwable;)V");
-                    cls.get_this_class_method(id)
+                    cls.get_this_class_method(
+                        "dispatchUncaughtException",
+                        "(Ljava/lang/Throwable;)V",
+                    )
                 };
 
                 match mir {

@@ -2,7 +2,7 @@
 #########################################
 ###modify to according to your env
 JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_151.jdk/Contents/Home/jre
-JDK_SRC=/Users/douchuan/work/codes/java/vm/openjdk8
+JDK_SRC=/Users/douchuan/work/codes/vm/openjdk8
 ########################################
 
 JDK=$JAVA_HOME/lib/resources.jar:$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/jsse.jar:$JAVA_HOME/lib/jce.jar:$JAVA_HOME/lib/charsets.jar:$JAVA_HOME/lib/jfr.jar
@@ -114,7 +114,7 @@ export RUST_BACKTRACE=full
 #sum_t_println = 3059
 #sum_t_int2integer = 3201
 export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
-#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods

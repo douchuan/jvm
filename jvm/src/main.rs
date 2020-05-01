@@ -85,6 +85,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::hash::{Hash, Hasher};
+    use classfile::BytesRef;
 
     #[test]
     fn t_basic() {
@@ -286,8 +287,24 @@ mod tests {
     #[test]
     fn t_bytes_ref() {
         use std::sync::Arc;
-        let br1 = Arc::new(Vec::from("abc"));
+        use std::collections::HashMap;
+        use std::borrow::{Borrow, Cow};
+        let br1  = Arc::new(Vec::from("abc".as_bytes()));
         let br2 = Arc::new(Vec::from("abc"));
         assert_eq!(br1, br2);
+
+        let mut map: HashMap<BytesRef, &'static str> = HashMap::new();
+        map.insert(br1, "abc");
+        let item = map.get(&Vec::from("abc"));
+        assert!(item.is_some());
+        assert_eq!(item, Some(&"abc"));
+
+        //xx1:
+        // let k1 = "abc".as_bytes();
+        // let k1 = k1.borrow();
+        // let item = map.get(&k1);
+
+        // let k1 = "abc";
+        // let item = map.get(k1.as_ref());
     }
 }

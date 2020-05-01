@@ -197,7 +197,7 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
 
 fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls =  env.read().unwrap().class.clone() ;
+    let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"in", b"Ljava/io/InputStream;", true);
     cls.put_static_field_value(id, v.clone());
@@ -206,7 +206,7 @@ fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls =  env.read().unwrap().class.clone() ;
+    let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"out", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
@@ -215,7 +215,7 @@ fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let cls =  env.read().unwrap().class.clone() ;
+    let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
     let id = cls.get_field_id(b"err", b"Ljava/io/PrintStream;", true);
     cls.put_static_field_value(id, v.clone());
