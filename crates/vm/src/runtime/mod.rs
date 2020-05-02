@@ -11,6 +11,7 @@ mod init_vm;
 pub mod interp;
 pub mod java_call;
 mod local;
+mod mutex;
 mod slot;
 mod stack;
 mod sys_dic;
@@ -27,10 +28,10 @@ pub use dataarea::DataArea;
 pub use frame::Frame;
 pub use interp::Interp;
 pub use java_call::JavaCall;
+pub use mutex::ReentrantMutex;
 pub use slot::Slot;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
-
 
 pub fn init() {
     sys_dic::init();

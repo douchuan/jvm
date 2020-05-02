@@ -3,8 +3,8 @@ use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
 use crate::oop::RefKindDesc;
 use crate::runtime::DataArea;
-use crate::runtime::JavaThread;
 use crate::runtime::Frame;
+use crate::runtime::JavaThread;
 use classfile::ClassFile;
 use std::sync::{Arc, RwLock};
 

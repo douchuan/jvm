@@ -1,7 +1,7 @@
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::{self, exception, frame::Frame, thread, Interp};
-use crate::types::{ClassRef, DataAreaRef, MethodIdRef, FrameRef, JavaThreadRef};
+use crate::types::{ClassRef, DataAreaRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
 use class_parser::MethodSignature;
 use classfile::{consts as cls_const, SignatureType};
@@ -36,11 +36,7 @@ impl JavaCall {
         }
     }
 
-    pub fn new(
-        jt: JavaThreadRef,
-        caller: &DataAreaRef,
-        mir: MethodIdRef,
-    ) -> Result<JavaCall, ()> {
+    pub fn new(jt: JavaThreadRef, caller: &DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
 
@@ -144,7 +140,7 @@ impl JavaCall {
 
             Err(ex) => {
                 jt.write().unwrap().set_ex(ex);
-            },
+            }
         }
 
         self.fin_sync();
@@ -189,9 +185,7 @@ impl JavaCall {
                     set_return(caller, self.return_type.clone(), v)
                 }
             }
-            Err(ex) => {
-                jt.write().unwrap().set_ex(ex)
-            },
+            Err(ex) => jt.write().unwrap().set_ex(ex),
         }
 
         self.fin_sync();

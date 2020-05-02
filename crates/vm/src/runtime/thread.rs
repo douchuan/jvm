@@ -1,13 +1,14 @@
 use crate::oop::{self, consts, InstOopDesc, Oop};
 use crate::runtime::{self, init_vm, require_class3, JavaCall};
-use crate::types::{ClassRef, MethodIdRef, JavaThreadRef, FrameRef};
+use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util::{self, new_field_id, new_method_id};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 lazy_static! {
-    static ref NATIVE_THREAD_POOL: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> = { Mutex::new(HashMap::new()) };
+    static ref NATIVE_THREAD_POOL: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> =
+        { Mutex::new(HashMap::new()) };
 }
 
 pub struct JavaThread {

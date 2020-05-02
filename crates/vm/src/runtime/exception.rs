@@ -1,7 +1,7 @@
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
-use crate::util;
 use crate::types::JavaThreadRef;
+use crate::util;
 
 pub fn new(jt: JavaThreadRef, name: &[u8], msg: Option<String>) -> Oop {
     let cls = match require_class3(None, name) {

@@ -1,8 +1,8 @@
 use crate::native;
 use crate::oop;
 use crate::runtime::{self, require_class3};
-use crate::util;
 use crate::types::JavaThreadRef;
+use crate::util;
 use classfile::consts::{
     J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM,
     J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM,
@@ -31,7 +31,9 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
     // JavaMainThread is created with java_thread_obj none
     // Now we have created a thread for it.
     {
-        jt.write().unwrap().set_java_thread_obj(init_thread_oop.clone());
+        jt.write()
+            .unwrap()
+            .set_java_thread_obj(init_thread_oop.clone());
     }
 
     // Create and construct the system thread group.

@@ -3,8 +3,8 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
-use crate::util;
 use crate::types::JavaThreadRef;
+use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {

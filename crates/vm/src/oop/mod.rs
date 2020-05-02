@@ -264,10 +264,7 @@ impl Oop {
 //private helper
 impl Oop {
     fn new_ref(v: RefKind) -> Oop {
-        let v = RefKindDesc {
-            v,
-            hash_code: None,
-        };
+        let v = RefKindDesc::new(v);
 
         let v = Arc::new(RwLock::new(Box::new(v)));
         Oop::Ref(v)

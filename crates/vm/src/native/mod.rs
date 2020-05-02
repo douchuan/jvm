@@ -2,8 +2,8 @@
 
 use crate::oop::Oop;
 use crate::types::ClassRef;
-use crate::util;
 use crate::types::JavaThreadRef;
+use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -39,8 +39,7 @@ mod sun_reflect_Reflection;
 
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
-pub type NativeMethodPtr =
-    Box<dyn Fn(JavaThreadRef, JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
+pub type NativeMethodPtr = Box<dyn Fn(JavaThreadRef, JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {

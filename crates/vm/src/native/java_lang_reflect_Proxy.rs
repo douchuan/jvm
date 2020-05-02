@@ -5,8 +5,8 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
 use crate::runtime;
 use crate::types::ClassRef;
-use crate::util;
 use crate::types::JavaThreadRef;
+use crate::util;
 use class_parser::parse_class;
 use std::sync::Arc;
 

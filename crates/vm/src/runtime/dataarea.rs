@@ -1,8 +1,8 @@
 use crate::oop::Oop;
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use std::sync::{Arc, RwLock};
 use crate::types::DataAreaRef;
+use std::sync::{Arc, RwLock};
 
 /*
 The origin of DataArea

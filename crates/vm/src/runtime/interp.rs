@@ -2,8 +2,7 @@ use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDes
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{
-    self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame,
-    JavaCall
+    self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame, JavaCall,
 };
 use crate::types::*;
 use crate::util;
