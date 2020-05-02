@@ -6,22 +6,23 @@ Sun is a great company, in the era of C++, they created JVM & HotSpot.
 
 Now, we have Rust, a better tool, let’s remake JVM! 
 
-Pay tribute to  frontline medical staff! Thank you for your contribution to the fight against the epidemic.
+Pay tribute to medical workers at the front! Thank you for your contribution to the fight against the epidemic.
 
 
 ## Roadmap
 
-- Pass test cases in JDK & TCK 
-- impl class checker
-- Support threads
-- WebAssembly, make the JVM work in Browser 
-- Support GC
+- Pass test cases in JDK 
+- Pass TCK 
+- Thread
+- GC (crate)
+- JIT / interp (crate)
+- class verification (crate)
 - After GC built, ready for optimize System.arraycopy (the key of performance)
-- Support higher version of JVM Spec 
+- WebAssembly, make the JVM work in Browser 
 - java options (-version, -server...)
 
-In summary, the roadmap is built on a three-step progress.
-- Pass TCK or JCK
+In summary, the roadmap is built on a 3-step progress.
+- Pass TCK
 - Refactor & Rewrite
 - Divide into several crates, build a collection of modular and reusable vm technologies
 
