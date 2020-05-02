@@ -94,7 +94,7 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     // error!("invoke0 return_type = {:?}, desc={}", jc.return_type, String::from_utf8_lossy(mir.method.desc.as_slice()));
 
     let r = {
-        let mut area = area.borrow_mut();
+        let mut area = area.write().unwrap();
         match jc.return_type {
             SignatureType::Byte
             | SignatureType::Char

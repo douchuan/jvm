@@ -16,6 +16,8 @@ pub struct Frame {
     pub area: DataAreaRef,
 }
 
+// unsafe impl Sync for Frame {}
+
 //new
 impl Frame {
     pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {

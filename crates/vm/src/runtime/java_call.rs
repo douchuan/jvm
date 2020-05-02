@@ -1,7 +1,7 @@
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{self, exception, frame::Frame, thread, FrameRef, Interp, JavaThread};
-use crate::types::{ClassRef, DataAreaRef, MethodIdRef};
+use crate::runtime::{self, exception, frame::Frame, thread, Interp, JavaThread};
+use crate::types::{ClassRef, DataAreaRef, MethodIdRef, FrameRef};
 use crate::util;
 use class_parser::MethodSignature;
 use classfile::{consts as cls_const, SignatureType};
@@ -51,7 +51,7 @@ impl JavaCall {
         let has_this = !mir.method.is_static();
         if has_this {
             let this = {
-                let mut area = caller.borrow_mut();
+                let mut area = caller.write().unwrap();
                 area.stack.pop_ref()
             };
 
@@ -132,7 +132,7 @@ impl JavaCall {
                 if !jt.is_meet_ex() {
                     let return_value = {
                         let frame = frame.try_read().unwrap();
-                        let area = frame.area.borrow();
+                        let area = frame.area.read().unwrap();
                         area.return_v.clone()
                     };
                     set_return(caller, self.return_type.clone(), return_value);
@@ -227,7 +227,7 @@ impl JavaCall {
 
         if !is_native {
             //JVM spec, 2.6.1
-            let mut area = frame.area.borrow_mut();
+            let mut area = frame.area.write().unwrap();
             let mut slot_pos: usize = 0;
             self.args.iter().for_each(|v| {
                 let step = match v {
@@ -342,27 +342,27 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
             | SignatureType::Int
             | SignatureType::Char
             | SignatureType::Short => {
-                let mut area = area.borrow_mut();
+                let mut area = area.write().unwrap();
                 let v = area.stack.pop_int();
                 Oop::new_int(v)
             }
             SignatureType::Long => {
-                let mut area = area.borrow_mut();
+                let mut area = area.write().unwrap();
                 let v = area.stack.pop_long();
                 Oop::new_long(v)
             }
             SignatureType::Float => {
-                let mut area = area.borrow_mut();
+                let mut area = area.write().unwrap();
                 let v = area.stack.pop_float();
                 Oop::new_float(v)
             }
             SignatureType::Double => {
-                let mut area = area.borrow_mut();
+                let mut area = area.write().unwrap();
                 let v = area.stack.pop_double();
                 Oop::new_double(v)
             }
             SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
-                let mut area = area.borrow_mut();
+                let mut area = area.write().unwrap();
                 area.stack.pop_ref()
             }
             t => unreachable!("t = {:?}", t),
@@ -379,30 +379,30 @@ pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: O
         | SignatureType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
-            let mut area = caller.unwrap().borrow_mut();
+            let mut area = caller.unwrap().write().unwrap();
             area.stack.push_int(v);
         }
         SignatureType::Long => {
             let v = v.unwrap();
             let v = util::oop::extract_long(&v);
-            let mut area = caller.unwrap().borrow_mut();
+            let mut area = caller.unwrap().write().unwrap();
             area.stack.push_long(v);
         }
         SignatureType::Float => {
             let v = v.unwrap();
             let v = util::oop::extract_float(&v);
-            let mut area = caller.unwrap().borrow_mut();
+            let mut area = caller.unwrap().write().unwrap();
             area.stack.push_float(v);
         }
         SignatureType::Double => {
             let v = v.unwrap();
             let v = util::oop::extract_double(&v);
-            let mut area = caller.unwrap().borrow_mut();
+            let mut area = caller.unwrap().write().unwrap();
             area.stack.push_double(v);
         }
         SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
             let v = v.unwrap();
-            let mut area = caller.unwrap().borrow_mut();
+            let mut area = caller.unwrap().write().unwrap();
             area.stack.push_ref(v);
         }
         SignatureType::Void => (),

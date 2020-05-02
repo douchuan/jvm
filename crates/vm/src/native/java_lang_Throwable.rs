@@ -36,7 +36,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     for it in jt.frames.iter() {
         let ex_here = {
             let it = it.try_read().unwrap();
-            let area = it.area.borrow();
+            let area = it.area.read().unwrap();
             area.ex_here
         };
 
@@ -76,7 +76,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     for caller in backtrace.iter().rev() {
         let (mir, pc) = {
             let caller = caller.try_read().unwrap();
-            let pc = caller.area.borrow().pc;
+            let pc = caller.area.read().unwrap().pc;
             (caller.mir.clone(), pc)
         };
 

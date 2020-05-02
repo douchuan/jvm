@@ -59,7 +59,7 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     jc.invoke(jt, Some(&area), false);
 
     if !jt.is_meet_ex() {
-        let mut area = area.borrow_mut();
+        let mut area = area.write().unwrap();
         let r = area.stack.pop_ref();
         Ok(Some(r))
     } else {

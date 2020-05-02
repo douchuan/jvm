@@ -266,8 +266,6 @@ impl Oop {
     fn new_ref(v: RefKind) -> Oop {
         let v = RefKindDesc {
             v,
-            cond: Condvar::new(),
-            monitor: Mutex::new(0),
             hash_code: None,
         };
 

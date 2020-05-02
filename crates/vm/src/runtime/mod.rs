@@ -31,8 +31,6 @@ pub use slot::Slot;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
 
-//should moved to types
-def_sync_ref!(FrameRef, Frame);
 
 pub fn init() {
     sys_dic::init();

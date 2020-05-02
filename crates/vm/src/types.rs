@@ -3,16 +3,19 @@ use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
 use crate::oop::RefKindDesc;
 use crate::runtime::DataArea;
+use crate::runtime::JavaThread;
+use crate::runtime::Frame;
 use classfile::ClassFile;
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
-pub type DataAreaRef = RefCell<DataArea>;
+pub type DataAreaRef = Arc<RwLock<DataArea>>;
 
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
+def_sync_ref!(FrameRef, Frame);
+def_sync_ref!(JavaThreadRef, JavaThread);
 def_sync_ref!(OopRef, RefKindDesc);
 
 // Runtime string allocation

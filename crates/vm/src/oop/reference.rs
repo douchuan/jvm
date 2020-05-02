@@ -13,20 +13,14 @@ pub enum RefKind {
 pub struct RefKindDesc {
     pub v: RefKind,
     pub hash_code: Option<i32>,
-
-    // Do these two fields make sense? The operation itself, implicit lock
-    pub cond: Condvar,
-    pub monitor: Mutex<usize>,
 }
 
 impl RefKindDesc {
     pub fn monitor_enter(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v += 1;
+        //todo: impl
     }
 
     pub fn monitor_exit(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v -= 1;
+        //todo: impl
     }
 }

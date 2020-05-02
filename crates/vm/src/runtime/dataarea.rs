@@ -1,7 +1,8 @@
 use crate::oop::Oop;
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
+use crate::types::DataAreaRef;
 
 /*
 The origin of DataArea
@@ -31,17 +32,17 @@ pub struct DataArea {
 }
 
 impl DataArea {
-    pub fn new(max_locals: usize, max_stack: usize) -> RefCell<DataArea> {
+    pub fn new(max_locals: usize, max_stack: usize) -> DataAreaRef {
         let local = Local::new(max_locals);
         let stack = Stack::new(max_stack);
 
-        RefCell::new(DataArea {
+        Arc::new(RwLock::new(DataArea {
             local,
             stack,
             pc: 0,
             return_v: None,
             ex_here: false,
             op_widen: false,
-        })
+        }))
     }
 }

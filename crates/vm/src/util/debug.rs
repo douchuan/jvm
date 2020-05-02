@@ -12,7 +12,7 @@ pub fn print_stack_trace(jt: &JavaThread) {
         let cls = frame.mir.method.class.read().unwrap();
         let method_id = frame.mir.method.name.clone();
         let line_num = {
-            let area = frame.area.borrow();
+            let area = frame.area.read().unwrap();
             frame.mir.method.get_line_num(area.pc as u16)
         };
 

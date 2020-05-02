@@ -1,9 +1,14 @@
 use crate::oop::{self, consts, InstOopDesc, Oop};
-use crate::runtime::{self, init_vm, require_class3, FrameRef, JavaCall};
-use crate::types::{ClassRef, MethodIdRef};
+use crate::runtime::{self, init_vm, require_class3, JavaCall};
+use crate::types::{ClassRef, MethodIdRef, JavaThreadRef, FrameRef};
 use crate::util::{self, new_field_id, new_method_id};
 use std::borrow::BorrowMut;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+
+lazy_static! {
+    static ref NATIVE_THREAD_POOL: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> = { Mutex::new(HashMap::new()) };
+}
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -99,7 +104,7 @@ impl JavaMainThread {
                 let arg = self.build_main_arg(&mut jt);
                 let area = runtime::DataArea::new(0, 1);
                 {
-                    area.borrow_mut().stack.push_ref(arg);
+                    area.write().unwrap().stack.push_ref(arg);
                 }
                 match JavaCall::new(&mut jt, &area, mir) {
                     Ok(mut jc) => jc.invoke(&mut jt, Some(&area), true),

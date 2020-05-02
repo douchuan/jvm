@@ -2,7 +2,7 @@ use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDes
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{
-    self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame, FrameRef,
+    self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame,
     JavaCall, JavaThread,
 };
 use crate::types::*;
@@ -340,21 +340,21 @@ impl<'a> Interp<'a> {
     }
 
     fn read_u1(&self) -> usize {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = self.frame.code[area.pc as usize];
         area.pc += 1;
         v as usize
     }
 
     fn read_byte(&self) -> u8 {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = self.frame.code[area.pc as usize];
         area.pc += 1;
         v
     }
 
     fn read_opcode(&self) -> Option<&U1> {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = self.frame.code.get(area.pc as usize);
         area.pc += 1;
         v
@@ -367,26 +367,26 @@ impl<'a> Interp<'a> {
     fn load_constant(&self, pos: usize, thread: &mut JavaThread) {
         match &self.frame.cp[pos] {
             ConstantPoolType::Integer { v } => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_int2(*v)
             }
             ConstantPoolType::Float { v } => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_float2(*v)
             }
             ConstantPoolType::Long { v } => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_long2(*v)
             }
             ConstantPoolType::Double { v } => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_double2(*v)
             }
             ConstantPoolType::String { string_index } => {
                 let s = get_cp_utf8(&self.frame.cp, *string_index as usize).unwrap();
                 let s = util::oop::new_java_lang_string3(thread, s.as_slice());
 
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(s);
             }
             ConstantPoolType::Class { name_index } => {
@@ -405,7 +405,7 @@ impl<'a> Interp<'a> {
 
                 let mirror = { class.read().unwrap().get_mirror() };
 
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(mirror);
             }
             _ => unreachable!(),
@@ -413,12 +413,12 @@ impl<'a> Interp<'a> {
     }
 
     fn goto_abs(&self, pc: i32) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc = pc;
     }
 
     fn goto_by_offset(&self, branch: i32) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc += branch;
     }
 
@@ -428,7 +428,7 @@ impl<'a> Interp<'a> {
     }
 
     fn goto_by_offset_hardcoded(&self, occupied: i32) {
-        let area = self.frame.area.borrow();
+        let area = self.frame.area.read().unwrap();
         let high = self.frame.code[area.pc as usize] as i16;
         let low = self.frame.code[(area.pc + 1) as usize] as i16;
         let branch = (high << 8) | low;
@@ -443,7 +443,7 @@ impl<'a> Interp<'a> {
     }
 
     fn set_return(&self, v: Option<Oop>) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.return_v = v;
     }
 
@@ -474,34 +474,34 @@ impl<'a> Interp<'a> {
             | ValueType::BOOLEAN
             | ValueType::BYTE => match v {
                 Oop::Int(v) => {
-                    let mut area = self.frame.area.borrow_mut();
+                    let mut area = self.frame.area.write().unwrap();
                     area.stack.push_int(v)
                 }
                 t => unreachable!("t = {:?}", t),
             },
             ValueType::FLOAT => match v {
                 Oop::Float(v) => {
-                    let mut area = self.frame.area.borrow_mut();
+                    let mut area = self.frame.area.write().unwrap();
                     area.stack.push_float(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::DOUBLE => match v {
                 Oop::Double(v) => {
-                    let mut area = self.frame.area.borrow_mut();
+                    let mut area = self.frame.area.write().unwrap();
                     area.stack.push_double(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::LONG => match v {
                 Oop::Long(v) => {
-                    let mut area = self.frame.area.borrow_mut();
+                    let mut area = self.frame.area.write().unwrap();
                     area.stack.push_long(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::OBJECT | ValueType::ARRAY => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(v)
             }
             _ => unreachable!(),
@@ -528,27 +528,27 @@ impl<'a> Interp<'a> {
             | ValueType::CHAR
             | ValueType::BOOLEAN
             | ValueType::BYTE => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 let v = area.stack.pop_int();
                 Oop::new_int(v)
             }
             ValueType::FLOAT => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 let v = area.stack.pop_float();
                 Oop::new_float(v)
             }
             ValueType::DOUBLE => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 let v = area.stack.pop_double();
                 Oop::new_double(v)
             }
             ValueType::LONG => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 let v = area.stack.pop_long();
                 Oop::new_long(v)
             }
             ValueType::ARRAY | ValueType::OBJECT => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.pop_ref()
             }
             _ => unreachable!(),
@@ -559,7 +559,7 @@ impl<'a> Interp<'a> {
             class.put_static_field_value(fir.clone(), v);
         } else {
             let receiver = {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.pop_ref()
             };
             match receiver {
@@ -601,14 +601,14 @@ impl<'a> Interp<'a> {
         let cp_idx = self.read_i2();
         let target_cls = require_class2(cp_idx as U2, &self.frame.cp).unwrap();
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let obj_rf = area.stack.pop_ref();
         drop(area);
 
         let obj_rf_clone = obj_rf.clone();
         let op_check_cast = |r: bool, obj_cls: ClassRef, target_cls: ClassRef| {
             if r {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(obj_rf_clone);
             } else {
                 let obj_name = { obj_cls.read().unwrap().name.clone() };
@@ -622,7 +622,7 @@ impl<'a> Interp<'a> {
             }
         };
         let op_instance_of = |r: bool| {
-            let mut area = self.frame.area.borrow_mut();
+            let mut area = self.frame.area.write().unwrap();
             if r {
                 area.stack.push_const1(false);
             } else {
@@ -632,7 +632,7 @@ impl<'a> Interp<'a> {
 
         match obj_rf {
             Oop::Null => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 if is_cast {
                     area.stack.push_ref(obj_rf);
                 } else {
@@ -704,7 +704,7 @@ impl<'a> Interp<'a> {
         let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
 
         let handler = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             self.frame
                 .mir
                 .method
@@ -713,7 +713,7 @@ impl<'a> Interp<'a> {
 
         match handler {
             Some(pc) => {
-                let mut area = self.frame.area.borrow_mut();
+                let mut area = self.frame.area.write().unwrap();
                 area.stack.clear();
                 area.stack.push_ref(ex);
                 drop(area);
@@ -730,7 +730,7 @@ impl<'a> Interp<'a> {
             }
 
             None => {
-                let area = self.frame.area.borrow();
+                let area = self.frame.area.read().unwrap();
                 let line_num = self.frame.mir.method.get_line_num(area.pc as u16);
 
                 info!(
@@ -749,91 +749,91 @@ impl<'a> Interp<'a> {
     pub fn nop(&self) {}
 
     pub fn aconst_null(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_null();
     }
 
     pub fn iconst_m1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const_m1();
     }
 
     pub fn iconst_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const0(false);
     }
 
     pub fn lconst_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const0(true);
     }
 
     pub fn fconst_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const0(false);
     }
 
     pub fn dconst_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const0(true);
     }
 
     pub fn iconst_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const1(false);
     }
 
     pub fn lconst_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const1(true);
     }
 
     pub fn fconst_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const1(false);
     }
 
     pub fn dconst_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const1(true);
     }
 
     pub fn iconst_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const2();
     }
 
     pub fn fconst_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const2();
     }
 
     pub fn iconst_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const3();
     }
 
     pub fn iconst_4(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const4();
     }
 
     pub fn iconst_5(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_const5();
     }
 
     pub fn sipush(&self) {
         let v = self.read_i2();
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_int(v);
     }
 
     pub fn bipush(&self) {
         let v = (self.read_byte() as i8) as i32;
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_int(v);
     }
 
@@ -855,7 +855,7 @@ impl<'a> Interp<'a> {
 
     pub fn iload(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -865,7 +865,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(pos);
         area.stack.push_int(v);
 
@@ -874,7 +874,7 @@ impl<'a> Interp<'a> {
 
     pub fn lload(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -884,7 +884,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(pos);
         area.stack.push_long(v);
 
@@ -893,7 +893,7 @@ impl<'a> Interp<'a> {
 
     pub fn fload(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -903,7 +903,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(pos);
         area.stack.push_float(v);
 
@@ -912,7 +912,7 @@ impl<'a> Interp<'a> {
 
     pub fn dload(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -922,7 +922,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(pos);
         area.stack.push_double(v);
 
@@ -931,7 +931,7 @@ impl<'a> Interp<'a> {
 
     pub fn aload(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -941,7 +941,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(pos);
         area.stack.push_ref(v);
 
@@ -949,127 +949,127 @@ impl<'a> Interp<'a> {
     }
 
     pub fn iload_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(0);
         area.stack.push_int(v);
     }
 
     pub fn lload_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(0);
         area.stack.push_long(v);
     }
 
     pub fn fload_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(0);
         area.stack.push_float(v);
     }
 
     pub fn dload_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(0);
         area.stack.push_double(v);
     }
 
     pub fn aload_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(0);
         area.stack.push_ref(v);
     }
 
     pub fn iload_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(1);
         area.stack.push_int(v);
     }
 
     pub fn lload_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(1);
         area.stack.push_long(v);
     }
 
     pub fn fload_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(1);
         area.stack.push_float(v);
     }
 
     pub fn dload_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(1);
         area.stack.push_double(v);
     }
 
     pub fn aload_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(1);
         area.stack.push_ref(v);
     }
 
     pub fn iload_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(2);
         area.stack.push_int(v);
     }
 
     pub fn lload_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(2);
         area.stack.push_long(v);
     }
 
     pub fn fload_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(2);
         area.stack.push_float(v);
     }
 
     pub fn dload_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(2);
         area.stack.push_double(v);
     }
 
     pub fn aload_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(2);
         area.stack.push_ref(v);
     }
 
     pub fn iload_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(3);
         area.stack.push_int(v);
     }
 
     pub fn lload_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(3);
         area.stack.push_long(v);
     }
 
     pub fn fload_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(3);
         area.stack.push_float(v);
     }
 
     pub fn dload_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(3);
         area.stack.push_double(v);
     }
 
     pub fn aload_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(3);
         area.stack.push_ref(v);
     }
 
     pub fn iaload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1091,7 +1091,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn saload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1113,7 +1113,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn caload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1135,7 +1135,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn baload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1160,7 +1160,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn laload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1192,7 +1192,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn faload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1224,7 +1224,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn daload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1256,7 +1256,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn aaload(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
@@ -1288,7 +1288,7 @@ impl<'a> Interp<'a> {
 
     pub fn istore(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -1298,7 +1298,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(pos, v);
 
@@ -1307,7 +1307,7 @@ impl<'a> Interp<'a> {
 
     pub fn lstore(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -1317,7 +1317,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(pos, v);
 
@@ -1326,7 +1326,7 @@ impl<'a> Interp<'a> {
 
     pub fn fstore(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -1336,7 +1336,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(pos, v);
 
@@ -1345,7 +1345,7 @@ impl<'a> Interp<'a> {
 
     pub fn dstore(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -1355,7 +1355,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(pos, v);
 
@@ -1364,7 +1364,7 @@ impl<'a> Interp<'a> {
 
     pub fn astore(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -1374,7 +1374,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(pos, v);
 
@@ -1382,127 +1382,127 @@ impl<'a> Interp<'a> {
     }
 
     pub fn istore_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(0, v);
     }
 
     pub fn istore_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(1, v);
     }
 
     pub fn istore_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(2, v);
     }
 
     pub fn istore_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(3, v);
     }
 
     pub fn lstore_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(0, v);
     }
 
     pub fn lstore_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(1, v);
     }
 
     pub fn lstore_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(2, v);
     }
 
     pub fn lstore_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(3, v);
     }
 
     pub fn fstore_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(0, v);
     }
 
     pub fn fstore_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(1, v);
     }
 
     pub fn fstore_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(2, v);
     }
 
     pub fn fstore_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(3, v);
     }
 
     pub fn dstore_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(0, v);
     }
 
     pub fn dstore_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(1, v);
     }
 
     pub fn dstore_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(2, v);
     }
 
     pub fn dstore_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(3, v);
     }
 
     pub fn astore_0(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(0, v);
     }
 
     pub fn astore_1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(1, v);
     }
 
     pub fn astore_2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(2, v);
     }
 
     pub fn astore_3(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(3, v);
     }
 
     pub fn bastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1532,7 +1532,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn castore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1558,7 +1558,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn sastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1584,7 +1584,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn iastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1609,7 +1609,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1634,7 +1634,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1659,7 +1659,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn dastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
@@ -1684,7 +1684,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn aastore(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         let pos = area.stack.pop_int();
         let ary_rf = area.stack.pop_ref();
@@ -1707,53 +1707,53 @@ impl<'a> Interp<'a> {
     }
 
     pub fn pop(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.drop_top();
     }
 
     pub fn pop2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.drop_top();
         area.stack.drop_top();
     }
 
     pub fn dup(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup();
     }
 
     pub fn dup_x1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup_x1();
     }
 
     pub fn dup_x2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup_x2();
     }
 
     pub fn dup2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup2();
     }
 
     pub fn dup2_x1(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup2_x1();
     }
 
     pub fn dup2_x2(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.dup2_x2();
     }
 
     pub fn swap(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.swap();
     }
 
     pub fn iadd(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         let v = v1.wrapping_add(v2);
@@ -1761,7 +1761,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ladd(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         let v = v1.wrapping_add(v2);
@@ -1769,21 +1769,21 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fadd(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_float();
         let v1 = area.stack.pop_float();
         area.stack.push_float(v1 + v2);
     }
 
     pub fn dadd(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_double();
         let v1 = area.stack.pop_double();
         area.stack.push_double(v1 + v2);
     }
 
     pub fn isub(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         let v = v1.wrapping_sub(v2);
@@ -1791,7 +1791,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lsub(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         let v = v1.wrapping_sub(v2);
@@ -1799,21 +1799,21 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fsub(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_float();
         let v1 = area.stack.pop_float();
         area.stack.push_float(v1 - v2);
     }
 
     pub fn dsub(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_double();
         let v1 = area.stack.pop_double();
         area.stack.push_double(v1 - v2);
     }
 
     pub fn imul(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         let v = v1.wrapping_mul(v2);
@@ -1821,7 +1821,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lmul(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         let v = v1.wrapping_mul(v2);
@@ -1829,21 +1829,21 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fmul(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_float();
         let v1 = area.stack.pop_float();
         area.stack.push_float(v1 * v2);
     }
 
     pub fn dmul(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_double();
         let v1 = area.stack.pop_double();
         area.stack.push_double(v1 * v2);
     }
 
     pub fn idiv(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         if v2 == 0 {
@@ -1860,7 +1860,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ldiv(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         if v2 == 0 {
@@ -1877,7 +1877,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fdiv(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_float();
         let v1 = area.stack.pop_float();
         if v2 == 0.0 {
@@ -1894,7 +1894,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ddiv(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_double();
         let v1 = area.stack.pop_double();
         if v2 == 0.0 {
@@ -1911,7 +1911,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn irem(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         if v2 == 0 {
@@ -1928,7 +1928,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lrem(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         if v2 == 0 {
@@ -1953,13 +1953,13 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ineg(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.stack.push_int(-v);
     }
 
     pub fn lneg(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.stack.push_long(-v);
     }
@@ -1973,7 +1973,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ishl(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         let s = v2 & 0x1F;
@@ -1982,7 +1982,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lshl(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_long();
         let s = (v2 & 0x3F) as i64;
@@ -1990,7 +1990,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ishr(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         let s = v2 & 0x1F;
@@ -1998,7 +1998,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lshr(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_long();
         let s = (v2 & 0x3F) as i64;
@@ -2006,7 +2006,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn iushr(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int() as u32;
         let s = (v2 & 0x1F) as u32;
@@ -2021,7 +2021,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lushr(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_long() as u64;
         let s = (v2 & 0x3F) as u64;
@@ -2036,42 +2036,42 @@ impl<'a> Interp<'a> {
     }
 
     pub fn iand(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         area.stack.push_int(v1 & v2);
     }
 
     pub fn land(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         area.stack.push_long(v1 & v2);
     }
 
     pub fn ior(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         area.stack.push_int(v1 | v2);
     }
 
     pub fn lor(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         area.stack.push_long(v1 | v2);
     }
 
     pub fn ixor(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
         area.stack.push_int(v1 ^ v2);
     }
 
     pub fn lxor(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
         area.stack.push_long(v1 ^ v2);
@@ -2079,7 +2079,7 @@ impl<'a> Interp<'a> {
 
     pub fn iinc(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -2095,7 +2095,7 @@ impl<'a> Interp<'a> {
             (self.read_byte() as i8) as i32
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(pos);
         let v = v.wrapping_add(factor);
         area.local.set_int(pos, v);
@@ -2104,43 +2104,43 @@ impl<'a> Interp<'a> {
     }
 
     pub fn i2l(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.stack.push_long(v as i64);
     }
 
     pub fn i2f(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.stack.push_float(v as f32);
     }
 
     pub fn i2d(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.stack.push_double(v as f64);
     }
 
     pub fn l2i(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.stack.push_int(v as i32);
     }
 
     pub fn l2f(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.stack.push_float(v as f32);
     }
 
     pub fn l2d(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.stack.push_double(v as f64);
     }
 
     pub fn f2i(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         if v.is_nan() {
             area.stack.push_int(0);
@@ -2156,7 +2156,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn f2l(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         if v.is_nan() {
             area.stack.push_long(0);
@@ -2172,13 +2172,13 @@ impl<'a> Interp<'a> {
     }
 
     pub fn f2d(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.stack.push_double(v as f64);
     }
 
     pub fn d2i(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         if v.is_nan() {
             area.stack.push_int(0);
@@ -2194,7 +2194,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn d2l(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         if v.is_nan() {
             area.stack.push_long(0);
@@ -2210,34 +2210,34 @@ impl<'a> Interp<'a> {
     }
 
     pub fn d2f(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.stack.push_float(v as f32);
     }
 
     pub fn i2b(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let v = v as i8;
         area.stack.push_int(v as i32);
     }
 
     pub fn i2c(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let v = v as u16;
         area.stack.push_int(v as i32);
     }
 
     pub fn i2s(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let v = v as i16;
         area.stack.push_int(v as i32);
     }
 
     pub fn lcmp(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_long();
         let v2 = area.stack.pop_long();
         if v1 > v2 {
@@ -2250,7 +2250,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fcmpl(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_float();
         let v2 = area.stack.pop_float();
         if v1.is_nan() || v2.is_nan() {
@@ -2265,7 +2265,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn fcmpg(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_float();
         let v2 = area.stack.pop_float();
         if v1.is_nan() || v2.is_nan() {
@@ -2280,7 +2280,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn dcmpl(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_double();
         let v2 = area.stack.pop_double();
         if v1.is_nan() || v2.is_nan() {
@@ -2295,7 +2295,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn dcmpg(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_double();
         let v2 = area.stack.pop_double();
         if v1.is_nan() || v2.is_nan() {
@@ -2310,7 +2310,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ifeq(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v == 0 {
@@ -2322,7 +2322,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ifne(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v != 0 {
@@ -2334,7 +2334,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn iflt(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v < 0 {
@@ -2346,7 +2346,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ifge(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v >= 0 {
@@ -2358,7 +2358,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ifgt(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v > 0 {
@@ -2370,7 +2370,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ifle(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
 
         if v <= 0 {
@@ -2382,7 +2382,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmpeq(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2395,7 +2395,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmpne(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2408,7 +2408,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmplt(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2421,7 +2421,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmpge(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2434,7 +2434,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmpgt(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2447,7 +2447,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_icmple(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
 
@@ -2460,7 +2460,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_acmpeq(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
@@ -2473,7 +2473,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_acmpne(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
@@ -2490,14 +2490,14 @@ impl<'a> Interp<'a> {
     }
 
     pub fn jsr(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc += 2;
         panic!("Use of deprecated instruction jsr, please check your Java compiler");
     }
 
     pub fn ret(&self) {
         let op_widen = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.op_widen
         };
 
@@ -2507,7 +2507,7 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc = pc as i32;
 
         area.op_widen = true;
@@ -2515,7 +2515,7 @@ impl<'a> Interp<'a> {
 
     pub fn table_switch(&self) {
         let mut bc = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.pc - 1
         };
 
@@ -2568,7 +2568,7 @@ impl<'a> Interp<'a> {
         jump_table.push(default_byte + origin_bc);
 
         let top_value = {
-            let mut area = self.frame.area.borrow_mut();
+            let mut area = self.frame.area.write().unwrap();
             area.stack.pop_int()
         };
         if (top_value > (jump_table.len() as i32 - 1 + low_byte)) || top_value < low_byte {
@@ -2583,7 +2583,7 @@ impl<'a> Interp<'a> {
 
     pub fn lookup_switch(&self) {
         let mut bc = {
-            let area = self.frame.area.borrow();
+            let area = self.frame.area.read().unwrap();
             area.pc - 1
         };
 
@@ -2632,7 +2632,7 @@ impl<'a> Interp<'a> {
         }
 
         let top_value = {
-            let mut area = self.frame.area.borrow_mut();
+            let mut area = self.frame.area.write().unwrap();
             area.stack.pop_int()
         };
         match jump_table.get(&(top_value as u32)) {
@@ -2642,7 +2642,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn ireturn(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let v = Oop::new_int(v);
         drop(area);
@@ -2651,7 +2651,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn lreturn(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         let v = Oop::new_long(v);
         drop(area);
@@ -2660,7 +2660,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn freturn(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         let v = Oop::new_float(v);
         drop(area);
@@ -2669,7 +2669,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn dreturn(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         let v = Oop::new_double(v);
         drop(area);
@@ -2678,7 +2678,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn areturn(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         drop(area);
 
@@ -2702,7 +2702,7 @@ impl<'a> Interp<'a> {
     pub fn get_field(&self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let rf = area.stack.pop_ref();
         drop(area);
 
@@ -2772,7 +2772,7 @@ impl<'a> Interp<'a> {
             }
         };
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = oop::Oop::new_inst(class);
         area.stack.push_ref(v);
     }
@@ -2780,7 +2780,7 @@ impl<'a> Interp<'a> {
     pub fn new_array(&self, thread: &mut JavaThread) {
         let t = self.read_byte();
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let len = area.stack.pop_int();
 
         if len < 0 {
@@ -2815,7 +2815,7 @@ impl<'a> Interp<'a> {
     pub fn anew_array(&self, thread: &mut JavaThread) {
         let cp_idx = self.read_i2();
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let length = area.stack.pop_int();
         drop(area);
 
@@ -2875,7 +2875,7 @@ impl<'a> Interp<'a> {
                         oop::class::init_class_fully(thread, ary_cls_obj.clone());
                     }
 
-                    let mut area = self.frame.area.borrow_mut();
+                    let mut area = self.frame.area.write().unwrap();
                     let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);
                     area.stack.push_ref(ary);
                 }
@@ -2885,7 +2885,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn array_length(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
 
         match v {
@@ -2912,7 +2912,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn athrow(&self, jt: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let ex = area.stack.pop_ref();
         drop(area);
 
@@ -2928,7 +2928,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn monitor_enter(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         drop(area);
 
@@ -2945,7 +2945,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn monitor_exit(&self, thread: &mut JavaThread) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let mut v = area.stack.pop_ref();
         drop(area);
 
@@ -2962,7 +2962,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn wide(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         info!("opcode wide");
         area.op_widen = true;
     }
@@ -2972,7 +2972,7 @@ impl<'a> Interp<'a> {
         let dimension = self.read_u1();
 
         let mut lens = Vec::new();
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         for _ in 0..dimension {
             let sub = area.stack.pop_int();
             //todo: check java/lang/NegativeArraySizeException
@@ -2983,12 +2983,12 @@ impl<'a> Interp<'a> {
         let cls = require_class2(cp_idx as u16, &self.frame.cp).unwrap();
         let ary = new_multi_object_array_helper(cls, &lens, 0);
 
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.stack.push_ref(ary);
     }
 
     pub fn if_null(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
 
         match v {
@@ -3001,7 +3001,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn if_non_null(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
 
         match v {
@@ -3014,19 +3014,19 @@ impl<'a> Interp<'a> {
     }
 
     pub fn goto_w(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc += 4;
         panic!("Use of deprecated instruction goto_w, please check your Java compiler")
     }
 
     pub fn jsr_w(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         area.pc += 4;
         panic!("Use of deprecated instruction jsr_w, please check your Java compiler")
     }
 
     pub fn other_wise(&self) {
-        let mut area = self.frame.area.borrow_mut();
+        let mut area = self.frame.area.write().unwrap();
         let pc = area.pc - 1;
         panic!(
             "Use of undefined bytecode: {} at {}",
