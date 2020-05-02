@@ -2,8 +2,9 @@
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{self, JavaThread};
+use crate::runtime;
 use crate::util;
+use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -13,7 +14,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_newInstance0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_newInstance0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 

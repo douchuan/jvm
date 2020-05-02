@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{self, exception, JavaCall, JavaThread};
+use crate::runtime::{self, exception, JavaCall};
+use crate::types::JavaThreadRef;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -25,7 +26,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let mir = {
@@ -54,11 +55,11 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     };
 
     let args = vec![v.clone()];
-    let mut jc = JavaCall::new_with_args(jt, mir, args);
+    let mut jc = JavaCall::new_with_args(jt.clone(), mir, args);
     let area = runtime::DataArea::new(0, 1);
-    jc.invoke(jt, Some(&area), false);
+    jc.invoke(jt.clone(), Some(&area), false);
 
-    if !jt.is_meet_ex() {
+    if !jt.read().unwrap().is_meet_ex() {
         let mut area = area.write().unwrap();
         let r = area.stack.pop_ref();
         Ok(Some(r))
@@ -68,17 +69,17 @@ fn jvm_doPrivileged(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
 }
 
 //todo: re impl
-fn jvm_doPrivileged2(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged2(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(jt, env, args)
 }
 
 //todo: re impl
-fn jvm_doPrivileged3(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged3(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(jt, env, args)
 }
 
 fn jvm_getStackAccessControlContext(
-    _jt: &mut JavaThread,
+    _jt: JavaThreadRef,
     _env: JNIEnv,
     _args: Vec<Oop>,
 ) -> JNIResult {

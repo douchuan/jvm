@@ -2,9 +2,10 @@
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
-use crate::runtime::{self, require_class2, require_class3, JavaThread};
+use crate::runtime::{self, require_class2, require_class3};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
+use crate::types::JavaThreadRef;
 use classfile::{constant_pool, consts as cls_consts, flags as acc};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -258,15 +259,15 @@ pub fn create_delayed_ary_mirrors() {
     }
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_desiredAssertionStatus0(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_desiredAssertionStatus0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(0)))
 }
 
-fn jvm_getPrimitiveClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getPrimitiveClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = util::oop::extract_str(v);
     match SIGNATURE_DIC.get(v.as_str()) {
@@ -275,7 +276,7 @@ fn jvm_getPrimitiveClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
     }
 }
 
-fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredFields0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();
@@ -311,7 +312,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
             continue;
         }
 
-        let v = common::reflect::new_field(jt, it);
+        let v = common::reflect::new_field(jt.clone(), it);
         fields.push(v);
     }
 
@@ -320,7 +321,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
             continue;
         }
 
-        let v = common::reflect::new_field(jt, it);
+        let v = common::reflect::new_field(jt.clone(), it);
         fields.push(v);
     }
 
@@ -329,7 +330,7 @@ fn jvm_getDeclaredFields0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
     Ok(Some(Oop::new_ref_ary2(ary_cls, fields)))
 }
 
-fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getName0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let (target, vt) = {
         let arg0 = args.get(0).unwrap();
         let arg0 = util::oop::extract_ref(arg0);
@@ -359,7 +360,7 @@ fn jvm_getName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     Ok(Some(v))
 }
 
-fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_forName0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let java_name = util::oop::extract_str(arg0);
     let initialize = {
@@ -396,7 +397,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
         Some(cls) => {
             {
                 let mut cls = cls.write().unwrap();
-                cls.init_class(jt);
+                cls.init_class(jt.clone());
                 //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
             }
 
@@ -417,7 +418,7 @@ fn jvm_forName0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     }
 }
 
-fn jvm_isPrimitive(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isPrimitive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = util::oop::extract_ref(v);
     let v = v.read().unwrap();
@@ -434,7 +435,7 @@ fn jvm_isPrimitive(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isAssignableFrom(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let l = args.get(0).unwrap();
     let r = args.get(1).unwrap();
 
@@ -475,7 +476,7 @@ fn jvm_isAssignableFrom(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> J
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isInterface(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = util::oop::extract_ref(v);
     let v = v.read().unwrap();
@@ -495,11 +496,11 @@ fn jvm_isInterface(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredConstructors0(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredConstructors0(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     get_declared_method_helper(true, jt, env, args)
 }
 
-pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+pub fn jvm_getModifiers(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = util::oop::extract_ref(v);
     let v = v.read().unwrap();
@@ -514,7 +515,7 @@ pub fn jvm_getModifiers(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> J
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getSuperclass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let mirror = util::oop::extract_ref(mirror);
     let v = mirror.read().unwrap();
@@ -537,7 +538,7 @@ fn jvm_getSuperclass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     }
 }
 
-fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isArray(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let mirror_cls = {
@@ -562,7 +563,7 @@ fn jvm_isArray(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getComponentType(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cls_mirror = args.get(0).unwrap();
     let cls = {
         let cls_mirror = util::oop::extract_ref(cls_mirror);
@@ -590,7 +591,7 @@ fn jvm_getComponentType(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> J
     Ok(v)
 }
 
-fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getEnclosingMethod0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let target = {
         let mirror = util::oop::extract_ref(mirror);
@@ -634,7 +635,7 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
         let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
         let desc = desc.unwrap();
         let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
-        elms.push(util::oop::new_java_lang_string2(jt, name));
+        elms.push(util::oop::new_java_lang_string2(jt.clone(), name));
         elms.push(util::oop::new_java_lang_string2(jt, desc));
     } else {
         elms.push(oop::consts::get_null());
@@ -647,7 +648,7 @@ fn jvm_getEnclosingMethod0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     Ok(Some(ary))
 }
 
-fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaringClass0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     let target = {
         let mirror = util::oop::extract_ref(mirror);
@@ -697,7 +698,7 @@ fn jvm_getDeclaringClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     return Ok(Some(oop::consts::get_null()));
 }
 
-fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isInstance(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let target = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
 
@@ -728,11 +729,11 @@ fn jvm_isInstance(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredMethods0(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredMethods0(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     get_declared_method_helper(false, jt, env, args)
 }
 
-fn jvm_getInterfaces0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getInterfaces0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = {
         let arg0 = args.get(0).unwrap();
         extract_mirror_target(arg0)
@@ -777,7 +778,7 @@ fn jvm_getInterfaces0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNI
     Ok(Some(ary))
 }
 
-fn jvm_getRawAnnotations(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getRawAnnotations(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cls = args.get(0).unwrap();
     let annotations = match cls {
         Oop::Ref(rf) => {
@@ -801,7 +802,7 @@ fn jvm_getRawAnnotations(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> 
     Ok(Some(annotations))
 }
 
-fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getConstantPool(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let cp_oop = match this {
         Oop::Ref(rf) => {
@@ -828,14 +829,14 @@ fn jvm_getConstantPool(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     Ok(Some(cp_oop))
 }
 
-fn jvm_getDeclaredClasses0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredClasses0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     unimplemented!();
     let r = oop::consts::get_null();
     Ok(Some(r))
 }
 
-fn jvm_getGenericSignature0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getGenericSignature0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let v = match this {
         Oop::Ref(rf) => {
@@ -869,7 +870,7 @@ fn jvm_getGenericSignature0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -
 
 fn get_declared_method_helper(
     want_constructor: bool,
-    jt: &mut JavaThread,
+    jt: JavaThreadRef,
     _env: JNIEnv,
     args: Vec<Oop>,
 ) -> JNIResult {
@@ -929,9 +930,9 @@ fn get_declared_method_helper(
     let mut methods = Vec::new();
     for m in selected_methods {
         let v = if want_constructor {
-            common::reflect::new_method_ctor(jt, m)
+            common::reflect::new_method_ctor(jt.clone(), m)
         } else {
-            common::reflect::new_method_normal(jt, m)
+            common::reflect::new_method_normal(jt.clone(), m)
         };
 
         methods.push(v);

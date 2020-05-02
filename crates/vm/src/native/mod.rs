@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::oop::Oop;
-use crate::runtime::JavaThread;
 use crate::types::ClassRef;
 use crate::util;
+use crate::types::JavaThreadRef;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -40,7 +40,7 @@ mod sun_reflect_Reflection;
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
 pub type NativeMethodPtr =
-    Box<dyn Fn(&mut JavaThread, JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
+    Box<dyn Fn(JavaThreadRef, JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
@@ -74,9 +74,9 @@ pub fn new_fn(
     })
 }
 
-pub fn new_jni_env(jt: &mut JavaThread, class: ClassRef) -> JNIEnv {
+pub fn new_jni_env(jt: JavaThreadRef, class: ClassRef) -> JNIEnv {
     Arc::new(RwLock::new(Box::new(JNIEnvStruct {
-        java_thread_obj: jt.java_thread_obj.clone(),
+        java_thread_obj: jt.read().unwrap().java_thread_obj.clone(),
         class,
     })))
 }
@@ -183,7 +183,7 @@ pub fn init() {
 }
 
 impl JNINativeMethodStruct {
-    pub fn invoke(&self, jt: &mut JavaThread, jni: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    pub fn invoke(&self, jt: JavaThreadRef, jni: JNIEnv, args: Vec<Oop>) -> JNIResult {
         (self.fnptr)(jt, jni, args)
     }
 }

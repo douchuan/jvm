@@ -3,9 +3,10 @@
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
-use crate::runtime::{self, JavaThread};
+use crate::runtime;
 use crate::types::ClassRef;
 use crate::util;
+use crate::types::JavaThreadRef;
 use class_parser::parse_class;
 use std::sync::Arc;
 
@@ -17,7 +18,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_defineClass0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_defineClass0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _loader = args.get(0).unwrap();
     let name = args.get(1).unwrap();
     let name = util::oop::extract_str(name);

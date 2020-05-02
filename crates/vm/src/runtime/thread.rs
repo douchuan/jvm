@@ -4,7 +4,7 @@ use crate::types::{ClassRef, MethodIdRef, JavaThreadRef, FrameRef};
 use crate::util::{self, new_field_id, new_method_id};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 lazy_static! {
     static ref NATIVE_THREAD_POOL: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> = { Mutex::new(HashMap::new()) };
@@ -25,14 +25,15 @@ pub struct JavaMainThread {
 }
 
 impl JavaThread {
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> JavaThreadRef {
+        let t = Self {
             frames: Vec::new(),
             in_safe_point: false,
 
             java_thread_obj: None,
             ex: None,
-        }
+        };
+        Arc::new(RwLock::new(Box::new(t)))
     }
 
     pub fn set_java_thread_obj(&mut self, obj: Oop) {
@@ -65,13 +66,13 @@ impl JavaMainThread {
     }
 
     pub fn run(&mut self) {
-        let mut jt = JavaThread::new();
+        let jt = JavaThread::new();
 
         info!("init vm start...");
-        init_vm::initialize_jvm(&mut jt);
+        init_vm::initialize_jvm(jt.clone());
         info!("init vm end");
 
-        let main_class = oop::class::load_and_init(&mut jt, self.class.as_bytes());
+        let main_class = oop::class::load_and_init(jt.clone(), self.class.as_bytes());
 
         let mir = {
             let cls = main_class.read().unwrap();
@@ -101,31 +102,32 @@ impl JavaMainThread {
 
         match mir {
             Ok(mir) => {
-                let arg = self.build_main_arg(&mut jt);
+                let arg = self.build_main_arg(jt.clone());
                 let area = runtime::DataArea::new(0, 1);
                 {
                     area.write().unwrap().stack.push_ref(arg);
                 }
-                match JavaCall::new(&mut jt, &area, mir) {
-                    Ok(mut jc) => jc.invoke(&mut jt, Some(&area), true),
+                match JavaCall::new(jt.clone(), &area, mir) {
+                    Ok(mut jc) => jc.invoke(jt.clone(), Some(&area), true),
                     _ => unreachable!(),
                 }
             }
             _ => unimplemented!(),
         }
 
-        if jt.ex.is_some() {
-            self.uncaught_ex(&mut jt, main_class);
+        let is_ex = { jt.read().unwrap().ex.is_some() };
+        if is_ex {
+            self.uncaught_ex(jt.clone(), main_class);
         }
     }
 }
 
 impl JavaMainThread {
-    fn build_main_arg(&self, jt: &mut JavaThread) -> Oop {
+    fn build_main_arg(&self, jt: JavaThreadRef) -> Oop {
         let args = match &self.args {
             Some(args) => args
                 .iter()
-                .map(|it| util::oop::new_java_lang_string2(jt, it))
+                .map(|it| util::oop::new_java_lang_string2(jt.clone(), it))
                 .collect(),
             None => vec![],
         };
@@ -135,7 +137,7 @@ impl JavaMainThread {
         Oop::new_ref_ary2(ary_str_class, args)
     }
 
-    fn uncaught_ex(&mut self, jt: &mut JavaThread, main_cls: ClassRef) {
+    fn uncaught_ex(&mut self, jt: JavaThreadRef, main_cls: ClassRef) {
         if self.dispatch_uncaught_exception_called {
             self.uncaught_ex_internal(jt);
         } else {
@@ -144,8 +146,11 @@ impl JavaMainThread {
         }
     }
 
-    fn call_dispatch_uncaught_exception(&mut self, jt: &mut JavaThread, main_cls: ClassRef) {
-        let v = jt.java_thread_obj.clone();
+    fn call_dispatch_uncaught_exception(&mut self, jt: JavaThreadRef, main_cls: ClassRef) {
+        let v = {
+            let jt = jt.read().unwrap();
+            jt.java_thread_obj.clone()
+        };
         match v {
             Some(v) => {
                 let cls = {
@@ -167,9 +172,12 @@ impl JavaMainThread {
 
                 match mir {
                     Ok(mir) => {
-                        let ex = { jt.take_ex().unwrap() };
+                        let ex = {
+                            let mut jt = jt.write().unwrap();
+                            jt.take_ex().unwrap()
+                        };
                         let args = vec![v.clone(), ex];
-                        let mut jc = JavaCall::new_with_args(jt, mir, args);
+                        let mut jc = JavaCall::new_with_args(jt.clone(), mir, args);
                         let area = runtime::DataArea::new(0, 0);
                         jc.invoke(jt, Some(&area), false);
                     }
@@ -181,8 +189,11 @@ impl JavaMainThread {
         }
     }
 
-    fn uncaught_ex_internal(&mut self, jt: &mut JavaThread) {
-        let ex = { jt.take_ex().unwrap() };
+    fn uncaught_ex_internal(&mut self, jt: JavaThreadRef) {
+        let ex = {
+            let mut jt = jt.write().unwrap();
+            jt.take_ex().unwrap()
+        };
 
         let cls = {
             match &ex {

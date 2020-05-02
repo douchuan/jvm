@@ -2,8 +2,8 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::JavaThread;
 use crate::util;
+use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -15,11 +15,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+pub fn jvm_hashCode(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = match v {
         Oop::Null => Oop::new_int(0),
@@ -41,13 +41,13 @@ pub fn jvm_hashCode(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRe
     Ok(Some(v))
 }
 
-fn jvm_clone(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_clone(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //    let java_lang_Cloneable = require_class3(None, b"java/lang/Cloneable").unwrap();
     let this_obj = args.get(0).unwrap();
     Ok(Some(this_obj.clone()))
 }
 
-fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let mirror = {
         let rf = util::oop::extract_ref(v);
@@ -75,6 +75,6 @@ fn jvm_getClass(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     Ok(Some(mirror))
 }
 
-fn jvm_notifyAll(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }

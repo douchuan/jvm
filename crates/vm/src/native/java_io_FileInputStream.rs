@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, TypeArrayDesc};
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3};
 use crate::util;
+use crate::types::JavaThreadRef;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -17,11 +18,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_open0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
@@ -38,7 +39,7 @@ fn jvm_open0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_readBytes(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     let byte_ary = args.get(1).unwrap();
@@ -82,7 +83,7 @@ fn jvm_readBytes(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     Ok(Some(Oop::new_int(n)))
 }
 
-fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_available0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
 
@@ -129,7 +130,7 @@ fn jvm_available0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     }
 }
 
-fn jvm_close0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_close0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     unsafe {

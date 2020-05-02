@@ -2,10 +2,10 @@
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, RefKind};
-use crate::runtime::JavaCall;
-use crate::runtime::{self, JavaThread};
+use crate::runtime::{self, JavaCall};
 use crate::types::OopRef;
 use crate::util;
+use crate::types::JavaThreadRef;
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -47,11 +47,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_arraycopy(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let src = args.get(0).unwrap();
     let src_pos = util::oop::extract_int(args.get(1).unwrap());
     let dest = args.get(2).unwrap();
@@ -88,7 +88,7 @@ fn jvm_arraycopy(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
     Ok(None)
 }
 
-fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_initProperties(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //fixme:
     let props = vec![
         ("file.encoding.pkg", "sun.io"),
@@ -128,9 +128,9 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
 
     let props_oop = args.get(0).unwrap();
     for (k, v) in props.iter() {
-        put_props_kv(jt, props_oop, k, v);
+        put_props_kv(jt.clone(), props_oop, k, v);
 
-        if jt.is_meet_ex() {
+        if jt.read().unwrap().is_meet_ex() {
             unreachable!("jvm_initProperties meet ex");
         }
     }
@@ -138,21 +138,21 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     //user.dir
     let v = std::env::current_dir().expect("current_dir failed");
     let v = v.to_str().expect("current_dir to_str faield");
-    put_props_kv(jt, props_oop, "user.dir", v);
+    put_props_kv(jt.clone(), props_oop, "user.dir", v);
 
     //java.io.tmpdir
     let v = std::env::temp_dir();
     let v = v.to_str().expect("temp_dir to_str failed");
-    put_props_kv(jt, props_oop, "java.io.tmpdir", v);
+    put_props_kv(jt.clone(), props_oop, "java.io.tmpdir", v);
 
     //user.home
     let v = dirs::home_dir().expect("get home_dir failed");
     let v = v.to_str().expect("home_dir to_str failed");
-    put_props_kv(jt, props_oop, "user.home", v);
+    put_props_kv(jt.clone(), props_oop, "user.home", v);
 
     //JAVA_HOME
     let v = std::env::var("JAVA_HOME").expect("Please Setup JAVA_HOME env");
-    put_props_kv(jt, props_oop, "java.home", v.as_str());
+    put_props_kv(jt.clone(), props_oop, "java.home", v.as_str());
 
     //test.src for jdk/test/java/lang/Character/CheckProp.java
     match std::env::var("TEST_SRC") {
@@ -165,7 +165,7 @@ fn jvm_initProperties(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     Ok(Some(props_oop.clone()))
 }
 
-fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
+fn put_props_kv(jt: JavaThreadRef, props: &Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
         let props = util::oop::extract_ref(props);
@@ -185,17 +185,17 @@ fn put_props_kv(jt: &mut JavaThread, props: &Oop, k: &str, v: &str) {
         .unwrap()
     };
 
-    let k = util::oop::new_java_lang_string2(jt, k);
-    let v = util::oop::new_java_lang_string2(jt, v);
+    let k = util::oop::new_java_lang_string2(jt.clone(), k);
+    let v = util::oop::new_java_lang_string2(jt.clone(), v);
 
     let args = vec![props.clone(), k, v];
 
-    let mut jc = JavaCall::new_with_args(jt, mir.clone(), args);
+    let mut jc = JavaCall::new_with_args(jt.clone(), mir.clone(), args);
     let area = runtime::DataArea::new(0, 1);
     jc.invoke(jt, Some(&area), false);
 }
 
-fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setIn0(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
@@ -204,7 +204,7 @@ fn jvm_setIn0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setOut0(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
@@ -213,7 +213,7 @@ fn jvm_setOut0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setErr0(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
@@ -222,7 +222,7 @@ fn jvm_setErr0(_jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_mapLibraryName(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let s = util::oop::extract_str(v);
 
@@ -251,11 +251,11 @@ fn jvm_mapLibraryName(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     Ok(Some(v))
 }
 
-fn jvm_loadLibrary(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_loadLibrary(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_identityHashCode(jt: &mut JavaThread, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_identityHashCode(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     native::java_lang_Object::jvm_hashCode(jt, env, args)
 }
 
@@ -420,7 +420,7 @@ fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize
     }
 }
 
-fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_nanoTime(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_nanos(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
@@ -429,7 +429,7 @@ fn jvm_nanoTime(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResul
     Ok(Some(Oop::new_long(v as i64)))
 }
 
-fn jvm_currentTimeMillis(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_currentTimeMillis(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_millis(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),

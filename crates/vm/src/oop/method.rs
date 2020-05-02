@@ -1,5 +1,5 @@
 use crate::oop::{self, ClassRef, ValueType};
-use crate::runtime::{self, require_class2, JavaThread};
+use crate::runtime::{self, require_class2};
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
@@ -12,7 +12,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 pub fn get_method_ref(
-    thread: &mut JavaThread,
+    thread: JavaThreadRef,
     cp: &ConstantPool,
     idx: usize,
 ) -> Result<MethodIdRef, ()> {
@@ -30,7 +30,7 @@ pub fn get_method_ref(
 
     {
         let mut class = class.write().unwrap();
-        class.init_class(thread);
+        class.init_class(thread.clone());
     }
 
     let (name, desc) = {

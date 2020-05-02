@@ -1,5 +1,5 @@
 use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
-use crate::runtime::{require_class2, JavaThread};
+use crate::runtime::require_class2;
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
@@ -11,7 +11,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 pub fn get_field_ref(
-    thread: &mut JavaThread,
+    thread: JavaThreadRef,
     cp: &ConstantPool,
     idx: usize,
     is_static: bool,
@@ -29,7 +29,7 @@ pub fn get_field_ref(
     });
     let (name, desc) = {
         let mut class = class.write().unwrap();
-        class.init_class(thread);
+        class.init_class(thread.clone());
 
         let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();

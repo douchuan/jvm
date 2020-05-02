@@ -2,8 +2,8 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::runtime::JavaThread;
 use crate::util;
+use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -16,7 +16,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doubleToRawLongBits(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doubleToRawLongBits(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let v = util::oop::extract_double(arg0);
     let v = v.to_bits().to_be_bytes();
@@ -24,7 +24,7 @@ fn jvm_doubleToRawLongBits(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -
     Ok(Some(Oop::new_long(v)))
 }
 
-fn jvm_longBitsToDouble(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_longBitsToDouble(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let v = util::oop::extract_long(arg0);
     let v = v.to_be_bytes();

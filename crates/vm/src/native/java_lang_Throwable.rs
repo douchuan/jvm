@@ -2,8 +2,9 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3};
 use crate::util;
+use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -25,15 +26,16 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let elm_cls = oop::class::load_and_init(jt, b"java/lang/StackTraceElement");
+fn jvm_fillInStackTrace(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let elm_cls = oop::class::load_and_init(jt.clone(), b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
-    let mut backtrace = Vec::with_capacity(jt.frames.len());
+    let mut backtrace = Vec::with_capacity(jt.read().unwrap().frames.len());
 
     let mut found_ex_here = false;
-    for it in jt.frames.iter() {
+    let jth = jt.read().unwrap();
+    for it in jth.frames.iter() {
         let ex_here = {
             let it = it.try_read().unwrap();
             let area = it.area.read().unwrap();
@@ -47,6 +49,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
             break;
         }
     }
+    drop(jth);
 
     /*
        todo: how handle throw better?
@@ -93,22 +96,22 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
         let src_file = match src_file {
             Some(name) => {
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                util::oop::new_java_lang_string2(jt, name)
+                util::oop::new_java_lang_string2(jt.clone(), name)
             }
-            None => util::oop::new_java_lang_string2(jt, ""),
+            None => util::oop::new_java_lang_string2(jt.clone(), ""),
         };
         let line_num = mir.method.get_line_num((pc - 1) as u16);
 
         let elm = Oop::new_inst(elm_cls.clone());
         let args = vec![
             elm.clone(),
-            util::oop::new_java_lang_string2(jt, &cls_name),
-            util::oop::new_java_lang_string2(jt, &method_name),
+            util::oop::new_java_lang_string2(jt.clone(), &cls_name),
+            util::oop::new_java_lang_string2(jt.clone(), &method_name),
             src_file,
             Oop::new_int(line_num),
         ];
         runtime::java_call::invoke_ctor(
-            jt,
+            jt.clone(),
             elm_cls.clone(),
             b"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V",
             args,
@@ -130,7 +133,7 @@ fn jvm_fillInStackTrace(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JN
     Ok(Some(throwable_oop.clone()))
 }
 
-fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getStackTraceDepth(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
         let throwable = util::oop::extract_ref(throwable);
@@ -161,7 +164,7 @@ fn jvm_getStackTraceDepth(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) ->
     Ok(Some(v))
 }
 
-fn jvm_getStackTraceElement(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getStackTraceElement(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let index = util::oop::extract_int(args.get(1).unwrap());
     let cls = {

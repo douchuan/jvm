@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::JavaThread;
 use crate::util;
+use crate::types::JavaThreadRef;
 use classfile::constant_pool;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -13,7 +13,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_getUTF8At0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getUTF8At0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     let cp_oop = args.get(1).unwrap();
     let index = {

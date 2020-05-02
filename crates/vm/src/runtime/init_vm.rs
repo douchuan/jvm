@@ -1,7 +1,8 @@
 use crate::native;
 use crate::oop;
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3};
 use crate::util;
+use crate::types::JavaThreadRef;
 use classfile::consts::{
     J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM,
     J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM,
@@ -10,11 +11,11 @@ use classfile::consts::{
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
-pub fn initialize_jvm(jt: &mut JavaThread) {
-    initialize_vm_structs(jt);
+pub fn initialize_jvm(jt: JavaThreadRef) {
+    initialize_vm_structs(jt.clone());
 
-    let thread_cls = oop::class::load_and_init(jt, J_THREAD);
-    let thread_group_cls = oop::class::load_and_init(jt, J_THREAD_GROUP);
+    let thread_cls = oop::class::load_and_init(jt.clone(), J_THREAD);
+    let thread_group_cls = oop::class::load_and_init(jt.clone(), J_THREAD_GROUP);
 
     let init_thread_oop = oop::Oop::new_inst(thread_cls.clone());
     {
@@ -29,12 +30,14 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
 
     // JavaMainThread is created with java_thread_obj none
     // Now we have created a thread for it.
-    jt.set_java_thread_obj(init_thread_oop.clone());
+    {
+        jt.write().unwrap().set_java_thread_obj(init_thread_oop.clone());
+    }
 
     // Create and construct the system thread group.
     let system_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
     let args = vec![system_thread_group.clone()];
-    runtime::java_call::invoke_ctor(jt, thread_group_cls.clone(), b"()V", args);
+    runtime::java_call::invoke_ctor(jt.clone(), thread_group_cls.clone(), b"()V", args);
 
     let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
@@ -44,19 +47,19 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
         cls.put_field_value(init_thread_oop.clone(), id, main_thread_group.clone());
     }
 
-    let _ = oop::class::load_and_init(jt, J_INPUT_STREAM);
-    let _ = oop::class::load_and_init(jt, J_PRINT_STREAM);
-    let _ = oop::class::load_and_init(jt, J_SECURITY_MANAGER);
+    let _ = oop::class::load_and_init(jt.clone(), J_INPUT_STREAM);
+    let _ = oop::class::load_and_init(jt.clone(), J_PRINT_STREAM);
+    let _ = oop::class::load_and_init(jt.clone(), J_SECURITY_MANAGER);
 
     // Construct the main thread group
     let args = vec![
         main_thread_group.clone(),
         oop::consts::get_null(),
         system_thread_group,
-        util::oop::new_java_lang_string2(jt, "main"),
+        util::oop::new_java_lang_string2(jt.clone(), "main"),
     ];
     runtime::java_call::invoke_ctor(
-        jt,
+        jt.clone(),
         thread_group_cls.clone(),
         b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
         args,
@@ -69,16 +72,16 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
     let args = vec![
         init_thread_oop,
         main_thread_group,
-        util::oop::new_java_lang_string2(jt, "main"),
+        util::oop::new_java_lang_string2(jt.clone(), "main"),
     ];
     runtime::java_call::invoke_ctor(
-        jt,
+        jt.clone(),
         thread_cls.clone(),
         b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
         args,
     );
 
-    hack_classes(jt);
+    hack_classes(jt.clone());
 
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
@@ -87,48 +90,48 @@ pub fn initialize_jvm(jt: &mut JavaThread) {
             .unwrap()
     };
     let mut jc =
-        runtime::java_call::JavaCall::new_with_args(jt, init_system_classes_method, vec![]);
+        runtime::java_call::JavaCall::new_with_args(jt.clone(), init_system_classes_method, vec![]);
     let area = runtime::DataArea::new(0, 0);
-    jc.invoke(jt, Some(&area), false);
+    jc.invoke(jt.clone(), Some(&area), false);
 
     //todo: re-enable sun.security.util.Debug
 
     //setup security
-    let _ = oop::class::load_and_init(jt, b"sun/security/provider/Sun");
-    let _ = oop::class::load_and_init(jt, b"sun/security/rsa/SunRsaSign");
-    let _ = oop::class::load_and_init(jt, b"com/sun/net/ssl/internal/ssl/Provider");
+    let _ = oop::class::load_and_init(jt.clone(), b"sun/security/provider/Sun");
+    let _ = oop::class::load_and_init(jt.clone(), b"sun/security/rsa/SunRsaSign");
+    let _ = oop::class::load_and_init(jt.clone(), b"com/sun/net/ssl/internal/ssl/Provider");
 }
 
-fn initialize_vm_structs(jt: &mut JavaThread) {
-    let class_obj = oop::class::load_and_init(jt, J_CLASS);
+fn initialize_vm_structs(jt: JavaThreadRef) {
+    let class_obj = oop::class::load_and_init(jt.clone(), J_CLASS);
     native::java_lang_Class::create_delayed_mirrors();
     native::java_lang_Class::create_delayed_ary_mirrors();
 
-    let _ = oop::class::load_and_init(jt, J_OBJECT);
-    let string_cls = oop::class::load_and_init(jt, J_STRING);
+    let _ = oop::class::load_and_init(jt.clone(), J_OBJECT);
+    let string_cls = oop::class::load_and_init(jt.clone(), J_STRING);
     {
         let cls = string_cls.read().unwrap();
         let fir = cls.get_field_id(b"value", b"[C", false);
         util::oop::set_java_lang_string_value_offset(fir.offset);
     }
 
-    let integer_cls = oop::class::load_and_init(jt, b"java/lang/Integer");
+    let integer_cls = oop::class::load_and_init(jt.clone(), b"java/lang/Integer");
     {
         let cls = integer_cls.read().unwrap();
         let fir = cls.get_field_id(b"value", b"I", false);
         util::oop::set_java_lang_integer_value_offset(fir.offset);
     }
 
-    let _ = oop::class::load_and_init(jt, J_CLONEABLE);
-    let _ = oop::class::load_and_init(jt, J_SERIALIZABLE);
-    let _ = oop::class::load_and_init(jt, J_NPE);
-    let _ = oop::class::load_and_init(jt, J_ARRAY_INDEX_OUT_OF_BOUNDS);
-    let _ = oop::class::load_and_init(jt, J_CLASS_NOT_FOUND);
-    let _ = oop::class::load_and_init(jt, J_INTERNAL_ERROR);
-    let _ = oop::class::load_and_init(jt, J_IOEXCEPTION);
-    let _ = oop::class::load_and_init(jt, J_FIELD);
-    let _ = oop::class::load_and_init(jt, J_METHOD_CTOR);
-    let _ = oop::class::load_and_init(jt, J_THROWABLE);
+    let _ = oop::class::load_and_init(jt.clone(), J_CLONEABLE);
+    let _ = oop::class::load_and_init(jt.clone(), J_SERIALIZABLE);
+    let _ = oop::class::load_and_init(jt.clone(), J_NPE);
+    let _ = oop::class::load_and_init(jt.clone(), J_ARRAY_INDEX_OUT_OF_BOUNDS);
+    let _ = oop::class::load_and_init(jt.clone(), J_CLASS_NOT_FOUND);
+    let _ = oop::class::load_and_init(jt.clone(), J_INTERNAL_ERROR);
+    let _ = oop::class::load_and_init(jt.clone(), J_IOEXCEPTION);
+    let _ = oop::class::load_and_init(jt.clone(), J_FIELD);
+    let _ = oop::class::load_and_init(jt.clone(), J_METHOD_CTOR);
+    let _ = oop::class::load_and_init(jt.clone(), J_THROWABLE);
 
     //todo:
     //java::lang::reflect::Constructor::initialize
@@ -141,13 +144,13 @@ fn initialize_vm_structs(jt: &mut JavaThread) {
     }
 }
 
-fn hack_classes(jt: &mut JavaThread) {
-    let charset_cls = oop::class::load_and_init(jt, b"java/nio/charset/Charset");
-    let ascii_charset_cls = oop::class::load_and_init(jt, b"sun/nio/cs/US_ASCII");
+fn hack_classes(jt: JavaThreadRef) {
+    let charset_cls = oop::class::load_and_init(jt.clone(), b"java/nio/charset/Charset");
+    let ascii_charset_cls = oop::class::load_and_init(jt.clone(), b"sun/nio/cs/US_ASCII");
 
     let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
     let args = vec![ascii_inst.clone()];
-    runtime::java_call::invoke_ctor(jt, ascii_charset_cls.clone(), b"()V", args);
+    runtime::java_call::invoke_ctor(jt.clone(), ascii_charset_cls.clone(), b"()V", args);
 
     {
         let mut cls = charset_cls.write().unwrap();
@@ -155,13 +158,13 @@ fn hack_classes(jt: &mut JavaThread) {
         cls.put_static_field_value(id, ascii_inst);
     }
 
-    let encoder = oop::class::load_and_init(jt, b"sun/nio/cs/StreamEncoder");
+    let encoder = oop::class::load_and_init(jt.clone(), b"sun/nio/cs/StreamEncoder");
     {
         let mut cls = encoder.write().unwrap();
         cls.hack_as_native(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
     }
 
-    let system = oop::class::load_and_init(jt, b"java/lang/System");
+    let system = oop::class::load_and_init(jt.clone(), b"java/lang/System");
 
     {
         let mut cls = system.write().unwrap();

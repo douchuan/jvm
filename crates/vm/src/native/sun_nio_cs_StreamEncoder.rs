@@ -2,7 +2,8 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3};
+use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -12,7 +13,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_forOutputStreamWriter(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_forOutputStreamWriter(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let os = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let _charset_name = args.get(2).unwrap();

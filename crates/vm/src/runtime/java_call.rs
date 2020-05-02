@@ -1,7 +1,7 @@
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{self, exception, frame::Frame, thread, Interp, JavaThread};
-use crate::types::{ClassRef, DataAreaRef, MethodIdRef, FrameRef};
+use crate::runtime::{self, exception, frame::Frame, thread, Interp};
+use crate::types::{ClassRef, DataAreaRef, MethodIdRef, FrameRef, JavaThreadRef};
 use crate::util;
 use class_parser::MethodSignature;
 use classfile::{consts as cls_const, SignatureType};
@@ -15,18 +15,18 @@ pub struct JavaCall {
     pub return_type: SignatureType,
 }
 
-pub fn invoke_ctor(jt: &mut JavaThread, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
+pub fn invoke_ctor(jt: JavaThreadRef, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
         cls.get_this_class_method(b"<init>", &desc).unwrap()
     };
 
-    let mut jc = JavaCall::new_with_args(jt, ctor, args);
+    let mut jc = JavaCall::new_with_args(jt.clone(), ctor, args);
     jc.invoke(jt, None, false);
 }
 
 impl JavaCall {
-    pub fn new_with_args(jt: &mut JavaThread, mir: MethodIdRef, args: Vec<Oop>) -> Self {
+    pub fn new_with_args(jt: JavaThreadRef, mir: MethodIdRef, args: Vec<Oop>) -> Self {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         Self {
@@ -37,7 +37,7 @@ impl JavaCall {
     }
 
     pub fn new(
-        jt: &mut JavaThread,
+        jt: JavaThreadRef,
         caller: &DataAreaRef,
         mir: MethodIdRef,
     ) -> Result<JavaCall, ()> {
@@ -72,7 +72,8 @@ impl JavaCall {
                     //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
                     //                        panic!();
 
-                    let ex = exception::new(jt, cls_const::J_NPE, None);
+                    let ex = exception::new(jt.clone(), cls_const::J_NPE, None);
+                    let mut jt = jt.write().unwrap();
                     jt.set_ex(ex);
                     return Err(());
                 }
@@ -93,7 +94,7 @@ impl JavaCall {
 impl JavaCall {
     pub fn invoke(
         &mut self,
-        jt: &mut JavaThread,
+        jt: JavaThreadRef,
         caller: Option<&DataAreaRef>,
         force_no_resolve: bool,
     ) {
@@ -108,28 +109,30 @@ impl JavaCall {
         self.debug();
 
         if self.mir.method.is_native() {
-            self.invoke_native(jt, caller);
+            self.invoke_native(jt.clone(), caller);
         } else {
-            self.invoke_java(jt, caller);
+            self.invoke_java(jt.clone(), caller);
         }
 
-        let _ = jt.frames.pop();
+        let _ = jt.write().unwrap().frames.pop();
     }
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, jt: &mut JavaThread, caller: Option<&DataAreaRef>) {
+    fn invoke_java(&mut self, jt: JavaThreadRef, caller: Option<&DataAreaRef>) {
         self.prepare_sync();
 
-        match self.prepare_frame(jt, false) {
+        match self.prepare_frame(jt.clone(), false) {
             Ok(frame) => {
-                jt.frames.push(frame.clone());
+                {
+                    jt.write().unwrap().frames.push(frame.clone());
+                }
 
                 let frame_h = frame.try_read().unwrap();
                 let interp = Interp::new(frame_h);
-                interp.run(jt);
+                interp.run(jt.clone());
 
-                if !jt.is_meet_ex() {
+                if !jt.read().unwrap().is_meet_ex() {
                     let return_value = {
                         let frame = frame.try_read().unwrap();
                         let area = frame.area.read().unwrap();
@@ -139,13 +142,15 @@ impl JavaCall {
                 }
             }
 
-            Err(ex) => jt.set_ex(ex),
+            Err(ex) => {
+                jt.write().unwrap().set_ex(ex);
+            },
         }
 
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, jt: &mut JavaThread, caller: Option<&DataAreaRef>) {
+    fn invoke_native(&mut self, jt: JavaThreadRef, caller: Option<&DataAreaRef>) {
         self.prepare_sync();
 
         let package = {
@@ -158,12 +163,14 @@ impl JavaCall {
         let v = match method {
             Some(method) => {
                 let class = self.mir.method.class.clone();
-                let env = native::new_jni_env(jt, class);
+                let env = native::new_jni_env(jt.clone(), class);
 
-                match self.prepare_frame(jt, true) {
+                match self.prepare_frame(jt.clone(), true) {
                     Ok(frame) => {
-                        jt.frames.push(frame.clone());
-                        method.invoke(jt, env, self.args.clone())
+                        {
+                            jt.write().unwrap().frames.push(frame.clone());
+                        }
+                        method.invoke(jt.clone(), env, self.args.clone())
                     }
                     Err(ex) => Err(ex),
                 }
@@ -178,11 +185,13 @@ impl JavaCall {
 
         match v {
             Ok(v) => {
-                if !jt.is_meet_ex() {
+                if !jt.read().unwrap().is_meet_ex() {
                     set_return(caller, self.return_type.clone(), v)
                 }
             }
-            Err(ex) => jt.set_ex(ex),
+            Err(ex) => {
+                jt.write().unwrap().set_ex(ex)
+            },
         }
 
         self.fin_sync();
@@ -216,13 +225,14 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self, thread: &mut JavaThread, is_native: bool) -> Result<FrameRef, Oop> {
-        if thread.frames.len() >= runtime::consts::THREAD_MAX_STACK_FRAMES {
+    fn prepare_frame(&mut self, thread: JavaThreadRef, is_native: bool) -> Result<FrameRef, Oop> {
+        let frame_len = { thread.read().unwrap().frames.len() };
+        if frame_len >= runtime::consts::THREAD_MAX_STACK_FRAMES {
             let ex = exception::new(thread, cls_const::J_SOE, None);
             return Err(ex);
         }
 
-        let frame_id = thread.frames.len() + 1;
+        let frame_id = frame_len + 1;
         let mut frame = Frame::new(self.mir.clone(), frame_id);
 
         if !is_native {

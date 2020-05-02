@@ -2,8 +2,9 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{self, require_class3, JavaThread};
+use crate::runtime::{self, require_class3};
 use crate::util;
+use crate::types::JavaThreadRef;
 use classfile::{consts as cls_consts, SignatureType};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -14,7 +15,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_invoke0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let method = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let args = args.get(2).unwrap();
@@ -87,7 +88,7 @@ fn jvm_invoke0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         args.insert(0, obj.clone());
     }
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, mir, args);
+    let mut jc = runtime::java_call::JavaCall::new_with_args(jt.clone(), mir, args);
     let area = runtime::DataArea::new(0, 0);
     jc.invoke(jt, Some(&area), force_no_resolve);
 

@@ -2,8 +2,9 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::runtime::{require_class3, JavaThread};
+use crate::runtime::require_class3;
 use crate::util;
+use crate::types::JavaThreadRef;
 use std::fs;
 
 //FileSystem.java define
@@ -41,11 +42,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: &mut JavaThread, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getBooleanAttributes0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file);
 
@@ -66,7 +67,7 @@ fn jvm_getBooleanAttributes0(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>)
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_checkAccess(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file);
 
@@ -97,7 +98,7 @@ fn jvm_checkAccess(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRes
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_canonicalize0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = util::oop::extract_str(args.get(1).unwrap());
     let path = std::path::Path::new(&path);
     let path = path.canonicalize().expect("path canonicalize failed");
@@ -107,7 +108,7 @@ fn jvm_canonicalize0(jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIRe
     Ok(Some(path))
 }
 
-fn jvm_createFileExclusively(_jt: &mut JavaThread, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_createFileExclusively(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
     let path = util::oop::extract_str(path);
     let v = match std::fs::OpenOptions::new()
