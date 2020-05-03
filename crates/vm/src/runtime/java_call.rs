@@ -36,11 +36,11 @@ impl JavaCall {
         }
     }
 
-    pub fn new(jt: JavaThreadRef, caller: &DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
+    pub fn new(jt: JavaThreadRef, caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
 
-        let mut args = build_method_args(caller, sig);
+        let mut args = build_method_args(caller.clone(), sig);
         args.reverse();
 
         //insert 'this' value
@@ -91,7 +91,7 @@ impl JavaCall {
     pub fn invoke(
         &mut self,
         jt: JavaThreadRef,
-        caller: Option<&DataAreaRef>,
+        caller: Option<DataAreaRef>,
         force_no_resolve: bool,
     ) {
         /*
@@ -115,7 +115,7 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, jt: JavaThreadRef, caller: Option<&DataAreaRef>) {
+    fn invoke_java(&mut self, jt: JavaThreadRef, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
         match self.prepare_frame(jt.clone(), false) {
@@ -146,7 +146,7 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, jt: JavaThreadRef, caller: Option<&DataAreaRef>) {
+    fn invoke_native(&mut self, jt: JavaThreadRef, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
         let package = {
@@ -335,7 +335,7 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
+fn build_method_args(area: DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
     //Note: iter args by reverse, because of stack
     sig.args
         .iter()
@@ -374,7 +374,7 @@ fn build_method_args(area: &DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
         .collect()
 }
 
-pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: Option<Oop>) {
+pub fn set_return(caller: Option<DataAreaRef>, return_type: SignatureType, v: Option<Oop>) {
     match return_type {
         SignatureType::Byte
         | SignatureType::Short
@@ -383,30 +383,35 @@ pub fn set_return(caller: Option<&DataAreaRef>, return_type: SignatureType, v: O
         | SignatureType::Boolean => {
             let v = v.unwrap();
             let v = util::oop::extract_int(&v);
-            let mut area = caller.unwrap().write().unwrap();
+            let caller = caller.unwrap();
+            let mut area = caller.write().unwrap();
             area.stack.push_int(v);
         }
         SignatureType::Long => {
             let v = v.unwrap();
             let v = util::oop::extract_long(&v);
-            let mut area = caller.unwrap().write().unwrap();
+            let caller = caller.unwrap();
+            let mut area = caller.write().unwrap();
             area.stack.push_long(v);
         }
         SignatureType::Float => {
             let v = v.unwrap();
             let v = util::oop::extract_float(&v);
-            let mut area = caller.unwrap().write().unwrap();
+            let caller = caller.unwrap();
+            let mut area = caller.write().unwrap();
             area.stack.push_float(v);
         }
         SignatureType::Double => {
             let v = v.unwrap();
             let v = util::oop::extract_double(&v);
-            let mut area = caller.unwrap().write().unwrap();
+            let caller = caller.unwrap();
+            let mut area = caller.write().unwrap();
             area.stack.push_double(v);
         }
         SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
             let v = v.unwrap();
-            let mut area = caller.unwrap().write().unwrap();
+            let caller = caller.unwrap();
+            let mut area = caller.write().unwrap();
             area.stack.push_ref(v);
         }
         SignatureType::Void => (),

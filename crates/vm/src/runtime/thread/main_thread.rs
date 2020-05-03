@@ -57,11 +57,9 @@ impl MainThread {
             Ok(mir) => {
                 let arg = self.build_main_arg(jt.clone());
                 let area = DataArea::new(0, 1);
-                {
-                    area.write().unwrap().stack.push_ref(arg);
-                }
-                match JavaCall::new(jt.clone(), &area, mir) {
-                    Ok(mut jc) => jc.invoke(jt.clone(), Some(&area), true),
+                area.write().unwrap().stack.push_ref(arg);
+                match JavaCall::new(jt.clone(), area.clone(), mir) {
+                    Ok(mut jc) => jc.invoke(jt.clone(), Some(area), true),
                     _ => unreachable!(),
                 }
             }
@@ -131,7 +129,7 @@ impl MainThread {
                         let args = vec![v.clone(), ex];
                         let mut jc = JavaCall::new_with_args(mir, args);
                         let area = runtime::DataArea::new(0, 0);
-                        jc.invoke(jt, Some(&area), false);
+                        jc.invoke(jt, Some(area), false);
                     }
                     _ => self.uncaught_ex_internal(jt),
                 }

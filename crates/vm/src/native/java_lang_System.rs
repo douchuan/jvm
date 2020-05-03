@@ -192,7 +192,7 @@ fn put_props_kv(jt: JavaThreadRef, props: &Oop, k: &str, v: &str) {
 
     let mut jc = JavaCall::new_with_args(mir.clone(), args);
     let area = runtime::DataArea::new(0, 1);
-    jc.invoke(jt, Some(&area), false);
+    jc.invoke(jt, Some(area), false);
 }
 
 fn jvm_setIn0(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {

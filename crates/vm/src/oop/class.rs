@@ -132,7 +132,7 @@ pub fn init_class_fully(jt: JavaThreadRef, class: ClassRef) {
                 });
                 let area = runtime::DataArea::new(0, 0);
                 let mut jc = JavaCall::new_with_args(mir, vec![]);
-                jc.invoke(jt, Some(&area), true);
+                jc.invoke(jt, Some(area), true);
             }
             _ => (),
         }

@@ -47,5 +47,3 @@ impl JavaThread {
         self.ex.take()
     }
 }
-
-

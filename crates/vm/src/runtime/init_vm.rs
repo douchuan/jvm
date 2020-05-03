@@ -93,7 +93,7 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
     };
     let mut jc = runtime::java_call::JavaCall::new_with_args(init_system_classes_method, vec![]);
     let area = runtime::DataArea::new(0, 0);
-    jc.invoke(jt.clone(), Some(&area), false);
+    jc.invoke(jt.clone(), Some(area), false);
 
     //todo: re-enable sun.security.util.Debug
 

@@ -90,7 +90,7 @@ fn jvm_invoke0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
     let mut jc = runtime::java_call::JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 0);
-    jc.invoke(jt, Some(&area), force_no_resolve);
+    jc.invoke(jt, Some(area.clone()), force_no_resolve);
 
     // error!("invoke0 return_type = {:?}, desc={}", jc.return_type, String::from_utf8_lossy(mir.method.desc.as_slice()));
 

@@ -27,10 +27,10 @@ pub use dataarea::DataArea;
 pub use frame::Frame;
 pub use interp::Interp;
 pub use java_call::JavaCall;
-pub use thread::ReentrantMutex;
 pub use slot::Slot;
 pub use sys_dic::{find as sys_dic_find, put as sys_dic_put};
 pub use thread::JavaThread;
+pub use thread::ReentrantMutex;
 
 pub fn init() {
     sys_dic::init();

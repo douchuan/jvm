@@ -70,7 +70,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let args = vec![thread_oop.clone()];
         let mut jc = JavaCall::new_with_args(mir, args);
         let area = runtime::DataArea::new(0, 0);
-        jc.invoke(jt, Some(&area), false);
+        jc.invoke(jt, Some(area), false);
 
         Ok(None)
     }
