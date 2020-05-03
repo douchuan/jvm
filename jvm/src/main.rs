@@ -6,7 +6,7 @@ use clap::{App, Arg};
 use vm::native;
 use vm::oop;
 use vm::runtime;
-use vm::runtime::thread::JavaMainThread;
+use vm::runtime::thread::MainThread;
 use vm::util;
 
 /*
@@ -78,7 +78,7 @@ fn main() {
     let class = matches.value_of_lossy("MAIN_CLASS").unwrap().to_string();
     let args = matches.values_of_lossy("ARGS");
     // println!("main class: {}, args: {:?}", class, args);
-    let mut thread = JavaMainThread::new(class.replace(".", util::FILE_SEP), args);
+    let mut thread = MainThread::new(class.replace(".", util::FILE_SEP), args);
     thread.run();
 }
 

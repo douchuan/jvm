@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use libc::c_void;
 use std::cell::RefCell;
 use std::sync::Mutex;
-use vm::runtime::thread::JavaMainThread;
+use vm::runtime::thread::MainThread;
 
 use crate::native;
 
