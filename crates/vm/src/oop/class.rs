@@ -131,7 +131,7 @@ pub fn init_class_fully(jt: JavaThreadRef, class: ClassRef) {
                     std::str::from_utf8_unchecked(name.as_slice())
                 });
                 let area = runtime::DataArea::new(0, 0);
-                let mut jc = JavaCall::new_with_args(jt.clone(), mir, vec![]);
+                let mut jc = JavaCall::new_with_args(mir, vec![]);
                 jc.invoke(jt, Some(&area), true);
             }
             _ => (),

@@ -55,7 +55,7 @@ fn jvm_doPrivileged(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
     };
 
     let args = vec![v.clone()];
-    let mut jc = JavaCall::new_with_args(jt.clone(), mir, args);
+    let mut jc = JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 1);
     jc.invoke(jt.clone(), Some(&area), false);
 

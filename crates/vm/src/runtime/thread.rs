@@ -69,7 +69,7 @@ impl JavaMainThread {
     pub fn run(&mut self) {
         let jt = JavaThread::new();
 
-        info!("init vm start...");
+        info!("init vm start");
         init_vm::initialize_jvm(jt.clone());
         info!("init vm end");
 
@@ -116,8 +116,7 @@ impl JavaMainThread {
             _ => unimplemented!(),
         }
 
-        let is_ex = { jt.read().unwrap().ex.is_some() };
-        if is_ex {
+        if jt.read().unwrap().ex.is_some() {
             self.uncaught_ex(jt.clone(), main_class);
         }
     }
@@ -178,7 +177,7 @@ impl JavaMainThread {
                             jt.take_ex().unwrap()
                         };
                         let args = vec![v.clone(), ex];
-                        let mut jc = JavaCall::new_with_args(jt.clone(), mir, args);
+                        let mut jc = JavaCall::new_with_args(mir, args);
                         let area = runtime::DataArea::new(0, 0);
                         jc.invoke(jt, Some(&area), false);
                     }

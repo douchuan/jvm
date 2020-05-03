@@ -21,12 +21,12 @@ pub fn invoke_ctor(jt: JavaThreadRef, cls: ClassRef, desc: &[u8], args: Vec<Oop>
         cls.get_this_class_method(b"<init>", &desc).unwrap()
     };
 
-    let mut jc = JavaCall::new_with_args(jt.clone(), ctor, args);
+    let mut jc = JavaCall::new_with_args(ctor, args);
     jc.invoke(jt, None, false);
 }
 
 impl JavaCall {
-    pub fn new_with_args(jt: JavaThreadRef, mir: MethodIdRef, args: Vec<Oop>) -> Self {
+    pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
         Self {
