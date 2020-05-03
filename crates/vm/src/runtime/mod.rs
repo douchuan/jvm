@@ -35,4 +35,5 @@ pub use thread::ReentrantMutex;
 pub fn init() {
     sys_dic::init();
     class_path_manager::init();
+    thread::init_thread_pool();
 }

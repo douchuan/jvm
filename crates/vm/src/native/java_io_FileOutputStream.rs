@@ -35,8 +35,6 @@ fn jvm_writeBytes(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
         util::oop::extract_int(v)
     };
 
-    trace!("append = {}", append);
-
     let v = util::oop::extract_ref(byte_ary);
     let v = v.read().unwrap();
     match &v.v {

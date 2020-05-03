@@ -182,7 +182,7 @@ impl JavaCall {
         match v {
             Ok(v) => {
                 if !jt.read().unwrap().is_meet_ex() {
-                    set_return(caller, self.return_type.clone(), v)
+                    set_return(caller, self.return_type.clone(), v);
                 }
             }
             Err(ex) => jt.write().unwrap().set_ex(ex),
@@ -325,12 +325,13 @@ impl JavaCall {
         let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
         let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
         info!(
-            "invoke method = {}:{}:{} static={} native={}",
+            "invoke method = {}:{}:{} static={} native={} sync={}",
             cls_name,
             name,
             desc,
             self.mir.method.is_static(),
-            self.mir.method.is_native()
+            self.mir.method.is_native(),
+            self.mir.method.is_synchronized()
         );
     }
 }

@@ -13,18 +13,19 @@ export JAVA_HOME
 
 #export RUST_LOG=trace
 #export RUST_LOG=info
-#export RUST_LOG=warn
+export RUST_LOG=warn
 export RUST_BACKTRACE=full
 
 
 ### My Test
 #cargo run -- --cp $JDK:$MY_TEST Add
-cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
+#cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
 #cargo run -- --cp $JDK:$MY_TEST MyInteger
 #cargo run -- --cp $JDK:$MY_TEST MyArrayCopy
+cargo run -- --cp $JDK:$MY_TEST ThreadTest
 
 ### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST SubOverflow

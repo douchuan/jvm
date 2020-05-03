@@ -80,6 +80,9 @@ fn main() {
     // println!("main class: {}, args: {:?}", class, args);
     let mut thread = MainThread::new(class.replace(".", util::FILE_SEP), args);
     thread.run();
+
+    //fixme: check thread pool
+    std::thread::park();
 }
 
 #[cfg(test)]

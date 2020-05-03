@@ -20,6 +20,7 @@ impl MainThread {
 
     pub fn run(&mut self) {
         let jt = JavaThread::new();
+        jt.write().unwrap().tag = "main".to_string();
 
         info!("init vm start");
         init_vm::initialize_jvm(jt.clone());
@@ -59,7 +60,11 @@ impl MainThread {
                 let area = DataArea::new(0, 1);
                 area.write().unwrap().stack.push_ref(arg);
                 match JavaCall::new(jt.clone(), area.clone(), mir) {
-                    Ok(mut jc) => jc.invoke(jt.clone(), Some(area), true),
+                    Ok(mut jc) => {
+                        jt.write().unwrap().is_alive = true;
+                        jc.invoke(jt.clone(), Some(area), true);
+                        jt.write().unwrap().is_alive = false;
+                    }
                     _ => unreachable!(),
                 }
             }

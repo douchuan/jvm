@@ -1,12 +1,6 @@
 use crate::oop::{self, consts, Oop};
 use crate::types::{FrameRef, JavaThreadRef};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
-
-lazy_static! {
-    static ref NATIVE_THREAD_POOL: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> =
-        { Mutex::new(HashMap::new()) };
-}
+use std::sync::{Arc, RwLock};
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -14,6 +8,10 @@ pub struct JavaThread {
 
     pub java_thread_obj: Option<Oop>,
     pub ex: Option<Oop>,
+    pub is_alive: bool,
+    pub eetop: i64,
+
+    pub tag: String, //for debug
 }
 
 impl JavaThread {
@@ -24,6 +22,9 @@ impl JavaThread {
 
             java_thread_obj: None,
             ex: None,
+            is_alive: false,
+            eetop: 0,
+            tag: "xx".to_string(),
         };
         Arc::new(RwLock::new(Box::new(t)))
     }
