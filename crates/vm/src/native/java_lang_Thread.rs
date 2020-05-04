@@ -34,7 +34,7 @@ fn jvm_currentThread(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResu
             Ok(obj)
         }
         //main thread
-        None => Ok(env.read().unwrap().main_java_thread_obj.clone()),
+        None => unreachable!(),
     }
 }
 

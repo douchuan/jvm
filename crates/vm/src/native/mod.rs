@@ -49,8 +49,6 @@ pub struct JNINativeMethodStruct {
 }
 
 pub struct JNIEnvStruct {
-    // fixme: just for hack, in order to run HelloWorld, put it here temporarily
-    pub main_java_thread_obj: Option<Oop>,
     pub class: ClassRef,
 }
 
@@ -74,10 +72,7 @@ pub fn new_fn(
 }
 
 pub fn new_jni_env(jt: JavaThreadRef, class: ClassRef) -> JNIEnv {
-    Arc::new(RwLock::new(Box::new(JNIEnvStruct {
-        main_java_thread_obj: jt.read().unwrap().java_thread_obj.clone(),
-        class,
-    })))
+    Arc::new(RwLock::new(Box::new(JNIEnvStruct { class })))
 }
 
 pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {

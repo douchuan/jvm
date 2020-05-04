@@ -1,4 +1,5 @@
 use crate::oop::{self, Oop};
+use crate::runtime::thread::pool::register_jt;
 use crate::runtime::{self, init_vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
@@ -20,6 +21,8 @@ impl MainThread {
 
     pub fn run(&mut self) {
         let jt = JavaThread::new();
+        //register 'main' thread
+        register_jt(jt.clone());
         jt.write().unwrap().tag = "main".to_string();
 
         info!("init vm start");
