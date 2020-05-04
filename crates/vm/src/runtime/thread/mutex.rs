@@ -1,6 +1,10 @@
 use std::cell::UnsafeCell;
 use std::mem;
 
+pub unsafe fn raw(m: &ReentrantMutex) -> *mut libc::pthread_mutex_t {
+    m.inner.get()
+}
+
 pub struct ReentrantMutex {
     inner: UnsafeCell<libc::pthread_mutex_t>,
 }

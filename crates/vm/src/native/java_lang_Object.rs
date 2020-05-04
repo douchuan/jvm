@@ -12,6 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("clone", "()Ljava/lang/Object;", Box::new(jvm_clone)),
         new_fn("getClass", "()Ljava/lang/Class;", Box::new(jvm_getClass)),
         new_fn("notifyAll", "()V", Box::new(jvm_notifyAll)),
+        new_fn("wait", "(J)V", Box::new(jvm_wait)),
     ]
 }
 
@@ -78,3 +79,8 @@ fn jvm_getClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
+
+fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    Ok(None)
+}
+
