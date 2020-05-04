@@ -5,7 +5,6 @@ use crate::oop::{self, Oop};
 use crate::runtime::{self, thread::pool, thread::spawn_java_thread, JavaCall, JavaThread};
 use crate::types::JavaThreadRef;
 use crate::util;
-use std::time::Duration;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -26,16 +25,10 @@ fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNI
     Ok(None)
 }
 
-fn jvm_currentThread(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let jt = pool::obtain_current_jt();
-    match jt {
-        Some(jt) => {
-            let obj = jt.read().unwrap().java_thread_obj.clone();
-            Ok(obj)
-        }
-        //main thread
-        None => unreachable!(),
-    }
+fn jvm_currentThread(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    let jt = pool::obtain_current_jt().unwrap();
+    let obj = jt.read().unwrap().java_thread_obj.clone();
+    Ok(obj)
 }
 
 fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {

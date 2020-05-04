@@ -71,7 +71,7 @@ pub fn new_fn(
     })
 }
 
-pub fn new_jni_env(jt: JavaThreadRef, class: ClassRef) -> JNIEnv {
+pub fn new_jni_env(class: ClassRef) -> JNIEnv {
     Arc::new(RwLock::new(Box::new(JNIEnvStruct { class })))
 }
 

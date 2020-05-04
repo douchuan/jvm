@@ -159,7 +159,7 @@ impl JavaCall {
         let v = match method {
             Some(method) => {
                 let class = self.mir.method.class.clone();
-                let env = native::new_jni_env(jt.clone(), class);
+                let env = native::new_jni_env(class);
 
                 match self.prepare_frame(jt.clone(), true) {
                     Ok(frame) => {
