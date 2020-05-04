@@ -50,7 +50,7 @@ pub struct JNINativeMethodStruct {
 
 pub struct JNIEnvStruct {
     // fixme: just for hack, in order to run HelloWorld, put it here temporarily
-    pub java_thread_obj: Option<Oop>,
+    pub main_java_thread_obj: Option<Oop>,
     pub class: ClassRef,
 }
 
@@ -75,7 +75,7 @@ pub fn new_fn(
 
 pub fn new_jni_env(jt: JavaThreadRef, class: ClassRef) -> JNIEnv {
     Arc::new(RwLock::new(Box::new(JNIEnvStruct {
-        java_thread_obj: jt.read().unwrap().java_thread_obj.clone(),
+        main_java_thread_obj: jt.read().unwrap().java_thread_obj.clone(),
         class,
     })))
 }

@@ -26,13 +26,19 @@ fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNI
     Ok(None)
 }
 
-fn jvm_currentThread(_jt: JavaThreadRef, env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    let r = env.read().unwrap().java_thread_obj.clone();
-    Ok(r)
+fn jvm_currentThread(_jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let jt = pool::obtain_current_jt();
+    match jt {
+        Some(jt) => {
+            let obj = jt.read().unwrap().java_thread_obj.clone();
+            Ok(obj)
+        }
+        //main thread
+        None => Ok(env.read().unwrap().main_java_thread_obj.clone()),
+    }
 }
 
 fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    //todo: set native thread's priority
     Ok(None)
 }
 
@@ -99,10 +105,11 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let mut jc = JavaCall::new_with_args(mir, args);
             let area = runtime::DataArea::new(0, 0);
             jt.write().unwrap().is_alive = true;
+            jt.write().unwrap().java_thread_obj = Some(thread_oop.clone());
             jc.invoke(jt.clone(), Some(area), false);
             jt.write().unwrap().is_alive = false;
 
-            pool::un_register_jt(jt.clone());
+            pool::un_register_jt();
         });
 
         Ok(None)

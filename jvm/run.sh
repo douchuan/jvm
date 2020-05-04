@@ -13,7 +13,7 @@ export JAVA_HOME
 
 #export RUST_LOG=trace
 #export RUST_LOG=info
-export RUST_LOG=warn
+#export RUST_LOG=warn
 export RUST_BACKTRACE=full
 
 

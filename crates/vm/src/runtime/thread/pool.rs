@@ -28,14 +28,13 @@ pub fn register_jt(jt: JavaThreadRef) {
     reg.insert(tid, jt);
 }
 
-pub fn un_register_jt(jt: JavaThreadRef) {
+pub fn un_register_jt() {
     let tid = std::thread::current().id();
     let mut reg = THREAD_REGISTRY.lock().unwrap();
     reg.remove(&tid);
 }
 
 pub fn obtain_jt(eetop: i64) -> Option<JavaThreadRef> {
-    let tid = std::thread::current().id();
     let reg = THREAD_REGISTRY.lock().unwrap();
     for v in reg.values() {
         if v.read().unwrap().eetop == eetop {
@@ -43,6 +42,12 @@ pub fn obtain_jt(eetop: i64) -> Option<JavaThreadRef> {
         }
     }
     None
+}
+
+pub fn obtain_current_jt() -> Option<JavaThreadRef> {
+    let tid = std::thread::current().id();
+    let reg = THREAD_REGISTRY.lock().unwrap();
+    reg.get(&tid).map(|it| it.clone())
 }
 
 enum Message {
@@ -96,7 +101,6 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 }
