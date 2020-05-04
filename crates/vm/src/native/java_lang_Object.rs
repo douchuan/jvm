@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::types::JavaThreadRef;
 use crate::util;
+use std::time::Duration;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -76,10 +77,25 @@ fn jvm_getClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(mirror))
 }
 
-fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let rf = util::oop::extract_ref(this);
+    let rf = rf.read().unwrap();
+    rf.notify_all();
     Ok(None)
 }
 
-fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let this = args.get(0).unwrap();
+    let millis = args.get(1).unwrap();
+    // let eetop = util::oop::extract_java_lang_thread_eetop(this);
+    let millis = util::oop::extract_long(millis);
+    let rf = util::oop::extract_ref(this);
+    let rf = rf.read().unwrap();
+    if millis == 0 {
+        rf.wait();
+    } else {
+        rf.wait_timeout(Duration::from_millis(millis as u64));
+    }
     Ok(None)
 }

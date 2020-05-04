@@ -56,19 +56,19 @@ impl RefKindDesc {
         }
     }
 
-    pub fn wait(&mut self) {
+    pub fn wait(&self) {
         unsafe {
             self.cond_var.wait(&self.mutex);
         }
     }
 
-    pub fn wait_timeout(&mut self, duration: Duration) {
+    pub fn wait_timeout(&self, duration: Duration) {
         unsafe {
             self.cond_var.wait_timeout(&self.mutex, duration);
         }
     }
 
-    pub fn notify(&mut self) {
+    pub fn notify_all(&self) {
         unsafe {
             self.cond_var.notify_all();
         }

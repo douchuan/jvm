@@ -133,12 +133,12 @@ impl Worker {
 
             match message {
                 Message::NewJob(job) => {
-                    warn!("Worker {} got a job; executing.", id);
+                    warn!("Worker-{} got a job, executing", id);
                     job.call_box();
-                    warn!("Worker {}, job fin", id);
+                    warn!("Worker-{}, fin", id);
                 }
                 Message::Terminate => {
-                    info!("Worker {} was told to terminate.", id);
+                    warn!("Worker {} was told to terminate.", id);
                     break;
                 }
             }
