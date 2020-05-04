@@ -199,7 +199,7 @@ impl JavaCall {
             } else {
                 let mut v = self.args.first().unwrap();
                 let v = util::oop::extract_ref(v);
-                let mut v = v.write().unwrap();
+                let v = v.read().unwrap();
                 v.monitor_enter();
             }
         }
@@ -213,7 +213,7 @@ impl JavaCall {
             } else {
                 let mut v = self.args.first().unwrap();
                 let v = util::oop::extract_ref(v);
-                let mut v = v.write().unwrap();
+                let v = v.read().unwrap();
                 v.monitor_exit();
             }
         }

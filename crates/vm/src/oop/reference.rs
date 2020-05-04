@@ -44,13 +44,13 @@ impl RefKindDesc {
 }
 
 impl RefKindDesc {
-    pub fn monitor_enter(&mut self) {
+    pub fn monitor_enter(&self) {
         unsafe {
             self.mutex.lock();
         }
     }
 
-    pub fn monitor_exit(&mut self) {
+    pub fn monitor_exit(&self) {
         unsafe {
             self.mutex.unlock();
         }

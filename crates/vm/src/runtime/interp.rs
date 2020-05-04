@@ -2939,7 +2939,7 @@ impl<'a> Interp<'a> {
                 exception::meet_ex(thread, cls_const::J_NPE, None);
             }
             Oop::Ref(v) => {
-                let mut v = v.write().unwrap();
+                let v = v.read().unwrap();
                 v.monitor_enter();
             }
             _ => unreachable!(),
@@ -2956,7 +2956,7 @@ impl<'a> Interp<'a> {
                 exception::meet_ex(thread, cls_const::J_NPE, None);
             }
             Oop::Ref(v) => {
-                let mut v = v.write().unwrap();
+                let v = v.read().unwrap();
                 v.monitor_exit();
             }
             _ => unreachable!(),

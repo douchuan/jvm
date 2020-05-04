@@ -6,7 +6,8 @@ use std::sync::Mutex;
 use std::thread;
 
 lazy_static! {
-    static ref THREAD_POOL: Mutex<ThreadPool> = { Mutex::new(ThreadPool::new(1)) };
+    //fixme: the count of pool threads should be configured
+    static ref THREAD_POOL: Mutex<ThreadPool> = { Mutex::new(ThreadPool::new(10)) };
     static ref THREAD_REGISTRY: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> =
         { Mutex::new(HashMap::new()) };
 }

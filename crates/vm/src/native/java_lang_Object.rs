@@ -88,7 +88,6 @@ fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
 fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let millis = args.get(1).unwrap();
-    // let eetop = util::oop::extract_java_lang_thread_eetop(this);
     let millis = util::oop::extract_long(millis);
     let rf = util::oop::extract_ref(this);
     let rf = rf.read().unwrap();

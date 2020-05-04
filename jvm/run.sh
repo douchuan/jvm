@@ -11,9 +11,9 @@ MY_TEST=.:./test
 
 export JAVA_HOME
 
-#export RUST_LOG=trace
-#export RUST_LOG=info
 #export RUST_LOG=warn
+#export RUST_LOG=info
+#export RUST_LOG=trace
 export RUST_BACKTRACE=full
 
 
@@ -25,7 +25,8 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$MY_TEST MyFile
 #cargo run -- --cp $JDK:$MY_TEST MyInteger
 #cargo run -- --cp $JDK:$MY_TEST MyArrayCopy
-cargo run -- --cp $JDK:$MY_TEST ThreadTest
+#cargo run -- --cp $JDK:$MY_TEST ThreadTest
+cargo run -- --cp $JDK:$MY_TEST ThreadTest2
 
 ### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST SubOverflow

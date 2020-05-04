@@ -103,6 +103,10 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             jt.write().unwrap().is_alive = false;
 
             pool::un_register_jt();
+
+            //todo: should be here?
+            let v = util::oop::extract_ref(&thread_oop);
+            v.read().unwrap().notify_all();
         });
 
         Ok(None)
