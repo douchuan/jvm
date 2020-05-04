@@ -1,20 +1,23 @@
 use crate::types::JavaThreadRef;
 use std::collections::HashMap;
 use std::sync::mpsc;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 lazy_static! {
     //fixme: the count of pool threads should be configured
-    static ref THREAD_POOL: Mutex<ThreadPool> = { Mutex::new(ThreadPool::new(10)) };
+    static ref THREAD_POOL: Mutex<ThreadPool> = { Mutex::new(ThreadPool::new(5)) };
     static ref THREAD_REGISTRY: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> =
         { Mutex::new(HashMap::new()) };
+    static ref MAIN_MUTEX: Mutex<usize> = { Mutex::new(0) };
+    static ref MAIN_COND: Condvar = { Condvar::new() };
 }
 
 pub fn init() {
     lazy_static::initialize(&THREAD_POOL);
     lazy_static::initialize(&THREAD_REGISTRY);
+    lazy_static::initialize(&MAIN_MUTEX);
+    lazy_static::initialize(&MAIN_COND);
 }
 
 pub fn spawn_java_thread<F: FnOnce() + Send + 'static>(f: F) {
@@ -43,6 +46,26 @@ pub fn obtain_jt(eetop: i64) -> Option<JavaThreadRef> {
         }
     }
     None
+}
+
+pub fn park_if_needed() {
+    loop {
+        let n = {
+            let reg = THREAD_REGISTRY.lock().unwrap();
+            reg.len()
+        };
+
+        if n > 0 {
+            let handle = MAIN_MUTEX.lock().unwrap();
+            MAIN_COND.wait(handle).unwrap();
+        } else {
+            break;
+        }
+    }
+}
+
+pub fn wake_up_main() {
+    MAIN_COND.notify_one();
 }
 
 pub fn obtain_current_jt() -> Option<JavaThreadRef> {

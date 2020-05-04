@@ -26,7 +26,9 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$MY_TEST MyInteger
 #cargo run -- --cp $JDK:$MY_TEST MyArrayCopy
 #cargo run -- --cp $JDK:$MY_TEST ThreadTest
-cargo run -- --cp $JDK:$MY_TEST ThreadTest2
+#cargo run -- --cp $JDK:$MY_TEST ThreadTest2
+### no 'join' in main thread
+cargo run -- --cp $JDK:$MY_TEST ThreadTest3
 
 ### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST SubOverflow

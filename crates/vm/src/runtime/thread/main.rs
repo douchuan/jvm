@@ -1,5 +1,5 @@
 use crate::oop::{self, Oop};
-use crate::runtime::thread::pool::register_jt;
+use crate::runtime::thread::pool as thread_pool;
 use crate::runtime::{self, init_vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
@@ -22,7 +22,7 @@ impl MainThread {
     pub fn run(&mut self) {
         let jt = JavaThread::new();
         //register 'main' thread
-        register_jt(jt.clone());
+        thread_pool::register_jt(jt.clone());
         jt.write().unwrap().tag = "main".to_string();
 
         info!("init vm start");
@@ -67,6 +67,7 @@ impl MainThread {
                         jt.write().unwrap().is_alive = true;
                         jc.invoke(jt.clone(), Some(area), true);
                         jt.write().unwrap().is_alive = false;
+                        thread_pool::un_register_jt();
                     }
                     _ => unreachable!(),
                 }
@@ -77,6 +78,8 @@ impl MainThread {
         if jt.read().unwrap().ex.is_some() {
             self.uncaught_ex(jt.clone(), main_class);
         }
+
+        thread_pool::park_if_needed();
     }
 }
 
