@@ -83,4 +83,3 @@ fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult
 fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
-

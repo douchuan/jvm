@@ -1,8 +1,8 @@
 use crate::oop::{ArrayOopDesc, InstOopDesc, MirrorOopDesc, TypeArrayDesc};
-use crate::runtime::ReentrantMutex;
+use crate::runtime::thread::{Condvar, ReentrantMutex};
 use std::fmt;
 use std::fmt::Formatter;
-use std::sync::{Condvar, Mutex};
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum RefKind {
@@ -17,6 +17,7 @@ pub struct RefKindDesc {
     pub hash_code: Option<i32>,
 
     mutex: ReentrantMutex,
+    cond_var: Condvar,
 }
 
 impl RefKindDesc {
@@ -27,10 +28,17 @@ impl RefKindDesc {
             mutex
         };
 
+        let cond_var = unsafe {
+            let mut cond = Condvar::new();
+            cond.init();
+            cond
+        };
+
         Self {
             v,
             hash_code: None,
             mutex,
+            cond_var,
         }
     }
 }
@@ -45,6 +53,24 @@ impl RefKindDesc {
     pub fn monitor_exit(&mut self) {
         unsafe {
             self.mutex.unlock();
+        }
+    }
+
+    pub fn wait(&mut self) {
+        unsafe {
+            self.cond_var.wait(&self.mutex);
+        }
+    }
+
+    pub fn wait_timeout(&mut self, duration: Duration) {
+        unsafe {
+            self.cond_var.wait_timeout(&self.mutex, duration);
+        }
+    }
+
+    pub fn notify(&mut self) {
+        unsafe {
+            self.cond_var.notify_all();
         }
     }
 }

@@ -74,6 +74,22 @@ pub fn extract_java_lang_integer_value(v: &Oop) -> i32 {
     extract_int(&v)
 }
 
+pub fn extract_java_lang_thread_eetop(v: &Oop) -> i64 {
+    let cls = {
+        let thread_oop = extract_ref(v);
+        let v = thread_oop.read().unwrap();
+        match &v.v {
+            oop::RefKind::Inst(inst) => inst.class.clone(),
+            _ => unreachable!(),
+        }
+    };
+
+    let cls = cls.read().unwrap();
+    let fid = cls.get_field_id(b"eetop", b"J", false);
+    let v = cls.get_field_value(v, fid);
+    extract_long(&v)
+}
+
 pub fn extract_str(v: &Oop) -> String {
     let value = extract_java_lang_string_value(v);
     String::from_utf16_lossy(value.as_slice())

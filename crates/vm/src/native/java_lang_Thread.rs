@@ -40,22 +40,7 @@ fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIRes
 //should find by 'eetop' in thread pool
 fn jvm_isAlive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
-    let cls = {
-        let thread_oop = util::oop::extract_ref(this);
-        let v = thread_oop.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.class.clone(),
-            _ => unreachable!(),
-        }
-    };
-
-    let eetop = {
-        let cls = cls.read().unwrap();
-        //setup eetop
-        let fid = cls.get_field_id(b"eetop", b"J", false);
-        let v = cls.get_field_value(this, fid);
-        util::oop::extract_long(&v)
-    };
+    let eetop = util::oop::extract_java_lang_thread_eetop(this);
 
     let r = match pool::obtain_jt(eetop) {
         Some(jt) => {
