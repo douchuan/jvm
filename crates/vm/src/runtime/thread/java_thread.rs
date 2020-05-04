@@ -16,6 +16,7 @@ pub struct JavaThread {
 
 impl JavaThread {
     pub fn new() -> JavaThreadRef {
+        let eetop = gen_thread_id();
         let t = Self {
             frames: Vec::new(),
             in_safe_point: false,
@@ -23,8 +24,8 @@ impl JavaThread {
             java_thread_obj: None,
             ex: None,
             is_alive: false,
-            eetop: 0,
-            tag: "xx".to_string(),
+            eetop,
+            tag: format!("thread-{}", eetop),
         };
         Arc::new(RwLock::new(Box::new(t)))
     }
@@ -47,4 +48,12 @@ impl JavaThread {
     pub fn take_ex(&mut self) -> Option<Oop> {
         self.ex.take()
     }
+}
+
+fn gen_thread_id() -> i64 {
+    use core::sync::atomic::Ordering;
+    use std::sync::atomic::AtomicI64;
+    static NEXT_ID: AtomicI64 = AtomicI64::new(0);
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    id
 }
