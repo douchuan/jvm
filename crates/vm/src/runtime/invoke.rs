@@ -194,10 +194,10 @@ impl JavaCall {
     fn prepare_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let mut class = self.mir.method.class.write().unwrap();
+                let class = self.mir.method.class.read().unwrap();
                 class.monitor_enter();
             } else {
-                let mut v = self.args.first().unwrap();
+                let v = self.args.first().unwrap();
                 let v = util::oop::extract_ref(v);
                 let v = v.read().unwrap();
                 v.monitor_enter();
@@ -208,7 +208,7 @@ impl JavaCall {
     fn fin_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let mut class = self.mir.method.class.write().unwrap();
+                let class = self.mir.method.class.read().unwrap();
                 class.monitor_exit();
             } else {
                 let mut v = self.args.first().unwrap();

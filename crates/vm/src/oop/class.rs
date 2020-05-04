@@ -1,5 +1,6 @@
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, ValueType};
+use crate::runtime::thread::ReentrantMutex;
 use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread};
 use crate::types::*;
 use crate::util;
@@ -24,9 +25,9 @@ pub struct Class {
     // None for the "bootstrap" loader
     pub class_loader: Option<ClassLoader>,
 
-    monitor: Mutex<usize>,
-
     pub kind: ClassKind,
+
+    mutex: ReentrantMutex,
 }
 
 pub enum ClassKind {
@@ -204,14 +205,16 @@ impl Class {
         (self.acc_flags & ACC_INTERFACE) == ACC_INTERFACE
     }
 
-    pub fn monitor_enter(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v += 1;
+    pub fn monitor_enter(&self) {
+        unsafe {
+            self.mutex.lock();
+        }
     }
 
-    pub fn monitor_exit(&mut self) {
-        let mut v = self.monitor.lock().unwrap();
-        *v -= 1;
+    pub fn monitor_exit(&self) {
+        unsafe {
+            self.mutex.unlock();
+        }
     }
 
     pub fn link_class(&mut self, self_ref: ClassRef) {
@@ -599,15 +602,20 @@ impl Class {
             inner_classes: None,
         };
 
+        let mutex = unsafe {
+            let mut mutex = ReentrantMutex::uninitialized();
+            mutex.init();
+            mutex
+        };
+
         Self {
             name,
             state: State::Allocated,
             acc_flags,
             super_class: None,
             class_loader,
-            monitor: Mutex::new(0),
-
             kind: ClassKind::Instance(class_obj),
+            mutex,
         }
     }
 
@@ -622,14 +630,20 @@ impl Class {
             mirror: None,
         };
 
+        let mutex = unsafe {
+            let mut mutex = ReentrantMutex::uninitialized();
+            mutex.init();
+            mutex
+        };
+
         Self {
             name,
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
-            monitor: Mutex::new(0),
             kind: ClassKind::ObjectArray(ary_cls_obj),
+            mutex,
         }
     }
 
@@ -645,14 +659,20 @@ impl Class {
         name.push(b'[');
         name.extend_from_slice(value_type.into());
 
+        let mutex = unsafe {
+            let mut mutex = ReentrantMutex::uninitialized();
+            mutex.init();
+            mutex
+        };
+
         Self {
             name: Arc::new(name),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
-            monitor: Mutex::new(0),
             kind: ClassKind::TypeArray(ary_cls_obj),
+            mutex,
         }
     }
 
@@ -693,14 +713,20 @@ impl Class {
             }
         };
 
+        let mutex = unsafe {
+            let mut mutex = ReentrantMutex::uninitialized();
+            mutex.init();
+            mutex
+        };
+
         Self {
             name: Arc::new(name2),
             state: State::Allocated,
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
-            monitor: Mutex::new(0),
             kind,
+            mutex,
         }
     }
 }
