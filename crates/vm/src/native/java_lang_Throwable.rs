@@ -110,7 +110,7 @@ fn jvm_fillInStackTrace(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIR
             src_file,
             Oop::new_int(line_num),
         ];
-        runtime::java_call::invoke_ctor(
+        runtime::invoke::invoke_ctor(
             jt.clone(),
             elm_cls.clone(),
             b"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V",

@@ -587,7 +587,7 @@ impl<'a> Interp<'a> {
             Ok(mir) => {
                 assert_eq!(mir.method.is_static(), is_static);
 
-                match runtime::java_call::JavaCall::new(jt.clone(), self.frame.area.clone(), mir) {
+                match runtime::invoke::JavaCall::new(jt.clone(), self.frame.area.clone(), mir) {
                     Ok(mut jc) => {
                         jc.invoke(jt, Some(self.frame.area.clone()), force_no_resolve);
                     }

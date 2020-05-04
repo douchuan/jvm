@@ -88,7 +88,7 @@ fn jvm_invoke0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         args.insert(0, obj.clone());
     }
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
-    let mut jc = runtime::java_call::JavaCall::new_with_args(mir, args);
+    let mut jc = runtime::invoke::JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 0);
     jc.invoke(jt, Some(area.clone()), force_no_resolve);
 

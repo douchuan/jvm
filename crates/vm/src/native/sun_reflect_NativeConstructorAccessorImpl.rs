@@ -57,7 +57,7 @@ fn jvm_newInstance0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
 
     let oop = Oop::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
-    runtime::java_call::invoke_ctor(jt, target_cls, signature.as_bytes(), ctor_args);
+    runtime::invoke::invoke_ctor(jt, target_cls, signature.as_bytes(), ctor_args);
 
     Ok(Some(oop))
 }

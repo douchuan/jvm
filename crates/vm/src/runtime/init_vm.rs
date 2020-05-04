@@ -39,7 +39,7 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
     // Create and construct the system thread group.
     let system_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
     let args = vec![system_thread_group.clone()];
-    runtime::java_call::invoke_ctor(jt.clone(), thread_group_cls.clone(), b"()V", args);
+    runtime::invoke::invoke_ctor(jt.clone(), thread_group_cls.clone(), b"()V", args);
 
     let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
@@ -60,7 +60,7 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
         system_thread_group,
         util::oop::new_java_lang_string2(jt.clone(), "main"),
     ];
-    runtime::java_call::invoke_ctor(
+    runtime::invoke::invoke_ctor(
         jt.clone(),
         thread_group_cls.clone(),
         b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
@@ -76,7 +76,7 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
         main_thread_group,
         util::oop::new_java_lang_string2(jt.clone(), "main"),
     ];
-    runtime::java_call::invoke_ctor(
+    runtime::invoke::invoke_ctor(
         jt.clone(),
         thread_cls.clone(),
         b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
@@ -91,7 +91,7 @@ pub fn initialize_jvm(jt: JavaThreadRef) {
         cls.get_static_method(b"initializeSystemClass", b"()V")
             .unwrap()
     };
-    let mut jc = runtime::java_call::JavaCall::new_with_args(init_system_classes_method, vec![]);
+    let mut jc = runtime::invoke::JavaCall::new_with_args(init_system_classes_method, vec![]);
     let area = runtime::DataArea::new(0, 0);
     jc.invoke(jt.clone(), Some(area), false);
 
@@ -151,7 +151,7 @@ fn hack_classes(jt: JavaThreadRef) {
 
     let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
     let args = vec![ascii_inst.clone()];
-    runtime::java_call::invoke_ctor(jt.clone(), ascii_charset_cls.clone(), b"()V", args);
+    runtime::invoke::invoke_ctor(jt.clone(), ascii_charset_cls.clone(), b"()V", args);
 
     {
         let mut cls = charset_cls.write().unwrap();

@@ -40,7 +40,7 @@ fn jvm_forOutputStreamWriter(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) ->
         default_charset_oop,
     ];
 
-    runtime::java_call::invoke_ctor(
+    runtime::invoke::invoke_ctor(
         jt,
         encoder,
         b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/nio/charset/Charset;)V",

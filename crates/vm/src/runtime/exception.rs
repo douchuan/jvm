@@ -24,12 +24,12 @@ pub fn new(jt: JavaThreadRef, name: &[u8], msg: Option<String>) -> Oop {
             //with 'String' arg ctor
             let msg = util::oop::new_java_lang_string2(jt.clone(), msg);
             let args = vec![ex.clone(), msg];
-            runtime::java_call::invoke_ctor(jt, cls.clone(), b"(Ljava/lang/String;)V", args);
+            runtime::invoke::invoke_ctor(jt, cls.clone(), b"(Ljava/lang/String;)V", args);
         }
         None => {
             //No arg ctor
             let args = vec![ex.clone()];
-            runtime::java_call::invoke_ctor(jt, cls.clone(), b"()V", args);
+            runtime::invoke::invoke_ctor(jt, cls.clone(), b"()V", args);
         }
     }
 

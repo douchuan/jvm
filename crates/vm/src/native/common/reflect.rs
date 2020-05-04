@@ -45,7 +45,7 @@ pub fn new_field(jt: JavaThreadRef, fir: FieldIdRef) -> Oop {
 
     let oop = Oop::new_inst(field_cls.clone());
     args.insert(0, oop.clone());
-    runtime::java_call::invoke_ctor(jt.clone(), field_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(jt.clone(), field_cls, desc.as_slice(), args);
 
     oop
 }
@@ -118,7 +118,7 @@ pub fn new_method_ctor(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::java_call::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
 
     oop
 }
@@ -212,7 +212,7 @@ pub fn new_method_normal(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::java_call::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
 
     oop
 }
