@@ -111,6 +111,10 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             jc.invoke(jt.clone(), Some(area), false);
             jt.write().unwrap().is_alive = false;
 
+            //notify thread that invoke 'join'
+            let v = util::oop::extract_ref(&thread_oop);
+            v.read().unwrap().notify_all();
+
             vm.threads.detach_current_thread();
         });
 
