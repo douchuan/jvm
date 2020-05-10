@@ -2,7 +2,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, exception, JavaCall};
-use crate::types::JavaThreadRef;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -27,13 +26,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let v = args.get(0).unwrap();
 
     let mir = {
         match v {
             Oop::Null => {
-                let ex = exception::new(jt, cls_consts::J_NPE, None);
+                let ex = exception::new(cls_consts::J_NPE, None);
                 return Err(ex);
             }
             Oop::Ref(v) => {
@@ -58,8 +56,9 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let args = vec![v.clone()];
     let mut jc = JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 1);
-    jc.invoke(jt.clone(), Some(area.clone()), false);
+    jc.invoke(Some(area.clone()), false);
 
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     if !jt.read().unwrap().is_meet_ex() {
         let mut area = area.write().unwrap();
         let r = area.stack.pop_ref();

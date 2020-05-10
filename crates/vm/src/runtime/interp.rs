@@ -20,11 +20,11 @@ use std::ops::Deref;
 use std::sync::{Arc, RwLockReadGuard};
 
 macro_rules! array_store {
-    ($thread:ident, $ary:ident, $pos:ident, $v:ident) => {
+    ($ary:ident, $pos:ident, $v:ident) => {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
             let msg = format!("length is {}, but index is {}", len, $pos);
-            exception::meet_ex($thread, cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+            exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
         } else {
             $ary[$pos as usize] = $v;
         }
@@ -32,12 +32,12 @@ macro_rules! array_store {
 }
 
 macro_rules! iarray_load {
-    ($thread:ident, $area:ident, $ary:ident, $pos:ident) => {
+    ($area:ident, $ary:ident, $pos:ident) => {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
             drop($area);
             let msg = format!("length is {}, but index is {}", len, $pos);
-            exception::meet_ex($thread, cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+            exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
         } else {
             let stack = &mut ($area.stack);
             stack.push_int($ary[$pos as usize] as i32);
@@ -76,7 +76,9 @@ impl<'a> Interp<'a> {
 }
 
 impl<'a> Interp<'a> {
-    pub fn run(&self, thread: JavaThreadRef) {
+    pub fn run(&self) {
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+
         loop {
             let code = self.read_opcode();
             match code {
@@ -86,7 +88,7 @@ impl<'a> Interp<'a> {
 
                     match op_code {
                         OpCode::athrow => {
-                            self.athrow(thread.clone());
+                            self.athrow(jt.clone());
                             break;
                         }
                         OpCode::ireturn => {
@@ -131,9 +133,9 @@ impl<'a> Interp<'a> {
                         OpCode::dconst_1 => self.dconst_1(),
                         OpCode::bipush => self.bipush(),
                         OpCode::sipush => self.sipush(),
-                        OpCode::ldc => self.ldc(thread.clone()),
-                        OpCode::ldc_w => self.ldc_w(thread.clone()),
-                        OpCode::ldc2_w => self.ldc2_w(thread.clone()),
+                        OpCode::ldc => self.ldc(),
+                        OpCode::ldc_w => self.ldc_w(),
+                        OpCode::ldc2_w => self.ldc2_w(),
                         OpCode::iload => self.iload(),
                         OpCode::lload => self.lload(),
                         OpCode::fload => self.fload(),
@@ -159,14 +161,14 @@ impl<'a> Interp<'a> {
                         OpCode::aload_1 => self.aload_1(),
                         OpCode::aload_2 => self.aload_2(),
                         OpCode::aload_3 => self.aload_3(),
-                        OpCode::iaload => self.iaload(thread.clone()),
-                        OpCode::laload => self.laload(thread.clone()),
-                        OpCode::faload => self.faload(thread.clone()),
-                        OpCode::daload => self.daload(thread.clone()),
-                        OpCode::aaload => self.aaload(thread.clone()),
-                        OpCode::baload => self.baload(thread.clone()),
-                        OpCode::caload => self.caload(thread.clone()),
-                        OpCode::saload => self.saload(thread.clone()),
+                        OpCode::iaload => self.iaload(),
+                        OpCode::laload => self.laload(),
+                        OpCode::faload => self.faload(),
+                        OpCode::daload => self.daload(),
+                        OpCode::aaload => self.aaload(),
+                        OpCode::baload => self.baload(),
+                        OpCode::caload => self.caload(),
+                        OpCode::saload => self.saload(),
                         OpCode::istore => self.istore(),
                         OpCode::lstore => self.lstore(),
                         OpCode::fstore => self.fstore(),
@@ -192,14 +194,14 @@ impl<'a> Interp<'a> {
                         OpCode::astore_1 => self.astore_1(),
                         OpCode::astore_2 => self.astore_2(),
                         OpCode::astore_3 => self.astore_3(),
-                        OpCode::iastore => self.iastore(thread.clone()),
-                        OpCode::lastore => self.lastore(thread.clone()),
-                        OpCode::fastore => self.fastore(thread.clone()),
-                        OpCode::dastore => self.dastore(thread.clone()),
-                        OpCode::aastore => self.aastore(thread.clone()),
-                        OpCode::bastore => self.bastore(thread.clone()),
-                        OpCode::castore => self.castore(thread.clone()),
-                        OpCode::sastore => self.sastore(thread.clone()),
+                        OpCode::iastore => self.iastore(),
+                        OpCode::lastore => self.lastore(),
+                        OpCode::fastore => self.fastore(),
+                        OpCode::dastore => self.dastore(),
+                        OpCode::aastore => self.aastore(),
+                        OpCode::bastore => self.bastore(),
+                        OpCode::castore => self.castore(),
+                        OpCode::sastore => self.sastore(),
                         OpCode::pop => self.pop(),
                         OpCode::pop2 => self.pop2(),
                         OpCode::dup => self.dup(),
@@ -221,12 +223,12 @@ impl<'a> Interp<'a> {
                         OpCode::lmul => self.lmul(),
                         OpCode::fmul => self.fmul(),
                         OpCode::dmul => self.dmul(),
-                        OpCode::idiv => self.idiv(thread.clone()),
-                        OpCode::ldiv => self.ldiv(thread.clone()),
-                        OpCode::fdiv => self.fdiv(thread.clone()),
-                        OpCode::ddiv => self.ddiv(thread.clone()),
-                        OpCode::irem => self.irem(thread.clone()),
-                        OpCode::lrem => self.lrem(thread.clone()),
+                        OpCode::idiv => self.idiv(),
+                        OpCode::ldiv => self.ldiv(),
+                        OpCode::fdiv => self.fdiv(),
+                        OpCode::ddiv => self.ddiv(),
+                        OpCode::irem => self.irem(),
+                        OpCode::lrem => self.lrem(),
                         OpCode::frem => self.frem(),
                         OpCode::drem => self.drem(),
                         OpCode::ineg => self.ineg(),
@@ -285,23 +287,23 @@ impl<'a> Interp<'a> {
                         OpCode::ret => self.ret(),
                         OpCode::tableswitch => self.table_switch(),
                         OpCode::lookupswitch => self.lookup_switch(),
-                        OpCode::getstatic => self.get_static(thread.clone()),
-                        OpCode::putstatic => self.put_static(thread.clone()),
-                        OpCode::getfield => self.get_field(thread.clone()),
-                        OpCode::putfield => self.put_field(thread.clone()),
-                        OpCode::invokevirtual => self.invoke_virtual(thread.clone()),
-                        OpCode::invokespecial => self.invoke_special(thread.clone()),
-                        OpCode::invokestatic => self.invoke_static(thread.clone()),
-                        OpCode::invokeinterface => self.invoke_interface(thread.clone()),
+                        OpCode::getstatic => self.get_static(),
+                        OpCode::putstatic => self.put_static(),
+                        OpCode::getfield => self.get_field(),
+                        OpCode::putfield => self.put_field(),
+                        OpCode::invokevirtual => self.invoke_virtual(),
+                        OpCode::invokespecial => self.invoke_special(),
+                        OpCode::invokestatic => self.invoke_static(),
+                        OpCode::invokeinterface => self.invoke_interface(),
                         OpCode::invokedynamic => self.invoke_dynamic(),
-                        OpCode::new => self.new_(thread.clone()),
-                        OpCode::newarray => self.new_array(thread.clone()),
-                        OpCode::anewarray => self.anew_array(thread.clone()),
-                        OpCode::arraylength => self.array_length(thread.clone()),
-                        OpCode::checkcast => self.check_cast(thread.clone()),
-                        OpCode::instanceof => self.instance_of(thread.clone()),
-                        OpCode::monitorenter => self.monitor_enter(thread.clone()),
-                        OpCode::monitorexit => self.monitor_exit(thread.clone()),
+                        OpCode::new => self.new_(),
+                        OpCode::newarray => self.new_array(),
+                        OpCode::anewarray => self.anew_array(),
+                        OpCode::arraylength => self.array_length(),
+                        OpCode::checkcast => self.check_cast(),
+                        OpCode::instanceof => self.instance_of(),
+                        OpCode::monitorenter => self.monitor_enter(),
+                        OpCode::monitorexit => self.monitor_exit(),
                         OpCode::wide => self.wide(),
                         OpCode::multianewarray => self.multi_anew_array(),
                         OpCode::ifnull => self.if_null(),
@@ -311,16 +313,15 @@ impl<'a> Interp<'a> {
                         _ => unreachable!(),
                     }
 
-                    let is_meet_ex = thread.read().unwrap().is_meet_ex();
+                    let is_meet_ex = jt.read().unwrap().is_meet_ex();
                     if is_meet_ex {
-                        // util::debug::print_stack_trace(thread);
-                        let mut th = thread.write().unwrap();
+                        let mut th = jt.write().unwrap();
                         let ex = th.take_ex().unwrap();
                         drop(th);
-                        match self.try_handle_exception(thread.clone(), ex) {
+                        match self.try_handle_exception(ex) {
                             Ok(_) => (),
                             Err(ex) => {
-                                let mut th = thread.write().unwrap();
+                                let mut th = jt.write().unwrap();
                                 th.set_ex(ex);
                                 break;
                             }
@@ -367,7 +368,7 @@ impl<'a> Interp<'a> {
         self.read_u1() << 8 | self.read_u1()
     }
 
-    fn load_constant(&self, pos: usize, thread: JavaThreadRef) {
+    fn load_constant(&self, pos: usize) {
         match &self.frame.cp[pos] {
             ConstantPoolType::Integer { v } => {
                 let mut area = self.frame.area.write().unwrap();
@@ -387,7 +388,7 @@ impl<'a> Interp<'a> {
             }
             ConstantPoolType::String { string_index } => {
                 let s = get_cp_utf8(&self.frame.cp, *string_index as usize).unwrap();
-                let s = util::oop::new_java_lang_string3(thread, s.as_slice());
+                let s = util::oop::new_java_lang_string3(s.as_slice());
 
                 let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(s);
@@ -401,10 +402,10 @@ impl<'a> Interp<'a> {
 
                 {
                     let mut class = class.write().unwrap();
-                    class.init_class(thread.clone());
+                    class.init_class();
                 }
 
-                oop::class::init_class_fully(thread, class.clone());
+                oop::class::init_class_fully(class.clone());
 
                 let mirror = { class.read().unwrap().get_mirror() };
 
@@ -450,8 +451,8 @@ impl<'a> Interp<'a> {
         area.return_v = v;
     }
 
-    fn get_field_helper(&self, thread: JavaThreadRef, receiver: Oop, idx: i32, is_static: bool) {
-        let fir = { field::get_field_ref(thread.clone(), &self.frame.cp, idx as usize, is_static) };
+    fn get_field_helper(&self, receiver: Oop, idx: i32, is_static: bool) {
+        let fir = { field::get_field_ref(&self.frame.cp, idx as usize, is_static) };
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -511,8 +512,8 @@ impl<'a> Interp<'a> {
         }
     }
 
-    fn put_field_helper(&self, thread: JavaThreadRef, idx: i32, is_static: bool) {
-        let fir = { field::get_field_ref(thread.clone(), &self.frame.cp, idx as usize, is_static) };
+    fn put_field_helper(&self, idx: i32, is_static: bool) {
+        let fir = { field::get_field_ref(&self.frame.cp, idx as usize, is_static) };
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -566,7 +567,7 @@ impl<'a> Interp<'a> {
                 area.stack.pop_ref()
             };
             match receiver {
-                Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+                Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
                 _ => {
                     class.put_field_value(receiver, fir.clone(), v);
                 }
@@ -574,22 +575,16 @@ impl<'a> Interp<'a> {
         }
     }
 
-    fn invoke_helper(
-        &self,
-        jt: JavaThreadRef,
-        is_static: bool,
-        idx: usize,
-        force_no_resolve: bool,
-    ) {
-        let mir = { oop::method::get_method_ref(jt.clone(), &self.frame.cp, idx) };
+    fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool) {
+        let mir = { oop::method::get_method_ref(&self.frame.cp, idx) };
 
         match mir {
             Ok(mir) => {
                 assert_eq!(mir.method.is_static(), is_static);
 
-                match runtime::invoke::JavaCall::new(jt.clone(), self.frame.area.clone(), mir) {
+                match runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
                     Ok(mut jc) => {
-                        jc.invoke(jt, Some(self.frame.area.clone()), force_no_resolve);
+                        jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
                     }
 
                     //ignored, let interp main loop handle exception
@@ -600,7 +595,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn check_cast_helper(&self, thread: JavaThreadRef, is_cast: bool) {
+    pub fn check_cast_helper(&self, is_cast: bool) {
         let cp_idx = self.read_i2();
         let target_cls = require_class2(cp_idx as U2, &self.frame.cp).unwrap();
 
@@ -621,7 +616,7 @@ impl<'a> Interp<'a> {
                 let target_name = String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
 
                 let msg = format!("{} cannot be cast to {}", obj_name, target_name);
-                exception::meet_ex(thread, cls_const::J_CCE, Some(msg));
+                exception::meet_ex(cls_const::J_CCE, Some(msg));
             }
         };
         let op_instance_of = |r: bool| {
@@ -691,7 +686,7 @@ impl<'a> Interp<'a> {
 
 //handle exception
 impl<'a> Interp<'a> {
-    fn try_handle_exception(&self, jt: JavaThreadRef, ex: Oop) -> Result<(), Oop> {
+    fn try_handle_exception(&self, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
             let ex = util::oop::extract_ref(&ex);
             let v = ex.read().unwrap();
@@ -840,19 +835,18 @@ impl<'a> Interp<'a> {
         area.stack.push_int(v);
     }
 
-    pub fn ldc(&self, thread: JavaThreadRef) {
+    pub fn ldc(&self) {
         let pos = self.read_u1();
-        self.load_constant(pos, thread);
+        self.load_constant(pos);
     }
 
-    pub fn ldc_w(&self, thread: JavaThreadRef) {
+    pub fn ldc_w(&self) {
         let pos = self.read_u2();
-
-        self.load_constant(pos, thread);
+        self.load_constant(pos);
     }
 
-    pub fn ldc2_w(&self, thread: JavaThreadRef) {
-        self.ldc_w(thread);
+    pub fn ldc2_w(&self) {
+        self.ldc_w();
     }
 
     pub fn iload(&self) {
@@ -1070,18 +1064,18 @@ impl<'a> Interp<'a> {
         area.stack.push_ref(v);
     }
 
-    pub fn iaload(&self, thread: JavaThreadRef) {
+    pub fn iaload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Int(ary) => {
-                            iarray_load!(thread, area, ary, pos);
+                            iarray_load!(area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1092,18 +1086,18 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn saload(&self, thread: JavaThreadRef) {
+    pub fn saload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Short(ary) => {
-                            iarray_load!(thread, area, ary, pos);
+                            iarray_load!(area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1114,18 +1108,18 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn caload(&self, thread: JavaThreadRef) {
+    pub fn caload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Char(ary) => {
-                            iarray_load!(thread, area, ary, pos);
+                            iarray_load!(area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1136,21 +1130,21 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn baload(&self, thread: JavaThreadRef) {
+    pub fn baload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Byte(ary) => {
-                            iarray_load!(thread, area, ary, pos);
+                            iarray_load!(area, ary, pos);
                         }
                         oop::TypeArrayDesc::Bool(ary) => {
-                            iarray_load!(thread, area, ary, pos);
+                            iarray_load!(area, ary, pos);
                         }
                         t => unreachable!("t = {:?}", t),
                     },
@@ -1161,12 +1155,12 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn laload(&self, thread: JavaThreadRef) {
+    pub fn laload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1176,7 +1170,6 @@ impl<'a> Interp<'a> {
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
                                 exception::meet_ex(
-                                    thread,
                                     cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                                     Some(msg),
                                 );
@@ -1193,12 +1186,12 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn faload(&self, thread: JavaThreadRef) {
+    pub fn faload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1208,7 +1201,6 @@ impl<'a> Interp<'a> {
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
                                 exception::meet_ex(
-                                    thread,
                                     cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                                     Some(msg),
                                 );
@@ -1225,12 +1217,12 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn daload(&self, thread: JavaThreadRef) {
+    pub fn daload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1240,7 +1232,6 @@ impl<'a> Interp<'a> {
                             if (pos < 0) || (pos as usize >= len) {
                                 let msg = format!("length is {}, but index is {}", len, pos);
                                 exception::meet_ex(
-                                    thread,
                                     cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
                                     Some(msg),
                                 );
@@ -1257,12 +1248,12 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn aaload(&self, thread: JavaThreadRef) {
+    pub fn aaload(&self) {
         let mut area = self.frame.area.write().unwrap();
         let pos = area.stack.pop_int();
         let rf = area.stack.pop_ref();
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let rf = rf.read().unwrap();
                 match &rf.v {
@@ -1271,11 +1262,7 @@ impl<'a> Interp<'a> {
                         //                info!("aaload pos={}, len={}", pos, len);
                         if (pos < 0) || (pos as usize >= len) {
                             let msg = format!("length is {}, but index is {}", len, pos);
-                            exception::meet_ex(
-                                thread,
-                                cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                Some(msg),
-                            );
+                            exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                         } else {
                             let v = ary.elements[pos as usize].clone();
                             area.stack.push_ref(v);
@@ -1503,7 +1490,7 @@ impl<'a> Interp<'a> {
         area.local.set_ref(3, v);
     }
 
-    pub fn bastore(&self, thread: JavaThreadRef) {
+    pub fn bastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
@@ -1511,18 +1498,18 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Byte(ary) => {
                             let v = v as u8;
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         oop::TypeArrayDesc::Bool(ary) => {
                             let v = v as u8;
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1533,7 +1520,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn castore(&self, thread: JavaThreadRef) {
+    pub fn castore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
@@ -1541,14 +1528,14 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Char(ary) => {
                             let v = v as u16;
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1559,7 +1546,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn sastore(&self, thread: JavaThreadRef) {
+    pub fn sastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
@@ -1567,14 +1554,14 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Short(ary) => {
                             let v = v as i16;
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1585,7 +1572,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn iastore(&self, thread: JavaThreadRef) {
+    pub fn iastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         let pos = area.stack.pop_int();
@@ -1593,13 +1580,13 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Int(ary) => {
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1610,7 +1597,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn lastore(&self, thread: JavaThreadRef) {
+    pub fn lastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         let pos = area.stack.pop_int();
@@ -1618,13 +1605,13 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Long(ary) => {
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1635,7 +1622,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn fastore(&self, thread: JavaThreadRef) {
+    pub fn fastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         let pos = area.stack.pop_int();
@@ -1643,13 +1630,13 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Float(ary) => {
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1660,7 +1647,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn dastore(&self, thread: JavaThreadRef) {
+    pub fn dastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         let pos = area.stack.pop_int();
@@ -1668,13 +1655,13 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::TypeArray(ary) => match ary {
                         oop::TypeArrayDesc::Double(ary) => {
-                            array_store!(thread, ary, pos, v);
+                            array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
                     },
@@ -1685,7 +1672,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn aastore(&self, thread: JavaThreadRef) {
+    pub fn aastore(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         let pos = area.stack.pop_int();
@@ -1693,13 +1680,13 @@ impl<'a> Interp<'a> {
         drop(area);
 
         match ary_rf {
-            Oop::Null => exception::meet_ex(thread, cls_const::J_NPE, None),
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let mut rf = rf.write().unwrap();
                 match &mut rf.v {
                     oop::RefKind::Array(ary) => {
                         let ary = &mut ary.elements;
-                        array_store!(thread, ary, pos, v);
+                        array_store!(ary, pos, v);
                     }
                     _ => unreachable!(),
                 }
@@ -1844,7 +1831,7 @@ impl<'a> Interp<'a> {
         area.stack.push_double(v1 * v2);
     }
 
-    pub fn idiv(&self, thread: JavaThreadRef) {
+    pub fn idiv(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
@@ -1852,7 +1839,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -1861,7 +1847,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn ldiv(&self, thread: JavaThreadRef) {
+    pub fn ldiv(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
@@ -1869,7 +1855,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -1878,7 +1863,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn fdiv(&self, thread: JavaThreadRef) {
+    pub fn fdiv(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_float();
         let v1 = area.stack.pop_float();
@@ -1886,7 +1871,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -1895,7 +1879,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn ddiv(&self, thread: JavaThreadRef) {
+    pub fn ddiv(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_double();
         let v1 = area.stack.pop_double();
@@ -1903,7 +1887,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -1912,7 +1895,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn irem(&self, thread: JavaThreadRef) {
+    pub fn irem(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_int();
         let v1 = area.stack.pop_int();
@@ -1920,7 +1903,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -1929,7 +1911,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn lrem(&self, thread: JavaThreadRef) {
+    pub fn lrem(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v2 = area.stack.pop_long();
         let v1 = area.stack.pop_long();
@@ -1937,7 +1919,6 @@ impl<'a> Interp<'a> {
             drop(area);
 
             exception::meet_ex(
-                thread,
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
@@ -2691,17 +2672,17 @@ impl<'a> Interp<'a> {
         self.set_return(None);
     }
 
-    pub fn get_static(&self, thread: JavaThreadRef) {
+    pub fn get_static(&self) {
         let cp_idx = self.read_i2();
-        self.get_field_helper(thread, oop_consts::get_null(), cp_idx, true);
+        self.get_field_helper(oop_consts::get_null(), cp_idx, true);
     }
 
-    pub fn put_static(&self, thread: JavaThreadRef) {
+    pub fn put_static(&self) {
         let cp_idx = self.read_i2();
-        self.put_field_helper(thread, cp_idx, true);
+        self.put_field_helper(cp_idx, true);
     }
 
-    pub fn get_field(&self, thread: JavaThreadRef) {
+    pub fn get_field(&self) {
         let cp_idx = self.read_i2();
 
         let mut area = self.frame.area.write().unwrap();
@@ -2710,35 +2691,35 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => {
-                exception::meet_ex(thread, cls_const::J_NPE, None);
+                exception::meet_ex(cls_const::J_NPE, None);
             }
             _ => {
-                self.get_field_helper(thread, rf, cp_idx, false);
+                self.get_field_helper(rf, cp_idx, false);
             }
         }
     }
 
-    pub fn put_field(&self, thread: JavaThreadRef) {
+    pub fn put_field(&self) {
         let cp_idx = self.read_i2();
-        self.put_field_helper(thread, cp_idx, false);
+        self.put_field_helper(cp_idx, false);
     }
 
-    pub fn invoke_virtual(&self, thread: JavaThreadRef) {
+    pub fn invoke_virtual(&self) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, false, cp_idx as usize, false);
+        self.invoke_helper(false, cp_idx as usize, false);
     }
 
-    pub fn invoke_special(&self, thread: JavaThreadRef) {
+    pub fn invoke_special(&self) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, false, cp_idx as usize, true);
+        self.invoke_helper(false, cp_idx as usize, true);
     }
 
-    pub fn invoke_static(&self, thread: JavaThreadRef) {
+    pub fn invoke_static(&self) {
         let cp_idx = self.read_i2();
-        self.invoke_helper(thread, true, cp_idx as usize, true);
+        self.invoke_helper(true, cp_idx as usize, true);
     }
 
-    pub fn invoke_interface(&self, thread: JavaThreadRef) {
+    pub fn invoke_interface(&self) {
         let cp_idx = self.read_i2();
         let _count = self.read_u1();
         let zero = self.read_u1();
@@ -2747,7 +2728,7 @@ impl<'a> Interp<'a> {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
 
-        self.invoke_helper(thread, false, cp_idx as usize, false);
+        self.invoke_helper(false, cp_idx as usize, false);
     }
 
     pub fn invoke_dynamic(&self) {
@@ -2755,7 +2736,7 @@ impl<'a> Interp<'a> {
         unimplemented!()
     }
 
-    pub fn new_(&self, thread: JavaThreadRef) {
+    pub fn new_(&self) {
         let cp_idx = self.read_i2();
 
         let class = {
@@ -2763,10 +2744,10 @@ impl<'a> Interp<'a> {
                 Some(class) => {
                     {
                         let mut class = class.write().unwrap();
-                        class.init_class(thread.clone());
+                        class.init_class();
                     }
 
-                    oop::class::init_class_fully(thread, class.clone());
+                    oop::class::init_class_fully(class.clone());
 
                     class
                 }
@@ -2779,7 +2760,7 @@ impl<'a> Interp<'a> {
         area.stack.push_ref(v);
     }
 
-    pub fn new_array(&self, thread: JavaThreadRef) {
+    pub fn new_array(&self) {
         let t = self.read_byte();
 
         let mut area = self.frame.area.write().unwrap();
@@ -2787,7 +2768,7 @@ impl<'a> Interp<'a> {
 
         if len < 0 {
             drop(area);
-            exception::meet_ex(thread, cls_const::J_NASE, Some("length < 0".to_string()));
+            exception::meet_ex(cls_const::J_NASE, Some("length < 0".to_string()));
         } else {
             let len = len as usize;
             let ary = match t {
@@ -2814,7 +2795,7 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn anew_array(&self, thread: JavaThreadRef) {
+    pub fn anew_array(&self) {
         let cp_idx = self.read_i2();
 
         let mut area = self.frame.area.write().unwrap();
@@ -2823,7 +2804,7 @@ impl<'a> Interp<'a> {
 
         //        info!("anew_array length={}", length);
         if length < 0 {
-            exception::meet_ex(thread, cls_const::J_NASE, Some("length < 0".to_string()));
+            exception::meet_ex(cls_const::J_NASE, Some("length < 0".to_string()));
         } else {
             let class = match runtime::require_class2(cp_idx as u16, &self.frame.cp) {
                 Some(class) => class,
@@ -2832,10 +2813,10 @@ impl<'a> Interp<'a> {
 
             {
                 let mut class = class.write().unwrap();
-                class.init_class(thread.clone());
+                class.init_class();
             }
 
-            oop::class::init_class_fully(thread.clone(), class.clone());
+            oop::class::init_class_fully(class.clone());
 
             let (name, cl) = {
                 let class = class.read().unwrap();
@@ -2871,10 +2852,10 @@ impl<'a> Interp<'a> {
                     {
                         {
                             let mut class = ary_cls_obj.write().unwrap();
-                            class.init_class(thread.clone());
+                            class.init_class();
                         }
 
-                        oop::class::init_class_fully(thread, ary_cls_obj.clone());
+                        oop::class::init_class_fully(ary_cls_obj.clone());
                     }
 
                     let mut area = self.frame.area.write().unwrap();
@@ -2886,14 +2867,14 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn array_length(&self, thread: JavaThreadRef) {
+    pub fn array_length(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
 
         match v {
             Oop::Null => {
                 drop(area);
-                exception::meet_ex(thread, cls_const::J_NPE, None)
+                exception::meet_ex(cls_const::J_NPE, None)
             }
             Oop::Ref(rf) => {
                 let v = rf.read().unwrap();
@@ -2921,22 +2902,22 @@ impl<'a> Interp<'a> {
         jt.write().unwrap().set_ex(ex);
     }
 
-    pub fn check_cast(&self, thread: JavaThreadRef) {
-        self.check_cast_helper(thread, true);
+    pub fn check_cast(&self) {
+        self.check_cast_helper(true);
     }
 
-    pub fn instance_of(&self, thread: JavaThreadRef) {
-        self.check_cast_helper(thread, false);
+    pub fn instance_of(&self) {
+        self.check_cast_helper(false);
     }
 
-    pub fn monitor_enter(&self, thread: JavaThreadRef) {
+    pub fn monitor_enter(&self) {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         drop(area);
 
         match v {
             Oop::Null => {
-                exception::meet_ex(thread, cls_const::J_NPE, None);
+                exception::meet_ex(cls_const::J_NPE, None);
             }
             Oop::Ref(v) => {
                 let v = v.read().unwrap();
@@ -2946,14 +2927,14 @@ impl<'a> Interp<'a> {
         }
     }
 
-    pub fn monitor_exit(&self, thread: JavaThreadRef) {
+    pub fn monitor_exit(&self) {
         let mut area = self.frame.area.write().unwrap();
         let mut v = area.stack.pop_ref();
         drop(area);
 
         match v {
             Oop::Null => {
-                exception::meet_ex(thread, cls_const::J_NPE, None);
+                exception::meet_ex(cls_const::J_NPE, None);
             }
             Oop::Ref(v) => {
                 let v = v.read().unwrap();

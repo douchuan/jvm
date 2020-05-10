@@ -9,7 +9,7 @@ use class_parser::{FieldSignature, MethodSignature};
 use classfile::consts as cls_const;
 use classfile::SignatureType;
 
-pub fn new_field(jt: JavaThreadRef, fir: FieldIdRef) -> Oop {
+pub fn new_field(fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();
 
     let clazz = fir.field.class.read().unwrap().get_mirror();
@@ -17,7 +17,7 @@ pub fn new_field(jt: JavaThreadRef, fir: FieldIdRef) -> Oop {
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
     let desc = unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) };
-    let signature = util::oop::new_java_lang_string2(jt.clone(), desc);
+    let signature = util::oop::new_java_lang_string2(desc);
 
     let field_name = unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) };
     let mut desc = Vec::new();
@@ -27,7 +27,7 @@ pub fn new_field(jt: JavaThreadRef, fir: FieldIdRef) -> Oop {
         (
             "name",
             "Ljava/lang/String;",
-            util::oop::new_java_lang_string2(jt.clone(), field_name),
+            util::oop::new_java_lang_string2(field_name),
         ),
         ("type", "Ljava/lang/Class;", typ_mirror),
         ("modifiers", "I", Oop::new_int(fir.field.acc_flags as i32)),
@@ -45,12 +45,12 @@ pub fn new_field(jt: JavaThreadRef, fir: FieldIdRef) -> Oop {
 
     let oop = Oop::new_inst(field_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(jt.clone(), field_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(field_cls, desc.as_slice(), args);
 
     oop
 }
 
-pub fn new_method_ctor(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
+pub fn new_method_ctor(mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD_CTOR).unwrap();
 
     //declaringClass
@@ -76,7 +76,7 @@ pub fn new_method_ctor(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
     let slot = mir.offset;
     //signature
     let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
-    let signature = util::oop::new_java_lang_string2(jt.clone(), desc);
+    let signature = util::oop::new_java_lang_string2(desc);
     let annotations = {
         let raw = mir.method.get_annotation();
         match raw {
@@ -118,12 +118,12 @@ pub fn new_method_ctor(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(ctor_cls, desc.as_slice(), args);
 
     oop
 }
 
-pub fn new_method_normal(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
+pub fn new_method_normal(mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD).unwrap();
 
     //declaringClass
@@ -132,7 +132,7 @@ pub fn new_method_normal(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
     //name
     let name = {
         let name = unsafe { std::str::from_utf8_unchecked(mir.method.name.as_slice()) };
-        util::oop::new_java_lang_string2(jt.clone(), name)
+        util::oop::new_java_lang_string2(name)
     };
 
     //parameterTypes
@@ -159,7 +159,7 @@ pub fn new_method_normal(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
     //signature
     let signature = {
         let desc = unsafe { std::str::from_utf8_unchecked(mir.method.desc.as_slice()) };
-        util::oop::new_java_lang_string2(jt.clone(), desc)
+        util::oop::new_java_lang_string2(desc)
     };
     let annotations = {
         let raw = mir.method.get_annotation();
@@ -212,7 +212,7 @@ pub fn new_method_normal(jt: JavaThreadRef, mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(jt.clone(), ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(ctor_cls, desc.as_slice(), args);
 
     oop
 }

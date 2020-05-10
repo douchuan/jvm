@@ -114,7 +114,7 @@ pub struct ArrayClassObject {
 }
 
 //invoke "<clinit>"
-pub fn init_class_fully(jt: JavaThreadRef, class: ClassRef) {
+pub fn init_class_fully(class: ClassRef) {
     let need = { class.read().unwrap().state == State::BeingIni };
 
     if need {
@@ -133,14 +133,14 @@ pub fn init_class_fully(jt: JavaThreadRef, class: ClassRef) {
                 });
                 let area = runtime::DataArea::new(0, 0);
                 let mut jc = JavaCall::new_with_args(mir, vec![]);
-                jc.invoke(jt, Some(area), true);
+                jc.invoke(Some(area), true);
             }
             _ => (),
         }
     }
 }
 
-pub fn load_and_init(jt: JavaThreadRef, name: &[u8]) -> ClassRef {
+pub fn load_and_init(name: &[u8]) -> ClassRef {
     // trace!("load_and_init 1 name={}", String::from_utf8_lossy(name));
     let cls_name = unsafe { std::str::from_utf8_unchecked(name) };
     let class = runtime::require_class3(None, name)
@@ -148,12 +148,12 @@ pub fn load_and_init(jt: JavaThreadRef, name: &[u8]) -> ClassRef {
     // trace!("load_and_init 2 name={}", String::from_utf8_lossy(name));
     {
         let mut class = class.write().unwrap();
-        class.init_class(jt.clone());
+        class.init_class();
         //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
     }
 
     // trace!("load_and_init 3, name={}", String::from_utf8_lossy(name));
-    init_class_fully(jt, class.clone());
+    init_class_fully(class.clone());
     //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
     // trace!("load_and_init 4, name={}", String::from_utf8_lossy(name));
 
@@ -257,7 +257,7 @@ impl Class {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self, jt: JavaThreadRef) {
+    pub fn init_class(&mut self) {
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
                 if self.state == State::Linked {
@@ -265,10 +265,10 @@ impl Class {
 
                     if let Some(super_class) = self.super_class.as_ref() {
                         {
-                            super_class.write().unwrap().init_class(jt.clone());
+                            super_class.write().unwrap().init_class();
                         }
 
-                        init_class_fully(jt.clone(), super_class.clone());
+                        init_class_fully(super_class.clone());
                     }
 
                     class_obj.init_static_fields();

@@ -3,7 +3,7 @@ use crate::runtime::{self, require_class3};
 use crate::types::JavaThreadRef;
 use crate::util;
 
-pub fn new(jt: JavaThreadRef, name: &[u8], msg: Option<String>) -> Oop {
+pub fn new(name: &[u8], msg: Option<String>) -> Oop {
     let cls = match require_class3(None, name) {
         Some(cls) => cls,
         None => panic!("ClassNotFound: {}", String::from_utf8_lossy(name)),
@@ -11,10 +11,10 @@ pub fn new(jt: JavaThreadRef, name: &[u8], msg: Option<String>) -> Oop {
 
     {
         let mut cls = cls.write().unwrap();
-        cls.init_class(jt.clone());
+        cls.init_class();
         //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
     }
-    oop::class::init_class_fully(jt.clone(), cls.clone());
+    oop::class::init_class_fully(cls.clone());
 
     let ex = Oop::new_inst(cls.clone());
 
@@ -22,21 +22,22 @@ pub fn new(jt: JavaThreadRef, name: &[u8], msg: Option<String>) -> Oop {
     match &msg {
         Some(msg) => {
             //with 'String' arg ctor
-            let msg = util::oop::new_java_lang_string2(jt.clone(), msg);
+            let msg = util::oop::new_java_lang_string2(msg);
             let args = vec![ex.clone(), msg];
-            runtime::invoke::invoke_ctor(jt, cls.clone(), b"(Ljava/lang/String;)V", args);
+            runtime::invoke::invoke_ctor(cls.clone(), b"(Ljava/lang/String;)V", args);
         }
         None => {
             //No arg ctor
             let args = vec![ex.clone()];
-            runtime::invoke::invoke_ctor(jt, cls.clone(), b"()V", args);
+            runtime::invoke::invoke_ctor(cls.clone(), b"()V", args);
         }
     }
 
     ex
 }
 
-pub fn meet_ex(jt: JavaThreadRef, cls_name: &'static [u8], msg: Option<String>) {
+pub fn meet_ex(cls_name: &'static [u8], msg: Option<String>) {
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     {
         let jt = jt.read().unwrap();
         let frame = jt.frames.last().unwrap();
@@ -44,6 +45,6 @@ pub fn meet_ex(jt: JavaThreadRef, cls_name: &'static [u8], msg: Option<String>) 
         frame.area.write().unwrap().ex_here = true;
     }
 
-    let ex = new(jt.clone(), cls_name, msg);
+    let ex = new(cls_name, msg);
     jt.write().unwrap().set_ex(ex);
 }

@@ -4,7 +4,6 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
-use crate::types::JavaThreadRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -108,7 +107,7 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let area = runtime::DataArea::new(0, 0);
             jt.write().unwrap().is_alive = true;
             jt.write().unwrap().java_thread_obj = Some(thread_oop.clone());
-            jc.invoke(jt.clone(), Some(area), false);
+            jc.invoke(Some(area), false);
             jt.write().unwrap().is_alive = false;
 
             //notify thread that invoke 'join'

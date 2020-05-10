@@ -3,7 +3,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
-use crate::types::JavaThreadRef;
 use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
 
@@ -88,11 +87,10 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         args.insert(0, obj.clone());
     }
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
     let mut jc = runtime::invoke::JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 0);
-    jc.invoke(jt, Some(area.clone()), force_no_resolve);
+    jc.invoke(Some(area.clone()), force_no_resolve);
 
     // error!("invoke0 return_type = {:?}, desc={}", jc.return_type, String::from_utf8_lossy(mir.method.desc.as_slice()));
 

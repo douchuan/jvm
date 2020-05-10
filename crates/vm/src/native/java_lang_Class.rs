@@ -3,7 +3,6 @@
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, ClassKind, Oop, ValueType};
 use crate::runtime::{self, require_class2, require_class3};
-use crate::types::JavaThreadRef;
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
 use classfile::{constant_pool, consts as cls_consts, flags as acc};
@@ -305,7 +304,6 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
     };
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     //build fields ary
     let mut fields = Vec::new();
     for (_, it) in inst_fields {
@@ -313,7 +311,7 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             continue;
         }
 
-        let v = common::reflect::new_field(jt.clone(), it);
+        let v = common::reflect::new_field(it);
         fields.push(v);
     }
 
@@ -322,7 +320,7 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             continue;
         }
 
-        let v = common::reflect::new_field(jt.clone(), it);
+        let v = common::reflect::new_field(it);
         fields.push(v);
     }
 
@@ -358,10 +356,7 @@ fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = unsafe { String::from_utf8_unchecked(name) };
     let name = name.replace("/", ".");
 
-    let v = runtime::thread::THREAD.with(|t| {
-        let jt = t.borrow().clone();
-        util::oop::new_java_lang_string2(jt, &name)
-    });
+    let v = util::oop::new_java_lang_string2(&name);
     Ok(Some(v))
 }
 
@@ -384,10 +379,7 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     if java_name.contains("/") {
         let msg = Some(java_name);
-        let ex = runtime::thread::THREAD.with(|t| {
-            let jt = t.borrow().clone();
-            runtime::exception::new(jt, cls_consts::J_CLASS_NOT_FOUND, msg)
-        });
+        let ex = runtime::exception::new(cls_consts::J_CLASS_NOT_FOUND, msg);
         return Err(ex);
     }
 
@@ -401,18 +393,16 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
     };
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-
     match cls {
         Some(cls) => {
             {
                 let mut cls = cls.write().unwrap();
-                cls.init_class(jt.clone());
+                cls.init_class();
                 //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
             }
 
             if initialize {
-                oop::class::init_class_fully(jt, cls.clone());
+                oop::class::init_class_fully(cls.clone());
             }
 
             let mirror = cls.read().unwrap().get_mirror();
@@ -422,7 +412,7 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         None => {
             error!("forName0, NotFound: {}", java_name);
             let msg = Some(java_name);
-            let ex = runtime::exception::new(jt, cls_consts::J_CLASS_NOT_FOUND, msg);
+            let ex = runtime::exception::new(cls_consts::J_CLASS_NOT_FOUND, msg);
             Err(ex)
         }
     }
@@ -646,9 +636,8 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let desc = desc.unwrap();
         let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
 
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-        elms.push(util::oop::new_java_lang_string2(jt.clone(), name));
-        elms.push(util::oop::new_java_lang_string2(jt, desc));
+        elms.push(util::oop::new_java_lang_string2(name));
+        elms.push(util::oop::new_java_lang_string2(desc));
     } else {
         elms.push(oop::consts::get_null());
         elms.push(oop::consts::get_null());
@@ -864,8 +853,7 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                             || oop::consts::get_null(),
                             |v| {
                                 let sig = unsafe { std::str::from_utf8_unchecked(v.as_slice()) };
-                                let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-                                util::oop::new_java_lang_string2(jt, sig)
+                                util::oop::new_java_lang_string2(sig)
                             },
                         )
                     } else {
@@ -935,13 +923,12 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
     };
 
     //build methods ary
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let mut methods = Vec::new();
     for m in selected_methods {
         let v = if want_constructor {
-            common::reflect::new_method_ctor(jt.clone(), m)
+            common::reflect::new_method_ctor(m)
         } else {
-            common::reflect::new_method_normal(jt.clone(), m)
+            common::reflect::new_method_normal(m)
         };
 
         methods.push(v);

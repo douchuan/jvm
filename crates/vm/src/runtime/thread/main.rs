@@ -27,10 +27,10 @@ impl MainThread {
 
         info!("init vm start");
         let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-        init_vm::initialize_jvm(jt.clone());
+        init_vm::initialize_jvm();
         info!("init vm end");
 
-        let main_class = oop::class::load_and_init(jt.clone(), self.class.as_bytes());
+        let main_class = oop::class::load_and_init(self.class.as_bytes());
 
         let mir = {
             let cls = main_class.read().unwrap();
@@ -60,13 +60,13 @@ impl MainThread {
 
         match mir {
             Ok(mir) => {
-                let arg = self.build_main_arg(jt.clone());
+                let arg = self.build_main_arg();
                 let area = DataArea::new(0, 1);
                 area.write().unwrap().stack.push_ref(arg);
-                match JavaCall::new(jt.clone(), area.clone(), mir) {
+                match JavaCall::new(area.clone(), mir) {
                     Ok(mut jc) => {
                         jt.write().unwrap().is_alive = true;
-                        jc.invoke(jt.clone(), Some(area), true);
+                        jc.invoke(Some(area), true);
                         jt.write().unwrap().is_alive = false;
 
                         //'main' thread finish
@@ -79,7 +79,7 @@ impl MainThread {
         }
 
         if jt.read().unwrap().ex.is_some() {
-            self.uncaught_ex(jt.clone(), main_class);
+            self.uncaught_ex(main_class);
         }
 
         vm.threads.join_all();
@@ -87,11 +87,11 @@ impl MainThread {
 }
 
 impl MainThread {
-    fn build_main_arg(&self, jt: JavaThreadRef) -> Oop {
+    fn build_main_arg(&self) -> Oop {
         let args = match &self.args {
             Some(args) => args
                 .iter()
-                .map(|it| util::oop::new_java_lang_string2(jt.clone(), it))
+                .map(|it| util::oop::new_java_lang_string2(it))
                 .collect(),
             None => vec![],
         };
@@ -101,16 +101,17 @@ impl MainThread {
         Oop::new_ref_ary2(ary_str_class, args)
     }
 
-    fn uncaught_ex(&mut self, jt: JavaThreadRef, main_cls: ClassRef) {
+    fn uncaught_ex(&mut self, main_cls: ClassRef) {
         if self.dispatch_uncaught_exception_called {
-            self.uncaught_ex_internal(jt);
+            self.uncaught_ex_internal();
         } else {
             self.dispatch_uncaught_exception_called = true;
-            self.call_dispatch_uncaught_exception(jt, main_cls);
+            self.call_dispatch_uncaught_exception(main_cls);
         }
     }
 
-    fn call_dispatch_uncaught_exception(&mut self, jt: JavaThreadRef, main_cls: ClassRef) {
+    fn call_dispatch_uncaught_exception(&mut self, main_cls: ClassRef) {
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         let v = {
             let jt = jt.read().unwrap();
             jt.java_thread_obj.clone()
@@ -143,17 +144,18 @@ impl MainThread {
                         let args = vec![v.clone(), ex];
                         let mut jc = JavaCall::new_with_args(mir, args);
                         let area = runtime::DataArea::new(0, 0);
-                        jc.invoke(jt, Some(area), false);
+                        jc.invoke(Some(area), false);
                     }
-                    _ => self.uncaught_ex_internal(jt),
+                    _ => self.uncaught_ex_internal(),
                 }
             }
 
-            None => self.uncaught_ex_internal(jt),
+            None => self.uncaught_ex_internal(),
         }
     }
 
-    fn uncaught_ex_internal(&mut self, jt: JavaThreadRef) {
+    fn uncaught_ex_internal(&mut self) {
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         let ex = {
             let mut jt = jt.write().unwrap();
             jt.take_ex().unwrap()

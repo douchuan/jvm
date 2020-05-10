@@ -10,12 +10,7 @@ use classfile::{
 use std::ops::Deref;
 use std::sync::Arc;
 
-pub fn get_field_ref(
-    thread: JavaThreadRef,
-    cp: &ConstantPool,
-    idx: usize,
-    is_static: bool,
-) -> FieldIdRef {
+pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdRef {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
 
     //load Field's Class, then init it
@@ -29,7 +24,7 @@ pub fn get_field_ref(
     });
     let (name, desc) = {
         let mut class = class.write().unwrap();
-        class.init_class(thread.clone());
+        class.init_class();
 
         let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
@@ -40,7 +35,7 @@ pub fn get_field_ref(
 
     //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
 
-    oop::class::init_class_fully(thread, class.clone());
+    oop::class::init_class_fully(class.clone());
 
     let class = class.read().unwrap();
     class.get_field_id(name.as_slice(), desc.as_slice(), is_static)

@@ -2,7 +2,6 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::types::JavaThreadRef;
 use crate::util;
 use std::time::Duration;
 

@@ -1,8 +1,6 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime;
-use crate::types::JavaThreadRef;
 use crate::util;
 use classfile::constant_pool;
 
@@ -46,8 +44,7 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let r = match s {
         Some(s) => {
             let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
-            let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-            util::oop::new_java_lang_string2(jt, s)
+            util::oop::new_java_lang_string2(s)
         }
         None => oop::consts::get_null(),
     };

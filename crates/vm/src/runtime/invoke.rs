@@ -15,14 +15,14 @@ pub struct JavaCall {
     pub return_type: SignatureType,
 }
 
-pub fn invoke_ctor(jt: JavaThreadRef, cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
+pub fn invoke_ctor(cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
         cls.get_this_class_method(b"<init>", &desc).unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(ctor, args);
-    jc.invoke(jt, None, false);
+    jc.invoke(None, false);
 }
 
 impl JavaCall {
@@ -36,7 +36,7 @@ impl JavaCall {
         }
     }
 
-    pub fn new(jt: JavaThreadRef, caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
+    pub fn new(caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
         let return_type = sig.retype.clone();
 
@@ -68,7 +68,8 @@ impl JavaCall {
                     //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
                     //                        panic!();
 
-                    let ex = exception::new(jt.clone(), cls_const::J_NPE, None);
+                    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+                    let ex = exception::new(cls_const::J_NPE, None);
                     let mut jt = jt.write().unwrap();
                     jt.set_ex(ex);
                     return Err(());
@@ -88,12 +89,7 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    pub fn invoke(
-        &mut self,
-        jt: JavaThreadRef,
-        caller: Option<DataAreaRef>,
-        force_no_resolve: bool,
-    ) {
+    pub fn invoke(&mut self, caller: Option<DataAreaRef>, force_no_resolve: bool) {
         /*
         Do resolve again first, because you can override in a native way such as:
         UnixFileSystem override FileSystem
@@ -105,20 +101,22 @@ impl JavaCall {
         self.debug();
 
         if self.mir.method.is_native() {
-            self.invoke_native(jt.clone(), caller);
+            self.invoke_native(caller);
         } else {
-            self.invoke_java(jt.clone(), caller);
+            self.invoke_java(caller);
         }
 
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         let _ = jt.write().unwrap().frames.pop();
     }
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, jt: JavaThreadRef, caller: Option<DataAreaRef>) {
+    fn invoke_java(&mut self, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
-        match self.prepare_frame(jt.clone(), false) {
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        match self.prepare_frame(false) {
             Ok(frame) => {
                 {
                     jt.write().unwrap().frames.push(frame.clone());
@@ -126,7 +124,7 @@ impl JavaCall {
 
                 let frame_h = frame.try_read().unwrap();
                 let interp = Interp::new(frame_h);
-                interp.run(jt.clone());
+                interp.run();
 
                 if !jt.read().unwrap().is_meet_ex() {
                     let return_value = {
@@ -146,9 +144,10 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, jt: JavaThreadRef, caller: Option<DataAreaRef>) {
+    fn invoke_native(&mut self, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         let package = {
             let cls = self.mir.method.class.read().unwrap();
             cls.name.clone()
@@ -161,7 +160,7 @@ impl JavaCall {
                 let class = self.mir.method.class.clone();
                 let env = native::new_jni_env(class);
 
-                match self.prepare_frame(jt.clone(), true) {
+                match self.prepare_frame(true) {
                     Ok(frame) => {
                         {
                             jt.write().unwrap().frames.push(frame.clone());
@@ -219,10 +218,11 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self, thread: JavaThreadRef, is_native: bool) -> Result<FrameRef, Oop> {
-        let frame_len = { thread.read().unwrap().frames.len() };
+    fn prepare_frame(&mut self, is_native: bool) -> Result<FrameRef, Oop> {
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let frame_len = { jt.read().unwrap().frames.len() };
         if frame_len >= runtime::consts::THREAD_MAX_STACK_FRAMES {
-            let ex = exception::new(thread, cls_const::J_SOE, None);
+            let ex = exception::new(cls_const::J_SOE, None);
             return Err(ex);
         }
 

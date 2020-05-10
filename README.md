@@ -13,7 +13,6 @@ Pay tribute to medical workers at the front! Thank you for your contribution to 
 
 - Pass test cases in JDK 
 - Pass TCK 
-- Thread
 - GC (crate)
 - JIT / interp (crate)
 - class verification (crate)

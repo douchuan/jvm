@@ -2,8 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::runtime::{self, require_class3};
-use crate::types::JavaThreadRef;
+use crate::runtime::require_class3;
 use crate::util;
 use std::fs;
 
@@ -103,10 +102,7 @@ fn jvm_canonicalize0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = std::path::Path::new(&path);
     let path = path.canonicalize().expect("path canonicalize failed");
     let path = path.to_str().expect("path to_str failed");
-    let path = runtime::thread::THREAD.with(|t| {
-        let jt = t.borrow().clone();
-        util::oop::new_java_lang_string2(jt, path)
-    });
+    let path = util::oop::new_java_lang_string2(path);
 
     Ok(Some(path))
 }

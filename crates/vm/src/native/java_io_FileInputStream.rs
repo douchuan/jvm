@@ -2,7 +2,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, TypeArrayDesc};
 use crate::runtime::{self, require_class3};
-use crate::types::JavaThreadRef;
 use crate::util;
 use classfile::consts as cls_consts;
 
@@ -64,16 +63,12 @@ fn jvm_readBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 if n > 0 {
                     n as i32
                 } else if n == -1 {
-                    return runtime::thread::THREAD.with(|t| {
-                        let jt = t.borrow().clone();
-                        let ex = runtime::exception::new(
-                            jt,
-                            cls_consts::J_IOEXCEPTION,
-                            Some(String::from("Read Error")),
-                        );
-                        error!("jvm_readBytes read error");
-                        Err(ex)
-                    });
+                    let ex = runtime::exception::new(
+                        cls_consts::J_IOEXCEPTION,
+                        Some(String::from("Read Error")),
+                    );
+                    error!("jvm_readBytes read error");
+                    return Err(ex);
                 } else {
                     -1
                 }

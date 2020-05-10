@@ -22,7 +22,6 @@ if __name__ == '__main__':
 	print()
 	print("use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};")
 	print("use crate::oop::{self, Oop};")
-	print("use crate::types::JavaThreadRef;")
 	print("use crate::util;")
 	print()
 	print("pub fn get_native_methods() -> Vec<JNINativeMethod> {")
@@ -35,6 +34,6 @@ if __name__ == '__main__':
 	print("new_fn(\"" + name + "\", " + "\"" + signature + "\", " + "Box::new(jvm_" + name + ")),")
 	print()
 
-	print("fn jvm_" + name + "(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {")
+	print("fn jvm_" + name + "(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {")
 	print("\tOk(None)")
 	print("}")

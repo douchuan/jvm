@@ -3,7 +3,6 @@
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime;
-use crate::types::JavaThreadRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -55,10 +54,9 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
     }
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let oop = Oop::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(jt, target_cls, signature.as_bytes(), ctor_args);
+    runtime::invoke::invoke_ctor(target_cls, signature.as_bytes(), ctor_args);
 
     Ok(Some(oop))
 }

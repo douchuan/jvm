@@ -11,11 +11,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
-pub fn get_method_ref(
-    thread: JavaThreadRef,
-    cp: &ConstantPool,
-    idx: usize,
-) -> Result<MethodIdRef, ()> {
+pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
     //load Method's Class, then init it
@@ -30,7 +26,7 @@ pub fn get_method_ref(
 
     {
         let mut class = class.write().unwrap();
-        class.init_class(thread.clone());
+        class.init_class();
     }
 
     let (name, desc) = {
@@ -41,7 +37,7 @@ pub fn get_method_ref(
         (name, typ)
     };
 
-    oop::class::init_class_fully(thread, class.clone());
+    oop::class::init_class_fully(class.clone());
 
     let class = class.read().unwrap();
 

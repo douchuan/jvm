@@ -3,7 +3,6 @@
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, RefKind};
 use crate::runtime::{self, JavaCall};
-use crate::types::JavaThreadRef;
 use crate::types::OopRef;
 use crate::util;
 use std::sync::Arc;
@@ -126,47 +125,47 @@ fn jvm_initProperties(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         //        ("sun.io.unicode.encoding", "UnicodeBig"),
     ];
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let props_oop = args.get(0).unwrap();
     for (k, v) in props.iter() {
-        put_props_kv(jt.clone(), props_oop, k, v);
-
-        if jt.read().unwrap().is_meet_ex() {
-            unreachable!("jvm_initProperties meet ex");
-        }
+        put_props_kv(props_oop, k, v);
     }
 
     //user.dir
     let v = std::env::current_dir().expect("current_dir failed");
     let v = v.to_str().expect("current_dir to_str faield");
-    put_props_kv(jt.clone(), props_oop, "user.dir", v);
+    put_props_kv(props_oop, "user.dir", v);
 
     //java.io.tmpdir
     let v = std::env::temp_dir();
     let v = v.to_str().expect("temp_dir to_str failed");
-    put_props_kv(jt.clone(), props_oop, "java.io.tmpdir", v);
+    put_props_kv(props_oop, "java.io.tmpdir", v);
 
     //user.home
     let v = dirs::home_dir().expect("get home_dir failed");
     let v = v.to_str().expect("home_dir to_str failed");
-    put_props_kv(jt.clone(), props_oop, "user.home", v);
+    put_props_kv(props_oop, "user.home", v);
 
     //JAVA_HOME
     let v = std::env::var("JAVA_HOME").expect("Please Setup JAVA_HOME env");
-    put_props_kv(jt.clone(), props_oop, "java.home", v.as_str());
+    put_props_kv(props_oop, "java.home", v.as_str());
 
     //test.src for jdk/test/java/lang/Character/CheckProp.java
     match std::env::var("TEST_SRC") {
         Ok(v) => {
-            put_props_kv(jt, props_oop, "test.src", v.as_str());
+            put_props_kv(props_oop, "test.src", v.as_str());
         }
         _ => (),
+    }
+
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+    if jt.read().unwrap().is_meet_ex() {
+        unreachable!("jvm_initProperties meet ex");
     }
 
     Ok(Some(props_oop.clone()))
 }
 
-fn put_props_kv(jt: JavaThreadRef, props: &Oop, k: &str, v: &str) {
+fn put_props_kv(props: &Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
         let props = util::oop::extract_ref(props);
@@ -186,14 +185,14 @@ fn put_props_kv(jt: JavaThreadRef, props: &Oop, k: &str, v: &str) {
         .unwrap()
     };
 
-    let k = util::oop::new_java_lang_string2(jt.clone(), k);
-    let v = util::oop::new_java_lang_string2(jt.clone(), v);
+    let k = util::oop::new_java_lang_string2(k);
+    let v = util::oop::new_java_lang_string2(v);
 
     let args = vec![props.clone(), k, v];
 
     let mut jc = JavaCall::new_with_args(mir.clone(), args);
     let area = runtime::DataArea::new(0, 1);
-    jc.invoke(jt, Some(area), false);
+    jc.invoke(Some(area), false);
 }
 
 fn jvm_setIn0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
@@ -247,8 +246,7 @@ fn jvm_mapLibraryName(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
     trace!("mapLibraryName name = {}", name);
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-    let v = util::oop::new_java_lang_string2(jt, &name);
+    let v = util::oop::new_java_lang_string2(&name);
 
     Ok(Some(v))
 }

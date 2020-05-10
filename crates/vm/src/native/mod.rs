@@ -2,7 +2,6 @@
 
 use crate::oop::Oop;
 use crate::types::ClassRef;
-use crate::types::JavaThreadRef;
 use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

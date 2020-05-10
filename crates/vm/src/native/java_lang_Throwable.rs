@@ -3,7 +3,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
-use crate::types::JavaThreadRef;
 use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -29,7 +28,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
 
-    let elm_cls = oop::class::load_and_init(jt.clone(), b"java/lang/StackTraceElement");
+    let elm_cls = oop::class::load_and_init(b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
     let throwable_oop = args.get(0).unwrap();
@@ -98,22 +97,21 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let src_file = match src_file {
             Some(name) => {
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                util::oop::new_java_lang_string2(jt.clone(), name)
+                util::oop::new_java_lang_string2(name)
             }
-            None => util::oop::new_java_lang_string2(jt.clone(), ""),
+            None => util::oop::new_java_lang_string2(""),
         };
         let line_num = mir.method.get_line_num((pc - 1) as u16);
 
         let elm = Oop::new_inst(elm_cls.clone());
         let args = vec![
             elm.clone(),
-            util::oop::new_java_lang_string2(jt.clone(), &cls_name),
-            util::oop::new_java_lang_string2(jt.clone(), &method_name),
+            util::oop::new_java_lang_string2(&cls_name),
+            util::oop::new_java_lang_string2(&method_name),
             src_file,
             Oop::new_int(line_num),
         ];
         runtime::invoke::invoke_ctor(
-            jt.clone(),
             elm_cls.clone(),
             b"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V",
             args,

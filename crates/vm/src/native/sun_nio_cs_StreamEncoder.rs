@@ -3,7 +3,6 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
 use crate::runtime::{self, require_class3};
-use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -40,9 +39,7 @@ fn jvm_forOutputStreamWriter(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         default_charset_oop,
     ];
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     runtime::invoke::invoke_ctor(
-        jt,
         encoder,
         b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/nio/charset/Charset;)V",
         args,

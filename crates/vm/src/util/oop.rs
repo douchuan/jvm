@@ -1,6 +1,6 @@
 use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
-use crate::types::{JavaThreadRef, OopRef};
+use crate::types::OopRef;
 use std::sync::Arc;
 
 static mut JAVA_LANG_STRING_VALUE_OFFSET: usize = 0;
@@ -166,7 +166,7 @@ pub fn if_acmpeq(v1: &Oop, v2: &Oop) -> bool {
     }
 }
 
-pub fn new_java_lang_string2(jt: JavaThreadRef, v: &str) -> Oop {
+pub fn new_java_lang_string2(v: &str) -> Oop {
     //build "char value[]"
     let chars: Vec<u16> = v.as_bytes().iter().map(|v| *v as u16).collect();
     let ary = Oop::char_ary_from1(chars.as_slice());
@@ -175,12 +175,12 @@ pub fn new_java_lang_string2(jt: JavaThreadRef, v: &str) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(jt, string_cls, b"([C)V", args);
+    runtime::invoke::invoke_ctor(string_cls, b"([C)V", args);
 
     string_oop
 }
 
-pub fn new_java_lang_string3(jt: JavaThreadRef, bs: &[u8]) -> Oop {
+pub fn new_java_lang_string3(bs: &[u8]) -> Oop {
     let buffer = classfile::constant_pool::construct_string_raw(bs);
 
     //build "char value[]"
@@ -190,7 +190,7 @@ pub fn new_java_lang_string3(jt: JavaThreadRef, bs: &[u8]) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(jt, string_cls, b"([C)V", args);
+    runtime::invoke::invoke_ctor(string_cls, b"([C)V", args);
 
     string_oop
 }
