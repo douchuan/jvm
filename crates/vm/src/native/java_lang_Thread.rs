@@ -78,7 +78,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let args = vec![thread_oop.clone()];
         spawn_java_thread(move || {
             // std::thread::sleep(Duration::from_millis(10));
-            let jt = JavaThread::new();
+            let jt = JavaThread::new(None);
 
             pool::register_jt(jt.clone());
 

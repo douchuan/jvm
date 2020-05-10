@@ -20,10 +20,9 @@ impl MainThread {
     }
 
     pub fn run(&mut self) {
-        let jt = JavaThread::new();
+        let jt = JavaThread::new(Some("main".to_string()));
         //register 'main' thread
         thread_pool::register_jt(jt.clone());
-        jt.write().unwrap().tag = "main".to_string();
 
         info!("init vm start");
         init_vm::initialize_jvm(jt.clone());

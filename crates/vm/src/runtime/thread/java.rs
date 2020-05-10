@@ -15,8 +15,9 @@ pub struct JavaThread {
 }
 
 impl JavaThread {
-    pub fn new() -> JavaThreadRef {
+    pub fn new(tag: Option<String>) -> JavaThreadRef {
         let eetop = gen_thread_id();
+        let tag = tag.unwrap_or_else(|| format!("thread-{}", eetop));
         let t = Self {
             frames: Vec::new(),
             in_safe_point: false,
@@ -25,7 +26,7 @@ impl JavaThread {
             ex: None,
             is_alive: false,
             eetop,
-            tag: format!("thread-{}", eetop),
+            tag,
         };
         Arc::new(RwLock::new(Box::new(t)))
     }
