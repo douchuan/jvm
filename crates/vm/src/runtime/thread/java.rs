@@ -1,6 +1,11 @@
 use crate::oop::{self, consts, Oop};
 use crate::types::{FrameRef, JavaThreadRef};
 use std::sync::{Arc, RwLock};
+use std::cell::RefCell;
+
+thread_local! {
+    pub static THREAD: RefCell<JavaThreadRef> = RefCell::new(JavaThread::main());
+}
 
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
@@ -15,8 +20,7 @@ pub struct JavaThread {
 }
 
 impl JavaThread {
-    pub fn new(tag: Option<String>) -> JavaThreadRef {
-        let eetop = gen_thread_id();
+    pub fn new(tag: Option<String>, eetop: i64) -> JavaThreadRef {
         let tag = tag.unwrap_or_else(|| format!("thread-{}", eetop));
         let t = Self {
             frames: Vec::new(),
@@ -29,6 +33,10 @@ impl JavaThread {
             tag,
         };
         Arc::new(RwLock::new(Box::new(t)))
+    }
+
+    pub fn main() -> JavaThreadRef {
+        JavaThread::new(Some("main".to_string()), 0)
     }
 
     pub fn set_java_thread_obj(&mut self, obj: Oop) {
@@ -49,12 +57,4 @@ impl JavaThread {
     pub fn take_ex(&mut self) -> Option<Oop> {
         self.ex.take()
     }
-}
-
-fn gen_thread_id() -> i64 {
-    use core::sync::atomic::Ordering;
-    use std::sync::atomic::AtomicI64;
-    static NEXT_ID: AtomicI64 = AtomicI64::new(0);
-    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    id
 }

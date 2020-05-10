@@ -4,84 +4,14 @@ use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
-lazy_static! {
-    //fixme: the count of pool threads should be configured
-    static ref THREAD_POOL: Mutex<ThreadPool> = { Mutex::new(ThreadPool::new(5)) };
-    static ref THREAD_REGISTRY: Mutex<HashMap<std::thread::ThreadId, JavaThreadRef>> =
-        { Mutex::new(HashMap::new()) };
-    static ref MAIN_MUTEX: Mutex<usize> = { Mutex::new(0) };
-    static ref MAIN_COND: Condvar = { Condvar::new() };
-}
-
-pub fn init() {
-    lazy_static::initialize(&THREAD_POOL);
-    lazy_static::initialize(&THREAD_REGISTRY);
-    lazy_static::initialize(&MAIN_MUTEX);
-    lazy_static::initialize(&MAIN_COND);
-}
-
-pub fn spawn_java_thread<F: FnOnce() + Send + 'static>(f: F) {
-    let pool = THREAD_POOL.lock().unwrap();
-    pool.execute(f);
-}
-
-//called in some thread context
-pub fn attach_java_thread(jt: JavaThreadRef) {
-    let tid = std::thread::current().id();
-    let mut reg = THREAD_REGISTRY.lock().unwrap();
-    reg.insert(tid, jt);
-}
-
-pub fn detach_java_thread() {
-    let tid = std::thread::current().id();
-    let mut reg = THREAD_REGISTRY.lock().unwrap();
-    reg.remove(&tid);
-}
-
-pub fn get_java_thread(eetop: i64) -> Option<JavaThreadRef> {
-    let reg = THREAD_REGISTRY.lock().unwrap();
-    for v in reg.values() {
-        if v.read().unwrap().eetop == eetop {
-            return Some(v.clone());
-        }
-    }
-    None
-}
-
-pub fn join_all() {
-    loop {
-        let n = {
-            let reg = THREAD_REGISTRY.lock().unwrap();
-            reg.len()
-        };
-
-        if n > 0 {
-            let handle = MAIN_MUTEX.lock().unwrap();
-            MAIN_COND.wait(handle).unwrap();
-        } else {
-            break;
-        }
-    }
-}
-
-pub fn wake_up_main() {
-    MAIN_COND.notify_one();
-}
-
-pub fn obtain_current_jt() -> Option<JavaThreadRef> {
-    let tid = std::thread::current().id();
-    let reg = THREAD_REGISTRY.lock().unwrap();
-    reg.get(&tid).map(|it| it.clone())
+pub struct ThreadPool {
+    workers: Vec<Worker>,
+    sender: mpsc::Sender<Message>,
 }
 
 enum Message {
     NewJob(Job),
     Terminate,
-}
-
-struct ThreadPool {
-    workers: Vec<Worker>,
-    sender: mpsc::Sender<Message>,
 }
 
 trait FnBox {

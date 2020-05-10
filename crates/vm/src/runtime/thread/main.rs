@@ -1,8 +1,9 @@
 use crate::oop::{self, Oop};
 use crate::runtime::thread::pool as thread_pool;
-use crate::runtime::{self, init_vm, DataArea, JavaCall, JavaThread};
+use crate::runtime::{self, init_vm, DataArea, JavaCall, JavaThread, vm};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
+use std::borrow::Borrow;
 
 pub struct MainThread {
     pub class: String,
@@ -20,11 +21,12 @@ impl MainThread {
     }
 
     pub fn run(&mut self) {
-        let jt = JavaThread::new(Some("main".to_string()));
-        //register 'main' thread
-        thread_pool::attach_java_thread(jt.clone());
+        let vm = vm::VM::new(3);
+
+        vm.threads.attach_current_thread();
 
         info!("init vm start");
+        let jt= runtime::thread::THREAD.with(|t| t.borrow().clone() );
         init_vm::initialize_jvm(jt.clone());
         info!("init vm end");
 
@@ -66,7 +68,9 @@ impl MainThread {
                         jt.write().unwrap().is_alive = true;
                         jc.invoke(jt.clone(), Some(area), true);
                         jt.write().unwrap().is_alive = false;
-                        thread_pool::detach_java_thread();
+
+                        //'main' thread finish
+                        vm.threads.detach_current_thread();
                     }
                     _ => unreachable!(),
                 }
@@ -78,7 +82,7 @@ impl MainThread {
             self.uncaught_ex(jt.clone(), main_class);
         }
 
-        thread_pool::join_all();
+        vm.threads.join_all();
     }
 }
 

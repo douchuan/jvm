@@ -2,9 +2,10 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
-use crate::runtime::{self, thread::pool, thread::spawn_java_thread, JavaCall, JavaThread};
+use crate::runtime::{self, vm, JavaCall, JavaThread};
 use crate::types::JavaThreadRef;
 use crate::util;
+use crate::runtime::vm::get_vm;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -26,9 +27,10 @@ fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNI
 }
 
 fn jvm_currentThread(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    let jt = pool::obtain_current_jt().unwrap();
-    let obj = jt.read().unwrap().java_thread_obj.clone();
-    Ok(obj)
+    runtime::thread::THREAD.with(|jt| {
+        let obj = jt.borrow().read().unwrap().java_thread_obj.clone();
+        Ok(obj)
+    })
 }
 
 fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
@@ -40,8 +42,9 @@ fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIRes
 fn jvm_isAlive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let eetop = util::oop::extract_java_lang_thread_eetop(this);
+    let vm = get_vm();
 
-    let r = match pool::get_java_thread(eetop) {
+    let r = match vm.threads.find_java_thread(eetop) {
         Some(jt) => {
             info!("native thread tag = {}", jt.read().unwrap().tag);
             if jt.read().unwrap().is_alive {
@@ -75,12 +78,18 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     if name.as_slice() == "java/lang/ref/Reference$ReferenceHandler".as_bytes() {
         Ok(None)
     } else {
-        let args = vec![thread_oop.clone()];
-        spawn_java_thread(move || {
-            // std::thread::sleep(Duration::from_millis(10));
-            let jt = JavaThread::new(None);
+        let vm = vm::get_vm();
 
-            pool::attach_java_thread(jt.clone());
+        let jt = JavaThread::new(None, vm.threads.next_id());
+        vm.threads.attach_java_thread(jt.clone());
+
+        let args = vec![thread_oop.clone()];
+        vm.threads.spawn_java_thread(move || {
+            //setup current thread
+            let current_thread = jt.clone();
+            runtime::thread::THREAD.with(|t| {
+                *t.borrow_mut() = current_thread;
+            });
 
             let mir = {
                 let cls = cls.read().unwrap();
@@ -102,13 +111,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             jc.invoke(jt.clone(), Some(area), false);
             jt.write().unwrap().is_alive = false;
 
-            pool::detach_java_thread();
-
-            //todo: should be here?
-            let v = util::oop::extract_ref(&thread_oop);
-            v.read().unwrap().notify_all();
-
-            pool::wake_up_main();
+            vm.threads.detach_current_thread();
         });
 
         Ok(None)

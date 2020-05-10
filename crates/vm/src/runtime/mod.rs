@@ -15,6 +15,7 @@ mod slot;
 mod stack;
 mod sys_dic;
 pub mod thread;
+pub mod vm;
 
 pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 
@@ -34,5 +35,4 @@ pub use thread::JavaThread;
 pub fn init() {
     sys_dic::init();
     class_path_manager::init();
-    thread::init_thread_pool();
 }
