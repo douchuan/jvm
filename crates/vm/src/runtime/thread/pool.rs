@@ -26,19 +26,19 @@ pub fn spawn_java_thread<F: FnOnce() + Send + 'static>(f: F) {
 }
 
 //called in some thread context
-pub fn register_jt(jt: JavaThreadRef) {
+pub fn attach_java_thread(jt: JavaThreadRef) {
     let tid = std::thread::current().id();
     let mut reg = THREAD_REGISTRY.lock().unwrap();
     reg.insert(tid, jt);
 }
 
-pub fn un_register_jt() {
+pub fn detach_java_thread() {
     let tid = std::thread::current().id();
     let mut reg = THREAD_REGISTRY.lock().unwrap();
     reg.remove(&tid);
 }
 
-pub fn obtain_jt(eetop: i64) -> Option<JavaThreadRef> {
+pub fn get_java_thread(eetop: i64) -> Option<JavaThreadRef> {
     let reg = THREAD_REGISTRY.lock().unwrap();
     for v in reg.values() {
         if v.read().unwrap().eetop == eetop {
@@ -48,7 +48,7 @@ pub fn obtain_jt(eetop: i64) -> Option<JavaThreadRef> {
     None
 }
 
-pub fn park_if_needed() {
+pub fn join_all() {
     loop {
         let n = {
             let reg = THREAD_REGISTRY.lock().unwrap();

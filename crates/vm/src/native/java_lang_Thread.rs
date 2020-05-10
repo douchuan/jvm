@@ -41,7 +41,7 @@ fn jvm_isAlive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let eetop = util::oop::extract_java_lang_thread_eetop(this);
 
-    let r = match pool::obtain_jt(eetop) {
+    let r = match pool::get_java_thread(eetop) {
         Some(jt) => {
             info!("native thread tag = {}", jt.read().unwrap().tag);
             if jt.read().unwrap().is_alive {
@@ -80,7 +80,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             // std::thread::sleep(Duration::from_millis(10));
             let jt = JavaThread::new(None);
 
-            pool::register_jt(jt.clone());
+            pool::attach_java_thread(jt.clone());
 
             let mir = {
                 let cls = cls.read().unwrap();
@@ -102,7 +102,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             jc.invoke(jt.clone(), Some(area), false);
             jt.write().unwrap().is_alive = false;
 
-            pool::un_register_jt();
+            pool::detach_java_thread();
 
             //todo: should be here?
             let v = util::oop::extract_ref(&thread_oop);

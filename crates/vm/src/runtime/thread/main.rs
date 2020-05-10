@@ -22,7 +22,7 @@ impl MainThread {
     pub fn run(&mut self) {
         let jt = JavaThread::new(Some("main".to_string()));
         //register 'main' thread
-        thread_pool::register_jt(jt.clone());
+        thread_pool::attach_java_thread(jt.clone());
 
         info!("init vm start");
         init_vm::initialize_jvm(jt.clone());
@@ -66,7 +66,7 @@ impl MainThread {
                         jt.write().unwrap().is_alive = true;
                         jc.invoke(jt.clone(), Some(area), true);
                         jt.write().unwrap().is_alive = false;
-                        thread_pool::un_register_jt();
+                        thread_pool::detach_java_thread();
                     }
                     _ => unreachable!(),
                 }
@@ -78,7 +78,7 @@ impl MainThread {
             self.uncaught_ex(jt.clone(), main_class);
         }
 
-        thread_pool::park_if_needed();
+        thread_pool::join_all();
     }
 }
 
