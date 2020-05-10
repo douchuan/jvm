@@ -23,10 +23,10 @@ impl MainThread {
     pub fn run(&mut self) {
         let vm = vm::VM::new(3);
 
+        //attach 'main' thread
         vm.threads.attach_current_thread();
 
         info!("init vm start");
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         init_vm::initialize_jvm();
         info!("init vm end");
 
@@ -58,6 +58,7 @@ impl MainThread {
             cls.get_static_method(b"main", b"([Ljava/lang/String;)V")
         };
 
+        let jt = runtime::thread::current_java_thread();
         match mir {
             Ok(mir) => {
                 let arg = self.build_main_arg();
@@ -68,9 +69,6 @@ impl MainThread {
                         jt.write().unwrap().is_alive = true;
                         jc.invoke(Some(area), true);
                         jt.write().unwrap().is_alive = false;
-
-                        //'main' thread finish
-                        vm.threads.detach_current_thread();
                     }
                     _ => unreachable!(),
                 }
@@ -81,6 +79,9 @@ impl MainThread {
         if jt.read().unwrap().ex.is_some() {
             self.uncaught_ex(main_class);
         }
+
+        //detach main thread
+        vm.threads.detach_current_thread();
 
         vm.threads.join_all();
     }
@@ -111,7 +112,7 @@ impl MainThread {
     }
 
     fn call_dispatch_uncaught_exception(&mut self, main_cls: ClassRef) {
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         let v = {
             let jt = jt.read().unwrap();
             jt.java_thread_obj.clone()
@@ -155,7 +156,7 @@ impl MainThread {
     }
 
     fn uncaught_ex_internal(&mut self) {
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         let ex = {
             let mut jt = jt.write().unwrap();
             jt.take_ex().unwrap()

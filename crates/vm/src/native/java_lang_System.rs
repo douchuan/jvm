@@ -157,7 +157,7 @@ fn jvm_initProperties(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         _ => (),
     }
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+    let jt = runtime::thread::current_java_thread();
     if jt.read().unwrap().is_meet_ex() {
         unreachable!("jvm_initProperties meet ex");
     }

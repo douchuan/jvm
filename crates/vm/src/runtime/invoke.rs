@@ -68,7 +68,7 @@ impl JavaCall {
                     //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
                     //                        panic!();
 
-                    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+                    let jt = runtime::thread::current_java_thread();
                     let ex = exception::new(cls_const::J_NPE, None);
                     let mut jt = jt.write().unwrap();
                     jt.set_ex(ex);
@@ -106,7 +106,7 @@ impl JavaCall {
             self.invoke_java(caller);
         }
 
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         let _ = jt.write().unwrap().frames.pop();
     }
 }
@@ -115,7 +115,7 @@ impl JavaCall {
     fn invoke_java(&mut self, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         match self.prepare_frame(false) {
             Ok(frame) => {
                 {
@@ -147,7 +147,7 @@ impl JavaCall {
     fn invoke_native(&mut self, caller: Option<DataAreaRef>) {
         self.prepare_sync();
 
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         let package = {
             let cls = self.mir.method.class.read().unwrap();
             cls.name.clone()
@@ -219,7 +219,7 @@ impl JavaCall {
     }
 
     fn prepare_frame(&mut self, is_native: bool) -> Result<FrameRef, Oop> {
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
         let frame_len = { jt.read().unwrap().frames.len() };
         if frame_len >= runtime::consts::THREAD_MAX_STACK_FRAMES {
             let ex = exception::new(cls_const::J_SOE, None);

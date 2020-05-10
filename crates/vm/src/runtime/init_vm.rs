@@ -30,12 +30,10 @@ pub fn initialize_jvm() {
 
     // JavaMainThread is created with java_thread_obj none
     // Now we have created a thread for it.
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
-    {
-        jt.write()
-            .unwrap()
-            .set_java_thread_obj(init_thread_oop.clone());
-    }
+    let jt = runtime::thread::current_java_thread();
+    jt.write()
+        .unwrap()
+        .set_java_thread_obj(init_thread_oop.clone());
 
     // Create and construct the system thread group.
     let system_thread_group = oop::Oop::new_inst(thread_group_cls.clone());

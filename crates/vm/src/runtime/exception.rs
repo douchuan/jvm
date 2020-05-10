@@ -37,7 +37,7 @@ pub fn new(name: &[u8], msg: Option<String>) -> Oop {
 }
 
 pub fn meet_ex(cls_name: &'static [u8], msg: Option<String>) {
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+    let jt = runtime::thread::current_java_thread();
     {
         let jt = jt.read().unwrap();
         let frame = jt.frames.last().unwrap();

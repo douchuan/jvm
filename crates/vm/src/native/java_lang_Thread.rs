@@ -26,10 +26,9 @@ fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_currentThread(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    runtime::thread::THREAD.with(|jt| {
-        let obj = jt.borrow().read().unwrap().java_thread_obj.clone();
-        Ok(obj)
-    })
+    let jt = runtime::thread::current_java_thread();
+    let obj = jt.read().unwrap().java_thread_obj.clone();
+    Ok(obj)
 }
 
 fn jvm_setPriority0(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {

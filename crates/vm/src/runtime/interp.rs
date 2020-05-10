@@ -77,7 +77,7 @@ impl<'a> Interp<'a> {
 
 impl<'a> Interp<'a> {
     pub fn run(&self) {
-        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+        let jt = runtime::thread::current_java_thread();
 
         loop {
             let code = self.read_opcode();

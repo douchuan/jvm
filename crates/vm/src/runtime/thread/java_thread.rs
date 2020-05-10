@@ -7,6 +7,10 @@ thread_local! {
     pub static THREAD: RefCell<JavaThreadRef> = RefCell::new(JavaThread::main());
 }
 
+pub fn current_java_thread() -> JavaThreadRef {
+    THREAD.with(|t| t.borrow().clone())
+}
+
 pub struct JavaThread {
     pub frames: Vec<FrameRef>,
     in_safe_point: bool,

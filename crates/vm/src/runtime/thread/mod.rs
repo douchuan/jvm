@@ -6,6 +6,7 @@ mod thread_pool;
 mod threads;
 
 pub use condvar::Condvar;
+pub use java_thread::current_java_thread;
 pub use java_thread::JavaThread;
 pub use java_thread::THREAD;
 pub use main::MainThread;

@@ -58,7 +58,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let area = runtime::DataArea::new(0, 1);
     jc.invoke(Some(area.clone()), false);
 
-    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+    let jt = runtime::thread::current_java_thread();
     if !jt.read().unwrap().is_meet_ex() {
         let mut area = area.write().unwrap();
         let r = area.stack.pop_ref();
