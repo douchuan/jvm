@@ -1,5 +1,5 @@
 use crate::oop::{self, Oop};
-use crate::runtime::thread::pool as thread_pool;
+use crate::runtime::thread::thread_pool;
 use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;

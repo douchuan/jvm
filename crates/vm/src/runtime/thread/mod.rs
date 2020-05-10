@@ -1,15 +1,15 @@
 mod condvar;
-mod java;
+mod java_thread;
 mod main;
 mod mutex;
-mod pool;
+mod thread_pool;
 mod threads;
 
 pub use condvar::Condvar;
-pub use java::JavaThread;
-pub use java::THREAD;
+pub use java_thread::JavaThread;
+pub use java_thread::THREAD;
 pub use main::MainThread;
 pub use mutex::raw as mutex_raw;
 pub use mutex::ReentrantMutex;
-pub use pool::ThreadPool;
+pub use thread_pool::ThreadPool;
 pub use threads::Threads;
