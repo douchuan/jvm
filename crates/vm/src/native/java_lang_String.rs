@@ -12,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_intern(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_intern(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     Ok(Some(v.clone()))
 }

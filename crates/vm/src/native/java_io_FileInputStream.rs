@@ -18,11 +18,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_open0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_open0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
@@ -39,7 +39,7 @@ fn jvm_open0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_readBytes(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_readBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     let byte_ary = args.get(1).unwrap();
@@ -64,13 +64,16 @@ fn jvm_readBytes(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 if n > 0 {
                     n as i32
                 } else if n == -1 {
-                    let ex = runtime::exception::new(
-                        jt,
-                        cls_consts::J_IOEXCEPTION,
-                        Some(String::from("Read Error")),
-                    );
-                    error!("read error");
-                    return Err(ex);
+                    return runtime::thread::THREAD.with(|t| {
+                        let jt = t.borrow().clone();
+                        let ex = runtime::exception::new(
+                            jt,
+                            cls_consts::J_IOEXCEPTION,
+                            Some(String::from("Read Error")),
+                        );
+                        error!("jvm_readBytes read error");
+                        Err(ex)
+                    });
                 } else {
                     -1
                 }
@@ -83,7 +86,7 @@ fn jvm_readBytes(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(n)))
 }
 
-fn jvm_available0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_available0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
 
@@ -130,7 +133,7 @@ fn jvm_available0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult
     }
 }
 
-fn jvm_close0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_close0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     unsafe {

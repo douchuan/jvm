@@ -17,11 +17,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-pub fn jvm_hashCode(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+pub fn jvm_hashCode(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = match v {
         Oop::Null => Oop::new_int(0),
@@ -43,13 +43,13 @@ pub fn jvm_hashCode(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResu
     Ok(Some(v))
 }
 
-fn jvm_clone(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_clone(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //    let java_lang_Cloneable = require_class3(None, b"java/lang/Cloneable").unwrap();
     let this_obj = args.get(0).unwrap();
     Ok(Some(this_obj.clone()))
 }
 
-fn jvm_getClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let mirror = {
         let rf = util::oop::extract_ref(v);
@@ -77,7 +77,7 @@ fn jvm_getClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(mirror))
 }
 
-fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_notifyAll(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let rf = util::oop::extract_ref(this);
     let rf = rf.read().unwrap();
@@ -85,7 +85,7 @@ fn jvm_notifyAll(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult 
     Ok(None)
 }
 
-fn jvm_wait(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_wait(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let millis = args.get(1).unwrap();
     let millis = util::oop::extract_long(millis);

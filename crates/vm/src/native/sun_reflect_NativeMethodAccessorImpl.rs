@@ -15,7 +15,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_invoke0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let method = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let args = args.get(2).unwrap();
@@ -87,6 +87,8 @@ fn jvm_invoke0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     if !mir.method.is_static() {
         args.insert(0, obj.clone());
     }
+
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
     let mut jc = runtime::invoke::JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 0);

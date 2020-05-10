@@ -8,6 +8,6 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn("initIDs", "()V", Box::new(jvm_initIDs))]
 }
 
-fn jvm_initIDs(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }

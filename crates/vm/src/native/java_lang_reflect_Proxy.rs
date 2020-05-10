@@ -18,7 +18,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_defineClass0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_defineClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _loader = args.get(0).unwrap();
     let name = args.get(1).unwrap();
     let name = util::oop::extract_str(name);

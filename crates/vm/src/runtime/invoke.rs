@@ -166,7 +166,7 @@ impl JavaCall {
                         {
                             jt.write().unwrap().frames.push(frame.clone());
                         }
-                        method.invoke(jt.clone(), env, self.args.clone())
+                        method.invoke(env, self.args.clone())
                     }
                     Err(ex) => Err(ex),
                 }

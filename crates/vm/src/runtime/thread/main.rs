@@ -1,6 +1,6 @@
 use crate::oop::{self, Oop};
 use crate::runtime::thread::pool as thread_pool;
-use crate::runtime::{self, init_vm, DataArea, JavaCall, JavaThread, vm};
+use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
 use std::borrow::Borrow;
@@ -26,7 +26,7 @@ impl MainThread {
         vm.threads.attach_current_thread();
 
         info!("init vm start");
-        let jt= runtime::thread::THREAD.with(|t| t.borrow().clone() );
+        let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
         init_vm::initialize_jvm(jt.clone());
         info!("init vm end");
 

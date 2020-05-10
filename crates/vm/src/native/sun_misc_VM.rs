@@ -8,6 +8,6 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn("initialize", "()V", Box::new(jvm_initialize))]
 }
 
-fn jvm_initialize(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initialize(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }

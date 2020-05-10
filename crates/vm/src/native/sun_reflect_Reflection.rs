@@ -2,6 +2,7 @@
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
+use crate::runtime;
 use crate::types::JavaThreadRef;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -19,7 +20,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_getCallerClass(jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_getCallerClass(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let mut callers = { jt.read().unwrap().frames.clone() };
 
     {
@@ -50,6 +52,6 @@ fn jvm_getCallerClass(jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIRe
     }
 }
 
-fn jvm_getClassAccessFlags(jt: JavaThreadRef, env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    native::java_lang_Class::jvm_getModifiers(jt, env, args)
+fn jvm_getClassAccessFlags(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    native::java_lang_Class::jvm_getModifiers(env, args)
 }

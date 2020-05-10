@@ -1,9 +1,9 @@
-use std::borrow::Borrow;
-use std::sync::{Mutex, Arc, Condvar};
-use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use crate::runtime;
 use crate::runtime::thread::ThreadPool;
 use crate::types::JavaThreadRef;
+use std::borrow::Borrow;
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 
 pub struct Threads {
     pool: Mutex<ThreadPool>,
@@ -52,7 +52,7 @@ impl Threads {
         let mut threads = self.threads.lock().unwrap();
         threads
             .iter()
-            .find(|t| t.read().unwrap().eetop == eetop )
+            .find(|t| t.read().unwrap().eetop == eetop)
             .map(|t| t.clone())
     }
 

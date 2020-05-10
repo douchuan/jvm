@@ -22,7 +22,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_newArray(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_newArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     //todo: throw NegativeArraySizeException
     let length = args.get(1).unwrap();
@@ -43,7 +43,7 @@ fn jvm_newArray(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn jvm_getLength(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getLength(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let ary = args.get(0).unwrap();
     let len = match ary {
         Oop::Ref(rf) => {

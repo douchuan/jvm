@@ -14,7 +14,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_newInstance0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 
@@ -55,6 +55,7 @@ fn jvm_newInstance0(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResul
         }
     }
 
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
     let oop = Oop::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
     runtime::invoke::invoke_ctor(jt, target_cls, signature.as_bytes(), ctor_args);

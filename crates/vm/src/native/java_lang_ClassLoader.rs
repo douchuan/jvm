@@ -27,18 +27,18 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_findBuiltinLib(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_findBuiltinLib(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(0).unwrap();
     let name = util::oop::extract_str(name);
     info!("findBuiltinLib: {}", name);
     Ok(None)
 }
 
-fn jvm_findLoadedClass0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_findLoadedClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(1).unwrap();
     let name = util::oop::extract_str(name);
     info!("findLoadedClass0: {}", name);
@@ -54,7 +54,7 @@ fn jvm_findLoadedClass0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNI
 }
 
 // fixme: Is this correct? uncertain
-fn jvm_findBootstrapClass(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_findBootstrapClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     info!("findBootstrapClass");
-    jvm_findLoadedClass0(_jt, _env, args)
+    jvm_findLoadedClass0(_env, args)
 }

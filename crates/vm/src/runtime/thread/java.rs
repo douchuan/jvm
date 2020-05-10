@@ -1,7 +1,7 @@
 use crate::oop::{self, consts, Oop};
 use crate::types::{FrameRef, JavaThreadRef};
-use std::sync::{Arc, RwLock};
 use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 
 thread_local! {
     pub static THREAD: RefCell<JavaThreadRef> = RefCell::new(JavaThread::main());

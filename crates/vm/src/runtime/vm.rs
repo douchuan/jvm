@@ -1,12 +1,10 @@
-use std::ptr;
 use crate::runtime::thread::Threads;
+use std::ptr;
 
 static mut VM_GLOBAL: *const u8 = ptr::null();
 
 pub fn get_vm() -> &'static VM {
-    unsafe {
-        &*(VM_GLOBAL as *const VM)
-    }
+    unsafe { &*(VM_GLOBAL as *const VM) }
 }
 
 pub fn set_vm(vm: &VM) {
@@ -18,13 +16,13 @@ pub fn set_vm(vm: &VM) {
 }
 
 pub struct VM {
-    pub threads: Threads
+    pub threads: Threads,
 }
 
 impl VM {
     pub fn new(thread_pool_count: usize) -> Box<VM> {
         let vm = Box::new(VM {
-            threads: Threads::new(thread_pool_count)
+            threads: Threads::new(thread_pool_count),
         });
 
         set_vm(&vm);

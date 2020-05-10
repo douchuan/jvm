@@ -19,7 +19,7 @@ export RUST_BACKTRACE=full
 
 ### My Test
 #cargo run -- --cp $JDK:$MY_TEST Add
-#cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
+cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
@@ -28,7 +28,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$MY_TEST ThreadTest
 #cargo run -- --cp $JDK:$MY_TEST ThreadTest2
 ### no 'join' in main thread
-cargo run -- --cp $JDK:$MY_TEST ThreadTest3
+#cargo run -- --cp $JDK:$MY_TEST ThreadTest3
 
 ### fix Overflow
 #cargo run -- --cp $JDK:$MY_TEST SubOverflow

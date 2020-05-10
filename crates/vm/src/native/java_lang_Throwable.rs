@@ -26,7 +26,9 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_fillInStackTrace(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    let jt = runtime::thread::THREAD.with(|t| t.borrow().clone());
+
     let elm_cls = oop::class::load_and_init(jt.clone(), b"java/lang/StackTraceElement");
     let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
 
@@ -133,7 +135,7 @@ fn jvm_fillInStackTrace(jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIR
     Ok(Some(throwable_oop.clone()))
 }
 
-fn jvm_getStackTraceDepth(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getStackTraceDepth(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
         let throwable = util::oop::extract_ref(throwable);
@@ -164,7 +166,7 @@ fn jvm_getStackTraceDepth(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> J
     Ok(Some(v))
 }
 
-fn jvm_getStackTraceElement(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getStackTraceElement(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let index = util::oop::extract_int(args.get(1).unwrap());
     let cls = {

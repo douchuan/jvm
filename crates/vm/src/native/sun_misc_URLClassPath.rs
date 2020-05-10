@@ -12,6 +12,6 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_getLookupCacheURLs(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_getLookupCacheURLs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }

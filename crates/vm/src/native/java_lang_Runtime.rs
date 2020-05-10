@@ -16,10 +16,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 //fixme:
-fn jvm_availableProcessors(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_availableProcessors(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(1)))
 }
 
-fn jvm_gc(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_gc(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }

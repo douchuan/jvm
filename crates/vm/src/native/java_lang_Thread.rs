@@ -2,10 +2,10 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
+use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
 use crate::types::JavaThreadRef;
 use crate::util;
-use crate::runtime::vm::get_vm;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -22,24 +22,24 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_currentThread(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_currentThread(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     runtime::thread::THREAD.with(|jt| {
         let obj = jt.borrow().read().unwrap().java_thread_obj.clone();
         Ok(obj)
     })
 }
 
-fn jvm_setPriority0(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_setPriority0(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
 //'_jt' is caller's thread context, can't be used here
 //should find by 'eetop' in thread pool
-fn jvm_isAlive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let eetop = util::oop::extract_java_lang_thread_eetop(this);
     let vm = get_vm();
@@ -59,7 +59,7 @@ fn jvm_isAlive(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap().clone();
     let cls = {
         let thread_oop = util::oop::extract_ref(&thread_oop);
@@ -122,7 +122,7 @@ fn jvm_start0(_jt: JavaThreadRef, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_isInterrupted(_jt: JavaThreadRef, _env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_isInterrupted(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     //todo: fix me
     let v = Oop::new_int(0);
     Ok(Some(v))
