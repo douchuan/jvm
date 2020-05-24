@@ -6,11 +6,7 @@ char in Rust: four bytes in size
 
 problem
 ----------------------
-1. can lock be independent from OopRef
-  The lock should be controlled by user using monitor_enter & monitor_exit
-  Can Rust do it? share oop between threads, and lock it when needed
-
-2. System.arraycopy
+1. System.arraycopy
   The performance of JVM depends on arraycopy.
 
      ArrayList<Integer> list = new ArrayList<Integer>();
@@ -27,6 +23,14 @@ problem
      a. create lots of Integer object
      b. ArrayList inner buf, new bigger buffer when reach limit,
        then, invoke System.arraycopy to move objects
+
+2. dynamic workers in thread pool
+  spawn & gc worker dynamic
+indicators:
+  a. system payload
+  b. worker queue
+  c. thread types (io? calculation?)
+
 
 jdk
 -----------------------

@@ -93,50 +93,42 @@ impl Oop {
     }
 
     pub fn new_byte_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_byte_ary2(elms)
     }
 
     pub fn new_bool_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_bool_ary2(elms)
     }
 
     pub fn new_char_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_char_ary2(elms)
     }
 
     pub fn new_short_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_short_ary2(elms)
     }
 
     pub fn new_int_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_int_ary2(elms)
     }
 
     pub fn new_float_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0.0);
+        let elms = vec![0.0; len];
         Self::new_float_ary2(elms)
     }
 
     pub fn new_double_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0.0);
+        let elms = vec![0.0; len];
         Self::new_double_ary2(elms)
     }
 
     pub fn new_long_ary(len: usize) -> Oop {
-        let mut elms = Vec::with_capacity(len);
-        elms.resize(len, 0);
+        let elms = vec![0; len];
         Self::new_long_ary2(elms)
     }
 
@@ -247,11 +239,7 @@ impl Oop {
 //array reference factory
 impl Oop {
     pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
-        let mut elements = Vec::with_capacity(len);
-        for _ in 0..len {
-            elements.push(consts::get_null());
-        }
-        // elements.resize(0, consts::get_null());
+        let elements = vec![consts::get_null(); len];
         Self::new_ref_ary2(ary_cls_obj, elements)
     }
 
