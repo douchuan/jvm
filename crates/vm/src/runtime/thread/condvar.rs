@@ -48,7 +48,7 @@ impl Condvar {
         target_os = "hermit"
     )))]
     pub unsafe fn init(&mut self) {
-        use mem;
+        use std::mem;
         let mut attr: libc::pthread_condattr_t = mem::uninitialized();
         let r = libc::pthread_condattr_init(&mut attr);
         assert_eq!(r, 0);
@@ -89,7 +89,7 @@ impl Condvar {
         target_os = "hermit"
     )))]
     pub unsafe fn wait_timeout(&self, mutex: &ReentrantMutex, dur: Duration) -> bool {
-        use mem;
+        use std::mem;
 
         let mut now: libc::timespec = mem::zeroed();
         let r = libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now);
@@ -110,7 +110,7 @@ impl Condvar {
             })
             .unwrap_or(TIMESPEC_MAX);
 
-        let r = libc::pthread_cond_timedwait(self.inner.get(), mutex::raw(mutex), &timeout);
+        let r = libc::pthread_cond_timedwait(self.inner.get(), mutex_raw(mutex), &timeout);
         assert!(r == libc::ETIMEDOUT || r == 0);
         r == 0
     }
