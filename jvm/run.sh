@@ -7,6 +7,7 @@ JDK_SRC=/Users/douchuan/work/codes/vm/openjdk8
 
 JDK=$JAVA_HOME/lib/resources.jar:$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/jsse.jar:$JAVA_HOME/lib/jce.jar:$JAVA_HOME/lib/charsets.jar:$JAVA_HOME/lib/jfr.jar
 JDK_T_LANG=$JDK_SRC/jdk/test/java/lang
+JDK_T_SM=$JDK_SRC/jdk/test/sun/misc
 MY_TEST=.:./test
 
 export JAVA_HOME
@@ -95,6 +96,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Byte Decode
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM CopyMemory
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
@@ -117,8 +119,8 @@ export RUST_BACKTRACE=full
 #sum_t_parse_int = 626
 #sum_t_println = 3059
 #sum_t_int2integer = 3201
-#export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
-#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
+cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods

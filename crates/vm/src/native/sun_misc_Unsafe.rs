@@ -89,8 +89,6 @@ fn jvm_arrayBaseOffset(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_arrayIndexScale(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
-    //    let v = std::mem::size_of::<*mut u8>();
-    //    Ok(Some(OopDesc::new_int(v as i32)))
     Ok(Some(Oop::new_int(1)))
 }
 

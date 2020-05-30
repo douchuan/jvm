@@ -791,11 +791,8 @@ impl ClassObject {
 
         self.n_inst_fields = n_inst;
 
-        //todo: avoid this
-        //  sort static_fields by offset, then static_field_values.push
-        for _ in 0..n_static {
-            self.static_field_values.push(oop_consts::get_null());
-        }
+        let null = oop_consts::get_null();
+        self.static_field_values = vec![null; n_static];
     }
 
     fn link_interfaces(&mut self) {
