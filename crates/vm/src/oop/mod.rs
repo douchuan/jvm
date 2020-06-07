@@ -22,6 +22,8 @@ pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
+use crate::oop::class::ClassObject;
+use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
 
 #[derive(Clone)]
 pub enum Oop {
@@ -37,8 +39,11 @@ pub enum Oop {
     //used by oop::field::Filed::get_constant_value
     Null,
 
-    Ref(OopRef),
+    Ref(Arc<OopRef>),
 }
+
+#[derive(Debug)]
+pub struct OopRef(u64);
 
 impl fmt::Debug for Oop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -53,15 +58,7 @@ impl fmt::Debug for Oop {
                 String::from_utf8_lossy(v.as_slice())
             ),
             Oop::Null => write!(f, "Oop(Null)"),
-            Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    RefKind::Inst(_) => write!(f, "Oop(inst)"),
-                    RefKind::Array(_) => write!(f, "Oop(array)"),
-                    RefKind::TypeArray(ary) => write!(f, "Oop(typearray[{}])", ary.len()),
-                    RefKind::Mirror(_) => write!(f, "Oop(mirror)"),
-                }
-            }
+            Oop::Ref(rf) => write!(f, "Oop({:?})", rf),
         }
     }
 }
@@ -253,9 +250,254 @@ impl Oop {
 impl Oop {
     fn new_ref(v: RefKind) -> Oop {
         let v = RefKindDesc::new(v);
+        let v = Box::new(v);
+        let ptr = Box::into_raw(v) as u64;
+        let rf = Arc::new(OopRef(ptr));
+        Oop::Ref(rf)
+    }
+}
 
-        let v = Arc::new(RwLock::new(Box::new(v)));
-        Oop::Ref(v)
+impl Oop {
+    pub fn hash_code(&self) -> i32 {
+        match self {
+            Oop::Ref(rf) => {
+                if OopRef::is_java_lang_string(rf.clone()) {
+                    OopRef::java_lang_string_hash(rf.clone())
+                } else {
+                    rf.0 as i32
+                }
+            }
+            Oop::Null => 0,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Oop {
+    pub fn is_null(&self) -> bool {
+        match self {
+            Oop::Null => true,
+            _ => false,
+        }
+    }
+
+    pub fn extract_int(&self) -> i32 {
+        match self {
+            Oop::Int(v) => *v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_float(&self) -> f32 {
+        match &self {
+            Oop::Float(v) => *v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_long(&self) -> i64 {
+        match self {
+            Oop::Long(v) => *v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_double(&self) -> f64 {
+        match self {
+            Oop::Double(v) => *v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_ref(&self) -> Arc<OopRef> {
+        match self {
+            Oop::Ref(v) => v.clone(),
+            t => unreachable!("t = {:?}", t),
+        }
+    }
+}
+
+impl OopRef {
+    pub fn get_raw_ptr(&self) -> *const RefKindDesc {
+        self.0 as *const RefKindDesc
+    }
+
+    pub fn get_mut_raw_ptr(&self) -> *mut RefKindDesc {
+        self.0 as *mut RefKindDesc
+    }
+}
+
+impl OopRef {
+    pub fn extract_inst(&self) -> &InstOopDesc {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).v.extract_inst() }
+    }
+
+    pub fn extract_array(&self) -> &ArrayOopDesc {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).v.extract_array() }
+    }
+
+    pub fn extract_mut_array(&self) -> &mut ArrayOopDesc {
+        let ptr = self.get_mut_raw_ptr();
+        unsafe { (*ptr).v.extract_mut_array() }
+    }
+
+    pub fn extract_type_array(&self) -> &TypeArrayDesc {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).v.extract_type_array() }
+    }
+
+    pub fn extract_mut_type_array(&self) -> &mut TypeArrayDesc {
+        let ptr = self.get_mut_raw_ptr();
+        unsafe { (*ptr).v.extract_mut_type_array() }
+    }
+
+    pub fn extract_mirror(&self) -> &MirrorOopDesc {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).v.extract_mirror() }
+    }
+}
+
+impl OopRef {
+    pub fn monitor_enter(&self) {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).monitor_enter() };
+    }
+
+    pub fn monitor_exit(&self) {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).monitor_exit() };
+    }
+
+    pub fn notify_all(&self) {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).notify_all() }
+    }
+
+    pub fn wait(&self) {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).wait() }
+    }
+
+    pub fn wait_timeout(&self, duration: std::time::Duration) {
+        let ptr = self.get_raw_ptr();
+        unsafe { (*ptr).wait_timeout(duration) }
+    }
+}
+
+impl OopRef {
+    pub fn is_eq(l: Arc<Self>, r: Arc<Self>) -> bool {
+        if l.0 == r.0 {
+            true
+        } else {
+            if Self::is_java_lang_string(l.clone()) && Self::is_java_lang_string(r.clone()) {
+                Self::is_java_lang_string_eq(l, r)
+            } else {
+                false
+            }
+        }
+    }
+
+    pub fn is_java_lang_string(rf: Arc<Self>) -> bool {
+        let ptr = rf.get_raw_ptr();
+        unsafe {
+            match &(*ptr).v {
+                RefKind::Inst(inst) => {
+                    let cls = inst.class.read().unwrap();
+                    cls.name.as_slice() == b"java/lang/String"
+                }
+                _ => false,
+            }
+        }
+    }
+
+    fn is_java_lang_string_eq(l: Arc<Self>, r: Arc<Self>) -> bool {
+        let offset = get_java_lang_string_value_offset();
+
+        //java.lang.String.value
+        let v1 = Class::get_field_value2(l, offset);
+        let v2 = Class::get_field_value2(r, offset);
+
+        let rf1 = v1.extract_ref();
+        let rf2 = v2.extract_ref();
+
+        let chars1 = unsafe {
+            let ptr = rf1.get_raw_ptr();
+            (*ptr).v.extract_type_array().extract_chars()
+        };
+        let chars2 = unsafe {
+            let ptr = rf2.get_raw_ptr();
+            (*ptr).v.extract_type_array().extract_chars()
+        };
+
+        chars1 == chars2
+    }
+}
+
+impl OopRef {
+    pub fn java_lang_string(rf: Arc<Self>) -> String {
+        let v = Self::java_lang_string_value(rf);
+        String::from_utf16_lossy(v.as_slice())
+    }
+
+    pub fn java_lang_string_value(rf: Arc<Self>) -> Vec<u16> {
+        //java.lang.String.value
+        let offset = get_java_lang_string_value_offset();
+        let v = Class::get_field_value2(rf, offset);
+
+        let rf = v.extract_ref();
+        let ary = unsafe {
+            let ptr = rf.get_raw_ptr();
+            (*ptr).v.extract_type_array()
+        };
+        ary.extract_chars().to_vec()
+    }
+
+    pub fn java_lang_string_hash(rf: Arc<Self>) -> i32 {
+        //java.lang.String.value
+        let offset = get_java_lang_string_value_offset();
+        let v = Class::get_field_value2(rf, offset);
+
+        let rf = v.extract_ref();
+        let ary = unsafe {
+            let ptr = rf.get_raw_ptr();
+            (*ptr).v.extract_type_array()
+        };
+        let chars = ary.extract_chars();
+
+        if chars.len() == 0 {
+            0
+        } else {
+            let mut h = 0i32;
+            for v in chars.iter() {
+                h = h.wrapping_mul(31).wrapping_add(*v as i32);
+            }
+            h
+        }
+    }
+
+    pub fn java_lang_integer_value(rf: Arc<Self>) -> i32 {
+        //java.lang.Integer.value
+        let offset = get_java_lang_integer_value_offset();
+        Class::get_field_value2(rf, offset).extract_int()
+    }
+
+    pub fn java_lang_thread_eetop(rf: Arc<Self>) -> i64 {
+        let ptr = rf.get_raw_ptr();
+        let fid = unsafe {
+            let cls = (*ptr).v.extract_inst().class.clone();
+            let cls = cls.read().unwrap();
+            cls.get_field_id(b"eetop", b"J", false)
+        };
+
+        Class::get_field_value(rf, fid).extract_long()
+    }
+}
+
+impl Drop for OopRef {
+    fn drop(&mut self) {
+        let _v = unsafe { Box::from_raw(self.0 as *mut RefKindDesc) };
     }
 }
 

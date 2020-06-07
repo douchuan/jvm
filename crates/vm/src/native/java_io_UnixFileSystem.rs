@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::Oop;
+use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use crate::util;
 use std::fs;
@@ -70,8 +70,7 @@ fn jvm_checkAccess(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file);
 
-    let access = args.get(2).unwrap();
-    let access = util::oop::extract_int(access);
+    let access = args.get(2).unwrap().extract_int();
 
     let mut amode = 0;
     if (access & ACCESS_READ) == ACCESS_READ {
@@ -98,7 +97,8 @@ fn jvm_checkAccess(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_canonicalize0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let path = util::oop::extract_str(args.get(1).unwrap());
+    let path = args.get(1).unwrap();
+    let path = OopRef::java_lang_string(path.extract_ref());
     let path = std::path::Path::new(&path);
     let path = path.canonicalize().expect("path canonicalize failed");
     let path = path.to_str().expect("path to_str failed");
@@ -109,7 +109,7 @@ fn jvm_canonicalize0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_createFileExclusively(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
-    let path = util::oop::extract_str(path);
+    let path = OopRef::java_lang_string(path.extract_ref());
     let v = match std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -130,7 +130,7 @@ fn get_File_path(file: &Oop) -> String {
     let path = {
         let cls = cls.read().unwrap();
         let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
-        cls.get_field_value(file, fir)
+        Class::get_field_value(file.extract_ref(), fir)
     };
-    util::oop::extract_str(&path)
+    OopRef::java_lang_string(path.extract_ref())
 }

@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, TypeArrayDesc};
+use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
-use crate::util;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -25,7 +24,7 @@ fn jvm_open0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
-        util::oop::extract_str(v)
+        OopRef::java_lang_string(v.extract_ref())
     };
     let fd = unsafe {
         use std::ffi::CString;
@@ -42,40 +41,30 @@ fn jvm_readBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     let byte_ary = args.get(1).unwrap();
-    let off = {
-        let v = args.get(2).unwrap();
-        util::oop::extract_int(v)
-    };
-    let len = {
-        let v = args.get(3).unwrap();
-        util::oop::extract_int(v)
-    };
+    let off = args.get(2).unwrap().extract_int();
+    let len = args.get(3).unwrap().extract_int();
 
-    let v = util::oop::extract_ref(byte_ary);
-    let mut v = v.write().unwrap();
-    let n = match &mut v.v {
-        oop::RefKind::TypeArray(ary) => match ary {
-            TypeArrayDesc::Byte(ary) => {
-                let (_, ptr) = ary.split_at_mut(off as usize);
-                let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
-                let n = unsafe { libc::read(fd, ptr, len as usize) };
-                // error!("readBytes n = {}", n);
-                if n > 0 {
-                    n as i32
-                } else if n == -1 {
-                    let ex = runtime::exception::new(
-                        cls_consts::J_IOEXCEPTION,
-                        Some(String::from("Read Error")),
-                    );
-                    error!("jvm_readBytes read error");
-                    return Err(ex);
-                } else {
-                    -1
-                }
-            }
-            _ => unreachable!(),
-        },
-        _ => unreachable!(),
+    let n = {
+        let rf = byte_ary.extract_ref();
+        let ary = rf.extract_mut_type_array();
+        let ary = ary.extract_mut_bytes();
+
+        let (_, ptr) = ary.split_at_mut(off as usize);
+        let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
+        let n = unsafe { libc::read(fd, ptr, len as usize) };
+        // error!("readBytes n = {}", n);
+        if n > 0 {
+            n as i32
+        } else if n == -1 {
+            let ex = runtime::exception::new(
+                cls_consts::J_IOEXCEPTION,
+                Some(String::from("Read Error")),
+            );
+            error!("jvm_readBytes read error");
+            return Err(ex);
+        } else {
+            -1
+        }
     };
 
     Ok(Some(Oop::new_int(n)))
@@ -142,13 +131,13 @@ fn set_file_descriptor_fd(fin: &Oop, fd: i32) {
     let fd_this = {
         let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
-        cls.get_field_value(fin, id)
+        Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"fd", b"I", false);
-    cls.put_field_value(fd_this, id, Oop::new_int(fd));
+    Class::put_field_value(fd_this.extract_ref(), id, Oop::new_int(fd));
 }
 
 fn get_file_descriptor_fd(fin: &Oop) -> i32 {
@@ -156,15 +145,15 @@ fn get_file_descriptor_fd(fin: &Oop) -> i32 {
     let fd_this = {
         let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"Ljava/io/FileDescriptor;", false);
-        cls.get_field_value(fin, id)
+        Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let fd = {
         let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"fd", b"I", false);
-        cls.get_field_value(&fd_this, id)
+        Class::get_field_value(fd_this.extract_ref(), id)
     };
 
-    util::oop::extract_int(&fd)
+    fd.extract_int()
 }

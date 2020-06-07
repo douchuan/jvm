@@ -1,4 +1,4 @@
-use crate::oop::{self, Oop};
+use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::thread::thread_pool;
 use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
@@ -120,12 +120,9 @@ impl MainThread {
         match v {
             Some(v) => {
                 let cls = {
-                    let v = util::oop::extract_ref(&v);
-                    let v = v.read().unwrap();
-                    match &v.v {
-                        oop::RefKind::Inst(inst) => inst.class.clone(),
-                        _ => unreachable!(),
-                    }
+                    let rf = v.extract_ref();
+                    let inst = rf.extract_inst();
+                    inst.class.clone()
                 };
 
                 let mir = {
@@ -163,25 +160,18 @@ impl MainThread {
         };
 
         let cls = {
-            match &ex {
-                Oop::Ref(v) => {
-                    let v = v.read().unwrap();
-                    match &v.v {
-                        oop::RefKind::Inst(inst) => inst.class.clone(),
-                        _ => unreachable!(),
-                    }
-                }
-                _ => unreachable!(),
-            }
+            let rf = ex.extract_ref();
+            let inst = rf.extract_inst();
+            inst.class.clone()
         };
-        let detail_message = {
-            let v = {
-                let cls = cls.read().unwrap();
-                let id = cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false);
-                cls.get_field_value(&ex, id)
-            };
 
-            util::oop::extract_str(&v)
+        let detail_message = {
+            let fid = {
+                let cls = cls.read().unwrap();
+                cls.get_field_id(b"detailMessage", b"Ljava/lang/String;", false)
+            };
+            let v = Class::get_field_value(ex.extract_ref(), fid);
+            OopRef::java_lang_string(v.extract_ref())
         };
         let name = {
             let cls = cls.read().unwrap();

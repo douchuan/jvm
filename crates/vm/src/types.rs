@@ -1,7 +1,6 @@
 use crate::oop::class::Class;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
-use crate::oop::RefKindDesc;
 use crate::runtime::DataArea;
 use crate::runtime::Frame;
 use crate::runtime::JavaThread;
@@ -16,7 +15,6 @@ def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(ClassRef, Class);
 def_sync_ref!(FrameRef, Frame);
 def_sync_ref!(JavaThreadRef, JavaThread);
-def_sync_ref!(OopRef, RefKindDesc);
 
 // Runtime string allocation
 def_ptr!(ByteAry, Vec<u8>);

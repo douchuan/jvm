@@ -1,4 +1,6 @@
-use crate::oop::{self, consts as oop_consts, field, ClassKind, Oop, TypeArrayDesc, ValueType};
+use crate::oop::{
+    self, consts as oop_consts, field, Class, ClassKind, Oop, OopRef, TypeArrayDesc, ValueType,
+};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{
@@ -468,7 +470,8 @@ impl<'a> Interp<'a> {
         let v = if is_static {
             class.get_static_field_value(fir.clone())
         } else {
-            class.get_field_value(&receiver, fir.clone())
+            let rf = receiver.extract_ref();
+            Class::get_field_value(rf, fir.clone())
         };
 
         match value_type {
@@ -568,9 +571,7 @@ impl<'a> Interp<'a> {
             };
             match receiver {
                 Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-                _ => {
-                    class.put_field_value(receiver, fir.clone(), v);
-                }
+                _ => Class::put_field_value(receiver.extract_ref(), fir.clone(), v),
             }
         }
     }
@@ -638,45 +639,48 @@ impl<'a> Interp<'a> {
                 }
             }
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::Inst(inst) => {
-                        let obj_cls = inst.class.clone();
-                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                let rf = rf.get_raw_ptr();
+                unsafe {
+                    match &(*rf).v {
+                        oop::RefKind::Inst(inst) => {
+                            let obj_cls = inst.class.clone();
+                            let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
 
-                        if is_cast {
-                            op_check_cast(r, obj_cls, target_cls);
-                        } else {
-                            op_instance_of(r);
+                            if is_cast {
+                                op_check_cast(r, obj_cls, target_cls);
+                            } else {
+                                op_instance_of(r);
+                            }
                         }
-                    }
-                    oop::RefKind::Array(ary) => {
-                        let obj_cls = ary.class.clone();
-                        let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
-                        if is_cast {
-                            op_check_cast(r, obj_cls, target_cls);
-                        } else {
-                            op_instance_of(r);
-                        }
-                    }
-                    oop::RefKind::Mirror(mirror) => {
-                        //run here codes:
-                        //$JDK_TEST/Appendable/Basic.java
-                        //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
-                        //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
 
-                        let obj_cls = mirror.target.clone().unwrap();
-                        let target_name = { target_cls.read().unwrap().name.clone() };
-                        let r = target_name.as_slice() == b"java/lang/Class"
-                            || cmp::instance_of(obj_cls.clone(), target_cls.clone());
-
-                        if is_cast {
-                            op_check_cast(r, obj_cls, target_cls);
-                        } else {
-                            op_instance_of(r);
+                        oop::RefKind::Array(ary) => {
+                            let obj_cls = ary.class.clone();
+                            let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
+                            if is_cast {
+                                op_check_cast(r, obj_cls, target_cls);
+                            } else {
+                                op_instance_of(r);
+                            }
                         }
+                        oop::RefKind::Mirror(mirror) => {
+                            //run here codes:
+                            //$JDK_TEST/Appendable/Basic.java
+                            //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
+                            //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
+
+                            let obj_cls = mirror.target.clone().unwrap();
+                            let target_name = { target_cls.read().unwrap().name.clone() };
+                            let r = target_name.as_slice() == b"java/lang/Class"
+                                || cmp::instance_of(obj_cls.clone(), target_cls.clone());
+
+                            if is_cast {
+                                op_check_cast(r, obj_cls, target_cls);
+                            } else {
+                                op_instance_of(r);
+                            }
+                        }
+                        _ => unreachable!(),
                     }
-                    _ => unreachable!(),
                 }
             }
             _ => unreachable!(),
@@ -688,12 +692,9 @@ impl<'a> Interp<'a> {
 impl<'a> Interp<'a> {
     fn try_handle_exception(&self, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
-            let ex = util::oop::extract_ref(&ex);
-            let v = ex.read().unwrap();
-            match &v.v {
-                oop::RefKind::Inst(inst) => inst.class.clone(),
-                _ => unreachable!(),
-            }
+            let rf = ex.extract_ref();
+            let inst = rf.extract_inst();
+            inst.class.clone()
         };
 
         let method_cls_name = { self.frame.mir.method.class.read().unwrap().name.clone() };
@@ -1071,16 +1072,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Int(ary) => {
-                            iarray_load!(area, ary, pos);
-                        }
-                        t => unreachable!("t = {:?}", t),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_ints();
+                iarray_load!(area, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1093,16 +1087,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Short(ary) => {
-                            iarray_load!(area, ary, pos);
-                        }
-                        t => unreachable!("t = {:?}", t),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_shorts();
+                iarray_load!(area, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1115,16 +1102,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Char(ary) => {
-                            iarray_load!(area, ary, pos);
-                        }
-                        t => unreachable!("t = {:?}", t),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_chars();
+                iarray_load!(area, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1137,18 +1117,27 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Byte(ary) => {
-                            iarray_load!(area, ary, pos);
+                let mut rf = (*rf).get_raw_ptr();
+                unsafe {
+                    let ary = (*rf).v.extract_type_array();
+                    let len = ary.len();
+
+                    if (pos < 0) || (pos as usize >= len) {
+                        let msg = format!("length is {}, but index is {}", len, pos);
+                        exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                    } else {
+                        match ary {
+                            TypeArrayDesc::Byte(ary) => {
+                                let v = ary[pos as usize];
+                                area.stack.push_int(v as i32);
+                            }
+                            TypeArrayDesc::Bool(ary) => {
+                                let v = ary[pos as usize];
+                                area.stack.push_int(v as i32);
+                            }
+                            t => unreachable!("t = {:?}", t),
                         }
-                        oop::TypeArrayDesc::Bool(ary) => {
-                            iarray_load!(area, ary, pos);
-                        }
-                        t => unreachable!("t = {:?}", t),
-                    },
-                    _ => unreachable!(),
+                    }
                 }
             }
             _ => unreachable!(),
@@ -1162,24 +1151,15 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Long(ary) => {
-                            let len = ary.len();
-                            if (pos < 0) || (pos as usize >= len) {
-                                let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(
-                                    cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                    Some(msg),
-                                );
-                            } else {
-                                area.stack.push_long(ary[pos as usize]);
-                            }
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_longs();
+                let len = ary.len();
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    let v = ary[pos as usize];
+                    area.stack.push_long(v);
                 }
             }
             _ => unreachable!(),
@@ -1193,24 +1173,15 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Float(ary) => {
-                            let len = ary.len();
-                            if (pos < 0) || (pos as usize >= len) {
-                                let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(
-                                    cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                    Some(msg),
-                                );
-                            } else {
-                                area.stack.push_float(ary[pos as usize]);
-                            }
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_floats();
+                let len = ary.len();
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    let v = ary[pos as usize];
+                    area.stack.push_float(v);
                 }
             }
             _ => unreachable!(),
@@ -1224,24 +1195,15 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Double(ary) => {
-                            let len = ary.len();
-                            if (pos < 0) || (pos as usize >= len) {
-                                let msg = format!("length is {}, but index is {}", len, pos);
-                                exception::meet_ex(
-                                    cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-                                    Some(msg),
-                                );
-                            } else {
-                                area.stack.push_double(ary[pos as usize]);
-                            }
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
+                let ary = rf.extract_type_array();
+                let ary = ary.extract_doubles();
+                let len = ary.len();
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    let v = ary[pos as usize];
+                    area.stack.push_double(v);
                 }
             }
             _ => unreachable!(),
@@ -1255,20 +1217,16 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::Array(ary) => {
-                        let len = ary.elements.len();
-                        //                info!("aaload pos={}, len={}", pos, len);
-                        if (pos < 0) || (pos as usize >= len) {
-                            let msg = format!("length is {}, but index is {}", len, pos);
-                            exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
-                        } else {
-                            let v = ary.elements[pos as usize].clone();
-                            area.stack.push_ref(v);
-                        }
-                    }
-                    _ => unreachable!(),
+                let ary = rf.extract_array();
+                let ary = &ary.elements;
+                let len = ary.len();
+
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    let v = ary[pos as usize].clone();
+                    area.stack.push_ref(v);
                 }
             }
             _ => unreachable!(),
@@ -1500,9 +1458,10 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
+                let mut rf = (*rf).get_mut_raw_ptr();
+                unsafe {
+                    let ary = (*rf).v.extract_mut_type_array();
+                    match ary {
                         oop::TypeArrayDesc::Byte(ary) => {
                             let v = v as u8;
                             array_store!(ary, pos, v);
@@ -1512,8 +1471,7 @@ impl<'a> Interp<'a> {
                             array_store!(ary, pos, v);
                         }
                         _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
+                    }
                 }
             }
             _ => unreachable!(),
@@ -1530,17 +1488,10 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Char(ary) => {
-                            let v = v as u16;
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_chars();
+                let v = v as u16;
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1556,17 +1507,10 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Short(ary) => {
-                            let v = v as i16;
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_shorts();
+                let v = v as i16;
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1582,16 +1526,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Int(ary) => {
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_ints();
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1607,16 +1544,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Long(ary) => {
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_longs();
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1632,16 +1562,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Float(ary) => {
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_floats();
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1657,16 +1580,9 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::TypeArray(ary) => match ary {
-                        oop::TypeArrayDesc::Double(ary) => {
-                            array_store!(ary, pos, v);
-                        }
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_type_array();
+                let ary = ary.extract_mut_doubles();
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -1682,14 +1598,9 @@ impl<'a> Interp<'a> {
         match ary_rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
-                let mut rf = rf.write().unwrap();
-                match &mut rf.v {
-                    oop::RefKind::Array(ary) => {
-                        let ary = &mut ary.elements;
-                        array_store!(ary, pos, v);
-                    }
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_mut_array();
+                let ary = &mut ary.elements;
+                array_store!(ary, pos, v);
             }
             _ => unreachable!(),
         }
@@ -2447,7 +2358,7 @@ impl<'a> Interp<'a> {
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
-        if util::oop::if_acmpeq(&v1, &v2) {
+        if OopRef::is_eq(v1.extract_ref(), v2.extract_ref()) {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -2460,7 +2371,7 @@ impl<'a> Interp<'a> {
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
-        if !util::oop::if_acmpeq(&v1, &v2) {
+        if !OopRef::is_eq(v1.extract_ref(), v2.extract_ref()) {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -2877,17 +2788,19 @@ impl<'a> Interp<'a> {
                 exception::meet_ex(cls_const::J_NPE, None)
             }
             Oop::Ref(rf) => {
-                let v = rf.read().unwrap();
-                match &v.v {
-                    oop::RefKind::Array(ary) => {
-                        let len = ary.elements.len();
-                        area.stack.push_int(len as i32);
+                let v = rf.get_raw_ptr();
+                unsafe {
+                    match &(*v).v {
+                        oop::RefKind::Array(ary) => {
+                            let len = ary.elements.len();
+                            area.stack.push_int(len as i32);
+                        }
+                        oop::RefKind::TypeArray(ary) => {
+                            let len = ary.len();
+                            area.stack.push_int(len as i32);
+                        }
+                        _ => unreachable!(),
                     }
-                    oop::RefKind::TypeArray(ary) => {
-                        let len = ary.len();
-                        area.stack.push_int(len as i32);
-                    }
-                    _ => unreachable!(),
                 }
             }
             _ => unreachable!(),
@@ -2919,10 +2832,7 @@ impl<'a> Interp<'a> {
             Oop::Null => {
                 exception::meet_ex(cls_const::J_NPE, None);
             }
-            Oop::Ref(v) => {
-                let v = v.read().unwrap();
-                v.monitor_enter();
-            }
+            Oop::Ref(v) => v.monitor_enter(),
             _ => unreachable!(),
         }
     }
@@ -2936,10 +2846,7 @@ impl<'a> Interp<'a> {
             Oop::Null => {
                 exception::meet_ex(cls_const::J_NPE, None);
             }
-            Oop::Ref(v) => {
-                let v = v.read().unwrap();
-                v.monitor_exit();
-            }
+            Oop::Ref(v) => v.monitor_exit(),
             _ => unreachable!(),
         }
     }

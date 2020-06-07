@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::java_lang_Class;
-use crate::oop::{self, Oop};
+use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
 use crate::types::*;
 use crate::util;
@@ -220,18 +220,15 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
 pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     //todo: optimize, avoid obtain class
     let cls = {
-        let v = util::oop::extract_ref(ctor);
-        let v = v.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.class.clone(),
-            _ => unreachable!(),
-        }
+        let rf = ctor.extract_ref();
+        let inst = rf.extract_inst();
+        inst.class.clone()
     };
 
     //todo: optimize, avoid obtain id
     let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"clazz", b"Ljava/lang/Class;", false);
-    cls.get_field_value(ctor, id)
+    Class::get_field_value(ctor.extract_ref(), id)
 }
 
 /*
@@ -255,19 +252,16 @@ pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
 pub fn get_Constructor_signature(ctor: &Oop) -> String {
     //todo: optimisze, cache Constructor cls, avoid obtain class
     let cls = {
-        let v = util::oop::extract_ref(ctor);
-        let v = v.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.class.clone(),
-            _ => unreachable!(),
-        }
+        let rf = ctor.extract_ref();
+        let inst = rf.extract_inst();
+        inst.class.clone()
     };
 
     //todo: optimize, cache id
     let cls = cls.read().unwrap();
     let id = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
-    let v = cls.get_field_value(ctor, id);
-    util::oop::extract_str(&v)
+    let v = Class::get_field_value(ctor.extract_ref(), id);
+    OopRef::java_lang_string(v.extract_ref())
 }
 
 fn create_value_type(t: SignatureType) -> Oop {

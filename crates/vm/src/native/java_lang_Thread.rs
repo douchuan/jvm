@@ -1,10 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
-use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -39,7 +38,7 @@ fn jvm_setPriority0(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 //should find by 'eetop' in thread pool
 fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
-    let eetop = util::oop::extract_java_lang_thread_eetop(this);
+    let eetop = OopRef::java_lang_thread_eetop(this.extract_ref());
     let vm = get_vm();
 
     let r = match vm.threads.find_java_thread(eetop) {
@@ -60,12 +59,9 @@ fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap().clone();
     let cls = {
-        let thread_oop = util::oop::extract_ref(&thread_oop);
-        let v = thread_oop.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.class.clone(),
-            _ => unreachable!(),
-        }
+        let rf = thread_oop.extract_ref();
+        let inst = rf.extract_inst();
+        inst.class.clone()
     };
 
     let name = {
@@ -95,7 +91,7 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 //setup eetop
                 let eetop = jt.read().unwrap().eetop;
                 let fid = cls.get_field_id(b"eetop", b"J", false);
-                cls.put_field_value(thread_oop.clone(), fid, Oop::new_long(eetop));
+                Class::put_field_value(thread_oop.extract_ref(), fid, Oop::new_long(eetop));
 
                 //obtain 'run' method
                 cls.get_virtual_method(b"run", b"()V").unwrap()
@@ -110,8 +106,8 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             jt.write().unwrap().is_alive = false;
 
             //notify thread that invoke 'join'
-            let v = util::oop::extract_ref(&thread_oop);
-            v.read().unwrap().notify_all();
+            let v = thread_oop.extract_ref();
+            v.notify_all();
 
             vm.threads.detach_current_thread();
         });

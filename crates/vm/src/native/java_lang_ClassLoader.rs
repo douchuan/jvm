@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{self, Oop, OopRef};
 use crate::runtime;
 use crate::util;
 
@@ -32,14 +32,14 @@ fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 
 fn jvm_findBuiltinLib(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(0).unwrap();
-    let name = util::oop::extract_str(name);
+    let name = OopRef::java_lang_string(name.extract_ref());
     info!("findBuiltinLib: {}", name);
     Ok(None)
 }
 
 fn jvm_findLoadedClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = args.get(1).unwrap();
-    let name = util::oop::extract_str(name);
+    let name = OopRef::java_lang_string(name.extract_ref());
     info!("findLoadedClass0: {}", name);
     let name = name.replace(".", util::FILE_SEP);
     let v = match runtime::sys_dic_find(name.as_bytes()) {

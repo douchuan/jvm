@@ -197,8 +197,7 @@ impl JavaCall {
                 class.monitor_enter();
             } else {
                 let v = self.args.first().unwrap();
-                let v = util::oop::extract_ref(v);
-                let v = v.read().unwrap();
+                let v = v.extract_ref();
                 v.monitor_enter();
             }
         }
@@ -210,9 +209,8 @@ impl JavaCall {
                 let class = self.mir.method.class.read().unwrap();
                 class.monitor_exit();
             } else {
-                let mut v = self.args.first().unwrap();
-                let v = util::oop::extract_ref(v);
-                let v = v.read().unwrap();
+                let v = self.args.first().unwrap();
+                let v = v.extract_ref();
                 v.monitor_exit();
             }
         }
@@ -291,29 +289,31 @@ impl JavaCall {
         );
         if resolve_again {
             let this = self.args.get(0).unwrap();
-            let this = util::oop::extract_ref(this);
-            let this = this.read().unwrap();
-            match &this.v {
-                oop::RefKind::Inst(inst) => {
-                    let cls = inst.class.read().unwrap();
-                    let name = self.mir.method.name.clone();
-                    let desc = self.mir.method.desc.clone();
-                    match cls.get_virtual_method(name.as_slice(), desc.as_slice()) {
-                        Ok(mir) => self.mir = mir,
-                        _ => {
-                            let cls = self.mir.method.class.read().unwrap();
-                            warn!(
-                                "resolve again failed, {}:{}:{}, acc_flags = {}",
-                                String::from_utf8_lossy(cls.name.as_slice()),
-                                String::from_utf8_lossy(name.as_slice()),
-                                String::from_utf8_lossy(desc.as_slice()),
-                                self.mir.method.acc_flags
-                            );
+            let rf = this.extract_ref();
+            let ptr = rf.get_raw_ptr();
+            unsafe {
+                match &(*ptr).v {
+                    oop::RefKind::Inst(inst) => {
+                        let cls = inst.class.read().unwrap();
+                        let name = self.mir.method.name.clone();
+                        let desc = self.mir.method.desc.clone();
+                        match cls.get_virtual_method(name.as_slice(), desc.as_slice()) {
+                            Ok(mir) => self.mir = mir,
+                            _ => {
+                                let cls = self.mir.method.class.read().unwrap();
+                                warn!(
+                                    "resolve again failed, {}:{}:{}, acc_flags = {}",
+                                    String::from_utf8_lossy(cls.name.as_slice()),
+                                    String::from_utf8_lossy(name.as_slice()),
+                                    String::from_utf8_lossy(desc.as_slice()),
+                                    self.mir.method.acc_flags
+                                );
+                            }
                         }
                     }
+                    _ => (),
                 }
-                _ => (),
-            };
+            }
         }
     }
 
@@ -383,28 +383,28 @@ pub fn set_return(caller: Option<DataAreaRef>, return_type: SignatureType, v: Op
         | SignatureType::Int
         | SignatureType::Boolean => {
             let v = v.unwrap();
-            let v = util::oop::extract_int(&v);
+            let v = v.extract_int();
             let caller = caller.unwrap();
             let mut area = caller.write().unwrap();
             area.stack.push_int(v);
         }
         SignatureType::Long => {
             let v = v.unwrap();
-            let v = util::oop::extract_long(&v);
+            let v = v.extract_long();
             let caller = caller.unwrap();
             let mut area = caller.write().unwrap();
             area.stack.push_long(v);
         }
         SignatureType::Float => {
             let v = v.unwrap();
-            let v = util::oop::extract_float(&v);
+            let v = v.extract_float();
             let caller = caller.unwrap();
             let mut area = caller.write().unwrap();
             area.stack.push_float(v);
         }
         SignatureType::Double => {
             let v = v.unwrap();
-            let v = util::oop::extract_double(&v);
+            let v = v.extract_double();
             let caller = caller.unwrap();
             let mut area = caller.write().unwrap();
             area.stack.push_double(v);

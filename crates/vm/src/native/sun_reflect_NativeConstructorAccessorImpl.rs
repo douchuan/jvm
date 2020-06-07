@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::Oop;
 use crate::runtime;
-use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -19,12 +18,9 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let clazz = common::reflect::get_Constructor_clazz(ctor);
     let target_cls = {
-        let clazz = util::oop::extract_ref(&clazz);
-        let v = clazz.read().unwrap();
-        match &v.v {
-            oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
-            _ => unreachable!(),
-        }
+        let rf = clazz.extract_ref();
+        let mirror = rf.extract_mirror();
+        mirror.target.clone().unwrap()
     };
 
     let name = {
@@ -42,13 +38,8 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         match arguments {
             Oop::Null => (),
             Oop::Ref(rf) => {
-                let v = rf.read().unwrap();
-                match &v.v {
-                    oop::RefKind::Array(ary) => {
-                        ctor_args.extend_from_slice(ary.elements.as_slice());
-                    }
-                    _ => unreachable!(),
-                }
+                let ary = rf.extract_array();
+                ctor_args.extend_from_slice(ary.elements.as_slice());
             }
             _ => unreachable!(),
         }

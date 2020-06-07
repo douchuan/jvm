@@ -17,28 +17,21 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cp_oop = args.get(1).unwrap();
     let index = {
         let index = args.get(2).unwrap();
-        util::oop::extract_int(index)
+        index.extract_int()
     };
 
-    let s = match cp_oop {
-        Oop::Ref(rf) => {
-            let rf = rf.read().unwrap();
-            match &rf.v {
-                oop::RefKind::Mirror(mirror) => {
-                    let target = mirror.target.clone().unwrap();
-                    let cls = target.read().unwrap();
-                    match &cls.kind {
-                        oop::class::ClassKind::Instance(inst) => {
-                            let cp = &inst.class_file.cp;
-                            constant_pool::get_utf8(cp, index as usize)
-                        }
-                        _ => unimplemented!(),
-                    }
-                }
-                _ => unimplemented!(),
+    let s = {
+        let rf = cp_oop.extract_ref();
+        let mirror = rf.extract_mirror();
+        let target = mirror.target.clone().unwrap();
+        let cls = target.read().unwrap();
+        match &cls.kind {
+            oop::class::ClassKind::Instance(inst) => {
+                let cp = &inst.class_file.cp;
+                constant_pool::get_utf8(cp, index as usize)
             }
+            _ => unimplemented!(),
         }
-        _ => unreachable!(),
     };
 
     let r = match s {

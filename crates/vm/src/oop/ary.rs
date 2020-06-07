@@ -52,3 +52,117 @@ impl TypeArrayDesc {
         }
     }
 }
+
+impl TypeArrayDesc {
+    pub fn extract_chars(&self) -> &CharAry {
+        match self {
+            TypeArrayDesc::Char(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_chars(&mut self) -> &mut CharAry {
+        match self {
+            TypeArrayDesc::Char(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_bytes(&self) -> &ByteAry {
+        match self {
+            TypeArrayDesc::Byte(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_bytes(&mut self) -> &mut ByteAry {
+        match self {
+            TypeArrayDesc::Byte(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_bools(&self) -> &BoolAry {
+        match self {
+            TypeArrayDesc::Bool(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_bools(&mut self) -> &mut BoolAry {
+        match self {
+            TypeArrayDesc::Bool(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_shorts(&self) -> &ShortAry {
+        match self {
+            TypeArrayDesc::Short(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_shorts(&mut self) -> &mut ShortAry {
+        match self {
+            TypeArrayDesc::Short(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_floats(&self) -> &FloatAry {
+        match self {
+            TypeArrayDesc::Float(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_floats(&mut self) -> &mut FloatAry {
+        match self {
+            TypeArrayDesc::Float(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_doubles(&self) -> &DoubleAry {
+        match self {
+            TypeArrayDesc::Double(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_doubles(&mut self) -> &mut DoubleAry {
+        match self {
+            TypeArrayDesc::Double(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_ints(&self) -> &IntAry {
+        match self {
+            TypeArrayDesc::Int(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_ints(&mut self) -> &mut IntAry {
+        match self {
+            TypeArrayDesc::Int(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_longs(&self) -> &LongAry {
+        match self {
+            TypeArrayDesc::Long(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_longs(&mut self) -> &mut LongAry {
+        match self {
+            TypeArrayDesc::Long(v) => v,
+            _ => unreachable!(),
+        }
+    }
+}

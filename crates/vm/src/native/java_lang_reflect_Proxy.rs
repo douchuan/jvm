@@ -2,10 +2,9 @@
 
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Class, Oop};
+use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime;
 use crate::types::ClassRef;
-use crate::util;
 use class_parser::parse_class;
 use std::sync::Arc;
 
@@ -20,12 +19,10 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_defineClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _loader = args.get(0).unwrap();
     let name = args.get(1).unwrap();
-    let name = util::oop::extract_str(name);
+    let name = OopRef::java_lang_string(name.extract_ref());
     let b = args.get(2).unwrap();
-    let off = args.get(3).unwrap();
-    let off = util::oop::extract_int(off);
-    let len = args.get(4).unwrap();
-    let len = util::oop::extract_int(len);
+    let off = args.get(3).unwrap().extract_int();
+    let len = args.get(4).unwrap().extract_int();
 
     let name = name.replace(".", "/");
 
@@ -45,29 +42,16 @@ fn jvm_defineClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
-    match v {
-        Oop::Ref(rf) => {
-            let rf = rf.read().unwrap();
-            match &rf.v {
-                oop::RefKind::TypeArray(ary) => {
-                    match ary {
-                        oop::TypeArrayDesc::Byte(ary) => {
-                            match parse_class(&ary[off..(off + len)]) {
-                                Ok(r) => {
-                                    let cfr = Arc::new(Box::new(r.1));
-                                    //fixme: setup classloader
-                                    let class = Class::new_class(cfr, None);
-                                    new_sync_ref!(class)
-                                }
-                                Err(e) => unreachable!("e = {:?}", e),
-                            }
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-                _ => unreachable!(),
-            }
+    let rf = v.extract_ref();
+    let ary = rf.extract_type_array();
+    let ary = ary.extract_bytes();
+    match parse_class(&ary[off..(off + len)]) {
+        Ok(r) => {
+            let cfr = Arc::new(Box::new(r.1));
+            //fixme: setup classloader
+            let class = Class::new_class(cfr, None);
+            new_sync_ref!(class)
         }
-        _ => unreachable!(),
+        Err(e) => unreachable!("e = {:?}", e),
     }
 }

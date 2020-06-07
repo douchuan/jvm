@@ -4,7 +4,6 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::require_class3;
 use crate::types::ClassRef;
-use crate::util;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -24,16 +23,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_newArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = args.get(0).unwrap();
     //todo: throw NegativeArraySizeException
-    let length = args.get(1).unwrap();
-    let length = util::oop::extract_int(length);
+    let length = args.get(1).unwrap().extract_int();
 
     let (vt, component_cls) = {
-        let mirror = util::oop::extract_ref(mirror);
-        let v = mirror.read().unwrap();
-        match &v.v {
-            oop::RefKind::Mirror(mirror) => (mirror.value_type, mirror.target.clone()),
-            _ => unreachable!(),
-        }
+        let rf = mirror.extract_ref();
+        let mirror = rf.extract_mirror();
+        (mirror.value_type, mirror.target.clone())
     };
     let name = build_ary_name(vt, component_cls);
     let ary_cls = require_class3(None, name.as_slice()).unwrap();
@@ -44,16 +39,14 @@ fn jvm_newArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_getLength(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let ary = args.get(0).unwrap();
-    let len = match ary {
-        Oop::Ref(rf) => {
-            let rf = rf.read().unwrap();
-            match &rf.v {
-                oop::RefKind::TypeArray(ary) => ary.len(),
-                oop::RefKind::Array(ary) => ary.elements.len(),
-                _ => unreachable!(),
-            }
+    let rf = ary.extract_ref();
+    let ptr = rf.get_raw_ptr();
+    let len = unsafe {
+        match &(*ptr).v {
+            oop::RefKind::TypeArray(ary) => ary.len(),
+            oop::RefKind::Array(ary) => ary.elements.len(),
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
     };
 
     let v = Oop::new_int(len as i32);

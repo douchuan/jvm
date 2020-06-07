@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, RefKind};
+use crate::oop::{self, Oop, OopRef, RefKind};
 use crate::runtime::{self, JavaCall};
-use crate::types::OopRef;
 use crate::util;
 use std::sync::Arc;
 use std::time::SystemTime;
@@ -52,10 +51,10 @@ fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 
 fn jvm_arraycopy(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let src = args.get(0).unwrap();
-    let src_pos = util::oop::extract_int(args.get(1).unwrap());
+    let src_pos = args.get(1).unwrap().extract_int();
     let dest = args.get(2).unwrap();
-    let dest_pos = util::oop::extract_int(args.get(3).unwrap());
-    let length = util::oop::extract_int(args.get(4).unwrap());
+    let dest_pos = args.get(3).unwrap().extract_int();
+    let length = args.get(4).unwrap().extract_int();
 
     //todo: do check & throw exception
 
@@ -63,22 +62,20 @@ fn jvm_arraycopy(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         return Ok(None);
     }
 
-    let src_ref = util::oop::extract_ref(src);
-    let dest_ref = util::oop::extract_ref(dest);
-    let is_same_obj = Arc::ptr_eq(&src_ref, &dest_ref);
+    let is_same_obj = OopRef::is_eq(src.extract_ref(), dest.extract_ref());
 
     if is_same_obj {
         arraycopy_same_obj(
-            src_ref,
+            src.extract_ref(),
             src_pos as usize,
             dest_pos as usize,
             length as usize,
         );
     } else {
         arraycopy_diff_obj(
-            src_ref,
+            src.extract_ref(),
             src_pos as usize,
-            dest_ref,
+            dest.extract_ref(),
             dest_pos as usize,
             length as usize,
         );
@@ -168,12 +165,9 @@ fn jvm_initProperties(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn put_props_kv(props: &Oop, k: &str, v: &str) {
     //todo: optimize me
     let cls = {
-        let props = util::oop::extract_ref(props);
-        let v = props.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.class.clone(),
-            _ => unreachable!(),
-        }
+        let rf = props.extract_ref();
+        let inst = rf.extract_inst();
+        inst.class.clone()
     };
 
     let mir = {
@@ -224,7 +218,7 @@ fn jvm_setErr0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_mapLibraryName(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
-    let s = util::oop::extract_str(v);
+    let s = OopRef::java_lang_string(v.extract_ref());
 
     trace!("mapLibraryName libname = {}", s);
     let mut name = String::new();
@@ -296,126 +290,133 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 */
 
-fn arraycopy_same_obj(buf: OopRef, src_pos: usize, dest_pos: usize, length: usize) {
+fn arraycopy_same_obj(buf: Arc<OopRef>, src_pos: usize, dest_pos: usize, length: usize) {
     let is_type_ary = {
-        let buf = buf.read().unwrap();
-        match &buf.v {
-            oop::RefKind::TypeArray(_) => true,
-            oop::RefKind::Array(_) => false,
-            _ => unreachable!(),
+        let ptr = buf.get_raw_ptr();
+        unsafe {
+            match &(*ptr).v {
+                oop::RefKind::TypeArray(_) => true,
+                oop::RefKind::Array(_) => false,
+                _ => unreachable!(),
+            }
         }
     };
 
     if is_type_ary {
-        let mut buf = buf.write().unwrap();
-        match &mut buf.v {
-            oop::RefKind::TypeArray(ary) => match ary {
-                oop::TypeArrayDesc::Char(ary) => {
-                    ary.copy_within(src_pos..(src_pos + length), dest_pos)
-                }
-                oop::TypeArrayDesc::Byte(ary) => {
-                    ary.copy_within(src_pos..(src_pos + length), dest_pos)
-                }
-                t => unreachable!("t = {:?}", t),
-            },
+        let ptr = buf.get_mut_raw_ptr();
+        unsafe {
+            match &mut (*ptr).v {
+                oop::RefKind::TypeArray(ary) => match ary {
+                    oop::TypeArrayDesc::Char(ary) => {
+                        ary.copy_within(src_pos..(src_pos + length), dest_pos)
+                    }
+                    oop::TypeArrayDesc::Byte(ary) => {
+                        ary.copy_within(src_pos..(src_pos + length), dest_pos)
+                    }
+                    t => unreachable!("t = {:?}", t),
+                },
 
-            _ => unreachable!(),
+                _ => unreachable!(),
+            }
         }
     } else {
         /*
         todo optimize: How to achieve the purpose of copy without tmp
         */
         let tmp = {
-            let ary = buf.read().unwrap();
-            match &ary.v {
-                oop::RefKind::Array(ary) => {
-                    let mut tmp = Vec::with_capacity(length);
-                    tmp.resize(length, oop::consts::get_null());
+            let ary = buf.extract_array();
+            let mut tmp = Vec::with_capacity(length);
+            tmp.resize(length, oop::consts::get_null());
 
-                    let (_, ary) = ary.elements.split_at(src_pos);
-                    tmp.clone_from_slice(&ary[..length]);
-                    tmp
-                }
-                _ => unreachable!(),
-            }
+            let (_, ary) = ary.elements.split_at(src_pos);
+            tmp.clone_from_slice(&ary[..length]);
+            tmp
         };
 
-        let mut dest = buf.write().unwrap();
-        match &mut dest.v {
-            oop::RefKind::Array(ary) => {
-                let (_, ary) = ary.elements.split_at_mut(dest_pos);
-                ary[..length].clone_from_slice(&tmp[..]);
-            }
-            _ => unreachable!(),
-        }
+        let ary = buf.extract_mut_array();
+        let (_, ary) = ary.elements.split_at_mut(dest_pos);
+        ary[..length].clone_from_slice(&tmp[..]);
     }
 }
 
-fn arraycopy_diff_obj(src: OopRef, src_pos: usize, dest: OopRef, dest_pos: usize, length: usize) {
-    let src = src.read().unwrap();
-    let mut dest = dest.write().unwrap();
-
+fn arraycopy_diff_obj(
+    src: Arc<OopRef>,
+    src_pos: usize,
+    dest: Arc<OopRef>,
+    dest_pos: usize,
+    length: usize,
+) {
     let is_type_ary = {
-        match &src.v {
-            oop::RefKind::TypeArray(_) => true,
-            oop::RefKind::Array(_) => false,
-            _ => unreachable!(),
+        let ptr = src.get_raw_ptr();
+        unsafe {
+            match &(*ptr).v {
+                oop::RefKind::TypeArray(_) => true,
+                oop::RefKind::Array(_) => false,
+                _ => unreachable!(),
+            }
         }
     };
 
     // error!("src={}, dest={}, length={}, is_type_ary={}", src_pos, dest_pos, length, is_type_ary);
 
+    let src_ptr = src.get_raw_ptr();
+    let dst_ptr = dest.get_mut_raw_ptr();
+
     if is_type_ary {
-        match &src.v {
-            oop::RefKind::TypeArray(src_ary) => match src_ary {
-                oop::TypeArrayDesc::Char(src_ary) => match &mut dest.v {
-                    RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayDesc::Char(dest_ary) => {
-                            let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                            let (_, src_ptr) = src_ary.split_at(src_pos);
-                            dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                        }
+        unsafe {
+            match &(*src_ptr).v {
+                oop::RefKind::TypeArray(src_ary) => match src_ary {
+                    oop::TypeArrayDesc::Char(src_ary) => match &mut (*dst_ptr).v {
+                        RefKind::TypeArray(dest_ary) => match dest_ary {
+                            oop::TypeArrayDesc::Char(dest_ary) => {
+                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                                let (_, src_ptr) = src_ary.split_at(src_pos);
+                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                            }
+                            _ => unreachable!(),
+                        },
                         _ => unreachable!(),
                     },
-                    _ => unreachable!(),
-                },
-                oop::TypeArrayDesc::Byte(src_ary) => match &mut dest.v {
-                    RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayDesc::Byte(dest_ary) => {
-                            let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                            let (_, src_ptr) = src_ary.split_at(src_pos);
-                            dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                        }
+                    oop::TypeArrayDesc::Byte(src_ary) => match &mut (*dst_ptr).v {
+                        RefKind::TypeArray(dest_ary) => match dest_ary {
+                            oop::TypeArrayDesc::Byte(dest_ary) => {
+                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                                let (_, src_ptr) = src_ary.split_at(src_pos);
+                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                            }
+                            _ => unreachable!(),
+                        },
                         _ => unreachable!(),
                     },
-                    _ => unreachable!(),
-                },
-                oop::TypeArrayDesc::Int(src_ary) => match &mut dest.v {
-                    RefKind::TypeArray(dest_ary) => match dest_ary {
-                        oop::TypeArrayDesc::Int(dest_ary) => {
-                            let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                            let (_, src_ptr) = src_ary.split_at(src_pos);
-                            dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                        }
+                    oop::TypeArrayDesc::Int(src_ary) => match &mut (*dst_ptr).v {
+                        RefKind::TypeArray(dest_ary) => match dest_ary {
+                            oop::TypeArrayDesc::Int(dest_ary) => {
+                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                                let (_, src_ptr) = src_ary.split_at(src_pos);
+                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                            }
+                            _ => unreachable!(),
+                        },
                         _ => unreachable!(),
                     },
-                    _ => unreachable!(),
+                    t => unreachable!("t = {:?}", t),
                 },
-                t => unreachable!("t = {:?}", t),
-            },
-            _ => unreachable!(),
+                _ => unreachable!(),
+            }
         }
     } else {
-        match &src.v {
-            oop::RefKind::Array(src) => match &mut dest.v {
-                oop::RefKind::Array(dest) => {
-                    let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
-                    let (_, src_ptr) = src.elements.split_at(src_pos);
-                    dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
-                }
+        unsafe {
+            match &(*src_ptr).v {
+                oop::RefKind::Array(src) => match &mut (*dst_ptr).v {
+                    oop::RefKind::Array(dest) => {
+                        let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
+                        let (_, src_ptr) = src.elements.split_at(src_pos);
+                        dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
+                    }
+                    _ => unreachable!(),
+                },
                 _ => unreachable!(),
-            },
-            _ => unreachable!(),
+            }
         }
     }
 }

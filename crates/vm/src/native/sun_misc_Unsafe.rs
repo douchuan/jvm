@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
-use crate::util;
 use std::os::raw::c_void;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -101,62 +100,35 @@ fn jvm_objectFieldOffset(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let field = args.get(1).unwrap();
 
     {
-        let field = util::oop::extract_ref(field);
-        let v = field.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => {
-                let cls = inst.class.clone();
-                let cls = cls.read().unwrap();
-                assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
-            }
-            _ => unreachable!(),
-        }
+        let rf = field.extract_ref();
+        let inst = rf.extract_inst();
+        let cls = inst.class.clone();
+        let cls = cls.read().unwrap();
+        assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
     }
 
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let v = {
         let cls = cls.read().unwrap();
         let id = cls.get_field_id(b"slot", b"I", false);
-        cls.get_field_value(field, id)
+        Class::get_field_value(field.extract_ref(), id)
     };
 
-    let v = util::oop::extract_int(&v);
-
+    let v = v.extract_int();
     Ok(Some(Oop::new_long(v as i64)))
 }
 
 // fixme: The semantic requirement here is atomic operation, which needs to be re-implemented here
 fn jvm_compareAndSwapObject(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
+    let offset = args.get(2).unwrap().extract_long();
     let old_data = args.get(3).unwrap();
     let new_data = args.get(4).unwrap();
 
-    let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        match &v.v {
-            oop::RefKind::Mirror(mirror) => mirror.field_values[offset as usize].clone(),
-            oop::RefKind::Array(ary) => ary.elements[offset as usize].clone(),
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            t => unreachable!("{:?}", t),
-        }
-    };
+    let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
 
-    if util::oop::if_acmpeq(&v_at_offset, old_data) {
-        let owner = util::oop::extract_ref(owner);
-        let mut v = owner.write().unwrap();
-        match &mut v.v {
-            oop::RefKind::Mirror(mirror) => {
-                mirror.field_values[offset as usize] = new_data.clone();
-            }
-            oop::RefKind::Array(ary) => {
-                ary.elements[offset as usize] = new_data.clone();
-            }
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
-            _ => unreachable!(),
-        }
-
+    if OopRef::is_eq(v_at_offset.extract_ref(), old_data.extract_ref()) {
+        Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {
         Ok(Some(Oop::new_int(0)))
@@ -165,43 +137,24 @@ fn jvm_compareAndSwapObject(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_getIntVolatile(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            _ => unreachable!(),
-        }
-    };
-    Ok(Some(v_at_offset))
+    let offset = args.get(2).unwrap().extract_long();
+    let v = Class::get_field_value2(owner.extract_ref(), offset as usize);
+    Ok(Some(v))
 }
 
 fn jvm_compareAndSwapInt(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let old_data = util::oop::extract_int(args.get(3).unwrap());
+    let offset = args.get(2).unwrap().extract_long();
+    let old_data = args.get(3).unwrap().extract_int();
     let new_data = args.get(4).unwrap();
 
     let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        let v = match &v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            _ => unreachable!(),
-        };
-
-        util::oop::extract_int(&v)
+        let v = Class::get_field_value2(owner.extract_ref(), offset as usize);
+        v.extract_int()
     };
 
     if v_at_offset == old_data {
-        let owner = util::oop::extract_ref(owner);
-        let mut v = owner.write().unwrap();
-        match &mut v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
-            _ => unreachable!(),
-        }
-
+        Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {
         Ok(Some(Oop::new_int(0)))
@@ -209,7 +162,7 @@ fn jvm_compareAndSwapInt(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_allocateMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let size = util::oop::extract_long(args.get(1).unwrap()) as usize;
+    let size = args.get(1).unwrap().extract_long() as usize;
     let arr = unsafe { libc::malloc(std::mem::size_of::<u8>() * size) };
     let v = arr as i64;
 
@@ -217,7 +170,7 @@ fn jvm_allocateMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_freeMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let ptr = util::oop::extract_long(args.get(1).unwrap()) as *mut libc::c_void;
+    let ptr = args.get(1).unwrap().extract_long() as *mut libc::c_void;
 
     unsafe {
         libc::free(ptr);
@@ -227,8 +180,8 @@ fn jvm_freeMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_putLong(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let ptr = util::oop::extract_long(args.get(1).unwrap()) as *mut libc::c_void;
-    let l = util::oop::extract_long(args.get(2).unwrap());
+    let ptr = args.get(1).unwrap().extract_long() as *mut libc::c_void;
+    let l = args.get(2).unwrap().extract_long();
     let v = l.to_be_bytes();
     let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
     unsafe {
@@ -239,36 +192,24 @@ fn jvm_putLong(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_getByte(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let ptr = util::oop::extract_long(args.get(1).unwrap()) as *const u8;
+    let ptr = args.get(1).unwrap().extract_long() as *const u8;
     let v = unsafe { *ptr };
     Ok(Some(Oop::new_int(v as i32)))
 }
 
 fn jvm_compareAndSwapLong(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let old_data = util::oop::extract_long(args.get(3).unwrap());
+    let offset = args.get(2).unwrap().extract_long();
+    let old_data = args.get(3).unwrap().extract_long();
     let new_data = args.get(4).unwrap();
 
     let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        let v = match &v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            _ => unreachable!(),
-        };
-
-        util::oop::extract_long(&v)
+        let v = Class::get_field_value2(owner.extract_ref(), offset as usize);
+        v.extract_long()
     };
 
     if v_at_offset == old_data {
-        let owner = util::oop::extract_ref(owner);
-        let mut v = owner.write().unwrap();
-        match &mut v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize] = new_data.clone(),
-            _ => unreachable!(),
-        }
-
+        Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {
         Ok(Some(Oop::new_int(0)))
@@ -277,16 +218,8 @@ fn jvm_compareAndSwapLong(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_getObjectVolatile(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            oop::RefKind::Array(ary) => ary.elements[offset as usize].clone(),
-            t => unreachable!("t = {:?}", t),
-        }
-    };
+    let offset = args.get(2).unwrap().extract_long();
+    let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
     Ok(Some(v_at_offset))
 }
 
@@ -296,24 +229,17 @@ fn jvm_pageSize(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
 
 fn jvm_getLongVolatile(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let owner = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let v_at_offset = {
-        let owner = util::oop::extract_ref(owner);
-        let v = owner.read().unwrap();
-        match &v.v {
-            oop::RefKind::Inst(inst) => inst.field_values[offset as usize].clone(),
-            _ => unreachable!(),
-        }
-    };
+    let offset = args.get(2).unwrap().extract_long();
+    let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
     Ok(Some(v_at_offset))
 }
 
 fn jvm_setMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
-    let offset = util::oop::extract_long(args.get(2).unwrap());
-    let size = util::oop::extract_long(args.get(3).unwrap());
-    let value = util::oop::extract_int(args.get(4).unwrap());
+    let offset = args.get(2).unwrap().extract_long();
+    let size = args.get(3).unwrap().extract_long();
+    let value = args.get(4).unwrap().extract_int();
 
     let dest = match obj {
         Oop::Null => offset as *mut libc::c_void,
@@ -328,8 +254,8 @@ fn jvm_setMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_putChar(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let dest = util::oop::extract_long(args.get(1).unwrap()) as *mut libc::c_void;
-    let value = util::oop::extract_int(args.get(2).unwrap());
+    let dest = args.get(1).unwrap().extract_long() as *mut libc::c_void;
+    let value = args.get(2).unwrap().extract_int();
 
     unsafe {
         libc::memset(dest, value, 1);
@@ -341,29 +267,22 @@ fn jvm_putChar(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn jvm_copyMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     let src_obj = args.get(1).unwrap();
-    let src_offset = util::oop::extract_long(args.get(2).unwrap()) as usize;
+    let src_offset = args.get(2).unwrap().extract_long() as usize;
     let dest_obj = args.get(3).unwrap();
-    let dest_offset = util::oop::extract_long(args.get(4).unwrap()) as usize;
-    let size = util::oop::extract_long(args.get(5).unwrap()) as usize;
+    let dest_offset = args.get(4).unwrap().extract_long() as usize;
+    let size = args.get(5).unwrap().extract_long() as usize;
 
     match src_obj {
         Oop::Null => {
-            let v = util::oop::extract_ref(dest_obj);
-            let mut v = v.write().unwrap();
-            match &mut v.v {
-                oop::RefKind::TypeArray(dest_ary) => match dest_ary {
-                    oop::TypeArrayDesc::Char(dest_ary) => {
-                        let dest_ptr = dest_ary.as_mut_ptr() as usize + dest_offset;
-                        let dest_ptr = dest_ptr as *mut libc::c_void;
+            let rf = dest_obj.extract_ref();
+            let dest_ary = rf.extract_mut_type_array();
+            let dest_ary = dest_ary.extract_mut_chars();
+            let dest_ptr = dest_ary.as_mut_ptr() as usize + dest_offset;
+            let dest_ptr = dest_ptr as *mut libc::c_void;
 
-                        let src_ptr = src_offset as *const libc::c_void;
-                        unsafe {
-                            libc::memcpy(dest_ptr, src_ptr, size);
-                        }
-                    }
-                    t => unimplemented!("t={:?}", t),
-                },
-                _ => unimplemented!(),
+            let src_ptr = src_offset as *const libc::c_void;
+            unsafe {
+                libc::memcpy(dest_ptr, src_ptr, size);
             }
         }
         _ => unreachable!(),
@@ -373,7 +292,8 @@ fn jvm_copyMemory(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn jvm_getChar(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
-    let ptr = util::oop::extract_long(args.get(1).unwrap()) as *const u16;
+    let arg1 = args.get(1).unwrap();
+    let ptr = arg1.extract_long() as *const u16;
     let v = unsafe { *ptr };
     Ok(Some(Oop::new_int(v as i32)))
 }

@@ -75,6 +75,52 @@ impl RefKindDesc {
     }
 }
 
+impl RefKind {
+    pub fn extract_inst(&self) -> &InstOopDesc {
+        match &self {
+            RefKind::Inst(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_array(&self) -> &ArrayOopDesc {
+        match &self {
+            RefKind::Array(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_array(&mut self) -> &mut ArrayOopDesc {
+        let v = self;
+        match v {
+            RefKind::Array(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_type_array(&self) -> &TypeArrayDesc {
+        match &self {
+            RefKind::TypeArray(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mut_type_array(&mut self) -> &mut TypeArrayDesc {
+        let v = self;
+        match v {
+            RefKind::TypeArray(v) => v,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn extract_mirror(&self) -> &MirrorOopDesc {
+        match &self {
+            RefKind::Mirror(v) => v,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl Drop for RefKindDesc {
     fn drop(&mut self) {
         unsafe {

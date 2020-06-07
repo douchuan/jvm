@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
-use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -25,30 +24,23 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let cls = cls.read().unwrap();
 
         let fid = cls.get_field_id(b"clazz", b"Ljava/lang/Class;", false);
-        let method_clazz = cls.get_field_value(&method, fid);
+        let method_clazz = Class::get_field_value(method.extract_ref(), fid);
 
         let fid = cls.get_field_id(b"name", b"Ljava/lang/String;", false);
-        let method_name = cls.get_field_value(&method, fid);
-        let method_name = util::oop::extract_str(&method_name);
+        let method_name = Class::get_field_value(method.extract_ref(), fid);
+        let method_name = OopRef::java_lang_string(method_name.extract_ref());
 
         let fid = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
-        let signature = cls.get_field_value(&method, fid);
-        let signature = util::oop::extract_str(&signature);
+        let signature = Class::get_field_value(method.extract_ref(), fid);
+        let signature = OopRef::java_lang_string(signature.extract_ref());
 
         (method_clazz, method_name, signature)
     };
 
     let clz = {
-        match m_clazz {
-            oop::Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::Mirror(mirror) => mirror.target.clone().unwrap(),
-                    _ => unreachable!(),
-                }
-            }
-            _ => unreachable!(),
-        }
+        let rf = m_clazz.extract_ref();
+        let mirror = rf.extract_mirror();
+        mirror.target.clone().unwrap()
     };
 
     let mir = {
@@ -71,16 +63,9 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     // }
 
     let mut args = {
-        match args {
-            oop::Oop::Ref(rf) => {
-                let rf = rf.read().unwrap();
-                match &rf.v {
-                    oop::RefKind::Array(ary) => ary.elements.clone(),
-                    _ => unreachable!(),
-                }
-            }
-            _ => unreachable!(),
-        }
+        let rf = args.extract_ref();
+        let ary = rf.extract_array();
+        ary.elements.to_vec()
     };
 
     if !mir.method.is_static() {

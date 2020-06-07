@@ -35,19 +35,10 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 return Err(ex);
             }
             Oop::Ref(v) => {
-                let v = v.read().unwrap();
-                match &v.v {
-                    oop::RefKind::Inst(inst) => {
-                        let m = {
-                            let cls = inst.class.read().unwrap();
-                            cls.get_virtual_method(b"run", b"()Ljava/lang/Object;")
-                                .unwrap()
-                        };
-
-                        m
-                    }
-                    _ => unreachable!(),
-                }
+                let inst = v.extract_inst();
+                let cls = inst.class.read().unwrap();
+                cls.get_virtual_method(b"run", b"()Ljava/lang/Object;")
+                    .unwrap()
             }
             _ => unreachable!(),
         }

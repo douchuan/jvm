@@ -1,5 +1,6 @@
 use crate::native;
 use crate::oop;
+use crate::oop::Class;
 use crate::runtime::{self, require_class3};
 use crate::types::JavaThreadRef;
 use crate::util;
@@ -25,7 +26,7 @@ pub fn initialize_jvm() {
         //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
         let id = cls.get_field_id(b"priority", b"I", false);
-        cls.put_field_value(init_thread_oop.clone(), id, oop::Oop::new_int(5));
+        Class::put_field_value(init_thread_oop.extract_ref(), id, oop::Oop::new_int(5));
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -45,7 +46,7 @@ pub fn initialize_jvm() {
     {
         let mut cls = thread_cls.write().unwrap();
         let id = cls.get_field_id(b"group", b"Ljava/lang/ThreadGroup;", false);
-        cls.put_field_value(init_thread_oop.clone(), id, main_thread_group.clone());
+        Class::put_field_value(init_thread_oop.extract_ref(), id, main_thread_group.clone());
     }
 
     let _ = oop::class::load_and_init(J_INPUT_STREAM);
