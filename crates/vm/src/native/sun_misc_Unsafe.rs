@@ -127,7 +127,7 @@ fn jvm_compareAndSwapObject(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
 
-    if OopRef::is_eq(v_at_offset.extract_ref(), old_data.extract_ref()) {
+    if OopRef::is_eq(&v_at_offset, old_data) {
         Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {

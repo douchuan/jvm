@@ -2358,7 +2358,7 @@ impl<'a> Interp<'a> {
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
-        if OopRef::is_eq(v1.extract_ref(), v2.extract_ref()) {
+        if OopRef::is_eq(&v1, &v2) {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -2371,7 +2371,7 @@ impl<'a> Interp<'a> {
         let v2 = area.stack.pop_ref();
         let v1 = area.stack.pop_ref();
 
-        if !OopRef::is_eq(v1.extract_ref(), v2.extract_ref()) {
+        if !OopRef::is_eq(&v1, &v2) {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {

@@ -387,7 +387,20 @@ impl OopRef {
 }
 
 impl OopRef {
-    pub fn is_eq(l: Arc<Self>, r: Arc<Self>) -> bool {
+    pub fn is_eq(l: &Oop, r: &Oop) -> bool {
+        let l_is_null = l.is_null();
+        let r_is_null = r.is_null();
+
+        match (l_is_null, r_is_null) {
+            (true, true) => return true,
+            (true, false) => return false,
+            (false, true) => return false,
+            (false, false) => (),
+        }
+
+        let l = l.extract_ref();
+        let r = r.extract_ref();
+
         if l.0 == r.0 {
             true
         } else {

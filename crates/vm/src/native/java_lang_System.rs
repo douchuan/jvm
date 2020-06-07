@@ -62,7 +62,7 @@ fn jvm_arraycopy(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         return Ok(None);
     }
 
-    let is_same_obj = OopRef::is_eq(src.extract_ref(), dest.extract_ref());
+    let is_same_obj = OopRef::is_eq(src, dest);
 
     if is_same_obj {
         arraycopy_same_obj(
