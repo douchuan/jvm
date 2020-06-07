@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopRef, RefKind};
+use crate::oop::{self, Oop, OopRef};
 use crate::runtime::{self, JavaCall};
-use crate::util;
+use crate::{util, new_br};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -173,8 +173,8 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
     let mir = {
         let cls = cls.read().unwrap();
         cls.get_virtual_method(
-            b"put",
-            b"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+            new_br("put"),
+            new_br("(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"),
         )
         .unwrap()
     };
@@ -193,7 +193,7 @@ fn jvm_setIn0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
-    let id = cls.get_field_id(b"in", b"Ljava/io/InputStream;", true);
+    let id = cls.get_field_id(new_br("in"), new_br("Ljava/io/InputStream;"), true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }
@@ -202,7 +202,7 @@ fn jvm_setOut0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
-    let id = cls.get_field_id(b"out", b"Ljava/io/PrintStream;", true);
+    let id = cls.get_field_id(new_br("out"), new_br("Ljava/io/PrintStream;"), true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }
@@ -211,7 +211,7 @@ fn jvm_setErr0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let mut cls = cls.write().unwrap();
-    let id = cls.get_field_id(b"err", b"Ljava/io/PrintStream;", true);
+    let id = cls.get_field_id(new_br("err"), new_br("Ljava/io/PrintStream;"), true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }

@@ -38,7 +38,7 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdR
     oop::class::init_class_fully(class.clone());
 
     let class = class.read().unwrap();
-    class.get_field_id(name.as_slice(), desc.as_slice(), is_static)
+    class.get_field_id(name, desc, is_static)
 }
 
 pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {

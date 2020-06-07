@@ -1,4 +1,4 @@
-use crate::native;
+use crate::{native, new_br};
 use crate::oop;
 use crate::oop::Class;
 use crate::runtime::{self, require_class3};
@@ -25,7 +25,7 @@ pub fn initialize_jvm() {
         //        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
         //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
         //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
-        let id = cls.get_field_id(b"priority", b"I", false);
+        let id = cls.get_field_id(new_br("priority"), new_br("I"), false);
         Class::put_field_value(init_thread_oop.extract_ref(), id, oop::Oop::new_int(5));
     }
 
@@ -39,13 +39,13 @@ pub fn initialize_jvm() {
     // Create and construct the system thread group.
     let system_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
     let args = vec![system_thread_group.clone()];
-    runtime::invoke::invoke_ctor(thread_group_cls.clone(), b"()V", args);
+    runtime::invoke::invoke_ctor(thread_group_cls.clone(), new_br("()V"), args);
 
     let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
     {
         let mut cls = thread_cls.write().unwrap();
-        let id = cls.get_field_id(b"group", b"Ljava/lang/ThreadGroup;", false);
+        let id = cls.get_field_id(new_br("group"), new_br("Ljava/lang/ThreadGroup;"), false);
         Class::put_field_value(init_thread_oop.extract_ref(), id, main_thread_group.clone());
     }
 
@@ -62,7 +62,7 @@ pub fn initialize_jvm() {
     ];
     runtime::invoke::invoke_ctor(
         thread_group_cls.clone(),
-        b"(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
+        new_br("(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
         args,
     );
 
@@ -77,7 +77,7 @@ pub fn initialize_jvm() {
     ];
     runtime::invoke::invoke_ctor(
         thread_cls.clone(),
-        b"(Ljava/lang/ThreadGroup;Ljava/lang/String;)V",
+        new_br("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
         args,
     );
 
@@ -86,7 +86,7 @@ pub fn initialize_jvm() {
     let init_system_classes_method = {
         let cls = require_class3(None, J_SYSTEM).unwrap();
         let cls = cls.read().unwrap();
-        cls.get_static_method(b"initializeSystemClass", b"()V")
+        cls.get_static_method(new_br("initializeSystemClass"), new_br("()V"))
             .unwrap()
     };
     let mut jc = runtime::invoke::JavaCall::new_with_args(init_system_classes_method, vec![]);
@@ -110,14 +110,14 @@ fn initialize_vm_structs() {
     let string_cls = oop::class::load_and_init(J_STRING);
     {
         let cls = string_cls.read().unwrap();
-        let fir = cls.get_field_id(b"value", b"[C", false);
+        let fir = cls.get_field_id(new_br("value"), new_br("[C"), false);
         util::oop::set_java_lang_string_value_offset(fir.offset);
     }
 
     let integer_cls = oop::class::load_and_init(b"java/lang/Integer");
     {
         let cls = integer_cls.read().unwrap();
-        let fir = cls.get_field_id(b"value", b"I", false);
+        let fir = cls.get_field_id(new_br("value"), new_br("I"), false);
         util::oop::set_java_lang_integer_value_offset(fir.offset);
     }
 
@@ -138,7 +138,7 @@ fn initialize_vm_structs() {
 
     {
         let mut cls = class_obj.write().unwrap();
-        let id = cls.get_field_id(b"useCaches", b"Z", true);
+        let id = cls.get_field_id(new_br("useCaches"), new_br("Z"), true);
         cls.put_static_field_value(id, oop::Oop::new_int(1));
     }
 }
@@ -149,11 +149,11 @@ fn hack_classes() {
 
     let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
     let args = vec![ascii_inst.clone()];
-    runtime::invoke::invoke_ctor(ascii_charset_cls.clone(), b"()V", args);
+    runtime::invoke::invoke_ctor(ascii_charset_cls.clone(), new_br("()V"), args);
 
     {
         let mut cls = charset_cls.write().unwrap();
-        let id = cls.get_field_id(b"defaultCharset", b"Ljava/nio/charset/Charset;", true);
+        let id = cls.get_field_id(new_br("defaultCharset"), new_br("Ljava/nio/charset/Charset;"), true);
         cls.put_static_field_value(id, ascii_inst);
     }
 

@@ -3,7 +3,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
-use crate::util;
+use crate::{util, new_br};
 use std::fs;
 
 //FileSystem.java define
@@ -129,7 +129,7 @@ fn get_File_path(file: &Oop) -> String {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let path = {
         let cls = cls.read().unwrap();
-        let fir = cls.get_field_id(b"path", b"Ljava/lang/String;", false);
+        let fir = cls.get_field_id(new_br("path"), new_br("Ljava/lang/String;"), false);
         Class::get_field_value(file.extract_ref(), fir)
     };
     OopRef::java_lang_string(path.extract_ref())

@@ -85,6 +85,7 @@ pub struct ClassObject {
     pub all_methods: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
     v_table: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
 
+    //todo: optimize to 3 levels
     pub static_fields: HashMap<BytesRef, FieldIdRef>,
     pub inst_fields: HashMap<BytesRef, FieldIdRef>,
 
@@ -122,7 +123,7 @@ pub fn init_class_fully(class: ClassRef) {
             let mut class = class.write().unwrap();
             class.state = State::FullyIni;
 
-            let mir = class.get_this_class_method(b"<clinit>", b"()V");
+            let mir = class.get_this_class_method(util::S_CLINIT.clone(), util::S_CLINIT_SIG.clone());
             (mir, class.name.clone())
         };
 
@@ -389,28 +390,28 @@ impl ArrayClassObject {
 //open api
 impl Class {
     //todo: confirm static method
-    pub fn get_static_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_static_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_class_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_class_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_this_class_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_this_class_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, false)
     }
 
-    pub fn get_virtual_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_virtual_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_virtual_method_inner(name, desc)
     }
 
-    pub fn get_interface_method(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         self.get_interface_method_inner(name, desc)
     }
 
-    pub fn get_field_id(&self, name: &[u8], desc: &[u8], is_static: bool) -> FieldIdRef {
-        let field_id = util::new_field_id(self.name.as_slice(), name, desc);
+    pub fn get_field_id(&self, name: BytesRef, desc: BytesRef, is_static: bool) -> FieldIdRef {
+        let field_id = util::new_field_id(self.name.as_slice(), name.as_slice(), desc.as_slice());
         //        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
 
         if is_static {
@@ -881,13 +882,13 @@ impl ClassObject {
 impl Class {
     pub fn get_class_method_inner(
         &self,
-        name: &[u8],
-        desc: &[u8],
+        name: BytesRef,
+        desc: BytesRef,
         with_super: bool,
     ) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&Vec::from(name)) {
-                Some(m) => match m.get(&Vec::from(desc)) {
+            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&name) {
+                Some(m) => match m.get(&desc) {
                     Some(m) => return Ok(m.clone()),
                     None => (),
                 },
@@ -915,10 +916,10 @@ impl Class {
         Err(())
     }
 
-    fn get_virtual_method_inner(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&Vec::from(name)) {
-                Some(m) => match m.get(&Vec::from(desc)) {
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&name) {
+                Some(m) => match m.get(&desc) {
                     Some(m) => return Ok(m.clone()),
                     None => (),
                 },
@@ -938,15 +939,15 @@ impl Class {
         }
     }
 
-    pub fn get_interface_method_inner(&self, name: &[u8], desc: &[u8]) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&Vec::from(name)) {
-                Some(m) => match m.get(&Vec::from(desc)) {
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&name) {
+                Some(m) => match m.get(&desc) {
                     Some(m) => return Ok(m.clone()),
                     None => {
                         for (_, itf) in cls_obj.interfaces.iter() {
                             let cls = itf.read().unwrap();
-                            match cls.get_interface_method(name, desc) {
+                            match cls.get_interface_method(name.clone(), desc.clone()) {
                                 Ok(m) => return Ok(m.clone()),
                                 _ => (),
                             }
@@ -956,7 +957,7 @@ impl Class {
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
                         let cls = itf.read().unwrap();
-                        match cls.get_interface_method(name, desc) {
+                        match cls.get_interface_method(name.clone(), desc.clone()) {
                             Ok(m) => return Ok(m.clone()),
                             _ => (),
                         }

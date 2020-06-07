@@ -4,7 +4,7 @@ use crate::runtime::{self, exception, frame::Frame, thread, Interp};
 use crate::types::{ClassRef, DataAreaRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
 use class_parser::MethodSignature;
-use classfile::{consts as cls_const, SignatureType};
+use classfile::{consts as cls_const, SignatureType, BytesRef};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -15,10 +15,10 @@ pub struct JavaCall {
     pub return_type: SignatureType,
 }
 
-pub fn invoke_ctor(cls: ClassRef, desc: &[u8], args: Vec<Oop>) {
+pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
-        cls.get_this_class_method(b"<init>", &desc).unwrap()
+        cls.get_this_class_method(util::S_INIT.clone(), desc).unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(ctor, args);
@@ -297,7 +297,7 @@ impl JavaCall {
                         let cls = inst.class.read().unwrap();
                         let name = self.mir.method.name.clone();
                         let desc = self.mir.method.desc.clone();
-                        match cls.get_virtual_method(name.as_slice(), desc.as_slice()) {
+                        match cls.get_virtual_method(name.clone(), desc.clone()) {
                             Ok(mir) => self.mir = mir,
                             _ => {
                                 let cls = self.mir.method.class.read().unwrap();

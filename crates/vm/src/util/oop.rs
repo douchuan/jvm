@@ -1,5 +1,6 @@
 use crate::oop::Oop;
 use crate::runtime::{self, require_class3};
+use crate::new_br;
 
 static mut JAVA_LANG_STRING_VALUE_OFFSET: usize = 0;
 static mut JAVA_LANG_INTEGER_VALUE_OFFSET: usize = 0;
@@ -33,7 +34,7 @@ pub fn new_java_lang_string2(v: &str) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(string_cls, b"([C)V", args);
+    runtime::invoke::invoke_ctor(string_cls, new_br("([C)V"), args);
 
     string_oop
 }
@@ -48,7 +49,7 @@ pub fn new_java_lang_string3(bs: &[u8]) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(string_cls, b"([C)V", args);
+    runtime::invoke::invoke_ctor(string_cls, new_br("([C)V"), args);
 
     string_oop
 }

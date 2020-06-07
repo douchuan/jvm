@@ -24,6 +24,7 @@ pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
 use crate::oop::class::ClassObject;
 use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
+use crate::new_br;
 
 #[derive(Clone)]
 pub enum Oop {
@@ -501,7 +502,7 @@ impl OopRef {
         let fid = unsafe {
             let cls = (*ptr).v.extract_inst().class.clone();
             let cls = cls.read().unwrap();
-            cls.get_field_id(b"eetop", b"J", false)
+            cls.get_field_id(new_br("eetop"), new_br("J"), false)
         };
 
         Class::get_field_value(rf, fid).extract_long()

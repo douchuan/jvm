@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
+use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -90,11 +91,11 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
                 //setup eetop
                 let eetop = jt.read().unwrap().eetop;
-                let fid = cls.get_field_id(b"eetop", b"J", false);
+                let fid = cls.get_field_id(new_br("eetop"), new_br("J"), false);
                 Class::put_field_value(thread_oop.extract_ref(), fid, Oop::new_long(eetop));
 
                 //obtain 'run' method
-                cls.get_virtual_method(b"run", b"()V").unwrap()
+                cls.get_virtual_method(new_br("run"), new_br("()V")).unwrap()
             };
 
             //invoke 'run'

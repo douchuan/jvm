@@ -20,3 +20,10 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
+
+use classfile::BytesRef;
+#[inline]
+pub fn new_br(s: &str) -> BytesRef {
+    std::sync::Arc::new(Vec::from(s))
+}
+

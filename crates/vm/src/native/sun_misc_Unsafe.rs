@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use std::os::raw::c_void;
+use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -110,7 +111,7 @@ fn jvm_objectFieldOffset(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let v = {
         let cls = cls.read().unwrap();
-        let id = cls.get_field_id(b"slot", b"I", false);
+        let id = cls.get_field_id(new_br("slot"), new_br("I"), false);
         Class::get_field_value(field.extract_ref(), id)
     };
 

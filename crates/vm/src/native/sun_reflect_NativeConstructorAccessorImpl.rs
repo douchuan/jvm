@@ -2,7 +2,7 @@
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::runtime;
+use crate::{runtime, new_br};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -47,7 +47,7 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let oop = Oop::new_inst(target_cls.clone());
     ctor_args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(target_cls, signature.as_bytes(), ctor_args);
+    runtime::invoke::invoke_ctor(target_cls, new_br(signature.as_str()), ctor_args);
 
     Ok(Some(oop))
 }

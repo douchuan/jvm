@@ -4,10 +4,11 @@ use crate::native::java_lang_Class;
 use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
 use crate::types::*;
-use crate::util;
+use crate::{util, new_br};
 use class_parser::{FieldSignature, MethodSignature};
 use classfile::consts as cls_const;
 use classfile::SignatureType;
+use std::sync::Arc;
 
 pub fn new_field(fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();
@@ -45,7 +46,7 @@ pub fn new_field(fir: FieldIdRef) -> Oop {
 
     let oop = Oop::new_inst(field_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(field_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(field_cls, Arc::new(desc), args);
 
     oop
 }
@@ -118,7 +119,7 @@ pub fn new_method_ctor(mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(ctor_cls, Arc::new(desc), args);
 
     oop
 }
@@ -212,7 +213,7 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
-    runtime::invoke::invoke_ctor(ctor_cls, desc.as_slice(), args);
+    runtime::invoke::invoke_ctor(ctor_cls, Arc::new(desc), args);
 
     oop
 }
@@ -227,7 +228,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
 
     //todo: optimize, avoid obtain id
     let cls = cls.read().unwrap();
-    let id = cls.get_field_id(b"clazz", b"Ljava/lang/Class;", false);
+    let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
     Class::get_field_value(ctor.extract_ref(), id)
 }
 
@@ -259,7 +260,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
 
     //todo: optimize, cache id
     let cls = cls.read().unwrap();
-    let id = cls.get_field_id(b"signature", b"Ljava/lang/String;", false);
+    let id = cls.get_field_id(new_br("signature"), new_br("Ljava/lang/String;"), false);
     let v = Class::get_field_value(ctor.extract_ref(), id);
     OopRef::java_lang_string(v.extract_ref())
 }

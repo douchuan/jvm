@@ -50,10 +50,10 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
 
     let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
-        class.get_class_method(name.as_slice(), desc.as_slice())
+        class.get_class_method(name, desc)
     } else {
         // invokeinterface
-        class.get_interface_method(name.as_slice(), desc.as_slice())
+        class.get_interface_method(name, desc)
     };
 
     mir
