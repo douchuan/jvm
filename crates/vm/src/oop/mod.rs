@@ -454,8 +454,8 @@ impl OopRef {
         String::from_utf16_lossy(v.as_slice())
     }
 
+    //java.lang.String.value
     pub fn java_lang_string_value(rf: Arc<Self>) -> Vec<u16> {
-        //java.lang.String.value
         let offset = get_java_lang_string_value_offset();
         let v = Class::get_field_value2(rf, offset);
 
@@ -468,7 +468,6 @@ impl OopRef {
     }
 
     pub fn java_lang_string_hash(rf: Arc<Self>) -> i32 {
-        //java.lang.String.value
         let offset = get_java_lang_string_value_offset();
         let v = Class::get_field_value2(rf, offset);
 
@@ -490,12 +489,13 @@ impl OopRef {
         }
     }
 
+    //java.lang.Integer.value
     pub fn java_lang_integer_value(rf: Arc<Self>) -> i32 {
-        //java.lang.Integer.value
         let offset = get_java_lang_integer_value_offset();
         Class::get_field_value2(rf, offset).extract_int()
     }
 
+    //java.lang.Thread.eetop
     pub fn java_lang_thread_eetop(rf: Arc<Self>) -> i64 {
         let ptr = rf.get_raw_ptr();
         let fid = unsafe {

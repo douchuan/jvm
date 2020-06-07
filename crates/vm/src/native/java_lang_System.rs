@@ -360,64 +360,45 @@ fn arraycopy_diff_obj(
     // error!("src={}, dest={}, length={}, is_type_ary={}", src_pos, dest_pos, length, is_type_ary);
 
     let src_ptr = src.get_raw_ptr();
-    let dst_ptr = dest.get_mut_raw_ptr();
 
     if is_type_ary {
         unsafe {
             match &(*src_ptr).v {
                 oop::RefKind::TypeArray(src_ary) => match src_ary {
-                    oop::TypeArrayDesc::Char(src_ary) => match &mut (*dst_ptr).v {
-                        RefKind::TypeArray(dest_ary) => match dest_ary {
-                            oop::TypeArrayDesc::Char(dest_ary) => {
-                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                                let (_, src_ptr) = src_ary.split_at(src_pos);
-                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => unreachable!(),
+                    oop::TypeArrayDesc::Byte(src_ary) => {
+                        let dest_ary = dest.extract_mut_type_array();
+                        let dest_ary = dest_ary.extract_mut_bytes();
+                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                        let (_, src_ptr) = src_ary.split_at(src_pos);
+                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
                     },
-                    oop::TypeArrayDesc::Byte(src_ary) => match &mut (*dst_ptr).v {
-                        RefKind::TypeArray(dest_ary) => match dest_ary {
-                            oop::TypeArrayDesc::Byte(dest_ary) => {
-                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                                let (_, src_ptr) = src_ary.split_at(src_pos);
-                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => unreachable!(),
+                    oop::TypeArrayDesc::Char(src_ary) => {
+                        let dest_ary = dest.extract_mut_type_array();
+                        let dest_ary = dest_ary.extract_mut_chars();
+                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                        let (_, src_ptr) = src_ary.split_at(src_pos);
+                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
                     },
-                    oop::TypeArrayDesc::Int(src_ary) => match &mut (*dst_ptr).v {
-                        RefKind::TypeArray(dest_ary) => match dest_ary {
-                            oop::TypeArrayDesc::Int(dest_ary) => {
-                                let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                                let (_, src_ptr) = src_ary.split_at(src_pos);
-                                dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                            }
-                            _ => unreachable!(),
-                        },
-                        _ => unreachable!(),
-                    },
+                    oop::TypeArrayDesc::Int(src_ary) => {
+                        let dest_ary = dest.extract_mut_type_array();
+                        let dest_ary = dest_ary.extract_mut_ints();
+                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
+                        let (_, src_ptr) = src_ary.split_at(src_pos);
+                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                    }
                     t => unreachable!("t = {:?}", t),
                 },
                 _ => unreachable!(),
             }
         }
     } else {
-        unsafe {
-            match &(*src_ptr).v {
-                oop::RefKind::Array(src) => match &mut (*dst_ptr).v {
-                    oop::RefKind::Array(dest) => {
-                        let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
-                        let (_, src_ptr) = src.elements.split_at(src_pos);
-                        dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
-                    }
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
-            }
-        }
+        let src = src.extract_array();
+        let dest = dest.extract_mut_array();
+
+        let (_, src_ptr) = src.elements.split_at(src_pos);
+        let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
+
+        dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
     }
 }
 
