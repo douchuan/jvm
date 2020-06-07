@@ -5,11 +5,11 @@ authors = ["douchuan <1843657913@qq.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.33.0"
+clap = "2.33.1"
 class-parser = { path = "../crates/class-parser", version = "0.1.0" }
 env_logger = "0.7.1"
 vm = { path = "../crates/vm", version = "0.1.0" }
 
 [dev-dependencies]
 classfile = { path = "../crates/classfile", version = "0.1.0" }
-libc = "0.2.66"
+libc = "0.2.71"
