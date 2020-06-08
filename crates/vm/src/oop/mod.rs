@@ -436,14 +436,8 @@ impl OopRef {
         let rf1 = v1.extract_ref();
         let rf2 = v2.extract_ref();
 
-        let chars1 = unsafe {
-            let ptr = rf1.get_raw_ptr();
-            (*ptr).v.extract_type_array().extract_chars()
-        };
-        let chars2 = unsafe {
-            let ptr = rf2.get_raw_ptr();
-            (*ptr).v.extract_type_array().extract_chars()
-        };
+        let chars1 = rf1.extract_type_array().extract_chars();
+        let chars2 = rf2.extract_type_array().extract_chars();
 
         chars1 == chars2
     }
@@ -459,13 +453,9 @@ impl OopRef {
     pub fn java_lang_string_value(rf: Arc<Self>) -> Vec<u16> {
         let offset = get_java_lang_string_value_offset();
         let v = Class::get_field_value2(rf, offset);
-
         let rf = v.extract_ref();
-        let ary = unsafe {
-            let ptr = rf.get_raw_ptr();
-            (*ptr).v.extract_type_array()
-        };
-        ary.extract_chars().to_vec()
+        let chars = rf.extract_type_array().extract_chars();
+        chars.to_vec()
     }
 
     pub fn java_lang_string_hash(rf: Arc<Self>) -> i32 {
@@ -473,21 +463,14 @@ impl OopRef {
         let v = Class::get_field_value2(rf, offset);
 
         let rf = v.extract_ref();
-        let ary = unsafe {
-            let ptr = rf.get_raw_ptr();
-            (*ptr).v.extract_type_array()
-        };
-        let chars = ary.extract_chars();
+        let chars = rf.extract_type_array().extract_chars();
 
-        if chars.len() == 0 {
-            0
-        } else {
-            let mut h = 0i32;
-            for v in chars.iter() {
-                h = h.wrapping_mul(31).wrapping_add(*v as i32);
-            }
-            h
+        let mut h = 0i32;
+        for v in chars.iter() {
+            h = h.wrapping_mul(31).wrapping_add(*v as i32);
         }
+
+        h
     }
 
     //java.lang.Integer.value
@@ -498,9 +481,9 @@ impl OopRef {
 
     //java.lang.Thread.eetop
     pub fn java_lang_thread_eetop(rf: Arc<Self>) -> i64 {
-        let ptr = rf.get_raw_ptr();
-        let fid = unsafe {
-            let cls = (*ptr).v.extract_inst().class.clone();
+        let fid = {
+            let inst = rf.extract_inst();
+            let cls = inst.class.clone();
             let cls = cls.read().unwrap();
             cls.get_field_id(new_br("eetop"), new_br("J"), false)
         };

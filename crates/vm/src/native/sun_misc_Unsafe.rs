@@ -301,5 +301,4 @@ fn jvm_getChar(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_putObject(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     unimplemented!();
-    Ok(None)
 }

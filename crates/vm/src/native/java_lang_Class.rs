@@ -801,8 +801,6 @@ fn jvm_getConstantPool(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn jvm_getDeclaredClasses0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     unimplemented!();
-    let r = oop::consts::get_null();
-    Ok(Some(r))
 }
 
 fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
