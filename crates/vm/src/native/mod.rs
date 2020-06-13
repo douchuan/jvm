@@ -2,7 +2,6 @@
 
 use crate::oop::Oop;
 use crate::types::ClassRef;
-use crate::util;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -52,7 +51,8 @@ pub struct JNIEnvStruct {
 }
 
 lazy_static! {
-    static ref NATIVES: RwLock<HashMap<String, JNINativeMethod>> = {
+    //3 level index: class/name/desc -> JNINativeMethod
+    static ref NATIVES: RwLock<HashMap<&'static str, HashMap<&'static str, HashMap<&'static str, JNINativeMethod>>>> = {
         let hm = HashMap::new();
         RwLock::new(hm)
     };
@@ -75,10 +75,12 @@ pub fn new_jni_env(class: ClassRef) -> JNIEnv {
 }
 
 pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {
-    let id = vec![package, name, desc].join(util::PATH_SEP.as_bytes());
-    let id = String::from_utf8(id).unwrap();
+    let package = unsafe { std::str::from_utf8_unchecked(package) };
+    let name = unsafe { std::str::from_utf8_unchecked(name) };
+    let desc = unsafe { std::str::from_utf8_unchecked(desc) };
+
     let natives = NATIVES.read().unwrap();
-    natives.get(&id).map(|it| it.clone())
+    natives.get(package).and_then(|it| it.get(name).and_then(|it| it.get(desc).map(|it| it.clone())))
 }
 
 pub fn init() {
@@ -166,8 +168,27 @@ pub fn init() {
         let mut dict = NATIVES.write().unwrap();
         natives.iter().for_each(|(package, methods)| {
             methods.iter().for_each(|it| {
-                let id = vec![package.as_ref(), it.name, it.signature].join(util::PATH_SEP);
-                dict.insert(id, it.clone());
+                match dict.get_mut(package) {
+                    Some(l1) => {
+                        match l1.get_mut(it.name) {
+                            Some(l2) => {
+                                l2.insert(it.signature, it.clone());
+                            }
+                            None => {
+                                let mut l2 = HashMap::new();
+                                l2.insert(it.signature, it.clone());
+                                l1.insert(it.name, l2);
+                            }
+                        }
+                    }
+                    None => {
+                        let mut l2 = HashMap::new();
+                        l2.insert(it.signature, it.clone());
+                        let mut l1 = HashMap::new();
+                        l1.insert(it.name, l2);
+                        dict.insert(package, l1);
+                    }
+                }
             });
         });
     }
