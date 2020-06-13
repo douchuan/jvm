@@ -59,7 +59,25 @@ impl fmt::Debug for Oop {
                 String::from_utf8_lossy(v.as_slice())
             ),
             Oop::Null => write!(f, "Oop(Null)"),
-            Oop::Ref(rf) => write!(f, "Oop({:?})", rf),
+            Oop::Ref(rf) => {
+                let ptr = rf.get_raw_ptr();
+                unsafe {
+                    match &(*ptr).v {
+                        RefKind::Array(ary) => {
+                           write!(f, "Oop(OopRef(Array))")
+                        }
+                        RefKind::Inst(inst) => {
+                            write!(f, "Oop(OopRef(Instance))")
+                        }
+                        RefKind::TypeArray(ary) => {
+                            write!(f, "Oop(OopRef(TypeArray))")
+                        }
+                        RefKind::Mirror(mirror) => {
+                            write!(f, "Oop(OopRef(Mirror))")
+                        }
+                    }
+                }
+            },
         }
     }
 }
