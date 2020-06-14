@@ -239,7 +239,7 @@ impl Class {
                 class_obj.link_fields(self_ref.clone(), self.name.clone(), n_super_inst);
 
                 class_obj.link_interfaces();
-                class_obj.link_methods(self_ref);
+                class_obj.link_methods(self_ref, self.name.clone());
                 class_obj.link_attributes();
             }
 
@@ -821,12 +821,12 @@ impl ClassObject {
             });
     }
 
-    fn link_methods(&mut self, this_ref: ClassRef) {
+    fn link_methods(&mut self, this_ref: ClassRef, cls_name: BytesRef) {
         let class_file = self.class_file.clone();
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(), i);
+            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(), i, cls_name.clone());
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
             let name = method_id.method.name.clone();

@@ -71,6 +71,7 @@ pub struct MethodId {
 pub struct Method {
     pub class: ClassRef,
     pub class_file: ClassFileRef,
+    pub cls_name: BytesRef,
     pub name: BytesRef,
     pub desc: BytesRef,
     pub acc_flags: U2,
@@ -88,6 +89,7 @@ impl Method {
         class: ClassRef,
         class_file: ClassFileRef,
         method_info_index: usize,
+        cls_name: BytesRef
     ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
@@ -98,6 +100,7 @@ impl Method {
         Self {
             class,
             class_file,
+            cls_name,
             name,
             desc,
             acc_flags,
@@ -227,11 +230,7 @@ impl Method {
 
 impl fmt::Debug for Method {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let cls_name = {
-            let cls = self.class.read().unwrap();
-            cls.name.clone()
-        };
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
+        let cls_name = unsafe { std::str::from_utf8_unchecked(self.cls_name.as_slice()) };
         let name = unsafe { std::str::from_utf8_unchecked(self.name.as_slice()) };
         let desc = unsafe { std::str::from_utf8_unchecked(self.desc.as_slice()) };
         write!(f, "{}:{}:{}", cls_name, name, desc)
