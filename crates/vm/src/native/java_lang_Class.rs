@@ -864,16 +864,14 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
                 }
 
                 let mut selected_methods = Vec::new();
-                for (name, m1) in inst.all_methods.iter() {
-                    if !chooser1(want_constructor, name) {
+                for (k, m) in inst.all_methods.iter() {
+                    if !chooser1(want_constructor, k.0.as_slice()) {
                         continue;
                     }
 
-                    for (_, m) in m1 {
-                        if chooser2(want_constructor, &m) {
-                            if !public_only || m.method.is_public() {
-                                selected_methods.push(m.clone());
-                            }
+                    if chooser2(want_constructor, &m) {
+                        if !public_only || m.method.is_public() {
+                            selected_methods.push(m.clone());
                         }
                     }
                 }

@@ -79,15 +79,13 @@ pub struct ClassObject {
 
     pub n_inst_fields: usize,
 
-    // pub all_methods: HashMap<BytesRef, MethodIdRef>,
-    //2 level:
-    //  HashMap<name, HashMap<desc, MethodIdRef>>
-    pub all_methods: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
-    v_table: HashMap<BytesRef, HashMap<BytesRef, MethodIdRef>>,
+    //  HashMap<(name, desc), MethodIdRef>
+    pub all_methods: HashMap<(BytesRef, BytesRef), MethodIdRef>,
+    v_table: HashMap<(BytesRef, BytesRef), MethodIdRef>,
 
-    //todo: optimize to 3 levels
-    pub static_fields: HashMap<BytesRef, FieldIdRef>,
-    pub inst_fields: HashMap<BytesRef, FieldIdRef>,
+    //  HashMap<(package, name, desc), FieldIdRef>
+    pub static_fields: HashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
+    pub inst_fields: HashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
 
     static_field_values: Vec<Oop>,
 
@@ -411,12 +409,11 @@ impl Class {
     }
 
     pub fn get_field_id(&self, name: BytesRef, desc: BytesRef, is_static: bool) -> FieldIdRef {
-        let field_id = util::new_field_id(self.name.as_slice(), name.as_slice(), desc.as_slice());
-        //        error!("get_field_id = {}", String::from_utf8_lossy(field_id.as_slice()));
+        let k = (self.name.clone(), name.clone(), desc.clone());
 
         if is_static {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&field_id) {
+                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&k) {
                     Some(fid) => return fid.clone(),
                     None => (),
                 },
@@ -424,7 +421,7 @@ impl Class {
             }
         } else {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&field_id) {
+                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&k) {
                     Some(fid) => return fid.clone(),
                     None => (),
                 },
@@ -475,38 +472,38 @@ impl Class {
         }
     }
 
-    pub fn put_static_field_value(&mut self, field_id: FieldIdRef, v: Oop) {
+    pub fn put_static_field_value(&mut self, fid: FieldIdRef, v: Oop) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
-                let id = field_id.field.get_id();
-                if cls_obj.static_fields.contains_key(&id) {
-                    cls_obj.static_field_values[field_id.offset] = v;
+                let k = (self.name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                if cls_obj.static_fields.contains_key(&k) {
+                    cls_obj.static_field_values[fid.offset] = v;
                 } else {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
                         .write()
                         .unwrap()
-                        .put_static_field_value(field_id, v);
+                        .put_static_field_value(fid, v);
                 }
             }
             _ => unreachable!(),
         }
     }
 
-    pub fn get_static_field_value(&self, field_id: FieldIdRef) -> Oop {
+    pub fn get_static_field_value(&self, fid: FieldIdRef) -> Oop {
         match &self.kind {
             ClassKind::Instance(cls_obj) => {
-                let id = field_id.field.get_id();
-                if cls_obj.static_fields.contains_key(&id) {
-                    cls_obj.static_field_values[field_id.offset].clone()
+                let k = (self.name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                if cls_obj.static_fields.contains_key(&k) {
+                    cls_obj.static_field_values[fid.offset].clone()
                 } else {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
                         .read()
                         .unwrap()
-                        .get_static_field_value(field_id)
+                        .get_static_field_value(fid)
                 }
             }
             _ => unreachable!(),
@@ -540,25 +537,29 @@ impl Class {
     }
 
     pub fn hack_as_native(&mut self, name: &[u8], desc: &[u8]) {
-        let cls_name = self.name.clone();
         match &mut self.kind {
             ClassKind::Instance(cls) => {
-                let map = cls.all_methods.get_mut(&Vec::from(name)).unwrap();
-                let it = map.get(&Vec::from(desc)).unwrap();
-                let mut method = it.method.clone();
-                method.acc_flags |= ACC_NATIVE;
-                let m = Arc::new(method::MethodId {
-                    offset: it.offset,
-                    method,
-                });
-                let desc = Arc::new(Vec::from(desc));
-                map.insert(desc.clone(), m.clone());
+                let m = {
+                    let name = Arc::new(Vec::from(name));
+                    let desc = Arc::new(Vec::from(desc));
+                    let k = (name, desc);
+                    let it = cls.all_methods.get_mut(&k).unwrap();
+                    let mut method = it.method.clone();
+                    method.acc_flags |= ACC_NATIVE;
+                    let m = Arc::new(method::MethodId {
+                        offset: it.offset,
+                        method,
+                    });
+                    cls.all_methods.insert(k, m.clone());
+
+                    m.clone()
+                };
 
                 info!(
                     "hack_as_native: {}:{}:{}, native={}",
-                    unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) },
+                    unsafe { std::str::from_utf8_unchecked(self.name.as_slice()) },
                     unsafe { std::str::from_utf8_unchecked(name) },
-                    unsafe { std::str::from_utf8_unchecked(desc.as_slice()) },
+                    unsafe { std::str::from_utf8_unchecked(desc) },
                     m.method.is_native()
                 );
             }
@@ -755,23 +756,25 @@ impl ClassObject {
         let mut n_static = 0;
         let mut n_inst = n_super_inst;
         let class_name = name.clone();
-        let class_name = class_name.as_slice();
         cls_file.fields.iter().for_each(|it| {
-            let field = field::Field::new(cp, it, class_name, self_ref.clone());
-            let id = field.get_id();
+            let field = field::Field::new(cp, it, class_name.as_slice(), self_ref.clone());
             if field.is_static() {
                 let fid = field::FieldId {
                     offset: n_static,
                     field,
                 };
-                self.static_fields.insert(id, Arc::new(fid));
+
+                let k = (class_name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                self.static_fields.insert(k, Arc::new(fid));
+
                 n_static += 1;
             } else {
                 let fid = field::FieldId {
                     offset: n_inst,
                     field,
                 };
-                self.inst_fields.insert(id, Arc::new(fid));
+                let k = (class_name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                self.inst_fields.insert(k, Arc::new(fid));
                 n_inst += 1;
             }
         });
@@ -807,34 +810,16 @@ impl ClassObject {
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
             let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(), i);
-            let id = method.get_id();
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
             let name = method_id.method.name.clone();
             let desc = method_id.method.desc.clone();
+            let k = (name, desc);
 
-            match self.all_methods.get_mut(name.as_ref()) {
-                Some(map) => {
-                    map.insert(desc.clone(), method_id.clone());
-                }
-                None => {
-                    let mut map = HashMap::new();
-                    map.insert(desc.clone(), method_id.clone());
-                    self.all_methods.insert(name.clone(), map);
-                }
-            }
+            self.all_methods.insert(k.clone(), method_id.clone());
 
             if !method_id.method.is_static() {
-                match self.v_table.get_mut(name.as_ref()) {
-                    Some(map) => {
-                        map.insert(desc, method_id.clone());
-                    }
-                    None => {
-                        let mut map = HashMap::new();
-                        map.insert(desc, method_id.clone());
-                        self.v_table.insert(name, map);
-                    }
-                }
+                self.v_table.insert(k, method_id.clone());
             }
         });
     }
@@ -886,12 +871,10 @@ impl Class {
         desc: BytesRef,
         with_super: bool,
     ) -> Result<MethodIdRef, ()> {
+        let k = (name.clone(), desc.clone());
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&name) {
-                Some(m) => match m.get(&desc) {
-                    Some(m) => return Ok(m.clone()),
-                    None => (),
-                },
+            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&k) {
+                Some(m) => return Ok(m.clone()),
                 None => (),
             },
 
@@ -917,12 +900,10 @@ impl Class {
     }
 
     fn get_virtual_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+        let k = (name.clone(), desc.clone());
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&name) {
-                Some(m) => match m.get(&desc) {
-                    Some(m) => return Ok(m.clone()),
-                    None => (),
-                },
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&k) {
+                Some(m) => return Ok(m.clone()),
                 None => (),
             },
             _ => unreachable!(),
@@ -940,20 +921,10 @@ impl Class {
     }
 
     pub fn get_interface_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+        let k = (name.clone(), desc.clone());
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&name) {
-                Some(m) => match m.get(&desc) {
-                    Some(m) => return Ok(m.clone()),
-                    None => {
-                        for (_, itf) in cls_obj.interfaces.iter() {
-                            let cls = itf.read().unwrap();
-                            match cls.get_interface_method(name.clone(), desc.clone()) {
-                                Ok(m) => return Ok(m.clone()),
-                                _ => (),
-                            }
-                        }
-                    }
-                },
+            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&k) {
+                Some(m) => return Ok(m.clone()),
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
                         let cls = itf.read().unwrap();

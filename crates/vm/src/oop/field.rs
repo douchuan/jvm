@@ -108,7 +108,6 @@ pub struct Field {
     pub class: ClassRef,
     pub name: BytesRef,
     pub desc: BytesRef,
-    id: BytesRef,
 
     pub acc_flags: U2,
 
@@ -123,9 +122,6 @@ impl Field {
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
 
-        let id = vec![class_name, name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
-        //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
-        let id = Arc::new(id);
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;
@@ -185,15 +181,10 @@ impl Field {
             class,
             name,
             desc,
-            id,
             acc_flags,
             value_type,
             attr_constant_value,
         }
-    }
-
-    pub fn get_id(&self) -> BytesRef {
-        self.id.clone()
     }
 
     pub fn is_public(&self) -> bool {

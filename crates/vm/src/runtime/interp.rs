@@ -463,10 +463,10 @@ impl<'a> Interp<'a> {
 
         assert_eq!(fir.field.is_static(), is_static);
 
-        let fid = fir.field.get_id();
         trace!(
-            "get_field_helper = {}, is_static = {}",
-            unsafe { std::str::from_utf8_unchecked(fid.as_slice()) },
+            "get_field_helper={}:{}, is_static={}",
+            unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) },
+            unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) },
             is_static
         );
 
@@ -525,10 +525,10 @@ impl<'a> Interp<'a> {
 
         assert_eq!(fir.field.is_static(), is_static);
 
-        let fid = fir.field.get_id();
         trace!(
-            "put_field_helper={}, is_static={}",
-            unsafe { std::str::from_utf8_unchecked(fid.as_slice()) },
+            "put_field_helper={}:{}, is_static={}",
+            unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) },
+            unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) },
             is_static
         );
 
