@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
 use classfile::consts as cls_consts;
-use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![

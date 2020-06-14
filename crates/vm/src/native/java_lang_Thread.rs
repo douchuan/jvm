@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
-use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -95,7 +95,8 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 Class::put_field_value(thread_oop.extract_ref(), fid, Oop::new_long(eetop));
 
                 //obtain 'run' method
-                cls.get_virtual_method(new_br("run"), new_br("()V")).unwrap()
+                cls.get_virtual_method(new_br("run"), new_br("()V"))
+                    .unwrap()
             };
 
             //invoke 'run'

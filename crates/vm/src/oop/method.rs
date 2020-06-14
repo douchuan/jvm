@@ -8,6 +8,8 @@ use classfile::{
     AttributeType, BytesRef, ConstantPool, FieldInfo, MethodInfo,
 };
 use std::collections::HashMap;
+use std::fmt;
+use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -65,13 +67,12 @@ pub struct MethodId {
     pub method: Method,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Method {
     pub class: ClassRef,
     pub class_file: ClassFileRef,
     pub name: BytesRef,
     pub desc: BytesRef,
-    id: BytesRef,
     pub acc_flags: U2,
 
     pub code: Option<Code>,
@@ -90,9 +91,6 @@ impl Method {
     ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
-        let id = vec![name.as_slice(), desc.as_slice()].join(PATH_SEP.as_bytes());
-        let id = Arc::new(id);
-        //        info!("id = {}", String::from_utf8_lossy(id.as_slice()));
         let acc_flags = mi.acc_flags;
         let code = mi.get_code();
         let line_num_table = mi.get_line_number_table();
@@ -102,16 +100,11 @@ impl Method {
             class_file,
             name,
             desc,
-            id,
             acc_flags,
             code,
             line_num_table,
             method_info_index,
         }
-    }
-
-    pub fn get_id(&self) -> BytesRef {
-        self.id.clone()
     }
 
     pub fn find_exception_handler(&self, cp: &ConstantPool, pc: U2, ex: ClassRef) -> Option<U2> {
@@ -229,5 +222,18 @@ impl Method {
 
     pub fn is_interface(&self) -> bool {
         self.acc_flags & ACC_INTERFACE != 0
+    }
+}
+
+impl fmt::Debug for Method {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let cls_name = {
+            let cls = self.class.read().unwrap();
+            cls.name.clone()
+        };
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
+        let name = unsafe { std::str::from_utf8_unchecked(self.name.as_slice()) };
+        let desc = unsafe { std::str::from_utf8_unchecked(self.desc.as_slice()) };
+        write!(f, "{}:{}:{}", cls_name, name, desc)
     }
 }

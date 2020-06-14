@@ -60,19 +60,13 @@ impl<'a> Interp<'a> {
 impl<'a> Interp<'a> {
     fn debug_op(&self, code: u8, op: OpCode) {
         let frame_id = self.frame.frame_id;
-        //for debug
-        let cls_name = { self.frame.mir.method.class.read().unwrap().name.clone() };
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
-        let method = self.frame.mir.method.get_id();
-        let method = unsafe { std::str::from_utf8_unchecked(method.as_slice()) };
 
         trace!(
-            "interp: {:?} ({}/{}) {}:{}",
+            "interp: {:?} ({}/{}) {:?}",
             op,
             code,
             frame_id,
-            cls_name,
-            method
+            self.frame.mir.method
         );
     }
 }
@@ -463,12 +457,7 @@ impl<'a> Interp<'a> {
 
         assert_eq!(fir.field.is_static(), is_static);
 
-        trace!(
-            "get_field_helper={}:{}, is_static={}",
-            unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) },
-            unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) },
-            is_static
-        );
+        trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
 
         let value_type = fir.field.value_type.clone();
         let class = fir.field.class.read().unwrap();
@@ -525,12 +514,7 @@ impl<'a> Interp<'a> {
 
         assert_eq!(fir.field.is_static(), is_static);
 
-        trace!(
-            "put_field_helper={}:{}, is_static={}",
-            unsafe { std::str::from_utf8_unchecked(fir.field.name.as_slice()) },
-            unsafe { std::str::from_utf8_unchecked(fir.field.desc.as_slice()) },
-            is_static
-        );
+        trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
 
         let value_type = fir.field.value_type.clone();
         //        info!("value_type = {:?}", value_type);
@@ -702,11 +686,6 @@ impl<'a> Interp<'a> {
             inst.class.clone()
         };
 
-        let method_cls_name = { self.frame.mir.method.class.read().unwrap().name.clone() };
-        let method_cls_name = unsafe { std::str::from_utf8_unchecked(method_cls_name.as_slice()) };
-        let method_name = self.frame.mir.method.get_id();
-        let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
-
         let handler = {
             let area = self.frame.area.read().unwrap();
             self.frame
@@ -725,8 +704,8 @@ impl<'a> Interp<'a> {
                 let line_num = self.frame.mir.method.get_line_num(pc);
 
                 info!(
-                    "Found Exception Handler: line={}, frame_id={}, {}:{}",
-                    line_num, self.frame.frame_id, method_cls_name, method_name
+                    "Found Exception Handler: line={}, frame_id={}, {:?}",
+                    line_num, self.frame.frame_id, self.frame.mir.method
                 );
 
                 self.goto_abs(pc as i32);
@@ -738,8 +717,8 @@ impl<'a> Interp<'a> {
                 let line_num = self.frame.mir.method.get_line_num(area.pc as u16);
 
                 info!(
-                    "NotFound Exception Handler: line={}, frame_id={}, {}:{}, ex_here={}",
-                    line_num, self.frame.frame_id, method_cls_name, method_name, area.ex_here
+                    "NotFound Exception Handler: line={}, frame_id={}, {:?}, ex_here={}",
+                    line_num, self.frame.frame_id, self.frame.mir.method, area.ex_here
                 );
 
                 Err(ex)

@@ -4,7 +4,7 @@ use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, ClassKind, Oop, OopRef, ValueType};
 use crate::runtime::{self, require_class2, require_class3};
 use crate::types::{ClassRef, MethodIdRef};
-use crate::{util, new_br};
+use crate::{new_br, util};
 use classfile::{constant_pool, consts as cls_consts, flags as acc};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -785,7 +785,11 @@ fn jvm_getConstantPool(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let cp_oop = Oop::new_inst(cp_cls.clone());
 
             let cls = cp_cls.read().unwrap();
-            let fid = cls.get_field_id(new_br("constantPoolOop"), new_br("Ljava/lang/Object;"), false);
+            let fid = cls.get_field_id(
+                new_br("constantPoolOop"),
+                new_br("Ljava/lang/Object;"),
+                false,
+            );
             //todo: reimpl maybe, create one JNIHandles, like jdk
             Class::put_field_value(cp_oop.extract_ref(), fid, this.clone());
 

@@ -121,7 +121,8 @@ pub fn init_class_fully(class: ClassRef) {
             let mut class = class.write().unwrap();
             class.state = State::FullyIni;
 
-            let mir = class.get_this_class_method(util::S_CLINIT.clone(), util::S_CLINIT_SIG.clone());
+            let mir =
+                class.get_this_class_method(util::S_CLINIT.clone(), util::S_CLINIT_SIG.clone());
             (mir, class.name.clone())
         };
 
@@ -475,7 +476,11 @@ impl Class {
     pub fn put_static_field_value(&mut self, fid: FieldIdRef, v: Oop) {
         match &mut self.kind {
             ClassKind::Instance(cls_obj) => {
-                let k = (self.name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                let k = (
+                    self.name.clone(),
+                    fid.field.name.clone(),
+                    fid.field.desc.clone(),
+                );
                 if cls_obj.static_fields.contains_key(&k) {
                     cls_obj.static_field_values[fid.offset] = v;
                 } else {
@@ -494,7 +499,11 @@ impl Class {
     pub fn get_static_field_value(&self, fid: FieldIdRef) -> Oop {
         match &self.kind {
             ClassKind::Instance(cls_obj) => {
-                let k = (self.name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                let k = (
+                    self.name.clone(),
+                    fid.field.name.clone(),
+                    fid.field.desc.clone(),
+                );
                 if cls_obj.static_fields.contains_key(&k) {
                     cls_obj.static_field_values[fid.offset].clone()
                 } else {
@@ -757,14 +766,18 @@ impl ClassObject {
         let mut n_inst = n_super_inst;
         let class_name = name.clone();
         cls_file.fields.iter().for_each(|it| {
-            let field = field::Field::new(cp, it, class_name.as_slice(), self_ref.clone());
+            let field = field::Field::new(cp, it, class_name.clone(), self_ref.clone());
             if field.is_static() {
                 let fid = field::FieldId {
                     offset: n_static,
                     field,
                 };
 
-                let k = (class_name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                let k = (
+                    class_name.clone(),
+                    fid.field.name.clone(),
+                    fid.field.desc.clone(),
+                );
                 self.static_fields.insert(k, Arc::new(fid));
 
                 n_static += 1;
@@ -773,7 +786,11 @@ impl ClassObject {
                     offset: n_inst,
                     field,
                 };
-                let k = (class_name.clone(), fid.field.name.clone(), fid.field.desc.clone());
+                let k = (
+                    class_name.clone(),
+                    fid.field.name.clone(),
+                    fid.field.desc.clone(),
+                );
                 self.inst_fields.insert(k, Arc::new(fid));
                 n_inst += 1;
             }
@@ -920,7 +937,11 @@ impl Class {
         }
     }
 
-    pub fn get_interface_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method_inner(
+        &self,
+        name: BytesRef,
+        desc: BytesRef,
+    ) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
             ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&k) {

@@ -4,7 +4,7 @@ use crate::native::java_lang_Class;
 use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
 use crate::types::*;
-use crate::{util, new_br};
+use crate::{new_br, util};
 use class_parser::{FieldSignature, MethodSignature};
 use classfile::consts as cls_const;
 use classfile::SignatureType;

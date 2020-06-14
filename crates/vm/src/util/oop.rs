@@ -1,6 +1,6 @@
+use crate::new_br;
 use crate::oop::Oop;
 use crate::runtime::{self, require_class3};
-use crate::new_br;
 
 static mut JAVA_LANG_STRING_VALUE_OFFSET: usize = 0;
 static mut JAVA_LANG_INTEGER_VALUE_OFFSET: usize = 0;

@@ -3,7 +3,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
-use crate::{util, new_br};
+use crate::{new_br, util};
 use std::fs;
 
 //FileSystem.java define

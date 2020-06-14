@@ -26,4 +26,3 @@ use classfile::BytesRef;
 pub fn new_br(s: &str) -> BytesRef {
     std::sync::Arc::new(Vec::from(s))
 }
-

@@ -1,9 +1,9 @@
-use crate::{native, new_br};
 use crate::oop;
 use crate::oop::Class;
 use crate::runtime::{self, require_class3};
 use crate::types::JavaThreadRef;
 use crate::util;
+use crate::{native, new_br};
 use classfile::consts::{
     J_ARRAY_INDEX_OUT_OF_BOUNDS, J_CLASS, J_CLASS_NOT_FOUND, J_CLONEABLE, J_FIELD, J_INPUT_STREAM,
     J_INTERNAL_ERROR, J_IOEXCEPTION, J_METHOD_CTOR, J_NPE, J_OBJECT, J_PRINT_STREAM,
@@ -153,7 +153,11 @@ fn hack_classes() {
 
     {
         let mut cls = charset_cls.write().unwrap();
-        let id = cls.get_field_id(new_br("defaultCharset"), new_br("Ljava/nio/charset/Charset;"), true);
+        let id = cls.get_field_id(
+            new_br("defaultCharset"),
+            new_br("Ljava/nio/charset/Charset;"),
+            true,
+        );
         cls.put_static_field_value(id, ascii_inst);
     }
 

@@ -22,9 +22,9 @@ pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
+use crate::new_br;
 use crate::oop::class::ClassObject;
 use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
-use crate::new_br;
 
 #[derive(Clone)]
 pub enum Oop {
@@ -63,21 +63,13 @@ impl fmt::Debug for Oop {
                 let ptr = rf.get_raw_ptr();
                 unsafe {
                     match &(*ptr).v {
-                        RefKind::Array(ary) => {
-                           write!(f, "Oop(OopRef(Array))")
-                        }
-                        RefKind::Inst(inst) => {
-                            write!(f, "Oop(OopRef(Instance))")
-                        }
-                        RefKind::TypeArray(ary) => {
-                            write!(f, "Oop(OopRef(TypeArray))")
-                        }
-                        RefKind::Mirror(mirror) => {
-                            write!(f, "Oop(OopRef(Mirror))")
-                        }
+                        RefKind::Array(ary) => write!(f, "Oop(OopRef(Array))"),
+                        RefKind::Inst(inst) => write!(f, "Oop(OopRef(Instance))"),
+                        RefKind::TypeArray(ary) => write!(f, "Oop(OopRef(TypeArray))"),
+                        RefKind::Mirror(mirror) => write!(f, "Oop(OopRef(Mirror))"),
                     }
                 }
-            },
+            }
         }
     }
 }

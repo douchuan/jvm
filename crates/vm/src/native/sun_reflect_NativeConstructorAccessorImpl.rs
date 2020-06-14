@@ -2,7 +2,7 @@
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::Oop;
-use crate::{runtime, new_br};
+use crate::{new_br, runtime};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(

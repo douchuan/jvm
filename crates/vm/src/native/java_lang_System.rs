@@ -3,7 +3,7 @@
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
 use crate::runtime::{self, JavaCall};
-use crate::{util, new_br};
+use crate::{new_br, util};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -371,14 +371,14 @@ fn arraycopy_diff_obj(
                         let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                         let (_, src_ptr) = src_ary.split_at(src_pos);
                         dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                    },
+                    }
                     oop::TypeArrayDesc::Char(src_ary) => {
                         let dest_ary = dest.extract_mut_type_array();
                         let dest_ary = dest_ary.extract_mut_chars();
                         let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
                         let (_, src_ptr) = src_ary.split_at(src_pos);
                         dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
-                    },
+                    }
                     oop::TypeArrayDesc::Int(src_ary) => {
                         let dest_ary = dest.extract_mut_type_array();
                         let dest_ary = dest_ary.extract_mut_ints();

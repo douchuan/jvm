@@ -3,7 +3,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
-use crate::{util, new_br};
+use crate::{new_br, util};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -124,7 +124,11 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
         let cls = throwable_cls.read().unwrap();
-        let id = cls.get_field_id(new_br("stackTrace"), new_br("[Ljava/lang/StackTraceElement;"), false);
+        let id = cls.get_field_id(
+            new_br("stackTrace"),
+            new_br("[Ljava/lang/StackTraceElement;"),
+            false,
+        );
         Class::put_field_value(throwable_oop.extract_ref(), id, oop::consts::get_null());
         let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
         Class::put_field_value(throwable_oop.extract_ref(), id, stack_trace_ary);

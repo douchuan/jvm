@@ -4,7 +4,7 @@ use crate::runtime::{self, exception, frame::Frame, thread, Interp};
 use crate::types::{ClassRef, DataAreaRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
 use class_parser::MethodSignature;
-use classfile::{consts as cls_const, SignatureType, BytesRef};
+use classfile::{consts as cls_const, BytesRef, SignatureType};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
@@ -18,7 +18,8 @@ pub struct JavaCall {
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
         let cls = cls.read().unwrap();
-        cls.get_this_class_method(util::S_INIT.clone(), desc).unwrap()
+        cls.get_this_class_method(util::S_INIT.clone(), desc)
+            .unwrap()
     };
 
     let mut jc = JavaCall::new_with_args(ctor, args);
@@ -59,11 +60,7 @@ impl JavaCall {
                         cls.name.clone()
                     };
 
-                    error!(
-                        "Java new failed, null this: {}:{}",
-                        String::from_utf8_lossy(cls_name.as_slice()),
-                        String::from_utf8_lossy(mir.method.get_id().as_slice())
-                    );
+                    error!("Java new failed, null this: {:?}", mir.method);
 
                     //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
                     //                        panic!();
@@ -318,17 +315,9 @@ impl JavaCall {
     }
 
     fn debug(&self) {
-        let cls_name = { self.mir.method.class.read().unwrap().name.clone() };
-        let name = self.mir.method.name.clone();
-        let desc = self.mir.method.desc.clone();
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls_name.as_slice()) };
-        let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-        let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
         info!(
-            "invoke method = {}:{}:{} static={} native={} sync={}",
-            cls_name,
-            name,
-            desc,
+            "invoke method = {:?}, static={} native={} sync={}",
+            self.mir.method,
             self.mir.method.is_static(),
             self.mir.method.is_native(),
             self.mir.method.is_synchronized()

@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::Oop;
 use crate::runtime::{self, require_class3};
-use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -21,7 +21,11 @@ fn jvm_forOutputStreamWriter(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let charset_cls = require_class3(None, b"java/nio/charset/Charset").unwrap();
     let default_charset_oop = {
         let cls = charset_cls.read().unwrap();
-        let id = cls.get_field_id(new_br("defaultCharset"), new_br("Ljava/nio/charset/Charset;"), true);
+        let id = cls.get_field_id(
+            new_br("defaultCharset"),
+            new_br("Ljava/nio/charset/Charset;"),
+            true,
+        );
         cls.get_static_field_value(id)
     };
 

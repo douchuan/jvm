@@ -2,7 +2,7 @@ use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::thread::thread_pool;
 use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
-use crate::{util, new_br};
+use crate::{new_br, util};
 use std::borrow::Borrow;
 
 pub struct MainThread {

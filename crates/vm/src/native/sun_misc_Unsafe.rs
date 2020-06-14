@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use std::os::raw::c_void;
-use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![

@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
 use classfile::{consts as cls_consts, SignatureType};
-use crate::new_br;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -48,8 +48,7 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let mir = {
         let clz = clz.read().unwrap();
-        clz.get_class_method(m_name, m_signature)
-            .unwrap()
+        clz.get_class_method(m_name, m_signature).unwrap()
     };
 
     // {

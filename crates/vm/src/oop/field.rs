@@ -7,6 +7,7 @@ use classfile::{
     constant_pool, consts, flags::*, types::U2, AttributeType, BytesRef, ConstantPool,
     ConstantPoolType, FieldInfo,
 };
+use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -103,9 +104,10 @@ pub struct FieldId {
     pub field: Field,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Field {
     pub class: ClassRef,
+    pub cls_name: BytesRef,
     pub name: BytesRef,
     pub desc: BytesRef,
 
@@ -117,7 +119,7 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new(cp: &ConstantPool, fi: &FieldInfo, class_name: &[u8], class: ClassRef) -> Self {
+    pub fn new(cp: &ConstantPool, fi: &FieldInfo, cls_name: BytesRef, class: ClassRef) -> Self {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
@@ -179,6 +181,7 @@ impl Field {
 
         Self {
             class,
+            cls_name,
             name,
             desc,
             acc_flags,
@@ -228,5 +231,14 @@ impl Field {
 
     pub fn get_attr_constant_value(&self) -> Option<Oop> {
         self.attr_constant_value.clone()
+    }
+}
+
+impl fmt::Debug for Field {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let cls_name = unsafe { std::str::from_utf8_unchecked(self.cls_name.as_slice()) };
+        let name = unsafe { std::str::from_utf8_unchecked(self.name.as_slice()) };
+        let desc = unsafe { std::str::from_utf8_unchecked(self.desc.as_slice()) };
+        write!(f, "{}:{}:{}", cls_name, name, desc)
     }
 }
