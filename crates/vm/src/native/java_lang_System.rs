@@ -320,13 +320,9 @@ fn arraycopy_same_obj(buf: Arc<OopRef>, src_pos: usize, dest_pos: usize, length:
             }
         }
     } else {
-        /*
-        todo optimize: How to achieve the purpose of copy without tmp
-        */
         let tmp = {
             let ary = buf.extract_array();
-            let mut tmp = Vec::with_capacity(length);
-            tmp.resize(length, oop::consts::get_null());
+            let mut tmp = vec![oop::consts::get_null(); length];
 
             let (_, ary) = ary.elements.split_at(src_pos);
             tmp.clone_from_slice(&ary[..length]);
