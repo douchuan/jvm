@@ -758,39 +758,35 @@ impl ClassObject {
         }
     }
 
-    fn link_fields(&mut self, self_ref: ClassRef, name: BytesRef, n_super_inst: usize) {
+    fn link_fields(&mut self, self_ref: ClassRef, cls_name: BytesRef, n_super_inst: usize) {
         let cls_file = self.class_file.clone();
         let cp = &cls_file.cp;
 
         let mut n_static = 0;
         let mut n_inst = n_super_inst;
-        let class_name = name.clone();
+
         cls_file.fields.iter().for_each(|it| {
-            let field = field::Field::new(cp, it, class_name.clone(), self_ref.clone());
+            let field = field::Field::new(cp, it, cls_name.clone(), self_ref.clone());
+            let k = (
+                cls_name.clone(),
+                field.name.clone(),
+                field.desc.clone(),
+            );
+
             if field.is_static() {
                 let fid = field::FieldId {
                     offset: n_static,
                     field,
                 };
 
-                let k = (
-                    class_name.clone(),
-                    fid.field.name.clone(),
-                    fid.field.desc.clone(),
-                );
                 self.static_fields.insert(k, Arc::new(fid));
-
                 n_static += 1;
             } else {
                 let fid = field::FieldId {
                     offset: n_inst,
                     field,
                 };
-                let k = (
-                    class_name.clone(),
-                    fid.field.name.clone(),
-                    fid.field.desc.clone(),
-                );
+
                 self.inst_fields.insert(k, Arc::new(fid));
                 n_inst += 1;
             }
