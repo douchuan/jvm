@@ -47,9 +47,8 @@ impl ClassLoader {
             self.load_array_class(name)
         } else {
             let class = self.load_class_from_path(name);
-
-            match class.clone() {
-                Some(class) => match self {
+            if let Some(class) = &class {
+                match self {
                     ClassLoader::Base => (),
                     ClassLoader::Bootstrap => {
                         runtime::sys_dic_put(name, class.clone());
@@ -63,9 +62,7 @@ impl ClassLoader {
 
                         native::java_lang_Class::create_mirror(class.clone());
                     }
-                },
-
-                None => (),
+                }
             }
 
             class

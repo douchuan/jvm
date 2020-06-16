@@ -126,16 +126,13 @@ pub fn init_class_fully(class: ClassRef) {
             (mir, class.name.clone())
         };
 
-        match mir {
-            Ok(mir) => {
-                info!("call {}:<clinit>", unsafe {
-                    std::str::from_utf8_unchecked(name.as_slice())
-                });
-                let area = runtime::DataArea::new(0, 0);
-                let mut jc = JavaCall::new_with_args(mir, vec![]);
-                jc.invoke(Some(area), true);
-            }
-            _ => (),
+        if let Ok(mir) = mir {
+            info!("call {}:<clinit>", unsafe {
+                std::str::from_utf8_unchecked(name.as_slice())
+            });
+            let area = runtime::DataArea::new(0, 0);
+            let mut jc = JavaCall::new_with_args(mir, vec![]);
+            jc.invoke(Some(area), true);
         }
     }
 }
@@ -221,7 +218,7 @@ impl Class {
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
                 self.super_class =
-                    class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+                    class_obj.link_super_class(self.name.clone(), self.class_loader);
 
                 let n_super_inst = {
                     match &self.super_class {
@@ -414,17 +411,19 @@ impl Class {
 
         if is_static {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.static_fields.get(&k) {
-                    Some(fid) => return fid.clone(),
-                    None => (),
+                ClassKind::Instance(cls_obj) => {
+                    if let Some(fid) = cls_obj.static_fields.get(&k) {
+                        return fid.clone();
+                    }
                 },
                 _ => unreachable!(),
             }
         } else {
             match &self.kind {
-                ClassKind::Instance(cls_obj) => match cls_obj.inst_fields.get(&k) {
-                    Some(fid) => return fid.clone(),
-                    None => (),
+                ClassKind::Instance(cls_obj) => {
+                    if let Some(fid) = cls_obj.inst_fields.get(&k) {
+                        return fid.clone()
+                    }
                 },
                 _ => unreachable!(),
             }
@@ -522,7 +521,7 @@ impl Class {
     pub fn check_interface(&self, intf: ClassRef) -> bool {
         match &self.kind {
             ClassKind::Instance(inst) => {
-                for (_, e) in &inst.interfaces {
+                for e in inst.interfaces.values() {
                     if Arc::ptr_eq(e, &intf) {
                         return true;
                     }
@@ -561,7 +560,7 @@ impl Class {
                     });
                     cls.all_methods.insert(k, m.clone());
 
-                    m.clone()
+                    m
                 };
 
                 info!(
@@ -689,7 +688,7 @@ impl Class {
             ClassKindType::Instance => unreachable!(),
             ClassKindType::TypAry => ClassKind::TypeArray(ArrayClassObject {
                 value_type: ValueType::ARRAY,
-                down_type: Some(down_type.clone()),
+                down_type: Some(down_type),
                 component: None,
                 mirror: None,
             }),
@@ -703,7 +702,7 @@ impl Class {
                 };
                 ClassKind::ObjectArray(ArrayClassObject {
                     value_type: ValueType::ARRAY,
-                    down_type: Some(down_type.clone()),
+                    down_type: Some(down_type),
                     component,
                     mirror: None,
                 })
@@ -832,7 +831,7 @@ impl ClassObject {
             self.all_methods.insert(k.clone(), method_id.clone());
 
             if !method_id.method.is_static() {
-                self.v_table.insert(k, method_id.clone());
+                self.v_table.insert(k, method_id);
             }
         });
     }
@@ -886,11 +885,11 @@ impl Class {
     ) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.all_methods.get(&k) {
-                Some(m) => return Ok(m.clone()),
-                None => (),
+            ClassKind::Instance(cls_obj) => {
+                if let Some(m) = cls_obj.all_methods.get(&k) {
+                    return Ok(m.clone());
+                }
             },
-
             ClassKind::ObjectArray(ary) => {
                 //use java/lang/Object, methods
             }
@@ -915,21 +914,22 @@ impl Class {
     fn get_virtual_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
-            ClassKind::Instance(cls_obj) => match cls_obj.v_table.get(&k) {
-                Some(m) => return Ok(m.clone()),
-                None => (),
+            ClassKind::Instance(cls_obj) => {
+                if let Some(m) = cls_obj.v_table.get(&k) {
+                    return Ok(m.clone());
+                }
             },
             _ => unreachable!(),
         }
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class
+                super_class
                     .read()
                     .unwrap()
-                    .get_virtual_method_inner(name, desc);
+                    .get_virtual_method_inner(name, desc)
             }
-            None => return Err(()),
+            None => Err(()),
         }
     }
 
@@ -945,9 +945,9 @@ impl Class {
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
                         let cls = itf.read().unwrap();
-                        match cls.get_interface_method(name.clone(), desc.clone()) {
-                            Ok(m) => return Ok(m.clone()),
-                            _ => (),
+                        let m = cls.get_interface_method(name.clone(), desc.clone());
+                        if m.is_ok() {
+                            return m;
                         }
                     }
                 }
@@ -957,12 +957,12 @@ impl Class {
 
         match self.super_class.as_ref() {
             Some(super_class) => {
-                return super_class
+                super_class
                     .read()
                     .unwrap()
-                    .get_interface_method_inner(name, desc);
+                    .get_interface_method_inner(name, desc)
             }
-            None => return Err(()),
+            None => Err(())
         }
     }
 }

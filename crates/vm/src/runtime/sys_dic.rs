@@ -18,7 +18,7 @@ pub fn put(key: &[u8], klass: ClassRef) {
     let key = Vec::from(key);
     let key = unsafe { String::from_utf8_unchecked(key) };
     let mut dict = SYS_DIC.lock().unwrap();
-    dict.insert(key.to_string(), klass);
+    dict.insert(key, klass);
 }
 
 //key style: "sun/security/provider/Sun"
@@ -26,7 +26,7 @@ pub fn find(key: &[u8]) -> Option<ClassRef> {
     assert!(!key.contains(&b'.'));
     let key = unsafe { std::str::from_utf8_unchecked(key) };
     let dict = SYS_DIC.lock().unwrap();
-    dict.get(key).map(|it| it.clone())
+    dict.get(key).cloned()
 }
 
 pub fn init() {

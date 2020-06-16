@@ -42,7 +42,7 @@ pub fn new_field(fir: FieldIdRef) -> Oop {
         v.clone()
     })
     .collect();
-    desc.extend_from_slice(")V".as_bytes());
+    desc.extend_from_slice(b")V");
 
     let oop = Oop::new_inst(field_cls.clone());
     args.insert(0, oop.clone());
@@ -115,7 +115,7 @@ pub fn new_method_ctor(mir: MethodIdRef) -> Oop {
         v.clone()
     })
     .collect();
-    desc.extend_from_slice(")V".as_bytes());
+    desc.extend_from_slice(b")V");
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());
@@ -147,7 +147,7 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
     let parameter_types = Oop::new_ref_ary2(cls, params);
 
     //returnType
-    let return_type = create_value_type(signature.retype.clone());
+    let return_type = create_value_type(signature.retype);
 
     //fixme: checkedExceptions
     let cls = require_class3(None, b"[Ljava/lang/Class;").unwrap();
@@ -209,7 +209,7 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
         v.clone()
     })
     .collect();
-    desc.extend_from_slice(")V".as_bytes());
+    desc.extend_from_slice(b")V");
 
     let oop = Oop::new_inst(ctor_cls.clone());
     args.insert(0, oop.clone());

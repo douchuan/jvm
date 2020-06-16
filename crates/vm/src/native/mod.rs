@@ -82,7 +82,7 @@ pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINative
     let natives = NATIVES.read().unwrap();
     natives.get(package).and_then(|it| {
         it.get(name)
-            .and_then(|it| it.get(desc).map(|it| it.clone()))
+            .and_then(|it| it.get(desc).cloned())
     })
 }
 

@@ -70,7 +70,7 @@ impl ValueType {
         }
     }
 
-    pub fn into_primitive_name(&self) -> &'static [u8] {
+    pub fn get_primitive_name(&self) -> &'static [u8] {
         match *self {
             ValueType::BYTE => b"byte",
             ValueType::BOOLEAN => b"boolean",

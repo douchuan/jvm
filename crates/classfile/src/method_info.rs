@@ -14,9 +14,8 @@ pub struct MethodInfo {
 impl MethodInfo {
     pub fn get_code(&self) -> Option<Code> {
         for it in self.attrs.iter() {
-            match it {
-                Type::Code(code) => return Some(code.clone()),
-                _ => (),
+            if let Type::Code(code) = it {
+                return Some(code.clone());
             }
         }
 
@@ -26,31 +25,23 @@ impl MethodInfo {
     pub fn get_line_number_table(&self) -> Vec<LineNumber> {
         let mut line_num_table = Vec::new();
 
-        for it in self.attrs.iter() {
-            match it {
-                Type::Code(code) => {
-                    for it in code.attrs.iter() {
-                        match it {
-                            Type::LineNumberTable { tables } => {
-                                line_num_table.extend_from_slice(tables.as_slice());
-                            }
-                            _ => (),
-                        }
+        self.attrs.iter().for_each(|attr| {
+            if let Type::Code(code) = attr {
+                code.attrs.iter().for_each(|it| {
+                    if let Type::LineNumberTable {tables} = it {
+                        line_num_table.extend_from_slice(tables.as_slice());
                     }
-                }
-
-                _ => (),
+                });
             }
-        }
+        });
 
         line_num_table
     }
 
     pub fn get_throws(&self) -> Option<Vec<U2>> {
         for it in self.attrs.iter() {
-            match it {
-                Type::Exceptions { exceptions } => return Some(exceptions.clone()),
-                _ => (),
+            if let Type::Exceptions { exceptions } = it {
+                return Some(exceptions.clone());
             }
         }
 
@@ -59,11 +50,10 @@ impl MethodInfo {
 
     pub fn get_ex_table(&self) -> Option<Vec<CodeException>> {
         for it in self.attrs.iter() {
-            match it {
-                Type::Code(code) if !code.exceptions.is_empty() => {
+            if let Type::Code(code) = it {
+                if !code.exceptions.is_empty() {
                     return Some(code.exceptions.clone())
                 }
-                _ => (),
             }
         }
 
@@ -71,48 +61,36 @@ impl MethodInfo {
     }
 
     pub fn get_stack_map_table(&self) -> Option<Vec<StackMapFrame>> {
-        match self.get_code() {
-            Some(code) => {
-                for it in code.attrs.iter() {
-                    match it {
-                        Type::StackMapTable { entries } => return Some(entries.clone()),
-                        _ => (),
-                    }
+        if let Some(code) = self.get_code() {
+            for it in code.attrs.iter() {
+                if let Type::StackMapTable { entries} = it {
+                    return Some(entries.clone());
                 }
             }
-            _ => (),
         }
 
         None
     }
 
     pub fn get_local_variable_table(&self) -> Option<Vec<LocalVariable>> {
-        match self.get_code() {
-            Some(code) => {
-                for it in code.attrs.iter() {
-                    match it {
-                        Type::LocalVariableTable { tables } => return Some(tables.clone()),
-                        _ => (),
-                    }
+        if let Some(code) = self.get_code() {
+            for it in code.attrs.iter() {
+                if let Type::LocalVariableTable { tables } = it {
+                    return Some(tables.clone());
                 }
             }
-            _ => (),
         }
 
         None
     }
 
     pub fn get_local_variable_type_table(&self) -> Option<Vec<LocalVariable>> {
-        match self.get_code() {
-            Some(code) => {
-                for it in code.attrs.iter() {
-                    match it {
-                        Type::LocalVariableTypeTable { tables } => return Some(tables.clone()),
-                        _ => (),
-                    }
+        if let Some(code) = self.get_code() {
+            for it in code.attrs.iter() {
+                if let Type::LocalVariableTypeTable { tables } = it {
+                    return Some(tables.clone());
                 }
             }
-            _ => (),
         }
 
         None

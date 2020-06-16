@@ -84,7 +84,7 @@ impl<'a> Interp<'a> {
 
                     match op_code {
                         OpCode::athrow => {
-                            self.athrow(jt.clone());
+                            self.athrow(jt);
                             break;
                         }
                         OpCode::ireturn => {
@@ -397,7 +397,7 @@ impl<'a> Interp<'a> {
             ConstantPoolType::Class { name_index } => {
                 let name = get_cp_utf8(&self.frame.cp, *name_index as usize).unwrap();
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                let cl = { self.frame.class.read().unwrap().class_loader.clone() };
+                let cl = { self.frame.class.read().unwrap().class_loader };
                 trace!("load_constant name={}, cl={:?}", name, cl);
                 let class = runtime::require_class3(cl, name.as_bytes()).unwrap();
 
@@ -459,7 +459,7 @@ impl<'a> Interp<'a> {
 
         trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
 
-        let value_type = fir.field.value_type.clone();
+        let value_type = fir.field.value_type;
         let class = fir.field.class.read().unwrap();
         let v = if is_static {
             class.get_static_field_value(fir.clone())
@@ -516,7 +516,7 @@ impl<'a> Interp<'a> {
 
         trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
 
-        let value_type = fir.field.value_type.clone();
+        let value_type = fir.field.value_type;
         //        info!("value_type = {:?}", value_type);
         let v = match value_type {
             ValueType::INT
@@ -572,13 +572,8 @@ impl<'a> Interp<'a> {
             Ok(mir) => {
                 assert_eq!(mir.method.is_static(), is_static);
 
-                match runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
-                    Ok(mut jc) => {
-                        jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
-                    }
-
-                    //ignored, let interp main loop handle exception
-                    _ => (),
+                if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
+                    jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
                 }
             }
             Err(_) => unreachable!("NotFound method"),
@@ -2267,13 +2262,13 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_long();
         let v2 = area.stack.pop_long();
-        if v1 > v2 {
-            area.stack.push_int(-1);
-        } else if v1 < v2 {
-            area.stack.push_int(1);
-        } else {
-            area.stack.push_int(0);
-        }
+        let v = match v1.cmp(&v2) {
+            std::cmp::Ordering::Greater => -1,
+            std::cmp::Ordering::Less => 1,
+            std::cmp::Ordering::Equal => 0,
+        };
+
+        area.stack.push_int(v);
     }
 
     #[inline]
@@ -2281,15 +2276,17 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_float();
         let v2 = area.stack.pop_float();
-        if v1.is_nan() || v2.is_nan() {
-            area.stack.push_int(-1);
+        let v = if v1.is_nan() || v2.is_nan() {
+            -1
         } else if v1 > v2 {
-            area.stack.push_int(-1);
+            -1
         } else if v1 < v2 {
-            area.stack.push_int(1);
+            1
         } else {
-            area.stack.push_int(0);
-        }
+            0
+        };
+
+        area.stack.push_int(v);
     }
 
     #[inline]
@@ -2297,15 +2294,17 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_float();
         let v2 = area.stack.pop_float();
-        if v1.is_nan() || v2.is_nan() {
-            area.stack.push_int(1);
+        let v = if v1.is_nan() || v2.is_nan() {
+            1
         } else if v1 > v2 {
-            area.stack.push_int(-1);
+            -1
         } else if v1 < v2 {
-            area.stack.push_int(1);
+            1
         } else {
-            area.stack.push_int(0);
-        }
+            0
+        };
+
+        area.stack.push_int(v);
     }
 
     #[inline]
@@ -2313,15 +2312,17 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v1 = area.stack.pop_double();
         let v2 = area.stack.pop_double();
-        if v1.is_nan() || v2.is_nan() {
-            area.stack.push_int(-1);
+        let v = if v1.is_nan() || v2.is_nan() {
+            -1
         } else if v1 > v2 {
-            area.stack.push_int(-1);
+            -1
         } else if v1 < v2 {
-            area.stack.push_int(1);
+            1
         } else {
-            area.stack.push_int(0);
-        }
+            0
+        };
+
+        area.stack.push_int(v);
     }
 
     #[inline]
@@ -2926,7 +2927,7 @@ impl<'a> Interp<'a> {
                 };
 
                 let name = Arc::new(name);
-                (name, class.class_loader.clone())
+                (name, class.class_loader)
             };
 
             trace!("anew_array name={}", unsafe {
@@ -3112,7 +3113,7 @@ impl<'a> Interp<'a> {
     }
 }
 
-fn new_multi_object_array_helper(cls: ClassRef, lens: &Vec<i32>, idx: usize) -> Oop {
+fn new_multi_object_array_helper(cls: ClassRef, lens: &[i32], idx: usize) -> Oop {
     let length = lens[idx] as usize;
 
     let down_type = {

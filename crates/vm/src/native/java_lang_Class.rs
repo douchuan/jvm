@@ -12,7 +12,7 @@ use std::sync::{Arc, RwLock};
 pub fn get_primitive_class_mirror(key: &str) -> Option<Oop> {
     //todo: avoid mutex lock, it's only read
     let mirrors = PRIM_MIRROS.read().unwrap();
-    mirrors.get(key).map(|it| it.clone())
+    mirrors.get(key).cloned()
 }
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -338,7 +338,7 @@ fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 cls.name.clone()
             }
             None => {
-                let v = vt.into_primitive_name();
+                let v = vt.get_primitive_name();
                 Arc::new(Vec::from(v))
             }
         }
@@ -372,7 +372,7 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let _caller_mirror = args.get(3).unwrap();
 
-    if java_name.contains("/") {
+    if java_name.contains('/') {
         let msg = Some(java_name);
         let ex = runtime::exception::new(cls_consts::J_CLASS_NOT_FOUND, msg);
         return Err(ex);
@@ -555,7 +555,7 @@ fn jvm_getComponentType(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let vt = type_ary_cls.value_type.into();
             let key = unsafe { std::str::from_utf8_unchecked(vt) };
             let mirrors = PRIM_MIRROS.read().unwrap();
-            mirrors.get(key).map(|it| it.clone())
+            mirrors.get(key).cloned()
         }
         oop::class::ClassKind::ObjectArray(obj_ary_cls) => {
             let component = obj_ary_cls.component.clone().unwrap();
@@ -676,7 +676,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
     }
 
-    return Ok(Some(oop::consts::get_null()));
+    Ok(Some(oop::consts::get_null()))
 }
 
 fn jvm_isInstance(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
@@ -820,7 +820,7 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                     let cls = target.read().unwrap();
                     let sig = cls.get_attr_signatrue();
                     sig.map_or_else(
-                        || oop::consts::get_null(),
+                        oop::consts::get_null,
                         |v| {
                             let sig = std::str::from_utf8_unchecked(v.as_slice());
                             util::oop::new_java_lang_string2(sig)
@@ -852,19 +852,19 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => {
                 fn chooser1(want_constructor: bool, name: &[u8]) -> bool {
-                    return if want_constructor {
+                    if want_constructor {
                         name == b"<init>"
                     } else {
                         name != b"<init>"
-                    };
+                    }
                 }
 
                 fn chooser2(want_constructor: bool, m: &MethodIdRef) -> bool {
-                    return if want_constructor {
+                    if want_constructor {
                         m.method.name.as_slice() == b"<init>" && !m.method.is_static()
                     } else {
                         m.method.name.as_slice() != b"<init>"
-                    };
+                    }
                 }
 
                 let mut selected_methods = Vec::new();
@@ -873,10 +873,8 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
                         continue;
                     }
 
-                    if chooser2(want_constructor, &m) {
-                        if !public_only || m.method.is_public() {
-                            selected_methods.push(m.clone());
-                        }
+                    if chooser2(want_constructor, &m) && (!public_only || m.method.is_public()) {
+                        selected_methods.push(m.clone());
                     }
                 }
 

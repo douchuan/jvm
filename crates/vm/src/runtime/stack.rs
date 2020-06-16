@@ -182,7 +182,7 @@ impl Stack {
     pub fn dup(&mut self) {
         let v = self.inner.pop().unwrap();
         self.inner.push(v.clone());
-        self.inner.push(v.clone());
+        self.inner.push(v);
     }
 
     pub fn dup_x1(&mut self) {

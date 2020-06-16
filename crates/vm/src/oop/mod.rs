@@ -414,12 +414,10 @@ impl OopRef {
 
         if l.0 == r.0 {
             true
+        } else if Self::is_java_lang_string(l.clone()) && Self::is_java_lang_string(r.clone()) {
+            Self::is_java_lang_string_eq(l, r)
         } else {
-            if Self::is_java_lang_string(l.clone()) && Self::is_java_lang_string(r.clone()) {
-                Self::is_java_lang_string_eq(l, r)
-            } else {
-                false
-            }
+            false
         }
     }
 

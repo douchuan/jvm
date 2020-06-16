@@ -24,12 +24,12 @@ pub fn new(name: &[u8], msg: Option<String>) -> Oop {
             //with 'String' arg ctor
             let msg = util::oop::new_java_lang_string2(msg);
             let args = vec![ex.clone(), msg];
-            runtime::invoke::invoke_ctor(cls.clone(), new_br("(Ljava/lang/String;)V"), args);
+            runtime::invoke::invoke_ctor(cls, new_br("(Ljava/lang/String;)V"), args);
         }
         None => {
             //No arg ctor
             let args = vec![ex.clone()];
-            runtime::invoke::invoke_ctor(cls.clone(), new_br("()V"), args);
+            runtime::invoke::invoke_ctor(cls, new_br("()V"), args);
         }
     }
 

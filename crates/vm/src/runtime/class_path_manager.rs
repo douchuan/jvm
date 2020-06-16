@@ -88,15 +88,11 @@ impl ClassPathManager {
                     p.push_str(util::FILE_SEP);
                     p.push_str(&name);
                     p.push_str(".class");
-                    match File::open(&p) {
-                        Ok(mut f) => {
-                            let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
-                            f.read_to_end(&mut v);
+                    if let Ok(mut f) = File::open(&p) {
+                        let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
+                        f.read_to_end(&mut v);
 
-                            return Ok(ClassPathResult(p, v));
-                        }
-
-                        _ => (),
+                        return Ok(ClassPathResult(p, v));
                     }
                 }
 
@@ -107,24 +103,20 @@ impl ClassPathManager {
                     let mut handle = handle.lock().unwrap();
                     let mut zf = handle.by_name(&p);
 
-                    match zf {
-                        Ok(mut zf) => {
-                            let mut v = Vec::with_capacity(zf.size() as usize);
-                            let r = zf.read_to_end(&mut v);
-                            assert!(r.is_ok());
-                            return Ok(ClassPathResult(it.1.clone(), v));
-                        }
-
-                        _ => (),
+                    if let Ok(mut zf) = zf {
+                        let mut v = Vec::with_capacity(zf.size() as usize);
+                        let r = zf.read_to_end(&mut v);
+                        assert!(r.is_ok());
+                        return Ok(ClassPathResult(it.1.clone(), v));
                     }
                 }
             }
         }
 
-        return Err(io::Error::new(
+        Err(io::Error::new(
             io::ErrorKind::NotFound,
             format!("Search class failed: {}", name),
-        ));
+        ))
     }
 
     pub fn size(&self) -> usize {

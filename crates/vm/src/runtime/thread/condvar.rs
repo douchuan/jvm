@@ -31,6 +31,8 @@ impl Condvar {
         }
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[cfg(any(
         target_os = "macos",
         target_os = "ios",
@@ -60,18 +62,24 @@ impl Condvar {
         assert_eq!(r, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[inline]
     pub unsafe fn notify_one(&self) {
         let r = libc::pthread_cond_signal(self.inner.get());
         debug_assert_eq!(r, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[inline]
     pub unsafe fn notify_all(&self) {
         let r = libc::pthread_cond_broadcast(self.inner.get());
         debug_assert_eq!(r, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[inline]
     pub unsafe fn wait(&self, mutex: &ReentrantMutex) {
         let r = libc::pthread_cond_wait(self.inner.get(), mutex_raw(mutex));
@@ -115,6 +123,8 @@ impl Condvar {
         r == 0
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     // This implementation is modeled after libcxx's condition_variable
     // https://github.com/llvm-mirror/libcxx/blob/release_35/src/condition_variable.cpp#L46
     // https://github.com/llvm-mirror/libcxx/blob/release_35/include/__mutex_base#L367
@@ -182,6 +192,8 @@ impl Condvar {
         stable_now.elapsed() < dur
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[inline]
     #[cfg(not(target_os = "dragonfly"))]
     pub unsafe fn destroy(&self) {

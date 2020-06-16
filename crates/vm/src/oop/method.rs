@@ -50,15 +50,13 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
         unsafe { std::str::from_utf8_unchecked(desc.as_slice()) },
     );
 
-    let mir = if tag == consts::CONSTANT_METHOD_REF_TAG {
+    if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
         class.get_class_method(name, desc)
     } else {
         // invokeinterface
         class.get_interface_method(name, desc)
-    };
-
-    mir
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -111,24 +109,20 @@ impl Method {
     }
 
     pub fn find_exception_handler(&self, cp: &ConstantPool, pc: U2, ex: ClassRef) -> Option<U2> {
-        match &self.code {
-            Some(code) => {
-                for e in code.exceptions.iter() {
-                    if e.contains(pc) {
-                        if e.is_finally() {
-                            return Some(e.handler_pc);
-                        }
+        if let Some(code) = &self.code {
+            for e in code.exceptions.iter() {
+                if e.contains(pc) {
+                    if e.is_finally() {
+                        return Some(e.handler_pc);
+                    }
 
-                        if let Some(class) = runtime::require_class2(e.catch_type, cp) {
-                            if runtime::cmp::instance_of(ex.clone(), class) {
-                                return Some(e.handler_pc);
-                            }
+                    if let Some(class) = runtime::require_class2(e.catch_type, cp) {
+                        if runtime::cmp::instance_of(ex.clone(), class) {
+                            return Some(e.handler_pc);
                         }
                     }
                 }
             }
-
-            _ => (),
         }
 
         None
@@ -141,15 +135,13 @@ impl Method {
         for it in self.line_num_table.iter() {
             if it.start_pc == pc {
                 return it.number as i32;
-            } else {
-                if it.start_pc < pc && it.start_pc >= best_bci {
-                    best_bci = it.start_pc;
-                    best_line = it.number as i32;
-                }
+            } else if it.start_pc < pc && it.start_pc >= best_bci {
+                best_bci = it.start_pc;
+                best_line = it.number as i32;
             }
         }
 
-        return best_line;
+        best_line
     }
 
     pub fn get_annotation(&self) -> Option<Vec<u8>> {
@@ -176,15 +168,12 @@ impl Method {
         let method_info = self.class_file.methods.get(self.method_info_index).unwrap();
 
         for it in method_info.attrs.iter() {
-            match it {
-                AttributeType::RuntimeVisibleAnnotations { raw, annotations } => {
-                    for it in annotations.iter() {
-                        if it.type_name.as_slice() == name {
-                            return true;
-                        }
+            if let AttributeType::RuntimeVisibleAnnotations { raw, annotations } = it {
+                for it in annotations.iter() {
+                    if it.type_name.as_slice() == name {
+                        return true;
                     }
                 }
-                _ => (),
             }
         }
 

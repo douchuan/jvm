@@ -53,7 +53,7 @@ impl Threads {
         threads
             .iter()
             .find(|t| t.read().unwrap().eetop == eetop)
-            .map(|t| t.clone())
+            .cloned()
     }
 
     pub fn join_all(&self) {

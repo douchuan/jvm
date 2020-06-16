@@ -139,7 +139,7 @@ impl MainThread {
                             let mut jt = jt.write().unwrap();
                             jt.take_ex().unwrap()
                         };
-                        let args = vec![v.clone(), ex];
+                        let args = vec![v, ex];
                         let mut jc = JavaCall::new_with_args(mir, args);
                         let area = runtime::DataArea::new(0, 0);
                         jc.invoke(Some(area), false);

@@ -29,7 +29,7 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
 impl JavaCall {
     pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
         let sig = MethodSignature::new(mir.method.desc.as_slice());
-        let return_type = sig.retype.clone();
+        let return_type = sig.retype;
         Self {
             mir,
             args,
@@ -53,25 +53,22 @@ impl JavaCall {
             };
 
             //check NPE
-            match this {
-                Oop::Null => {
-                    let cls_name = {
-                        let cls = mir.method.class.read().unwrap();
-                        cls.name.clone()
-                    };
+            if let Oop::Null = this {
+                let cls_name = {
+                    let cls = mir.method.class.read().unwrap();
+                    cls.name.clone()
+                };
 
-                    error!("Java new failed, null this: {:?}", mir.method);
+                error!("Java new failed, null this: {:?}", mir.method);
 
-                    //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
-                    //                        panic!();
+                //Fail fast, avoid a lot of logs, and it is not easy to locate the problem
+                //                        panic!();
 
-                    let jt = runtime::thread::current_java_thread();
-                    let ex = exception::new(cls_const::J_NPE, None);
-                    let mut jt = jt.write().unwrap();
-                    jt.set_ex(ex);
-                    return Err(());
-                }
-                _ => (),
+                let jt = runtime::thread::current_java_thread();
+                let ex = exception::new(cls_const::J_NPE, None);
+                let mut jt = jt.write().unwrap();
+                jt.set_ex(ex);
+                return Err(());
             }
 
             args.insert(0, this);
@@ -160,7 +157,7 @@ impl JavaCall {
                 match self.prepare_frame(true) {
                     Ok(frame) => {
                         {
-                            jt.write().unwrap().frames.push(frame.clone());
+                            jt.write().unwrap().frames.push(frame);
                         }
                         method.invoke(env, self.args.clone())
                     }
@@ -257,7 +254,7 @@ impl JavaCall {
         }
 
         let frame_ref = new_sync_ref!(frame);
-        return Ok(frame_ref);
+        Ok(frame_ref)
     }
 
     fn resolve_virtual_method(&mut self, force_no_resolve: bool) {
@@ -289,26 +286,23 @@ impl JavaCall {
             let rf = this.extract_ref();
             let ptr = rf.get_raw_ptr();
             unsafe {
-                match &(*ptr).v {
-                    oop::RefKind::Inst(inst) => {
-                        let cls = inst.class.read().unwrap();
-                        let name = self.mir.method.name.clone();
-                        let desc = self.mir.method.desc.clone();
-                        match cls.get_virtual_method(name.clone(), desc.clone()) {
-                            Ok(mir) => self.mir = mir,
-                            _ => {
-                                let cls = self.mir.method.class.read().unwrap();
-                                warn!(
-                                    "resolve again failed, {}:{}:{}, acc_flags = {}",
-                                    String::from_utf8_lossy(cls.name.as_slice()),
-                                    String::from_utf8_lossy(name.as_slice()),
-                                    String::from_utf8_lossy(desc.as_slice()),
-                                    self.mir.method.acc_flags
-                                );
-                            }
+                if let oop::RefKind::Inst(inst) = &(*ptr).v {
+                    let cls = inst.class.read().unwrap();
+                    let name = self.mir.method.name.clone();
+                    let desc = self.mir.method.desc.clone();
+                    match cls.get_virtual_method(name.clone(), desc.clone()) {
+                        Ok(mir) => self.mir = mir,
+                        _ => {
+                            let cls = self.mir.method.class.read().unwrap();
+                            warn!(
+                                "resolve again failed, {}:{}:{}, acc_flags = {}",
+                                String::from_utf8_lossy(cls.name.as_slice()),
+                                String::from_utf8_lossy(name.as_slice()),
+                                String::from_utf8_lossy(desc.as_slice()),
+                                self.mir.method.acc_flags
+                            );
                         }
                     }
-                    _ => (),
                 }
             }
         }

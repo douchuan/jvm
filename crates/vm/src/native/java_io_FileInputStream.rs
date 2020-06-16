@@ -114,7 +114,7 @@ fn jvm_available0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             }
         }
 
-        return Ok(Some(Oop::new_int((size - current) as i32)));
+        Ok(Some(Oop::new_int((size - current) as i32)))
     }
 }
 

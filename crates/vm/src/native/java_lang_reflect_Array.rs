@@ -70,13 +70,13 @@ fn build_ary_name(vt: ValueType, component_cls: Option<ClassRef>) -> Vec<u8> {
             let cls = cls.read().unwrap();
             match cls.kind {
                 oop::ClassKind::Instance(_) => {
-                    name.extend_from_slice("L".as_bytes());
+                    name.extend_from_slice(b"L");
                     name.extend_from_slice(cls.name.as_slice());
-                    name.extend_from_slice(";".as_bytes());
+                    name.extend_from_slice(b";");
                 }
                 oop::ClassKind::ObjectArray(_) => {
                     name.extend_from_slice(cls.name.as_slice());
-                    name.extend_from_slice(";".as_bytes());
+                    name.extend_from_slice(b";");
                 }
                 oop::ClassKind::TypeArray(_) => unimplemented!(),
             }

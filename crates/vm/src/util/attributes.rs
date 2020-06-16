@@ -1,6 +1,6 @@
 use classfile::{AttributeType, BytesRef};
 
-pub fn assemble_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
+pub fn assemble_annotation(attrs: &[AttributeType]) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
@@ -19,7 +19,7 @@ pub fn assemble_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_param_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
+pub fn assemble_param_annotation(attrs: &[AttributeType]) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
@@ -38,7 +38,7 @@ pub fn assemble_param_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> 
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_type_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
+pub fn assemble_type_annotation(attrs: &[AttributeType]) -> Option<Vec<u8>> {
     let mut vis = None;
     let mut in_vis = None;
 
@@ -57,28 +57,22 @@ pub fn assemble_type_annotation(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
     do_assemble(vis, in_vis)
 }
 
-pub fn assemble_annotation_default(attrs: &Vec<AttributeType>) -> Option<Vec<u8>> {
+pub fn assemble_annotation_default(attrs: &[AttributeType]) -> Option<Vec<u8>> {
     let mut vis = None;
 
     for it in attrs.iter() {
-        match it {
-            AttributeType::AnnotationDefault { raw, .. } => {
-                vis = Some(raw.clone());
-            }
-            _ => (),
+        if let AttributeType::AnnotationDefault { raw, .. } = it {
+            vis = Some(raw.clone());
         }
     }
 
     do_assemble(vis, None)
 }
 
-pub fn get_signature(attrs: &Vec<AttributeType>) -> u16 {
+pub fn get_signature(attrs: &[AttributeType]) -> u16 {
     for it in attrs.iter() {
-        match it {
-            AttributeType::Signature { signature_index } => {
-                return *signature_index;
-            }
-            _ => (),
+        if let AttributeType::Signature { signature_index } = it {
+            return *signature_index;
         }
     }
 
@@ -88,19 +82,14 @@ pub fn get_signature(attrs: &Vec<AttributeType>) -> u16 {
 fn do_assemble(vis: Option<BytesRef>, in_vis: Option<BytesRef>) -> Option<Vec<u8>> {
     let mut raw = None;
 
-    match vis {
-        Some(v) => {
-            raw = Some(Vec::from(v.as_slice()));
-        }
-        None => (),
+    if let Some(v) = vis {
+        raw = Some(Vec::from(v.as_slice()));
     }
 
-    match in_vis {
-        Some(v) => {
-            let raw = raw.as_mut().unwrap();
+    if let Some(v) = in_vis {
+        if let Some(raw) = raw.as_mut() {
             raw.extend_from_slice(v.as_slice());
         }
-        None => (),
     }
 
     raw

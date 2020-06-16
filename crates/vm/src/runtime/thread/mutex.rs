@@ -1,6 +1,7 @@
 use std::cell::UnsafeCell;
 use std::mem;
 
+/// # Safety
 pub unsafe fn raw(m: &ReentrantMutex) -> *mut libc::pthread_mutex_t {
     m.inner.get()
 }
@@ -13,12 +14,16 @@ unsafe impl Send for ReentrantMutex {}
 unsafe impl Sync for ReentrantMutex {}
 
 impl ReentrantMutex {
+    /// # Safety
+    /// todo: This function should really be documented
     pub unsafe fn uninitialized() -> ReentrantMutex {
         ReentrantMutex {
             inner: mem::uninitialized(),
         }
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     pub unsafe fn init(&mut self) {
         let mut attr: libc::pthread_mutexattr_t = mem::uninitialized();
         let result = libc::pthread_mutexattr_init(&mut attr as *mut _);
@@ -32,21 +37,29 @@ impl ReentrantMutex {
         debug_assert_eq!(result, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     pub unsafe fn lock(&self) {
         let result = libc::pthread_mutex_lock(self.inner.get());
         debug_assert_eq!(result, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     #[inline]
     pub unsafe fn try_lock(&self) -> bool {
         libc::pthread_mutex_trylock(self.inner.get()) == 0
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     pub unsafe fn unlock(&self) {
         let result = libc::pthread_mutex_unlock(self.inner.get());
         debug_assert_eq!(result, 0);
     }
 
+    /// # Safety
+    /// todo: This function should really be documented
     pub unsafe fn destroy(&self) {
         let result = libc::pthread_mutex_destroy(self.inner.get());
         debug_assert_eq!(result, 0);

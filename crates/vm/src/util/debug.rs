@@ -6,7 +6,7 @@ use std::fmt::Write;
 pub fn print_stack_trace(jt: &JavaThread) {
     let mut w = String::new();
 
-    let _ = writeln!(&mut w, "");
+    let _ = writeln!(&mut w);
     for (count, it) in jt.frames.iter().enumerate().rev() {
         let frame = it.read().unwrap();
         let cls = frame.mir.method.class.read().unwrap();

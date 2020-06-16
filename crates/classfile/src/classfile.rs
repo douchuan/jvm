@@ -18,11 +18,8 @@ pub struct ClassFile {
 impl ClassFile {
     pub fn inner_classes(&self) -> Option<Vec<InnerClass>> {
         for it in self.attrs.iter() {
-            match it {
-                Type::InnerClasses { classes } => {
-                    return Some(classes.clone());
-                }
-                _ => (),
+            if let Type::InnerClasses { classes } = it {
+                return Some(classes.clone());
             }
         }
 
@@ -31,11 +28,8 @@ impl ClassFile {
 
     pub fn signature(&self) -> Option<usize> {
         for it in self.attrs.iter() {
-            match it {
-                Type::Signature { signature_index } => {
-                    return Some(*signature_index as usize);
-                }
-                _ => (),
+            if let Type::Signature { signature_index} = it {
+                return Some(*signature_index as usize);
             }
         }
 

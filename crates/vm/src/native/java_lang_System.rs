@@ -147,11 +147,8 @@ fn jvm_initProperties(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     put_props_kv(props_oop, "java.home", v.as_str());
 
     //test.src for jdk/test/java/lang/Character/CheckProp.java
-    match std::env::var("TEST_SRC") {
-        Ok(v) => {
-            put_props_kv(props_oop, "test.src", v.as_str());
-        }
-        _ => (),
+    if let Ok(v) = std::env::var("TEST_SRC") {
+        put_props_kv(props_oop, "test.src", v.as_str());
     }
 
     let jt = runtime::thread::current_java_thread();
@@ -184,7 +181,7 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
 
     let args = vec![props.clone(), k, v];
 
-    let mut jc = JavaCall::new_with_args(mir.clone(), args);
+    let mut jc = JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 1);
     jc.invoke(Some(area), false);
 }

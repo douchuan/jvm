@@ -54,7 +54,7 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let null = oop_consts::get_null();
     let mut field_values = vec![null; n];
 
-    let mut cur_cls = class.clone();
+    let mut cur_cls = class;
     loop {
         let cls = cur_cls.clone();
         let cls = cls.read().unwrap();

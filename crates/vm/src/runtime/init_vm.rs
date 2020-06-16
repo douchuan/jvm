@@ -61,7 +61,7 @@ pub fn initialize_jvm() {
         util::oop::new_java_lang_string2("main"),
     ];
     runtime::invoke::invoke_ctor(
-        thread_group_cls.clone(),
+        thread_group_cls,
         new_br("(Ljava/lang/Void;Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
         args,
     );
@@ -76,7 +76,7 @@ pub fn initialize_jvm() {
         util::oop::new_java_lang_string2("main"),
     ];
     runtime::invoke::invoke_ctor(
-        thread_cls.clone(),
+        thread_cls,
         new_br("(Ljava/lang/ThreadGroup;Ljava/lang/String;)V"),
         args,
     );
@@ -149,7 +149,7 @@ fn hack_classes() {
 
     let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
     let args = vec![ascii_inst.clone()];
-    runtime::invoke::invoke_ctor(ascii_charset_cls.clone(), new_br("()V"), args);
+    runtime::invoke::invoke_ctor(ascii_charset_cls, new_br("()V"), args);
 
     {
         let mut cls = charset_cls.write().unwrap();

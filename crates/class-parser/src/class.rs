@@ -614,7 +614,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<Attribut
     ) |
     AttrTag::AnnotationDefault => do_parse!(
         raw: peek!(take!(self_len)) >>
-        default_value: call!(element_value_type, cp.clone()) >>
+        default_value: call!(element_value_type, cp) >>
         (AttributeType::AnnotationDefault {raw: Arc::new(Vec::from(raw)), default_value})
     ) |
     AttrTag::BootstrapMethods => do_parse!(
@@ -643,7 +643,7 @@ named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
 named_args!(attr_type(cp: ConstantPool)<AttributeType>, do_parse!(
     tag: call!(attr_tag, cp.clone()) >>
     length: be_u32 >>
-    attr: call!(attr_sized, tag, length as usize, cp.clone()) >>
+    attr: call!(attr_sized, tag, length as usize, cp) >>
     (attr)
 ));
 

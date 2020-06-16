@@ -50,17 +50,14 @@ fn jvm_getBooleanAttributes0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let path = get_File_path(file);
 
     let mut r = 0;
-    match fs::metadata(path) {
-        Ok(attr) => {
-            r |= BA_EXISTS;
-            if attr.is_file() {
-                r |= BA_REGULAR;
-            }
-            if attr.is_dir() {
-                r |= BA_DIRECTORY;
-            }
+    if let Ok(attr) = fs::metadata(path) {
+        r |= BA_EXISTS;
+        if attr.is_file() {
+            r |= BA_REGULAR;
         }
-        _ => (),
+        if attr.is_dir() {
+            r |= BA_DIRECTORY;
+        }
     }
 
     Ok(Some(Oop::new_int(r)))
