@@ -119,7 +119,7 @@ cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #sum_t_parse_int = 626
 #sum_t_println = 3059
 #sum_t_int2integer = 3201
-#export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
+export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp1
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp

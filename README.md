@@ -31,3 +31,19 @@ VM, Oracle continue doing it.
 The journey of a thousand miles begins with one first step. Even the sage was once an ordinary human being.
 
 Just Do It.
+
+## Running
+```shell
+# setup JDK
+# setup rust toolchain
+# clone this project
+
+# compile sample
+cd jvm/sample
+javac HelloWorld.java
+cd ..
+
+# exec sample
+cd jvm
+sh r.sh
+```
