@@ -14,7 +14,7 @@ export JAVA_HOME
 
 #export RUST_LOG=warn
 #export RUST_LOG=info
-export RUST_LOG=trace
+#export RUST_LOG=trace
 export RUST_BACKTRACE=full
 
 
@@ -141,3 +141,11 @@ cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 
 ##todo: impl getDeclaredClasses0
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
+
+
+############################################
+###perf (linux)
+############################################
+#export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
+#perf record --call-graph dwarf -- cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+#perf report

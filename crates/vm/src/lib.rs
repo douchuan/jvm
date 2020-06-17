@@ -10,19 +10,15 @@ pub mod util;
 pub mod native;
 pub mod oop;
 pub mod runtime;
-
 pub mod types;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+pub fn init_vm() {
+    oop::init();
+    runtime::init();
+    native::init();
 }
 
-use classfile::BytesRef;
 #[inline]
-pub fn new_br(s: &str) -> BytesRef {
+pub fn new_br(s: &str) -> classfile::BytesRef {
     std::sync::Arc::new(Vec::from(s))
 }
