@@ -390,18 +390,12 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     match cls {
         Some(cls) => {
-            {
-                let mut cls = cls.write().unwrap();
-                cls.init_class();
-                //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-            }
-
+            oop::class::init_class(&cls);
             if initialize {
-                oop::class::init_class_fully(cls.clone());
+                oop::class::init_class_fully(&cls);
             }
 
             let mirror = cls.read().unwrap().get_mirror();
-
             Ok(Some(mirror))
         }
         None => {

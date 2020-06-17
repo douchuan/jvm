@@ -23,21 +23,17 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdR
                 .as_cp_item(cp)
         )
     });
-    let (name, desc) = {
-        let mut class = class.write().unwrap();
-        class.init_class();
 
+    oop::class::init_class(&class);
+    oop::class::init_class_fully(&class);
+
+    let (name, desc) = {
         let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
         let name = name.unwrap();
         let desc = desc.unwrap();
 
         (name, desc)
     };
-
-    //    trace!("get_field_ref id={}", String::from_utf8_lossy(id.as_slice()));
-
-    oop::class::init_class_fully(class.clone());
-
     let class = class.read().unwrap();
     class.get_field_id(name, desc, is_static)
 }

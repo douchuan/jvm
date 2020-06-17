@@ -112,8 +112,29 @@ pub struct ArrayClassObject {
     pub mirror: Option<Oop>,
 }
 
+pub fn init_class(class: &ClassRef) {
+    let need = { class.read().unwrap().state == State::Linked };
+    if need {
+        let mut cls = class.write().unwrap();
+
+        cls.state = State::BeingIni;
+        if let Some(super_class) = &cls.super_class {
+            init_class(super_class);
+            init_class_fully(super_class);
+        }
+
+        match &mut cls.kind {
+            ClassKind::Instance(class_obj) => {
+                class_obj.init_static_fields();
+            }
+
+            _ => cls.state = State::FullyIni,
+        }
+    }
+}
+
 //invoke "<clinit>"
-pub fn init_class_fully(class: ClassRef) {
+pub fn init_class_fully(class: &ClassRef) {
     let need = { class.read().unwrap().state == State::BeingIni };
 
     if need {
@@ -142,17 +163,9 @@ pub fn load_and_init(name: &[u8]) -> ClassRef {
     let cls_name = unsafe { std::str::from_utf8_unchecked(name) };
     let class = runtime::require_class3(None, name)
         .unwrap_or_else(|| panic!("Class not found: {}", cls_name));
-    // trace!("load_and_init 2 name={}", String::from_utf8_lossy(name));
-    {
-        let mut class = class.write().unwrap();
-        class.init_class();
-        //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-    }
 
-    // trace!("load_and_init 3, name={}", String::from_utf8_lossy(name));
-    init_class_fully(class.clone());
-    //            trace!("finish init_class_fully: {}", String::from_utf8_lossy(*c));
-    // trace!("load_and_init 4, name={}", String::from_utf8_lossy(name));
+    init_class(&class);
+    init_class_fully(&class);
 
     class
 }
@@ -219,22 +232,17 @@ impl Class {
             ClassKind::Instance(class_obj) => {
                 self.super_class =
                     class_obj.link_super_class(self.name.clone(), self.class_loader);
-
-                let n_super_inst = {
-                    match &self.super_class {
-                        Some(super_cls) => {
-                            let super_cls = super_cls.read().unwrap();
-                            match &super_cls.kind {
-                                ClassKind::Instance(cls) => cls.n_inst_fields,
-                                _ => 0,
-                            }
+                let n = match &self.super_class {
+                    Some(super_cls) => {
+                        let super_cls = super_cls.read().unwrap();
+                        match &super_cls.kind {
+                            ClassKind::Instance(cls) => cls.n_inst_fields,
+                            _ => 0,
                         }
-                        None => 0,
                     }
+                    None => 0,
                 };
-
-                class_obj.link_fields(self_ref.clone(), self.name.clone(), n_super_inst);
-
+                class_obj.link_fields(self_ref.clone(), self.name.clone(), n);
                 class_obj.link_interfaces();
                 class_obj.link_methods(self_ref, self.name.clone());
                 class_obj.link_attributes();
@@ -254,27 +262,6 @@ impl Class {
         self.set_class_state(State::Linked);
     }
 
-    pub fn init_class(&mut self) {
-        match &mut self.kind {
-            ClassKind::Instance(class_obj) => {
-                if self.state == State::Linked {
-                    self.state = State::BeingIni;
-
-                    if let Some(super_class) = self.super_class.as_ref() {
-                        {
-                            super_class.write().unwrap().init_class();
-                        }
-
-                        init_class_fully(super_class.clone());
-                    }
-
-                    class_obj.init_static_fields();
-                }
-            }
-
-            _ => self.state = State::FullyIni,
-        }
-    }
 
     pub fn get_class_kind_type(&self) -> ClassKindType {
         match &self.kind {
@@ -757,12 +744,12 @@ impl ClassObject {
         }
     }
 
-    fn link_fields(&mut self, self_ref: ClassRef, cls_name: BytesRef, n_super_inst: usize) {
+    fn link_fields(&mut self, self_ref: ClassRef, cls_name: BytesRef, num_field_of_super: usize) {
         let cls_file = self.class_file.clone();
         let cp = &cls_file.cp;
 
         let mut n_static = 0;
-        let mut n_inst = n_super_inst;
+        let mut offset_field = num_field_of_super;
 
         cls_file.fields.iter().for_each(|it| {
             let field = field::Field::new(cp, it, cls_name.clone(), self_ref.clone());
@@ -782,16 +769,16 @@ impl ClassObject {
                 n_static += 1;
             } else {
                 let fid = field::FieldId {
-                    offset: n_inst,
+                    offset: offset_field,
                     field,
                 };
 
                 self.inst_fields.insert(k, Arc::new(fid));
-                n_inst += 1;
+                offset_field += 1;
             }
         });
 
-        self.n_inst_fields = n_inst;
+        self.n_inst_fields = offset_field;
 
         let null = oop_consts::get_null();
         self.static_field_values = vec![null; n_static];

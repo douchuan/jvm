@@ -26,10 +26,8 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
         )
     });
 
-    {
-        let mut class = class.write().unwrap();
-        class.init_class();
-    }
+    oop::class::init_class(&class);
+    oop::class::init_class_fully(&class);
 
     let (name, desc) = {
         let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
@@ -38,9 +36,6 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
 
         (name, typ)
     };
-
-    oop::class::init_class_fully(class.clone());
-
     let class = class.read().unwrap();
 
     trace!(
@@ -49,7 +44,6 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
         unsafe { std::str::from_utf8_unchecked(name.as_slice()) },
         unsafe { std::str::from_utf8_unchecked(desc.as_slice()) },
     );
-
     if tag == consts::CONSTANT_METHOD_REF_TAG {
         // invokespecial, invokestatic and invokevirtual
         class.get_class_method(name, desc)

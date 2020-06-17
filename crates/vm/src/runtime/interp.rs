@@ -400,16 +400,10 @@ impl<'a> Interp<'a> {
                 let cl = { self.frame.class.read().unwrap().class_loader };
                 trace!("load_constant name={}, cl={:?}", name, cl);
                 let class = runtime::require_class3(cl, name.as_bytes()).unwrap();
-
-                {
-                    let mut class = class.write().unwrap();
-                    class.init_class();
-                }
-
-                oop::class::init_class_fully(class.clone());
+                oop::class::init_class(&class);
+                oop::class::init_class_fully(&class);
 
                 let mirror = { class.read().unwrap().get_mirror() };
-
                 let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(mirror);
             }
@@ -2826,12 +2820,8 @@ impl<'a> Interp<'a> {
         let class = {
             match runtime::require_class2(cp_idx as u16, &self.frame.cp) {
                 Some(class) => {
-                    {
-                        let mut class = class.write().unwrap();
-                        class.init_class();
-                    }
-
-                    oop::class::init_class_fully(class.clone());
+                    oop::class::init_class(&class);
+                    oop::class::init_class_fully(&class);
 
                     class
                 }
@@ -2897,12 +2887,8 @@ impl<'a> Interp<'a> {
                 None => panic!("Cannot get class info from constant pool"),
             };
 
-            {
-                let mut class = class.write().unwrap();
-                class.init_class();
-            }
-
-            oop::class::init_class_fully(class.clone());
+            oop::class::init_class(&class);
+            oop::class::init_class_fully(&class);
 
             let (name, cl) = {
                 let class = class.read().unwrap();
@@ -2935,14 +2921,8 @@ impl<'a> Interp<'a> {
             });
             match runtime::require_class(cl, name) {
                 Some(ary_cls_obj) => {
-                    {
-                        {
-                            let mut class = ary_cls_obj.write().unwrap();
-                            class.init_class();
-                        }
-
-                        oop::class::init_class_fully(ary_cls_obj.clone());
-                    }
+                    oop::class::init_class(&ary_cls_obj);
+                    oop::class::init_class_fully(&ary_cls_obj);
 
                     let mut area = self.frame.area.write().unwrap();
                     let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);

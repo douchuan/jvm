@@ -9,12 +9,8 @@ pub fn new(name: &[u8], msg: Option<String>) -> Oop {
         None => panic!("ClassNotFound: {}", String::from_utf8_lossy(name)),
     };
 
-    {
-        let mut cls = cls.write().unwrap();
-        cls.init_class();
-        //                trace!("finish init_class: {}", String::from_utf8_lossy(*c));
-    }
-    oop::class::init_class_fully(cls.clone());
+    oop::class::init_class(&cls);
+    oop::class::init_class_fully(&cls);
 
     let ex = Oop::new_inst(cls.clone());
 
