@@ -2,11 +2,11 @@ use crate::util;
 use std::fs::File;
 use std::io::{self, BufReader, Cursor, Read, Seek};
 use std::path::{self, Path};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock, Mutex};
 use zip::ZipArchive;
 
 lazy_static! {
-    static ref CPM: Mutex<ClassPathManager> = { Mutex::new(ClassPathManager::new()) };
+    static ref CPM: RwLock<ClassPathManager> = { RwLock::new(ClassPathManager::new()) };
 }
 
 pub fn init() {
@@ -14,17 +14,17 @@ pub fn init() {
 }
 
 pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
-    let cpm = CPM.lock().unwrap();
+    let cpm = CPM.read().unwrap();
     cpm.search_class(name)
 }
 
 pub fn add_path(path: &str) {
-    let mut cpm = CPM.lock().unwrap();
+    let mut cpm = CPM.write().unwrap();
     cpm.add_class_path(path);
 }
 
 pub fn add_paths(path: &str) {
-    let mut cpm = CPM.lock().unwrap();
+    let mut cpm = CPM.write().unwrap();
     cpm.add_class_paths(path);
 }
 
@@ -88,11 +88,8 @@ impl ClassPathManager {
                     p.push_str(util::FILE_SEP);
                     p.push_str(&name);
                     p.push_str(".class");
-                    if let Ok(mut f) = File::open(&p) {
-                        let mut v = Vec::with_capacity(f.metadata().unwrap().len() as usize);
-                        f.read_to_end(&mut v);
-
-                        return Ok(ClassPathResult(p, v));
+                    if let Ok(data) = std::fs::read(&p) {
+                        return Ok(ClassPathResult(p, data));
                     }
                 }
 

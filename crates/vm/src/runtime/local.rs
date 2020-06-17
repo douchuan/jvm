@@ -11,8 +11,7 @@ pub struct Local {
 impl Local {
     pub fn new(size: usize) -> Self {
         let size = size + 1;
-        let mut locals = Vec::with_capacity(size);
-        locals.resize(size, Slot::Nop);
+        let locals = vec![Slot::Nop; size];
         Self { locals }
     }
 
