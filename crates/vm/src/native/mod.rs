@@ -51,8 +51,8 @@ pub struct JNIEnvStruct {
 }
 
 lazy_static! {
-    //3 level index: class/name/desc -> JNINativeMethod
-    static ref NATIVES: RwLock<HashMap<&'static str, HashMap<&'static str, HashMap<&'static str, JNINativeMethod>>>> = {
+    //(class name, method name, method signature) -> JNINativeMethod
+    static ref NATIVES: RwLock<HashMap<(&'static str, &'static str, &'static str), JNINativeMethod>> = {
         let hm = HashMap::new();
         RwLock::new(hm)
     };
@@ -79,11 +79,9 @@ pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINative
     let name = unsafe { std::str::from_utf8_unchecked(name) };
     let desc = unsafe { std::str::from_utf8_unchecked(desc) };
 
+    let k = (package, name, desc);
     let natives = NATIVES.read().unwrap();
-    natives.get(package).and_then(|it| {
-        it.get(name)
-            .and_then(|it| it.get(desc).cloned())
-    })
+    natives.get(&k).cloned()
 }
 
 pub fn init() {
@@ -170,24 +168,9 @@ pub fn init() {
     {
         let mut dict = NATIVES.write().unwrap();
         natives.iter().for_each(|(package, methods)| {
-            methods.iter().for_each(|it| match dict.get_mut(package) {
-                Some(l1) => match l1.get_mut(it.name) {
-                    Some(l2) => {
-                        l2.insert(it.signature, it.clone());
-                    }
-                    None => {
-                        let mut l2 = HashMap::new();
-                        l2.insert(it.signature, it.clone());
-                        l1.insert(it.name, l2);
-                    }
-                },
-                None => {
-                    let mut l2 = HashMap::new();
-                    l2.insert(it.signature, it.clone());
-                    let mut l1 = HashMap::new();
-                    l1.insert(it.name, l2);
-                    dict.insert(package, l1);
-                }
+            methods.iter().for_each(|it| {
+                let k = (*package, it.name, it.signature);
+                dict.insert(k, it.clone());
             });
         });
     }
