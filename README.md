@@ -38,12 +38,13 @@ Just Do It.
 # setup rust toolchain
 # clone this project
 
-# compile sample
+# compile sample by javac
 cd jvm/sample
 javac HelloWorld.java
 cd ..
 
+# modify r.sh JAVA_HOME according to your env
 # exec sample
 cd jvm
-sh r.sh
+bash r.sh
 ```
