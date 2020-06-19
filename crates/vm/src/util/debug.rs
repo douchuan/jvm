@@ -9,7 +9,7 @@ pub fn print_stack_trace(jt: &JavaThread) {
     let _ = writeln!(&mut w);
     for (count, it) in jt.frames.iter().enumerate().rev() {
         let frame = it.read().unwrap();
-        let cls = frame.mir.method.class.read().unwrap();
+        let cls = frame.mir.method.class.get_class();
         let method_id = frame.mir.method.name.clone();
         let line_num = {
             let area = frame.area.read().unwrap();

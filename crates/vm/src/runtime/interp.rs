@@ -397,13 +397,13 @@ impl<'a> Interp<'a> {
             ConstantPoolType::Class { name_index } => {
                 let name = get_cp_utf8(&self.frame.cp, *name_index as usize).unwrap();
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                let cl = { self.frame.class.read().unwrap().class_loader };
+                let cl = { self.frame.class.get_class().class_loader };
                 trace!("load_constant name={}, cl={:?}", name, cl);
                 let class = runtime::require_class3(cl, name.as_bytes()).unwrap();
                 oop::class::init_class(&class);
                 oop::class::init_class_fully(&class);
 
-                let mirror = { class.read().unwrap().get_mirror() };
+                let mirror = { class.get_class().get_mirror() };
                 let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(mirror);
             }
@@ -454,7 +454,7 @@ impl<'a> Interp<'a> {
         trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
 
         let value_type = fir.field.value_type;
-        let class = fir.field.class.read().unwrap();
+        let class = fir.field.class.get_class();
         let v = if is_static {
             class.get_static_field_value(fir.clone())
         } else {
@@ -544,7 +544,7 @@ impl<'a> Interp<'a> {
             _ => unreachable!(),
         };
 
-        let mut class = fir.field.class.write().unwrap();
+        let mut class = fir.field.class.get_mut_class();
         if is_static {
             class.put_static_field_value(fir.clone(), v);
         } else {
@@ -588,8 +588,8 @@ impl<'a> Interp<'a> {
                 let mut area = self.frame.area.write().unwrap();
                 area.stack.push_ref(obj_rf_clone);
             } else {
-                let obj_name = { obj_cls.read().unwrap().name.clone() };
-                let target_name = { target_cls.read().unwrap().name.clone() };
+                let obj_name = { obj_cls.get_class().name.clone() };
+                let target_name = { target_cls.get_class().name.clone() };
 
                 let obj_name = String::from_utf8_lossy(obj_name.as_slice()).replace("/", ".");
                 let target_name = String::from_utf8_lossy(target_name.as_slice()).replace("/", ".");
@@ -647,7 +647,7 @@ impl<'a> Interp<'a> {
                             //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
 
                             let obj_cls = mirror.target.clone().unwrap();
-                            let target_name = { target_cls.read().unwrap().name.clone() };
+                            let target_name = { target_cls.get_class().name.clone() };
                             let r = target_name.as_slice() == b"java/lang/Class"
                                 || cmp::instance_of(obj_cls.clone(), target_cls.clone());
 
@@ -2891,7 +2891,7 @@ impl<'a> Interp<'a> {
             oop::class::init_class_fully(&class);
 
             let (name, cl) = {
-                let class = class.read().unwrap();
+                let class = class.get_class();
                 let t = class.get_class_kind_type();
                 let name = match t {
                     oop::class::ClassKindType::Instance | oop::class::ClassKindType::ObjectAry => {
@@ -3097,7 +3097,7 @@ fn new_multi_object_array_helper(cls: ClassRef, lens: &[i32], idx: usize) -> Oop
     let length = lens[idx] as usize;
 
     let down_type = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         match &cls.kind {
             oop::ClassKind::Instance(_) => unreachable!(),
             ClassKind::ObjectArray(obj_ary) => obj_ary.down_type.clone().unwrap(),

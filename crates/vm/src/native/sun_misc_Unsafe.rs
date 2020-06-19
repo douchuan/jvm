@@ -104,13 +104,13 @@ fn jvm_objectFieldOffset(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let rf = field.extract_ref();
         let inst = rf.extract_inst();
         let cls = inst.class.clone();
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
     }
 
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let v = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("slot"), new_br("I"), false);
         Class::get_field_value(field.extract_ref(), id)
     };

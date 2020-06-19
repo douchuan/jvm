@@ -44,7 +44,7 @@ fn jvm_findLoadedClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = name.replace(".", util::FILE_SEP);
     let v = match runtime::sys_dic_find(name.as_bytes()) {
         Some(cls) => {
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             cls.get_mirror()
         }
         None => oop::consts::get_null(),

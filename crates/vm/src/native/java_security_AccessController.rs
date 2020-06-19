@@ -37,7 +37,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             }
             Oop::Ref(v) => {
                 let inst = v.extract_inst();
-                let cls = inst.class.read().unwrap();
+                let cls = inst.class.get_class();
                 cls.get_virtual_method(new_br("run"), new_br("()Ljava/lang/Object;"))
                     .unwrap()
             }

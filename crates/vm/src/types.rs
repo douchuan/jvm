@@ -1,4 +1,4 @@
-use crate::oop::class::Class;
+use crate::oop::class::ClassPtr;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
 use crate::runtime::DataArea;
@@ -10,9 +10,9 @@ use std::sync::{Arc, RwLock};
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
 pub type DataAreaRef = Arc<RwLock<DataArea>>;
+pub type ClassRef = Arc<ClassPtr>;
 
 def_ref!(ClassFileRef, ClassFile);
-def_sync_ref!(ClassRef, Class);
 def_sync_ref!(FrameRef, Frame);
 def_sync_ref!(JavaThreadRef, JavaThread);
 

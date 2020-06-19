@@ -17,7 +17,7 @@ pub struct JavaCall {
 
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         cls.get_this_class_method(util::S_INIT.clone(), desc)
             .unwrap()
     };
@@ -55,7 +55,7 @@ impl JavaCall {
             //check NPE
             if let Oop::Null = this {
                 let cls_name = {
-                    let cls = mir.method.class.read().unwrap();
+                    let cls = mir.method.class.get_class();
                     cls.name.clone()
                 };
 
@@ -143,7 +143,7 @@ impl JavaCall {
 
         let jt = runtime::thread::current_java_thread();
         let package = {
-            let cls = self.mir.method.class.read().unwrap();
+            let cls = self.mir.method.class.get_class();
             cls.name.clone()
         };
         let desc = self.mir.method.desc.clone();
@@ -187,7 +187,7 @@ impl JavaCall {
     fn prepare_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let class = self.mir.method.class.read().unwrap();
+                let class = self.mir.method.class.get_class();
                 class.monitor_enter();
             } else {
                 let v = self.args.first().unwrap();
@@ -200,7 +200,7 @@ impl JavaCall {
     fn fin_sync(&mut self) {
         if self.mir.method.is_synchronized() {
             if self.mir.method.is_static() {
-                let class = self.mir.method.class.read().unwrap();
+                let class = self.mir.method.class.get_class();
                 class.monitor_exit();
             } else {
                 let v = self.args.first().unwrap();
@@ -287,13 +287,13 @@ impl JavaCall {
             let ptr = rf.get_raw_ptr();
             unsafe {
                 if let oop::RefKind::Inst(inst) = &(*ptr).v {
-                    let cls = inst.class.read().unwrap();
                     let name = self.mir.method.name.clone();
                     let desc = self.mir.method.desc.clone();
+                    let cls = inst.class.get_class();
                     match cls.get_virtual_method(name.clone(), desc.clone()) {
                         Ok(mir) => self.mir = mir,
                         _ => {
-                            let cls = self.mir.method.class.read().unwrap();
+                            let cls = self.mir.method.class.get_class();
                             warn!(
                                 "resolve again failed, {}:{}:{}, acc_flags = {}",
                                 String::from_utf8_lossy(cls.name.as_slice()),

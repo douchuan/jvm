@@ -24,7 +24,7 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let rf = cp_oop.extract_ref();
         let mirror = rf.extract_mirror();
         let target = mirror.target.clone().unwrap();
-        let cls = target.read().unwrap();
+        let cls = target.get_class();
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => {
                 let cp = &inst.class_file.cp;

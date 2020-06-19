@@ -13,10 +13,65 @@ use std::fmt;
 use std::fmt::{Error, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
+
+#[derive(Debug)]
+pub struct ClassPtr(u64);
+
+impl ClassPtr {
+    pub fn new(v: Class) -> ClassRef {
+        let v = Box::new(v);
+        let ptr = Box::into_raw(v) as u64;
+        Arc::new(ClassPtr(ptr))
+    }
+}
+
+impl Drop for ClassPtr {
+    fn drop(&mut self) {
+        let _v = unsafe { Box::from_raw(self.0 as *mut Class) };
+    }
+}
+
+impl ClassPtr {
+    fn raw_ptr(&self) -> *const Class {
+        self.0 as *const Class
+    }
+
+    fn raw_mut_ptr(&self) -> *mut Class {
+        self.0 as *mut Class
+    }
+}
+
+impl ClassPtr {
+    pub fn name(&self) -> BytesRef {
+        let ptr = self.raw_ptr();
+        unsafe {
+            (*ptr).name.clone()
+        }
+    }
+
+    pub fn get_class(&self) -> &Class {
+        let ptr = self.raw_ptr();
+        unsafe {
+            &(*ptr)
+        }
+    }
+
+    pub fn get_mut_class(&self) -> &mut Class {
+        let ptr = self.raw_mut_ptr();
+        unsafe {
+            &mut (*ptr)
+        }
+    }
+}
+
+/////////////////////////////////////////////
 
 pub struct Class {
+    mutex: ReentrantMutex,
+    state: std::sync::atomic::AtomicU8,
+
     pub name: BytesRef,
-    pub state: State,
     pub acc_flags: U2,
 
     // None for java.lang.Object
@@ -26,8 +81,6 @@ pub struct Class {
     pub class_loader: Option<ClassLoader>,
 
     pub kind: ClassKind,
-
-    mutex: ReentrantMutex,
 }
 
 pub enum ClassKind {
@@ -73,6 +126,33 @@ pub enum State {
     IniErr,
 }
 
+impl From<u8> for State {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => State::Allocated,
+            1 => State::Loaded,
+            2 => State::Linked,
+            3 => State::BeingIni,
+            4 => State::FullyIni,
+            5 => State::IniErr,
+            _ => unreachable!()
+        }
+    }
+}
+
+impl Into<u8> for State {
+    fn into(self) -> u8 {
+        match self {
+            State::Allocated => 0,
+            State::Loaded => 1,
+            State::Linked => 2,
+            State::BeingIni => 3,
+            State::FullyIni => 4,
+            State::IniErr => 5
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ClassObject {
     pub class_file: ClassFileRef,
@@ -113,11 +193,11 @@ pub struct ArrayClassObject {
 }
 
 pub fn init_class(class: &ClassRef) {
-    let need = { class.read().unwrap().state == State::Linked };
+    let need = { class.get_class().get_class_state() == State::Linked };
     if need {
-        let mut cls = class.write().unwrap();
+        let mut cls = class.get_mut_class();
 
-        cls.state = State::BeingIni;
+        cls.set_class_state(State::BeingIni);
         if let Some(super_class) = &cls.super_class {
             init_class(super_class);
             init_class_fully(super_class);
@@ -128,19 +208,19 @@ pub fn init_class(class: &ClassRef) {
                 class_obj.init_static_fields();
             }
 
-            _ => cls.state = State::FullyIni,
+            _ => cls.set_class_state(State::FullyIni),
         }
     }
 }
 
 //invoke "<clinit>"
 pub fn init_class_fully(class: &ClassRef) {
-    let need = { class.read().unwrap().state == State::BeingIni };
+    let need = { class.get_class().get_class_state() == State::BeingIni };
 
     if need {
         let (mir, name) = {
-            let mut class = class.write().unwrap();
-            class.state = State::FullyIni;
+            let mut class = class.get_mut_class();
+            class.set_class_state(State::FullyIni);
 
             let mir =
                 class.get_this_class_method(util::S_CLINIT.clone(), util::S_CLINIT_SIG.clone());
@@ -172,11 +252,12 @@ pub fn load_and_init(name: &[u8]) -> ClassRef {
 
 impl Class {
     pub fn get_class_state(&self) -> State {
-        self.state
+        let v = self.state.load(Ordering::Relaxed);
+        State::from(v)
     }
 
     pub fn set_class_state(&mut self, s: State) {
-        self.state = s;
+        self.state.store(s.into(), Ordering::Relaxed);
     }
 
     pub fn get_name(&self) -> BytesRef {
@@ -234,7 +315,7 @@ impl Class {
                     class_obj.link_super_class(self.name.clone(), self.class_loader);
                 let n = match &self.super_class {
                     Some(super_cls) => {
-                        let super_cls = super_cls.read().unwrap();
+                        let super_cls = super_cls.get_class();
                         match &super_cls.kind {
                             ClassKind::Instance(cls) => cls.n_inst_fields,
                             _ => 0,
@@ -357,7 +438,7 @@ impl ArrayClassObject {
     pub fn get_dimension(&self) -> usize {
         match self.down_type.as_ref() {
             Some(down_type) => {
-                let down_type = down_type.read().unwrap();
+                let down_type = down_type.get_class();
                 let n = match &down_type.kind {
                     ClassKind::Instance(_) => unreachable!(),
                     ClassKind::ObjectArray(ary_cls_obj) => ary_cls_obj.get_dimension(),
@@ -419,8 +500,7 @@ impl Class {
         let super_class = self.super_class.clone();
         super_class
             .unwrap()
-            .read()
-            .unwrap()
+            .get_class()
             .get_field_id(name, desc, is_static)
     }
 
@@ -473,8 +553,7 @@ impl Class {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
-                        .write()
-                        .unwrap()
+                        .get_mut_class()
                         .put_static_field_value(fid, v);
                 }
             }
@@ -496,8 +575,7 @@ impl Class {
                     let super_class = self.super_class.clone();
                     super_class
                         .unwrap()
-                        .read()
-                        .unwrap()
+                        .get_class()
                         .get_static_field_value(fid)
                 }
             }
@@ -513,7 +591,7 @@ impl Class {
                         return true;
                     }
 
-                    let e = e.read().unwrap();
+                    let e = e.get_class();
                     if e.check_interface(intf.clone()) {
                         return true;
                     }
@@ -524,7 +602,7 @@ impl Class {
 
         match &self.super_class {
             Some(super_cls) => {
-                let super_cls = super_cls.read().unwrap();
+                let super_cls = super_cls.get_class();
                 super_cls.check_interface(intf)
             }
             None => false,
@@ -593,7 +671,7 @@ impl Class {
 
         Self {
             name,
-            state: State::Allocated,
+            state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags,
             super_class: None,
             class_loader,
@@ -621,7 +699,7 @@ impl Class {
 
         Self {
             name,
-            state: State::Allocated,
+            state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
@@ -650,7 +728,7 @@ impl Class {
 
         Self {
             name: Arc::new(name),
-            state: State::Allocated,
+            state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
@@ -661,7 +739,7 @@ impl Class {
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
         let (name, cls_kind) = {
-            let cls = down_type.read().unwrap();
+            let cls = down_type.get_class();
             assert!(cls.is_array());
             (cls.name.clone(), cls.get_class_kind_type())
         };
@@ -681,7 +759,7 @@ impl Class {
             }),
             ClassKindType::ObjectAry => {
                 let component = {
-                    let cls = down_type.read().unwrap();
+                    let cls = down_type.get_class();
                     match &cls.kind {
                         ClassKind::ObjectArray(ary_cls) => ary_cls.component.clone(),
                         _ => unreachable!(),
@@ -704,7 +782,7 @@ impl Class {
 
         Self {
             name: Arc::new(name2),
-            state: State::Allocated,
+            state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
             super_class: None,
             class_loader: Some(class_loader),
@@ -735,7 +813,7 @@ impl ClassObject {
             let super_class = runtime::require_class(class_loader, name).unwrap();
 
             {
-                let c = super_class.read().unwrap();
+                let c = super_class.get_class();
                 assert!(c.is_instance());
                 assert!(!c.is_final(), "should not final");
             }
@@ -793,7 +871,7 @@ impl ClassObject {
             .iter()
             .for_each(|it| match runtime::require_class2(*it, cp) {
                 Some(class) => {
-                    let name = class.read().unwrap().name.clone();
+                    let name = class.get_class().name.clone();
                     self.interfaces.insert(name, class);
                 }
                 None => {
@@ -887,8 +965,7 @@ impl Class {
             match self.super_class.as_ref() {
                 Some(super_class) => {
                     return super_class
-                        .read()
-                        .unwrap()
+                        .get_class()
                         .get_class_method_inner(name, desc, with_super);
                 }
                 None => return Err(()),
@@ -912,8 +989,7 @@ impl Class {
         match self.super_class.as_ref() {
             Some(super_class) => {
                 super_class
-                    .read()
-                    .unwrap()
+                    .get_class()
                     .get_virtual_method_inner(name, desc)
             }
             None => Err(()),
@@ -931,7 +1007,7 @@ impl Class {
                 Some(m) => return Ok(m.clone()),
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
-                        let cls = itf.read().unwrap();
+                        let cls = itf.get_class();
                         let m = cls.get_interface_method(name.clone(), desc.clone());
                         if m.is_ok() {
                             return m;
@@ -945,8 +1021,7 @@ impl Class {
         match self.super_class.as_ref() {
             Some(super_class) => {
                 super_class
-                    .read()
-                    .unwrap()
+                    .get_class()
                     .get_interface_method_inner(name, desc)
             }
             None => Err(())

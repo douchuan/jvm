@@ -33,7 +33,7 @@ impl MainThread {
         let main_class = oop::class::load_and_init(self.class.as_bytes());
 
         let mir = {
-            let cls = main_class.read().unwrap();
+            let cls = main_class.get_class();
 
             /*
             path info should be included in "--cp", and avoid same class load 2
@@ -126,7 +126,7 @@ impl MainThread {
                 };
 
                 let mir = {
-                    let cls = cls.read().unwrap();
+                    let cls = cls.get_class();
                     cls.get_this_class_method(
                         new_br("dispatchUncaughtException"),
                         new_br("(Ljava/lang/Throwable;)V"),
@@ -167,14 +167,14 @@ impl MainThread {
 
         let detail_message = {
             let fid = {
-                let cls = cls.read().unwrap();
+                let cls = cls.get_class();
                 cls.get_field_id(new_br("detailMessage"), new_br("Ljava/lang/String;"), false)
             };
             let v = Class::get_field_value(ex.extract_ref(), fid);
             OopRef::java_lang_string(v.extract_ref())
         };
         let name = {
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             cls.name.clone()
         };
 

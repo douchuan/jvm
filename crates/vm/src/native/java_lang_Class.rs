@@ -167,14 +167,14 @@ pub fn create_mirror(cls: ClassRef) {
 
     if is_fixed {
         let mirror = Oop::new_mirror(cls.clone());
-        let mut cls = cls.write().unwrap();
+        let cls = cls.get_mut_class();
         trace!("mirror created: {}", unsafe {
             std::str::from_utf8_unchecked(cls.name.as_slice())
         });
         cls.set_mirror(mirror);
     } else {
         let cls_back = cls.clone();
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let name = Vec::from(cls.name.as_slice());
         let name = unsafe { String::from_utf8_unchecked(name) };
         warn!("mirror create delayed: {}", name);
@@ -223,7 +223,7 @@ pub fn create_delayed_mirrors() {
             let mirror = Oop::new_prim_mirror(vt, target.clone());
             if is_prim_ary {
                 let target = target.unwrap();
-                let mut cls = target.write().unwrap();
+                let cls = target.get_mut_class();
                 //                warn!("set_mirror name={}", String::from_utf8_lossy(cls.name.as_slice()));
                 cls.set_mirror(mirror.clone());
             }
@@ -245,7 +245,7 @@ pub fn create_delayed_ary_mirrors() {
 
     for cls in classes {
         let value_type = {
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             match &cls.kind {
                 oop::class::ClassKind::ObjectArray(obj_ary) => obj_ary.value_type,
                 oop::class::ClassKind::TypeArray(typ_ary) => typ_ary.value_type,
@@ -253,7 +253,7 @@ pub fn create_delayed_ary_mirrors() {
             }
         };
         let mirror = Oop::new_ary_mirror(cls.clone(), value_type);
-        let mut cls = cls.write().unwrap();
+        let cls = cls.get_mut_class();
         cls.set_mirror(mirror);
     }
 }
@@ -290,7 +290,7 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //fixme: super fields
     //obtain inst&static fields
     let (inst_fields, static_fields) = {
-        let cls = mirror_target.read().unwrap();
+        let cls = mirror_target.get_class();
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => {
                 (inst.inst_fields.clone(), inst.static_fields.clone())
@@ -334,7 +334,7 @@ fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let name = {
         match target {
             Some(target) => {
-                let cls = target.read().unwrap();
+                let cls = target.get_class();
                 cls.name.clone()
             }
             None => {
@@ -395,7 +395,7 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 oop::class::init_class_fully(&cls);
             }
 
-            let mirror = cls.read().unwrap().get_mirror();
+            let mirror = cls.get_class().get_mirror();
             Ok(Some(mirror))
         }
         None => {
@@ -463,7 +463,7 @@ fn jvm_isInterface(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let mirror = rf.extract_mirror();
         match &mirror.target {
             Some(target) => {
-                if target.read().unwrap().is_interface() {
+                if target.get_class().is_interface() {
                     1
                 } else {
                     0
@@ -486,7 +486,7 @@ pub fn jvm_getModifiers(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let rf = v.extract_ref();
         let mirror = rf.extract_mirror();
         match &mirror.target {
-            Some(target) => target.read().unwrap().acc_flags,
+            Some(target) => target.get_class().acc_flags,
             None => acc::ACC_ABSTRACT | acc::ACC_FINAL | acc::ACC_PUBLIC,
         }
     };
@@ -500,10 +500,10 @@ fn jvm_getSuperclass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let mirror = rf.extract_mirror();
     match &mirror.target {
         Some(target) => {
-            let cls = target.read().unwrap();
+            let cls = target.get_class();
             match &cls.super_class {
                 Some(super_cls) => {
-                    let cls = super_cls.read().unwrap();
+                    let cls = super_cls.get_class();
                     let mirror = cls.get_mirror();
                     Ok(Some(mirror))
                 }
@@ -526,7 +526,7 @@ fn jvm_isArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
     };
 
-    let cls = mirror_cls.read().unwrap();
+    let cls = mirror_cls.get_class();
     let v = match cls.kind {
         oop::class::ClassKind::Instance(_) => 0,
         oop::class::ClassKind::TypeArray(_) => 1,
@@ -543,7 +543,7 @@ fn jvm_getComponentType(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let mirror = rf.extract_mirror();
         mirror.target.clone().unwrap()
     };
-    let cls = cls.read().unwrap();
+    let cls = cls.get_class();
     let v = match &cls.kind {
         oop::class::ClassKind::TypeArray(type_ary_cls) => {
             let vt = type_ary_cls.value_type.into();
@@ -553,7 +553,7 @@ fn jvm_getComponentType(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         }
         oop::class::ClassKind::ObjectArray(obj_ary_cls) => {
             let component = obj_ary_cls.component.clone().unwrap();
-            let cls = component.read().unwrap();
+            let cls = component.get_class();
             Some(cls.get_mirror())
         }
         _ => unreachable!(),
@@ -576,7 +576,7 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let (cls_file, em) = match target {
         Some(target) => {
-            let cls = target.read().unwrap();
+            let cls = target.get_class();
             match &cls.kind {
                 ClassKind::Instance(cls) => match &cls.enclosing_method {
                     Some(em) => (cls.class_file.clone(), em.clone()),
@@ -594,7 +594,7 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
     let em_class = require_class2(em.class_index, &cls_file.cp).unwrap();
     let em_class_mirror = {
-        let cls = em_class.read().unwrap();
+        let cls = em_class.get_class();
         cls.get_mirror()
     };
     let mut elms = Vec::with_capacity(3);
@@ -636,7 +636,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
     let (cls_file, target, inner_classes) = match target {
         Some(target) => {
-            let cls = target.read().unwrap();
+            let cls = target.get_class();
             match &cls.kind {
                 ClassKind::Instance(cls) => match &cls.inner_classes {
                     Some(inner_classes) => (
@@ -664,7 +664,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 Ok(Some(oop::consts::get_null()))
             } else {
                 let outer_class = require_class2(it.outer_class_info_index, &cls_file.cp).unwrap();
-                let v = outer_class.read().unwrap();
+                let v = outer_class.get_class();
                 Ok(Some(v.get_mirror()))
             };
         }
@@ -713,14 +713,14 @@ fn jvm_getInterfaces0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         extract_mirror_target(arg0)
     };
 
-    let v = mirror.read().unwrap();
+    let v = mirror.get_class();
     let elms = match &v.kind {
         oop::ClassKind::Instance(inst) => {
             let mut elms = Vec::with_capacity(inst.class_file.interfaces.len());
             let cp = &inst.class_file.cp;
             inst.class_file.interfaces.iter().for_each(|it| {
                 let cls = require_class2(*it, cp).unwrap();
-                let cls = cls.read().unwrap();
+                let cls = cls.get_class();
                 elms.push(cls.get_mirror());
             });
 
@@ -732,12 +732,12 @@ fn jvm_getInterfaces0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let mut elms = Vec::with_capacity(2);
 
             {
-                let cls = cls_cloneable.read().unwrap();
+                let cls = cls_cloneable.get_class();
                 elms.push(cls.get_mirror());
             }
 
             {
-                let cls = cls_serializable.read().unwrap();
+                let cls = cls_serializable.get_class();
                 elms.push(cls.get_mirror());
             }
 
@@ -758,7 +758,7 @@ fn jvm_getRawAnnotations(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         Oop::Ref(rf) => {
             let mirror = rf.extract_mirror();
             let cls = mirror.target.clone().unwrap();
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             let raw = cls.get_annotation();
             match raw {
                 Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
@@ -778,7 +778,7 @@ fn jvm_getConstantPool(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             let cp_cls = require_class3(None, b"sun/reflect/ConstantPool").unwrap();
             let cp_oop = Oop::new_inst(cp_cls.clone());
 
-            let cls = cp_cls.read().unwrap();
+            let cls = cp_cls.get_class();
             let fid = cls.get_field_id(
                 new_br("constantPoolOop"),
                 new_br("Ljava/lang/Object;"),
@@ -811,7 +811,7 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 let vt = mirror.value_type;
                 if vt == ValueType::OBJECT {
                     let target = mirror.target.clone().unwrap();
-                    let cls = target.read().unwrap();
+                    let cls = target.get_class();
                     let sig = cls.get_attr_signatrue();
                     sig.map_or_else(
                         oop::consts::get_null,
@@ -842,7 +842,7 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
 
     //fixme: super methods
     let selected_methods = {
-        let cls = mirror_target.read().unwrap();
+        let cls = mirror_target.get_class();
         match &cls.kind {
             oop::class::ClassKind::Instance(inst) => {
                 fn chooser1(want_constructor: bool, name: &[u8]) -> bool {

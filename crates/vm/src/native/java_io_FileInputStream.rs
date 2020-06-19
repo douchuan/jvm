@@ -130,13 +130,13 @@ fn jvm_close0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 fn set_file_descriptor_fd(fin: &Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("fd"), new_br("Ljava/io/FileDescriptor;"), false);
         Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
-    let cls = cls.read().unwrap();
+    let cls = cls.get_class();
     let id = cls.get_field_id(new_br("fd"), new_br("I"), false);
     Class::put_field_value(fd_this.extract_ref(), id, Oop::new_int(fd));
 }
@@ -144,14 +144,14 @@ fn set_file_descriptor_fd(fin: &Oop, fd: i32) {
 fn get_file_descriptor_fd(fin: &Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("fd"), new_br("Ljava/io/FileDescriptor;"), false);
         Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let fd = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("fd"), new_br("I"), false);
         Class::get_field_value(fd_this.extract_ref(), id)
     };

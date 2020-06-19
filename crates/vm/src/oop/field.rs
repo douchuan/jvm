@@ -1,4 +1,4 @@
-use crate::oop::{self, consts as oop_consts, ClassRef, Oop, ValueType};
+use crate::oop::{self, consts as oop_consts, Oop, ValueType};
 use crate::runtime::require_class2;
 use crate::types::*;
 use crate::util;
@@ -10,6 +10,7 @@ use classfile::{
 use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::types::ClassRef;
 
 pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdRef {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);
@@ -34,13 +35,13 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdR
 
         (name, desc)
     };
-    let class = class.read().unwrap();
+    let class = class.get_class();
     class.get_field_id(name, desc, is_static)
 }
 
 pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let n = {
-        let class = class.read().unwrap();
+        let class = class.get_class();
         match &class.kind {
             oop::class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
             _ => unreachable!(),
@@ -53,7 +54,7 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let mut cur_cls = class;
     loop {
         let cls = cur_cls.clone();
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         match &cls.kind {
             oop::class::ClassKind::Instance(cls_obj) => {
                 cls_obj.inst_fields.iter().for_each(|(_, fir)| {

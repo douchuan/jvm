@@ -22,14 +22,14 @@ pub enum TypeArrayDesc {
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
-            assert!(class.read().unwrap().is_array());
+            assert!(class.get_class().is_array());
         }
 
         Self { class, elements }
     }
 
     pub fn get_dimension(&self) -> usize {
-        let class = self.class.read().unwrap();
+        let class = self.class.get_class();
         match &class.kind {
             class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
             class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),

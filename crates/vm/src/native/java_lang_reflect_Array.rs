@@ -67,7 +67,7 @@ fn build_ary_name(vt: ValueType, component_cls: Option<ClassRef>) -> Vec<u8> {
         | ValueType::DOUBLE => name.extend_from_slice(vt.into()),
         ValueType::OBJECT | ValueType::ARRAY => {
             let cls = component_cls.unwrap();
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             match cls.kind {
                 oop::ClassKind::Instance(_) => {
                     name.extend_from_slice(b"L");

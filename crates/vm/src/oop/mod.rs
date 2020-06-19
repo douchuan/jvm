@@ -426,7 +426,7 @@ impl OopRef {
         unsafe {
             match &(*ptr).v {
                 RefKind::Inst(inst) => {
-                    let cls = inst.class.read().unwrap();
+                    let cls = inst.class.get_class();
                     cls.name.as_slice() == b"java/lang/String"
                 }
                 _ => false,
@@ -492,7 +492,7 @@ impl OopRef {
         let fid = {
             let inst = rf.extract_inst();
             let cls = inst.class.clone();
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             cls.get_field_id(new_br("eetop"), new_br("J"), false)
         };
 

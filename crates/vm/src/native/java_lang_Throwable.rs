@@ -84,14 +84,14 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             (caller.mir.clone(), pc)
         };
 
-        let cls_name = mir.method.class.read().unwrap().name.clone();
+        let cls_name = mir.method.class.get_class().name.clone();
         let cls_name = Vec::from(cls_name.as_slice());
         let cls_name = unsafe { String::from_utf8_unchecked(cls_name) };
         let cls_name = cls_name.replace("/", ".");
         let method_name = mir.method.name.clone();
         let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
         let src_file = {
-            let cls = mir.method.class.read().unwrap();
+            let cls = mir.method.class.get_class();
             cls.get_source_file()
         };
         let src_file = match src_file {
@@ -123,7 +123,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let stack_trace_ary = Oop::new_ref_ary2(ary_cls, traces);
     let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
     {
-        let cls = throwable_cls.read().unwrap();
+        let cls = throwable_cls.get_class();
         let id = cls.get_field_id(
             new_br("stackTrace"),
             new_br("[Ljava/lang/StackTraceElement;"),
@@ -145,7 +145,7 @@ fn jvm_getStackTraceDepth(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         inst.class.clone()
     };
     let backtrace = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
         Class::get_field_value(throwable.extract_ref(), id)
     };
@@ -172,7 +172,7 @@ fn jvm_getStackTraceElement(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         inst.class.clone()
     };
     let backtrace = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
         Class::get_field_value(throwable.extract_ref(), id)
     };

@@ -66,7 +66,7 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     };
 
     let name = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
         cls.name.clone()
     };
 
@@ -87,7 +87,7 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             });
 
             let mir = {
-                let cls = cls.read().unwrap();
+                let cls = cls.get_class();
 
                 //setup eetop
                 let eetop = jt.read().unwrap().eetop;

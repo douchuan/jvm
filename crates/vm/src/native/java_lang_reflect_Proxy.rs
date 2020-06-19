@@ -7,6 +7,7 @@ use crate::runtime;
 use crate::types::ClassRef;
 use class_parser::parse_class;
 use std::sync::Arc;
+use crate::oop::class::ClassPtr;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -31,7 +32,7 @@ fn jvm_defineClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     runtime::sys_dic_put(name.as_bytes(), class.clone());
     {
         let this_ref = class.clone();
-        let mut cls = class.write().unwrap();
+        let cls = class.get_mut_class();
         cls.set_class_state(oop::class::State::Loaded);
         cls.link_class(this_ref);
     }
@@ -50,7 +51,7 @@ fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
             let cfr = Arc::new(Box::new(r.1));
             //fixme: setup classloader
             let class = Class::new_class(cfr, None);
-            new_sync_ref!(class)
+            ClassPtr::new(class)
         }
         Err(e) => unreachable!("e = {:?}", e),
     }

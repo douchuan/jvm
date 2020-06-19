@@ -24,7 +24,7 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     };
 
     let name = {
-        let cls = target_cls.read().unwrap();
+        let cls = target_cls.get_class();
         cls.name.clone()
     };
 

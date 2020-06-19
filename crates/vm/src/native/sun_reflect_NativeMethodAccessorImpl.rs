@@ -22,7 +22,7 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let cls = require_class3(None, cls_consts::J_METHOD).unwrap();
 
     let (m_clazz, m_name, m_signature) = {
-        let cls = cls.read().unwrap();
+        let cls = cls.get_class();
 
         let fid = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
         let method_clazz = Class::get_field_value(method.extract_ref(), fid);
@@ -47,7 +47,7 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     };
 
     let mir = {
-        let clz = clz.read().unwrap();
+        let clz = clz.get_class();
         clz.get_class_method(m_name, m_signature).unwrap()
     };
 

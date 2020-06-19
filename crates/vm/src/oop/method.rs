@@ -1,4 +1,4 @@
-use crate::oop::{self, ClassRef, ValueType};
+use crate::oop::{self, ValueType};
 use crate::runtime::{self, require_class2};
 use crate::types::*;
 use crate::util;
@@ -12,6 +12,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
+use crate::types::ClassRef;
 
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
@@ -36,7 +37,7 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
 
         (name, typ)
     };
-    let class = class.read().unwrap();
+    let class = class.get_class();
 
     trace!(
         "get_method_ref cls={}, name={}, desc={}",

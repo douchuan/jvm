@@ -6,6 +6,7 @@ use crate::util;
 use class_parser::parse_class;
 use classfile::{constant_pool, types::U2, BytesRef, ConstantPool};
 use std::sync::{Arc, Mutex};
+use crate::oop::class::ClassPtr;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ClassLoader {
@@ -55,7 +56,7 @@ impl ClassLoader {
                         let this_ref = class.clone();
 
                         {
-                            let mut cls = class.write().unwrap();
+                            let mut cls = class.get_mut_class();
                             cls.set_class_state(oop::class::State::Loaded);
                             cls.link_class(this_ref);
                         }
@@ -80,10 +81,10 @@ impl ClassLoader {
                         match self.load_class(elm) {
                             Some(elm) => {
                                 let mut class = Class::new_object_ary(*self, elm, name);
-                                let class = new_sync_ref!(class);
+                                let class = ClassPtr::new(class);
                                 {
                                     let this_ref = class.clone();
-                                    let mut class = class.write().unwrap();
+                                    let mut class = class.get_mut_class();
                                     class.link_class(this_ref);
                                 }
                                 match self {
@@ -105,11 +106,11 @@ impl ClassLoader {
                         //B, Z...
                         let elm = t.into();
                         let class = Class::new_prime_ary(*self, elm);
-                        let class = new_sync_ref!(class);
+                        let class = ClassPtr::new(class);
 
                         {
                             let this_ref = class.clone();
-                            let mut class = class.write().unwrap();
+                            let mut class = class.get_mut_class();
                             class.link_class(this_ref);
                         }
 
@@ -135,7 +136,7 @@ impl ClassLoader {
                 match self.load_array_class(down_type_name) {
                     Some(down_type) => {
                         let class = Class::new_wrapped_ary(*self, down_type);
-                        let class = new_sync_ref!(class);
+                        let class = ClassPtr::new(class);
                         match self {
                             ClassLoader::Base => (),
                             ClassLoader::Bootstrap => {
@@ -161,7 +162,7 @@ impl ClassLoader {
                 Ok(cf) => {
                     let cfr = Arc::new(Box::new(cf.1));
                     let class = Class::new_class(cfr, Some(*self));
-                    Some(new_sync_ref!(class))
+                    Some(ClassPtr::new(class))
                 }
 
                 Err(e) => unreachable!("name={}, {}", name, e),

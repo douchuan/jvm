@@ -40,10 +40,10 @@ fn jvm_getClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         unsafe {
             match &(*ptr).v {
                 oop::RefKind::Inst(inst) => {
-                    let cls = inst.class.read().unwrap();
+                    let cls = inst.class.get_class();
                     cls.get_mirror()
                 }
-                oop::RefKind::Array(ary) => ary.class.read().unwrap().get_mirror(),
+                oop::RefKind::Array(ary) => ary.class.get_class().get_mirror(),
                 oop::RefKind::Mirror(_mirror) => {
                     v.clone()
 

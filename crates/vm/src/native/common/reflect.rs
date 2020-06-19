@@ -13,7 +13,7 @@ use std::sync::Arc;
 pub fn new_field(fir: FieldIdRef) -> Oop {
     let field_cls = runtime::require_class3(None, cls_const::J_FIELD).unwrap();
 
-    let clazz = fir.field.class.read().unwrap().get_mirror();
+    let clazz = fir.field.class.get_class().get_mirror();
 
     let field_sig = FieldSignature::new(fir.field.desc.as_slice());
     let typ_mirror = create_value_type(field_sig.field_type);
@@ -55,7 +55,7 @@ pub fn new_method_ctor(mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD_CTOR).unwrap();
 
     //declaringClass
-    let declaring_cls = mir.method.class.read().unwrap().get_mirror();
+    let declaring_cls = mir.method.class.get_class().get_mirror();
 
     //parameterTypes
     let signature = MethodSignature::new(mir.method.desc.as_slice());
@@ -128,7 +128,7 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
     let ctor_cls = require_class3(None, cls_const::J_METHOD).unwrap();
 
     //declaringClass
-    let declaring_cls = mir.method.class.read().unwrap().get_mirror();
+    let declaring_cls = mir.method.class.get_class().get_mirror();
 
     //name
     let name = {
@@ -227,7 +227,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
     };
 
     //todo: optimize, avoid obtain id
-    let cls = cls.read().unwrap();
+    let cls = cls.get_class();
     let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
     Class::get_field_value(ctor.extract_ref(), id)
 }
@@ -259,7 +259,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
     };
 
     //todo: optimize, cache id
-    let cls = cls.read().unwrap();
+    let cls = cls.get_class();
     let id = cls.get_field_id(new_br("signature"), new_br("Ljava/lang/String;"), false);
     let v = Class::get_field_value(ctor.extract_ref(), id);
     OopRef::java_lang_string(v.extract_ref())
@@ -277,14 +277,14 @@ fn create_value_type(t: SignatureType) -> Oop {
             let len = desc.len();
             let name = &desc.as_slice()[1..len - 1];
             let cls = require_class3(None, name).unwrap();
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             cls.get_mirror()
         }
         SignatureType::Short => java_lang_Class::get_primitive_class_mirror("S").unwrap(),
         SignatureType::Boolean => java_lang_Class::get_primitive_class_mirror("Z").unwrap(),
         SignatureType::Array(desc) => {
             let cls = require_class3(None, desc.as_slice()).unwrap();
-            let cls = cls.read().unwrap();
+            let cls = cls.get_class();
             cls.get_mirror()
         }
         SignatureType::Void => java_lang_Class::get_primitive_class_mirror("V").unwrap(),
