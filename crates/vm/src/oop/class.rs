@@ -68,6 +68,7 @@ impl ClassPtr {
 /////////////////////////////////////////////
 
 pub struct Class {
+    clinit_mutex: Arc<std::sync::Mutex<()>>,
     mutex: ReentrantMutex,
     state: std::sync::atomic::AtomicU8,
 
@@ -196,6 +197,7 @@ pub fn init_class(class: &ClassRef) {
     let need = { class.get_class().get_class_state() == State::Linked };
     if need {
         let mut cls = class.get_mut_class();
+        let clinit_mutex = cls.clinit_mutex.clone();
 
         cls.set_class_state(State::BeingIni);
         if let Some(super_class) = &cls.super_class {
@@ -205,6 +207,7 @@ pub fn init_class(class: &ClassRef) {
 
         match &mut cls.kind {
             ClassKind::Instance(class_obj) => {
+                let l = clinit_mutex.lock().unwrap();
                 class_obj.init_static_fields();
             }
 
@@ -233,6 +236,9 @@ pub fn init_class_fully(class: &ClassRef) {
             });
             let area = runtime::DataArea::new(0, 0);
             let mut jc = JavaCall::new_with_args(mir, vec![]);
+
+            let cls = class.get_class();
+            let l = cls.clinit_mutex.lock().unwrap();
             jc.invoke(Some(area), true);
         }
     }
@@ -670,6 +676,7 @@ impl Class {
         };
 
         Self {
+            clinit_mutex: Arc::new(Mutex::new(())),
             name,
             state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags,
@@ -698,6 +705,7 @@ impl Class {
         };
 
         Self {
+            clinit_mutex: Arc::new(Mutex::new(())),
             name,
             state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
@@ -727,6 +735,7 @@ impl Class {
         };
 
         Self {
+            clinit_mutex: Arc::new(Mutex::new(())),
             name: Arc::new(name),
             state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
@@ -781,6 +790,7 @@ impl Class {
         };
 
         Self {
+            clinit_mutex: Arc::new(Mutex::new(())),
             name: Arc::new(name2),
             state: std::sync::atomic::AtomicU8::new(State::Allocated.into()),
             acc_flags: 0, //todo: should be 0?
