@@ -6,7 +6,8 @@
 //! class file format of the Java Virtual Machine.
 //!
 //! It's not class file parser.
-
+#[macro_use]
+extern crate lazy_static;
 #[macro_use]
 extern crate log;
 pub mod attributes;

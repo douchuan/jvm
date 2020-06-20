@@ -221,9 +221,8 @@ pub enum OpCode {
     impdep2 = 0xff,
 }
 
-impl From<u8> for OpCode {
-    fn from(v: u8) -> Self {
-        let codes = vec![
+lazy_static! {
+    static ref CODES: Vec<OpCode> = vec![
             OpCode::nop,
             OpCode::aconst_null,
             OpCode::iconst_m1,
@@ -428,7 +427,11 @@ impl From<u8> for OpCode {
             OpCode::jsr_w,
             OpCode::breakpoint,
         ];
-        match codes.get(v as usize) {
+}
+
+impl From<u8> for OpCode {
+    fn from(v: u8) -> Self {
+        match CODES.get(v as usize) {
             Some(op) => *op,
             None => match v {
                 254 => OpCode::impdep1,

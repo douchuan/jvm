@@ -80,7 +80,7 @@ impl<'a> Interp<'a> {
             match code {
                 Some(code) => {
                     let op_code = OpCode::from(*code);
-                    self.debug_op(*code, op_code);
+                    // self.debug_op(*code, op_code);
 
                     match op_code {
                         OpCode::athrow => {
