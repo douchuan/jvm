@@ -2,7 +2,7 @@ use crate::util;
 use std::fs::File;
 use std::io::{self, BufReader, Cursor, Read, Seek};
 use std::path::{self, Path};
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use zip::ZipArchive;
 
 lazy_static! {

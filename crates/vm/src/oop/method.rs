@@ -1,5 +1,6 @@
 use crate::oop::{self, ValueType};
 use crate::runtime::{self, require_class2};
+use crate::types::ClassRef;
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
@@ -12,7 +13,6 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::types::ClassRef;
 
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
@@ -82,7 +82,7 @@ impl Method {
         class: ClassRef,
         class_file: ClassFileRef,
         method_info_index: usize,
-        cls_name: BytesRef
+        cls_name: BytesRef,
     ) -> Self {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();

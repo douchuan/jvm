@@ -1,4 +1,5 @@
 use crate::native;
+use crate::oop::class::ClassPtr;
 use crate::oop::{self, Class, ValueType};
 use crate::runtime::{self, ClassPathResult};
 use crate::types::*;
@@ -6,7 +7,6 @@ use crate::util;
 use class_parser::parse_class;
 use classfile::{constant_pool, types::U2, BytesRef, ConstantPool};
 use std::sync::{Arc, Mutex};
-use crate::oop::class::ClassPtr;
 
 #[derive(Debug, Copy, Clone)]
 pub enum ClassLoader {

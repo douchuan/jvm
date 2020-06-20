@@ -85,7 +85,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         };
 
         let cls = mir.method.class.get_class();
-        let cls_name = unsafe {std::str::from_utf8_unchecked(cls.name.as_slice())};
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice()) };
         let cls_name = cls_name.replace("/", ".");
         let method_name = unsafe { std::str::from_utf8_unchecked(mir.method.name.as_slice()) };
         let src_file = {

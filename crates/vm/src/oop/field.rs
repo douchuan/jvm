@@ -1,5 +1,6 @@
 use crate::oop::{self, consts as oop_consts, Oop, ValueType};
 use crate::runtime::require_class2;
+use crate::types::ClassRef;
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
@@ -10,7 +11,6 @@ use classfile::{
 use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
-use crate::types::ClassRef;
 
 pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdRef {
     let (class_index, name_and_type_index) = constant_pool::get_field_ref(cp, idx);

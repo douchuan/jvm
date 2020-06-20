@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Error, Formatter};
 use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 pub struct ClassPtr(u64);
@@ -45,23 +45,17 @@ impl ClassPtr {
 impl ClassPtr {
     pub fn name(&self) -> BytesRef {
         let ptr = self.raw_ptr();
-        unsafe {
-            (*ptr).name.clone()
-        }
+        unsafe { (*ptr).name.clone() }
     }
 
     pub fn get_class(&self) -> &Class {
         let ptr = self.raw_ptr();
-        unsafe {
-            &(*ptr)
-        }
+        unsafe { &(*ptr) }
     }
 
     pub fn get_mut_class(&self) -> &mut Class {
         let ptr = self.raw_mut_ptr();
-        unsafe {
-            &mut (*ptr)
-        }
+        unsafe { &mut (*ptr) }
     }
 }
 
@@ -136,7 +130,7 @@ impl From<u8> for State {
             3 => State::BeingIni,
             4 => State::FullyIni,
             5 => State::IniErr,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -149,7 +143,7 @@ impl Into<u8> for State {
             State::Linked => 2,
             State::BeingIni => 3,
             State::FullyIni => 4,
-            State::IniErr => 5
+            State::IniErr => 5,
         }
     }
 }
@@ -316,8 +310,7 @@ impl Class {
     pub fn link_class(&mut self, self_ref: ClassRef) {
         match &mut self.kind {
             ClassKind::Instance(class_obj) => {
-                self.super_class =
-                    class_obj.link_super_class(self.name.clone(), self.class_loader);
+                self.super_class = class_obj.link_super_class(self.name.clone(), self.class_loader);
                 let n = match &self.super_class {
                     Some(super_cls) => {
                         let super_cls = super_cls.get_class();
@@ -347,7 +340,6 @@ impl Class {
 
         self.set_class_state(State::Linked);
     }
-
 
     pub fn get_class_kind_type(&self) -> ClassKindType {
         match &self.kind {
@@ -488,16 +480,16 @@ impl Class {
                     if let Some(fid) = cls_obj.static_fields.get(&k) {
                         return fid.clone();
                     }
-                },
+                }
                 _ => unreachable!(),
             }
         } else {
             match &self.kind {
                 ClassKind::Instance(cls_obj) => {
                     if let Some(fid) = cls_obj.inst_fields.get(&k) {
-                        return fid.clone()
+                        return fid.clone();
                     }
-                },
+                }
                 _ => unreachable!(),
             }
         }
@@ -578,10 +570,7 @@ impl Class {
                     cls_obj.static_field_values[fid.offset].clone()
                 } else {
                     let super_class = self.super_class.clone();
-                    super_class
-                        .unwrap()
-                        .get_class()
-                        .get_static_field_value(fid)
+                    super_class.unwrap().get_class().get_static_field_value(fid)
                 }
             }
             _ => unreachable!(),
@@ -837,11 +826,7 @@ impl ClassObject {
 
         cls_file.fields.iter().for_each(|it| {
             let field = field::Field::new(cp, it, cls_name.clone(), self_ref.clone());
-            let k = (
-                cls_name.clone(),
-                field.name.clone(),
-                field.desc.clone(),
-            );
+            let k = (cls_name.clone(), field.name.clone(), field.desc.clone());
 
             if field.is_static() {
                 let fid = field::FieldId {
@@ -892,7 +877,14 @@ impl ClassObject {
         let cp = &class_file.cp;
 
         class_file.methods.iter().enumerate().for_each(|(i, it)| {
-            let method = method::Method::new(cp, it, this_ref.clone(), class_file.clone(), i, cls_name.clone());
+            let method = method::Method::new(
+                cp,
+                it,
+                this_ref.clone(),
+                class_file.clone(),
+                i,
+                cls_name.clone(),
+            );
             let method_id = Arc::new(method::MethodId { offset: i, method });
 
             let name = method_id.method.name.clone();
@@ -960,7 +952,7 @@ impl Class {
                 if let Some(m) = cls_obj.all_methods.get(&k) {
                     return Ok(m.clone());
                 }
-            },
+            }
             ClassKind::ObjectArray(ary) => {
                 //use java/lang/Object, methods
             }
@@ -988,16 +980,12 @@ impl Class {
                 if let Some(m) = cls_obj.v_table.get(&k) {
                     return Ok(m.clone());
                 }
-            },
+            }
             _ => unreachable!(),
         }
 
         match self.super_class.as_ref() {
-            Some(super_class) => {
-                super_class
-                    .get_class()
-                    .get_virtual_method_inner(name, desc)
-            }
+            Some(super_class) => super_class.get_class().get_virtual_method_inner(name, desc),
             None => Err(()),
         }
     }
@@ -1025,12 +1013,10 @@ impl Class {
         }
 
         match self.super_class.as_ref() {
-            Some(super_class) => {
-                super_class
-                    .get_class()
-                    .get_interface_method_inner(name, desc)
-            }
-            None => Err(())
+            Some(super_class) => super_class
+                .get_class()
+                .get_interface_method_inner(name, desc),
+            None => Err(()),
         }
     }
 }

@@ -2,12 +2,12 @@
 
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::oop::class::ClassPtr;
 use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime;
 use crate::types::ClassRef;
 use class_parser::parse_class;
 use std::sync::Arc;
-use crate::oop::class::ClassPtr;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(

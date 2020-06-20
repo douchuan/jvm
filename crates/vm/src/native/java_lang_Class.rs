@@ -810,13 +810,10 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                     let target = mirror.target.clone().unwrap();
                     let cls = target.get_class();
                     let sig = cls.get_attr_signatrue();
-                    sig.map_or_else(
-                        oop::consts::get_null,
-                        |v| {
-                            let sig = std::str::from_utf8_unchecked(v.as_slice());
-                            util::oop::new_java_lang_string2(sig)
-                        },
-                    )
+                    sig.map_or_else(oop::consts::get_null, |v| {
+                        let sig = std::str::from_utf8_unchecked(v.as_slice());
+                        util::oop::new_java_lang_string2(sig)
+                    })
                 } else {
                     oop::consts::get_null()
                 }
