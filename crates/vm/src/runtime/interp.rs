@@ -20,6 +20,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, RwLockReadGuard};
+use std::sync::atomic::Ordering;
 
 macro_rules! array_store {
     ($ary:ident, $pos:ident, $v:ident) => {
@@ -342,25 +343,22 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn read_u1(&self) -> usize {
-        let mut area = self.frame.area.write().unwrap();
-        let v = self.frame.code[area.pc as usize];
-        area.pc += 1;
+        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
+        let v = self.frame.code[pc as usize];
         v as usize
     }
 
     #[inline]
     fn read_byte(&self) -> u8 {
-        let mut area = self.frame.area.write().unwrap();
-        let v = self.frame.code[area.pc as usize];
-        area.pc += 1;
+        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
+        let v = self.frame.code[pc as usize];
         v
     }
 
     #[inline]
     fn read_opcode(&self) -> Option<&U1> {
-        let mut area = self.frame.area.write().unwrap();
-        let v = self.frame.code.get(area.pc as usize);
-        area.pc += 1;
+        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
+        let v = self.frame.code.get(pc as usize);
         v
     }
 
@@ -412,13 +410,11 @@ impl<'a> Interp<'a> {
     }
 
     fn goto_abs(&self, pc: i32) {
-        let mut area = self.frame.area.write().unwrap();
-        area.pc = pc;
+        self.frame.pc.store(pc, Ordering::Relaxed);
     }
 
     fn goto_by_offset(&self, branch: i32) {
-        let mut area = self.frame.area.write().unwrap();
-        area.pc += branch;
+        let _ = self.frame.pc.fetch_add(branch, Ordering::Relaxed);
     }
 
     fn goto_by_offset_with_occupied(&self, branch: i32, occupied: i32) {
@@ -427,11 +423,10 @@ impl<'a> Interp<'a> {
     }
 
     fn goto_by_offset_hardcoded(&self, occupied: i32) {
-        let area = self.frame.area.read().unwrap();
-        let high = self.frame.code[area.pc as usize] as i16;
-        let low = self.frame.code[(area.pc + 1) as usize] as i16;
+        let pc = self.frame.pc.load(Ordering::Relaxed);
+        let high = self.frame.code[pc as usize] as i16;
+        let low = self.frame.code[(pc + 1) as usize] as i16;
         let branch = (high << 8) | low;
-        drop(area);
 
         self.goto_by_offset_with_occupied(branch as i32, occupied);
     }
@@ -676,11 +671,11 @@ impl<'a> Interp<'a> {
         };
 
         let handler = {
-            let area = self.frame.area.read().unwrap();
+            let pc = self.frame.pc.load(Ordering::Relaxed);
             self.frame
                 .mir
                 .method
-                .find_exception_handler(&self.frame.cp, area.pc as u16, ex_cls)
+                .find_exception_handler(&self.frame.cp, pc as u16, ex_cls)
         };
 
         match handler {
@@ -702,12 +697,12 @@ impl<'a> Interp<'a> {
             }
 
             None => {
-                let area = self.frame.area.read().unwrap();
-                let line_num = self.frame.mir.method.get_line_num(area.pc as u16);
+                let pc = self.frame.pc.load(Ordering::Relaxed);
+                let line_num = self.frame.mir.method.get_line_num(pc as u16);
 
                 info!(
-                    "NotFound Exception Handler: line={}, frame_id={}, {:?}, ex_here={}",
-                    line_num, self.frame.frame_id, self.frame.mir.method, area.ex_here
+                    "NotFound Exception Handler: line={}, frame_id={}, {:?}",
+                    line_num, self.frame.frame_id, self.frame.mir.method,
                 );
 
                 Err(ex)
@@ -846,12 +841,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn iload(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -860,18 +853,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_int(pos);
         area.stack.push_int(v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn lload(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -880,18 +869,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_long(pos);
         area.stack.push_long(v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn fload(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -900,18 +885,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_float(pos);
         area.stack.push_float(v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn dload(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -920,18 +901,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_double(pos);
         area.stack.push_double(v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn aload(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -940,8 +917,6 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.local.get_ref(pos);
         area.stack.push_ref(v);
-
-        area.op_widen = false;
     }
 
     #[inline]
@@ -1262,12 +1237,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn istore(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1276,18 +1249,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_int();
         area.local.set_int(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn lstore(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1296,18 +1265,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_long();
         area.local.set_long(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn fstore(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1316,18 +1281,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_float();
         area.local.set_float(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn dstore(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1336,18 +1297,14 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_double();
         area.local.set_double(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
     pub fn astore(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1356,8 +1313,6 @@ impl<'a> Interp<'a> {
         let mut area = self.frame.area.write().unwrap();
         let v = area.stack.pop_ref();
         area.local.set_ref(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
@@ -2078,10 +2033,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn iinc(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
             self.read_u2()
@@ -2090,6 +2042,7 @@ impl<'a> Interp<'a> {
         };
 
         let factor = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             (self.read_u2() as i16) as i32
         } else {
             (self.read_byte() as i8) as i32
@@ -2099,8 +2052,6 @@ impl<'a> Interp<'a> {
         let v = area.local.get_int(pos);
         let v = v.wrapping_add(factor);
         area.local.set_int(pos, v);
-
-        area.op_widen = false;
     }
 
     #[inline]
@@ -2344,7 +2295,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2357,7 +2308,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2370,7 +2321,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2383,7 +2334,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2396,7 +2347,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2409,7 +2360,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2423,7 +2374,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2437,7 +2388,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2451,7 +2402,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2465,7 +2416,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2479,7 +2430,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2493,7 +2444,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2507,7 +2458,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2521,7 +2472,7 @@ impl<'a> Interp<'a> {
             drop(area);
             self.goto_by_offset_hardcoded(2);
         } else {
-            area.pc += 2;
+            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         }
     }
 
@@ -2532,36 +2483,27 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn jsr(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.pc += 2;
+        let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         panic!("Use of deprecated instruction jsr, please check your Java compiler");
     }
 
     #[inline]
     pub fn ret(&self) {
-        let op_widen = {
-            let area = self.frame.area.read().unwrap();
-            area.op_widen
-        };
+        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pc = if op_widen {
+            self.frame.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        area.pc = pc as i32;
-
-        area.op_widen = true;
+        self.frame.pc.store(pc as i32, Ordering::Relaxed);
     }
 
     #[inline]
     pub fn table_switch(&self) {
-        let mut bc = {
-            let area = self.frame.area.read().unwrap();
-            area.pc - 1
-        };
+        let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
         if bc % 4 != 0 {
@@ -2627,10 +2569,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn lookup_switch(&self) {
-        let mut bc = {
-            let area = self.frame.area.read().unwrap();
-            area.pc - 1
-        };
+        let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
         if bc % 4 != 0 {
@@ -3016,7 +2955,7 @@ impl<'a> Interp<'a> {
     pub fn wide(&self) {
         let mut area = self.frame.area.write().unwrap();
         info!("opcode wide");
-        area.op_widen = true;
+        self.frame.op_widen.store(true, Ordering::Relaxed);
     }
 
     #[inline]
@@ -3050,7 +2989,9 @@ impl<'a> Interp<'a> {
                 drop(area);
                 self.goto_by_offset_hardcoded(2)
             }
-            _ => area.pc += 2,
+            _ => {
+                let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
+            },
         }
     }
 
@@ -3060,7 +3001,9 @@ impl<'a> Interp<'a> {
         let v = area.stack.pop_ref();
 
         match v {
-            Oop::Null => area.pc += 2,
+            Oop::Null => {
+                let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
+            },
             _ => {
                 drop(area);
                 self.goto_by_offset_hardcoded(2)
@@ -3070,22 +3013,20 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn goto_w(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.pc += 4;
+        let _ = self.frame.pc.fetch_add(4, Ordering::Relaxed);
         panic!("Use of deprecated instruction goto_w, please check your Java compiler")
     }
 
     #[inline]
     pub fn jsr_w(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.pc += 4;
+        let _ = self.frame.pc.fetch_add(4, Ordering::Relaxed);
         panic!("Use of deprecated instruction jsr_w, please check your Java compiler")
     }
 
     #[inline]
     pub fn other_wise(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pc = area.pc - 1;
+        let pc = self.frame.pc.load(Ordering::Relaxed);
+        let pc = pc - 1;
         panic!(
             "Use of undefined bytecode: {} at {}",
             self.frame.code[pc as usize], pc

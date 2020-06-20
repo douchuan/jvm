@@ -112,3 +112,7 @@ study gc
 2020.06.06
 simple gc based Rust Arc
 avoid lock when access Oop::Ref
+
+2020.06.20
+study linux 'perf' && optimize, and performance is
+getting better and better

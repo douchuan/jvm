@@ -2,6 +2,7 @@
 
 use crate::runtime::thread::JavaThread;
 use std::fmt::Write;
+use std::sync::atomic::Ordering;
 
 pub fn print_stack_trace(jt: &JavaThread) {
     let mut w = String::new();
@@ -12,8 +13,8 @@ pub fn print_stack_trace(jt: &JavaThread) {
         let cls = frame.mir.method.class.get_class();
         let method_id = frame.mir.method.name.clone();
         let line_num = {
-            let area = frame.area.read().unwrap();
-            frame.mir.method.get_line_num(area.pc as u16)
+            let pc = frame.pc.load(Ordering::Relaxed);
+            frame.mir.method.get_line_num(pc as u16)
         };
 
         let _ = writeln!(

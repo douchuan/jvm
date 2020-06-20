@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::{new_br, util};
+use std::sync::atomic::Ordering;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -80,7 +81,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     for caller in backtrace.iter().rev() {
         let (mir, pc) = {
             let caller = caller.try_read().unwrap();
-            let pc = caller.area.read().unwrap().pc;
+            let pc = caller.pc.load(Ordering::Relaxed);
             (caller.mir.clone(), pc)
         };
 

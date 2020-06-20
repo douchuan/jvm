@@ -24,11 +24,8 @@ In a read-only Frame context, to modify the DataArea, borrow_mut is fine.
 pub struct DataArea {
     pub local: Local,
     pub stack: Stack,
-    pub pc: i32,
     pub return_v: Option<Oop>,
     pub ex_here: bool,
-
-    pub op_widen: bool,
 }
 
 impl DataArea {
@@ -39,10 +36,8 @@ impl DataArea {
         Arc::new(RwLock::new(DataArea {
             local,
             stack,
-            pc: 0,
             return_v: None,
             ex_here: false,
-            op_widen: false,
         }))
     }
 }

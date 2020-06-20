@@ -12,6 +12,9 @@ pub struct Frame {
     pub mir: MethodIdRef,
     pub code: Arc<Vec<U1>>,
 
+    pub pc: std::sync::atomic::AtomicI32,
+    pub op_widen: std::sync::atomic::AtomicBool,
+
     // The variable part of Frame is placed here
     pub area: DataAreaRef,
 }
@@ -43,6 +46,8 @@ impl Frame {
                     cp,
                     mir,
                     code,
+                    pc: std::sync::atomic::AtomicI32::new(0),
+                    op_widen: std::sync::atomic::AtomicBool::new(false),
                     area,
                 }
             }
@@ -53,6 +58,8 @@ impl Frame {
                 cp: Arc::new(Vec::new()),
                 mir,
                 code: Arc::new(vec![]),
+                pc: std::sync::atomic::AtomicI32::new(0),
+                op_widen: std::sync::atomic::AtomicBool::new(false),
                 area: DataArea::new(0, 0),
             },
         }
