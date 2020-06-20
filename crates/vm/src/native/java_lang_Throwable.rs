@@ -40,8 +40,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     for it in jth.frames.iter() {
         let ex_here = {
             let it = it.try_read().unwrap();
-            let area = it.area.read().unwrap();
-            area.ex_here
+            it.ex_here.load(Ordering::Relaxed)
         };
 
         backtrace.push(it.clone());

@@ -25,7 +25,6 @@ pub struct DataArea {
     pub local: Local,
     pub stack: Stack,
     pub return_v: Option<Oop>,
-    pub ex_here: bool,
 }
 
 impl DataArea {
@@ -37,7 +36,6 @@ impl DataArea {
             local,
             stack,
             return_v: None,
-            ex_here: false,
         }))
     }
 }

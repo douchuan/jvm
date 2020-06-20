@@ -310,7 +310,7 @@ impl<'a> Interp<'a> {
                         _ => unreachable!(),
                     }
 
-                    let is_meet_ex = jt.read().unwrap().is_meet_ex();
+                    let is_meet_ex = self.frame.ex_here.load(Ordering::Relaxed);
                     if is_meet_ex {
                         let mut th = jt.write().unwrap();
                         let ex = th.take_ex().unwrap();

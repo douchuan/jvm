@@ -2,6 +2,7 @@ use crate::oop::{self, Oop};
 use crate::runtime::{self, require_class3};
 use crate::types::JavaThreadRef;
 use crate::{new_br, util};
+use std::sync::atomic::Ordering;
 
 pub fn new(name: &[u8], msg: Option<String>) -> Oop {
     let cls = match require_class3(None, name) {
@@ -38,7 +39,7 @@ pub fn meet_ex(cls_name: &'static [u8], msg: Option<String>) {
         let jt = jt.read().unwrap();
         let frame = jt.frames.last().unwrap();
         let frame = frame.try_read().unwrap();
-        frame.area.write().unwrap().ex_here = true;
+        frame.ex_here.store(true, Ordering::Relaxed);
     }
 
     let ex = new(cls_name, msg);

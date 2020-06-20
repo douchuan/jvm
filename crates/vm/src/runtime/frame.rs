@@ -14,6 +14,7 @@ pub struct Frame {
 
     pub pc: std::sync::atomic::AtomicI32,
     pub op_widen: std::sync::atomic::AtomicBool,
+    pub ex_here: std::sync::atomic::AtomicBool,
 
     // The variable part of Frame is placed here
     pub area: DataAreaRef,
@@ -48,6 +49,7 @@ impl Frame {
                     code,
                     pc: std::sync::atomic::AtomicI32::new(0),
                     op_widen: std::sync::atomic::AtomicBool::new(false),
+                    ex_here: std::sync::atomic::AtomicBool::new(false),
                     area,
                 }
             }
@@ -60,6 +62,7 @@ impl Frame {
                 code: Arc::new(vec![]),
                 pc: std::sync::atomic::AtomicI32::new(0),
                 op_widen: std::sync::atomic::AtomicBool::new(false),
+                ex_here: std::sync::atomic::AtomicBool::new(false),
                 area: DataArea::new(0, 0),
             },
         }
