@@ -28,8 +28,7 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
 
 impl JavaCall {
     pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
-        let sig = MethodSignature::new(mir.method.desc.as_slice());
-        let return_type = sig.retype;
+        let return_type = mir.method.signature.retype.clone();
         Self {
             mir,
             args,
@@ -38,10 +37,9 @@ impl JavaCall {
     }
 
     pub fn new(caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        let sig = MethodSignature::new(mir.method.desc.as_slice());
-        let return_type = sig.retype.clone();
+        let return_type = mir.method.signature.retype.clone();
 
-        let mut args = build_method_args(caller.clone(), sig);
+        let mut args = build_method_args(caller.clone(), &mir.method.signature);
         args.reverse();
 
         //insert 'this' value
@@ -316,7 +314,7 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(area: DataAreaRef, sig: MethodSignature) -> Vec<Oop> {
+fn build_method_args(area: DataAreaRef, sig: &MethodSignature) -> Vec<Oop> {
     //Note: iter args by reverse, because of stack
     sig.args
         .iter()

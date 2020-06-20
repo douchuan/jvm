@@ -13,6 +13,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
+use class_parser::MethodSignature;
 
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
@@ -68,6 +69,7 @@ pub struct Method {
     pub name: BytesRef,
     pub desc: BytesRef,
     pub acc_flags: U2,
+    pub signature: MethodSignature,
 
     pub code: Option<Code>,
     pub line_num_table: Vec<LineNumber>,
@@ -87,6 +89,7 @@ impl Method {
         let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
         let acc_flags = mi.acc_flags;
+        let signature = MethodSignature::new(desc.as_slice());
         let code = mi.get_code();
         let line_num_table = mi.get_line_number_table();
 
@@ -97,6 +100,7 @@ impl Method {
             name,
             desc,
             acc_flags,
+            signature,
             code,
             line_num_table,
             method_info_index,

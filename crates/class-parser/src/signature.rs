@@ -20,7 +20,7 @@ pub struct ClassSignature {
     pub items: Vec<Type>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MethodSignature {
     /*
     TestNG, org.testng.collections.Maps
