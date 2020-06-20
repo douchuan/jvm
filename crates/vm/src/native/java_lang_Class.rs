@@ -869,7 +869,7 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oo
                 selected_methods
             }
             oop::class::ClassKind::ObjectArray(_ary) => vec![],
-            t => unreachable!("{:?}", t),
+            _ => unreachable!("{:?}", mirror_target),
         }
     };
 

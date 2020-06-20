@@ -9,13 +9,11 @@ use classfile::{
     constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, types::U2, AttributeType, BytesRef,
 };
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::{Error, Formatter};
+use std::fmt::{self, Error, Formatter, Debug};
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug)]
 pub struct ClassPtr(u64);
 
 impl ClassPtr {
@@ -59,6 +57,21 @@ impl ClassPtr {
     }
 }
 
+impl Debug for ClassPtr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let cls = self.get_class();
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice())};
+        let cls_name = cls_name.to_string();
+        let cls_kind_type = format!("{:?}", cls.get_class_kind_type());
+        let cls_state = format!("{:?}", cls.get_class_state());
+        f.debug_struct("ClassPtr")
+            .field("name", &cls_name)
+            .field("state", &cls_state)
+            .field("kind", &cls_kind_type)
+            .finish()
+    }
+}
+
 /////////////////////////////////////////////
 
 pub struct Class {
@@ -82,26 +95,6 @@ pub enum ClassKind {
     Instance(ClassObject),
     ObjectArray(ArrayClassObject),
     TypeArray(ArrayClassObject),
-}
-
-impl fmt::Debug for ClassKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ClassKind::Instance(cls) => write!(f, "ClassKind::Instance"),
-            ClassKind::ObjectArray(obj_ary) => write!(f, "ClassKind::ObjectArray"),
-            ClassKind::TypeArray(typ_ar) => write!(f, "ClassKind::TypeArray"),
-        }
-    }
-}
-
-impl fmt::Debug for Class {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Class({})",
-            String::from_utf8_lossy(self.name.as_slice())
-        )
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -148,7 +141,6 @@ impl Into<u8> for State {
     }
 }
 
-#[derive(Debug)]
 pub struct ClassObject {
     pub class_file: ClassFileRef,
 
@@ -174,7 +166,6 @@ pub struct ClassObject {
     pub inner_classes: Option<Vec<InnerClass>>,
 }
 
-#[derive(Debug)]
 pub struct ArrayClassObject {
     pub value_type: ValueType,
 
