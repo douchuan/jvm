@@ -44,17 +44,7 @@ fn jvm_getClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                     cls.get_mirror()
                 }
                 oop::RefKind::Array(ary) => ary.class.get_class().get_mirror(),
-                oop::RefKind::Mirror(_mirror) => {
-                    v.clone()
-
-                    /*
-                    let cls = mirror.target.clone().unwrap();
-                    let cls = cls.lock().unwrap();
-                    let name = String::from_utf8_lossy(cls.name.as_slice());
-                    error!("target cls = {}", name);
-                    cls.get_mirror()
-                    */
-                }
+                oop::RefKind::Mirror(_mirror) => v.clone(),
                 t => unimplemented!("t = {:?}", t),
             }
         }

@@ -175,13 +175,12 @@ pub fn create_mirror(cls: ClassRef) {
     } else {
         let cls_back = cls.clone();
         let cls = cls.get_class();
-        let name = Vec::from(cls.name.as_slice());
-        let name = unsafe { String::from_utf8_unchecked(name) };
+        let name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice()) };
         warn!("mirror create delayed: {}", name);
         match cls.kind {
             oop::class::ClassKind::Instance(_) => {
                 let mut mirrors = DELAYED_MIRROS.write().unwrap();
-                mirrors.push(name);
+                mirrors.push(String::from(name));
             }
             _ => {
                 let mut mirrors = DELAYED_ARY_MIRROS.write().unwrap();
@@ -335,19 +334,17 @@ fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         match target {
             Some(target) => {
                 let cls = target.get_class();
-                cls.name.clone()
+                Vec::from(cls.name.as_slice())
             }
             None => {
                 let v = vt.get_primitive_name();
-                Arc::new(Vec::from(v))
+                Vec::from(v)
             }
         }
     };
 
-    let name = Vec::from(name.as_slice());
-    let name = unsafe { String::from_utf8_unchecked(name) };
+    let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
     let name = name.replace("/", ".");
-
     let v = util::oop::new_java_lang_string2(&name);
     Ok(Some(v))
 }

@@ -23,14 +23,10 @@ fn jvm_newInstance0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         mirror.target.clone().unwrap()
     };
 
-    let name = {
-        let cls = target_cls.get_class();
-        cls.name.clone()
-    };
-
     let signature = common::reflect::get_Constructor_signature(ctor);
 
-    let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
+    let cls = target_cls.get_class();
+    let name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice()) };
     info!("newInstance0 {}:{}", name, signature);
 
     let mut ctor_args = Vec::new();

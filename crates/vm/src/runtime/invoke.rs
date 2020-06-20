@@ -142,13 +142,10 @@ impl JavaCall {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
-        let package = {
-            let cls = self.mir.method.class.get_class();
-            cls.name.clone()
-        };
-        let desc = self.mir.method.desc.clone();
-        let name = self.mir.method.name.clone();
-        let method = native::find_symbol(package.as_slice(), name.as_slice(), desc.as_slice());
+        let package = self.mir.method.class.get_class().name.as_slice();
+        let desc = self.mir.method.desc.as_slice();
+        let name = self.mir.method.name.as_slice();
+        let method = native::find_symbol(package, name, desc);
         let v = match method {
             Some(method) => {
                 let class = self.mir.method.class.clone();
@@ -166,9 +163,9 @@ impl JavaCall {
             }
             None => panic!(
                 "Native method not found: {}:{}:{}",
-                unsafe { std::str::from_utf8_unchecked(&package) },
-                unsafe { std::str::from_utf8_unchecked(&name) },
-                unsafe { std::str::from_utf8_unchecked(&desc) },
+                unsafe { std::str::from_utf8_unchecked(package) },
+                unsafe { std::str::from_utf8_unchecked(name) },
+                unsafe { std::str::from_utf8_unchecked(desc) },
             ),
         };
 

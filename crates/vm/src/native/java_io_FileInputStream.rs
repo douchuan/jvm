@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::new_br;
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
+use crate::util;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -131,13 +131,13 @@ fn set_file_descriptor_fd(fin: &Oop, fd: i32) {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("fd"), new_br("Ljava/io/FileDescriptor;"), false);
+        let id = cls.get_field_id(util::S_FD.clone(), util::S_JAVA_IO_FD.clone(), false);
         Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(new_br("fd"), new_br("I"), false);
+    let id = cls.get_field_id(util::S_FD.clone(), util::S_I.clone(), false);
     Class::put_field_value(fd_this.extract_ref(), id, Oop::new_int(fd));
 }
 
@@ -145,14 +145,14 @@ fn get_file_descriptor_fd(fin: &Oop) -> i32 {
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let fd_this = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("fd"), new_br("Ljava/io/FileDescriptor;"), false);
+        let id = cls.get_field_id(util::S_FD.clone(), util::S_JAVA_IO_FD.clone(), false);
         Class::get_field_value(fin.extract_ref(), id)
     };
 
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let fd = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("fd"), new_br("I"), false);
+        let id = cls.get_field_id(util::S_FD.clone(), util::S_I.clone(), false);
         Class::get_field_value(fd_this.extract_ref(), id)
     };
 

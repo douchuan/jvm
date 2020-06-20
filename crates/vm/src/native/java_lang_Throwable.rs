@@ -84,12 +84,10 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
             (caller.mir.clone(), pc)
         };
 
-        let cls_name = mir.method.class.get_class().name.clone();
-        let cls_name = Vec::from(cls_name.as_slice());
-        let cls_name = unsafe { String::from_utf8_unchecked(cls_name) };
+        let cls = mir.method.class.get_class();
+        let cls_name = unsafe {std::str::from_utf8_unchecked(cls.name.as_slice())};
         let cls_name = cls_name.replace("/", ".");
-        let method_name = mir.method.name.clone();
-        let method_name = unsafe { std::str::from_utf8_unchecked(method_name.as_slice()) };
+        let method_name = unsafe { std::str::from_utf8_unchecked(mir.method.name.as_slice()) };
         let src_file = {
             let cls = mir.method.class.get_class();
             cls.get_source_file()
@@ -107,7 +105,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
         let args = vec![
             elm.clone(),
             util::oop::new_java_lang_string2(&cls_name),
-            util::oop::new_java_lang_string2(&method_name),
+            util::oop::new_java_lang_string2(method_name),
             src_file,
             Oop::new_int(line_num),
         ];

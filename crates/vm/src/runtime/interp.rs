@@ -647,8 +647,8 @@ impl<'a> Interp<'a> {
                             //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
 
                             let obj_cls = mirror.target.clone().unwrap();
-                            let target_name = { target_cls.get_class().name.clone() };
-                            let r = target_name.as_slice() == b"java/lang/Class"
+                            let target_name = target_cls.get_class().name.as_slice();
+                            let r = target_name == b"java/lang/Class"
                                 || cmp::instance_of(obj_cls.clone(), target_cls.clone());
 
                             if is_cast {

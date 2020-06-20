@@ -59,18 +59,14 @@ fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
 fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap().clone();
-    let cls = {
+    let clazz = {
         let rf = thread_oop.extract_ref();
         let inst = rf.extract_inst();
         inst.class.clone()
     };
 
-    let name = {
-        let cls = cls.get_class();
-        cls.name.clone()
-    };
-
-    if name.as_slice() == "java/lang/ref/Reference$ReferenceHandler".as_bytes() {
+    let cls = clazz.get_class();
+    if cls.name.as_slice() == "java/lang/ref/Reference$ReferenceHandler".as_bytes() {
         Ok(None)
     } else {
         let vm = vm::get_vm();
@@ -86,9 +82,8 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
                 *t.borrow_mut() = current_thread;
             });
 
+            let cls = clazz.get_class();
             let mir = {
-                let cls = cls.get_class();
-
                 //setup eetop
                 let eetop = jt.read().unwrap().eetop;
                 let fid = cls.get_field_id(new_br("eetop"), new_br("J"), false);

@@ -746,18 +746,15 @@ impl Class {
     }
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
-        let (name, cls_kind) = {
-            let cls = down_type.get_class();
-            assert!(cls.is_array());
-            (cls.name.clone(), cls.get_class_kind_type())
-        };
+        let cls = down_type.get_class();
+        assert!(cls.is_array());
 
         //build name
-        let mut name2 = Vec::with_capacity(1 + name.len());
+        let mut name2 = Vec::with_capacity(1 + cls.name.len());
         name2.push(b'[');
-        name2.extend_from_slice(&name);
+        name2.extend_from_slice(cls.name.as_slice());
 
-        let kind = match cls_kind {
+        let kind = match cls.get_class_kind_type() {
             ClassKindType::Instance => unreachable!(),
             ClassKindType::TypAry => ClassKind::TypeArray(ArrayClassObject {
                 value_type: ValueType::ARRAY,
