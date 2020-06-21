@@ -452,7 +452,7 @@ impl<'a> Interp<'a> {
             class.get_static_field_value(fir.clone())
         } else {
             let rf = receiver.extract_ref();
-            Class::get_field_value(rf, fir.clone())
+            Class::get_field_value2(rf, fir.offset)
         };
 
         match value_type {
@@ -547,7 +547,7 @@ impl<'a> Interp<'a> {
             };
             match receiver {
                 Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-                _ => Class::put_field_value(receiver.extract_ref(), fir.clone(), v),
+                _ => Class::put_field_value2(receiver.extract_ref(), fir.offset, v),
             }
         }
     }
