@@ -4,6 +4,7 @@ use crate::types::ClassRef;
 use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
+use class_parser::MethodSignature;
 use classfile::{
     attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, types::U2,
     AttributeType, BytesRef, ConstantPool, FieldInfo, MethodInfo,
@@ -13,7 +14,6 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
-use class_parser::MethodSignature;
 
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);

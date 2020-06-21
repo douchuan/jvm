@@ -9,7 +9,7 @@ use classfile::{
     constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, types::U2, AttributeType, BytesRef,
 };
 use std::collections::HashMap;
-use std::fmt::{self, Error, Formatter, Debug};
+use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
@@ -60,7 +60,7 @@ impl ClassPtr {
 impl Debug for ClassPtr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let cls = self.get_class();
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice())};
+        let cls_name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice()) };
         let cls_name = cls_name.to_string();
         let cls_kind_type = format!("{:?}", cls.get_class_kind_type());
         let cls_state = format!("{:?}", cls.get_class_state());

@@ -121,7 +121,10 @@ impl Field {
 
         let mut attr_constant_value = None;
         for it in fi.attrs.iter() {
-            if let AttributeType::ConstantValue { constant_value_index } = it {
+            if let AttributeType::ConstantValue {
+                constant_value_index,
+            } = it
+            {
                 let v = Self::constant_value(cp, *constant_value_index as usize);
                 attr_constant_value = Some(v);
                 break;
@@ -196,8 +199,7 @@ impl Field {
     fn constant_value(cp: &ConstantPool, v_idx: usize) -> Oop {
         match cp.get(v_idx) {
             Some(ConstantPoolType::Long { v }) => {
-                let v =
-                    i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                 Oop::new_long(v)
             }
             Some(ConstantPoolType::Float { v }) => {
@@ -206,8 +208,7 @@ impl Field {
                 Oop::new_float(v)
             }
             Some(ConstantPoolType::Double { v }) => {
-                let v =
-                    u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
                 let v = f64::from_bits(v);
                 Oop::new_double(v)
             }

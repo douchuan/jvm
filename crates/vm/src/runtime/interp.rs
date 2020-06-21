@@ -19,8 +19,8 @@ use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::{Arc, RwLockReadGuard};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, RwLockReadGuard};
 
 macro_rules! array_store {
     ($ary:ident, $pos:ident, $v:ident) => {
@@ -2987,7 +2987,7 @@ impl<'a> Interp<'a> {
             }
             _ => {
                 let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-            },
+            }
         }
     }
 
@@ -2999,7 +2999,7 @@ impl<'a> Interp<'a> {
         match v {
             Oop::Null => {
                 let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-            },
+            }
             _ => {
                 drop(area);
                 self.goto_by_offset_hardcoded(2)
