@@ -4,6 +4,7 @@ mod class_loader;
 mod class_path_manager;
 pub mod cmp;
 mod consts;
+mod constant_pool;
 mod dataarea;
 pub mod exception;
 mod frame;
@@ -24,6 +25,7 @@ pub use class_path_manager::{
     find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use consts::THREAD_MAX_STACK_FRAMES;
+pub use constant_pool::ConstantPoolCache;
 pub use dataarea::DataArea;
 pub use frame::Frame;
 pub use interp::Interp;

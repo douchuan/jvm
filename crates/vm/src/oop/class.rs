@@ -1,7 +1,7 @@
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, OopRef, RefKindDesc, ValueType};
 use crate::runtime::thread::ReentrantMutex;
-use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread};
+use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, ConstantPoolCache};
 use crate::types::*;
 use crate::util;
 use classfile::{
@@ -172,6 +172,8 @@ pub struct ClassObject {
     pub source_file: Option<BytesRef>,
     pub enclosing_method: Option<EnclosingMethod>,
     pub inner_classes: Option<Vec<InnerClass>>,
+
+    pub cp_cache: ConstantPoolCache,
 }
 
 pub struct ArrayClassObject {
@@ -637,8 +639,8 @@ impl Class {
 //open api new
 impl Class {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
-        let cp = &class_file.cp;
-        let name = constant_pool::get_class_name(cp, class_file.this_class as usize).unwrap();
+        let cp = class_file.cp.clone();
+        let name = constant_pool::get_class_name(&cp, class_file.this_class as usize).unwrap();
         let acc_flags = class_file.acc_flags;
         let class_obj = ClassObject {
             class_file,
@@ -654,6 +656,7 @@ impl Class {
             source_file: None,
             enclosing_method: None,
             inner_classes: None,
+            cp_cache: ConstantPoolCache::new(cp),
         };
 
         let mutex = unsafe {

@@ -432,7 +432,8 @@ impl<'a> Interp<'a> {
     }
 
     fn get_field_helper(&self, receiver: Oop, idx: usize, is_static: bool) {
-        let fir = { field::get_field_ref(&self.frame.cp, idx, is_static) };
+        let class = self.frame.class.extract_inst();
+        let fir = class.cp_cache.get_field(idx, is_static);
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -489,7 +490,8 @@ impl<'a> Interp<'a> {
     }
 
     fn put_field_helper(&self, idx: usize, is_static: bool) {
-        let fir = { field::get_field_ref(&self.frame.cp, idx, is_static) };
+        let class = self.frame.class.extract_inst();
+        let fir = class.cp_cache.get_field(idx, is_static);
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -545,17 +547,11 @@ impl<'a> Interp<'a> {
     }
 
     fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool) {
-        let mir = { oop::method::get_method_ref(&self.frame.cp, idx) };
-
-        match mir {
-            Ok(mir) => {
-                assert_eq!(mir.method.is_static(), is_static);
-
-                if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
-                    jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
-                }
-            }
-            Err(_) => unreachable!("NotFound method"),
+        let class = self.frame.class.extract_inst();
+        let mir = class.cp_cache.get_method(idx);
+        assert_eq!(mir.method.is_static(), is_static);
+        if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
+            jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
         }
     }
 
