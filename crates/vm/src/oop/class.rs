@@ -55,6 +55,14 @@ impl ClassPtr {
         let ptr = self.raw_mut_ptr();
         unsafe { &mut (*ptr) }
     }
+
+    pub fn extract_inst(&self) -> &ClassObject {
+        let class = self.get_class();
+        match &class.kind {
+            oop::ClassKind::Instance(cls_obj) => cls_obj,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Debug for ClassPtr {

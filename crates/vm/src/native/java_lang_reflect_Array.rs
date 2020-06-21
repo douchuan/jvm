@@ -68,17 +68,17 @@ fn build_ary_name(vt: ValueType, component_cls: Option<ClassRef>) -> Vec<u8> {
         ValueType::OBJECT | ValueType::ARRAY => {
             let cls = component_cls.unwrap();
             let cls = cls.get_class();
-            match cls.kind {
-                oop::ClassKind::Instance(_) => {
+            match cls.get_class_kind_type() {
+                oop::class::ClassKindType::Instance => {
                     name.extend_from_slice(b"L");
                     name.extend_from_slice(cls.name.as_slice());
                     name.extend_from_slice(b";");
                 }
-                oop::ClassKind::ObjectArray(_) => {
+                oop::class::ClassKindType::ObjectAry => {
                     name.extend_from_slice(cls.name.as_slice());
                     name.extend_from_slice(b";");
                 }
-                oop::ClassKind::TypeArray(_) => unimplemented!(),
+                oop::class::ClassKindType::TypAry => unimplemented!(),
             }
         }
 

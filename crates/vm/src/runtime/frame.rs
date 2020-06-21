@@ -27,11 +27,8 @@ impl Frame {
     pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
         let class = mir.method.class.clone();
         let cp = {
-            let class = class.get_class();
-            match &class.kind {
-                oop::ClassKind::Instance(cls_obj) => cls_obj.class_file.cp.clone(),
-                _ => unreachable!(),
-            }
+            let cls_obj = class.extract_inst();
+            cls_obj.class_file.cp.clone()
         };
 
         // trace!("method.code.is_some = {}", mir.method.code.is_some());

@@ -289,13 +289,8 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     //fixme: super fields
     //obtain inst&static fields
     let (inst_fields, static_fields) = {
-        let cls = mirror_target.get_class();
-        match &cls.kind {
-            oop::class::ClassKind::Instance(inst) => {
-                (inst.inst_fields.clone(), inst.static_fields.clone())
-            }
-            _ => unreachable!(),
-        }
+        let inst = mirror_target.extract_inst();
+        (inst.inst_fields.clone(), inst.static_fields.clone())
     };
 
     //build fields ary
@@ -524,10 +519,9 @@ fn jvm_isArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     };
 
     let cls = mirror_cls.get_class();
-    let v = match cls.kind {
-        oop::class::ClassKind::Instance(_) => 0,
-        oop::class::ClassKind::TypeArray(_) => 1,
-        ClassKind::ObjectArray(_) => 1,
+    let v = match cls.get_class_kind_type() {
+        oop::class::ClassKindType::Instance => 0,
+        _ => 1,
     };
 
     Ok(Some(Oop::new_int(v)))
