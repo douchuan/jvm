@@ -20,7 +20,7 @@ export RUST_BACKTRACE=full
 
 ### My Test
 #cargo run -- --cp $JDK:$MY_TEST Add
-cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
+#cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #cargo run -- --cp $JDK:$MY_TEST HelloWorldUnicode
 #cargo run -- --cp $JDK:$MY_TEST Ex
 #cargo run -- --cp $JDK:$MY_TEST MyFile
@@ -113,14 +113,14 @@ cargo run -- --cp $JDK:$MY_TEST HelloWorld 123 456 789
 #sum_t_int2integer = 13
 #################################
 ### mine release mode
-#sum_t_list_add = 5494
-#sum_t_map_get = 123
+#sum_t_list_add = 3313
+#sum_t_map_get = 77
 #sum_t_map_put = 8
-#sum_t_parse_int = 626
-#sum_t_println = 3059
-#sum_t_int2integer = 3201
+#sum_t_parse_int = 455
+#sum_t_println = 1901
+#sum_t_int2integer = 2379
 export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
-#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp1
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript

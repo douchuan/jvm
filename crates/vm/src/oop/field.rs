@@ -107,11 +107,8 @@ pub struct Field {
     pub cls_name: BytesRef,
     pub name: BytesRef,
     pub desc: BytesRef,
-
     pub acc_flags: U2,
-
     pub value_type: ValueType,
-
     pub attr_constant_value: Option<Oop>,
 }
 
@@ -120,61 +117,16 @@ impl Field {
         let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
         let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
         let value_type = desc.first().unwrap().into();
-
         let acc_flags = fi.acc_flags;
 
         let mut attr_constant_value = None;
-        fi.attrs.iter().for_each(|a| {
-            if let AttributeType::ConstantValue {
-                constant_value_index,
-            } = a
-            {
-                match cp.get(*constant_value_index as usize) {
-                    Some(ConstantPoolType::Long { v }) => {
-                        let v =
-                            i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                        let v = Oop::new_long(v);
-                        attr_constant_value = Some(v);
-                    }
-                    Some(ConstantPoolType::Float { v }) => {
-                        let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                        let v = f32::from_bits(v);
-                        let v = Oop::new_float(v);
-                        attr_constant_value = Some(v);
-                    }
-                    Some(ConstantPoolType::Double { v }) => {
-                        let v =
-                            u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                        let v = f64::from_bits(v);
-                        let v = Oop::new_double(v);
-                        attr_constant_value = Some(v);
-                    }
-                    Some(ConstantPoolType::Integer { v }) => {
-                        let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                        let v = Oop::new_int(v);
-                        attr_constant_value = Some(v);
-                    }
-                    //                    此处没有javathread，如何创建String?
-                    Some(ConstantPoolType::String { string_index }) => {
-                        if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
-                            //                            println!("field const value = {}", String::from_utf8_lossy(v.as_slice()));
-                            let v = Oop::new_const_utf8(v);
-                            attr_constant_value = Some(v);
-                        }
-                    }
-                    _ => unreachable!(),
-                }
+        for it in fi.attrs.iter() {
+            if let AttributeType::ConstantValue { constant_value_index } = it {
+                let v = Self::constant_value(cp, *constant_value_index as usize);
+                attr_constant_value = Some(v);
+                break;
             }
-        });
-
-        /*
-        trace!("field cls={}, name={} desc={}, value_type={:?}, constant_value={:?}",
-               String::from_utf8_lossy(class_name),
-               String::from_utf8_lossy(name.as_slice()),
-               String::from_utf8_lossy(desc.as_slice()),
-               value_type,
-        attr_constant_value);
-        */
+        }
 
         Self {
             class,
@@ -237,5 +189,40 @@ impl fmt::Debug for Field {
         let name = unsafe { std::str::from_utf8_unchecked(self.name.as_slice()) };
         let desc = unsafe { std::str::from_utf8_unchecked(self.desc.as_slice()) };
         write!(f, "{}:{}:{}", cls_name, name, desc)
+    }
+}
+
+impl Field {
+    fn constant_value(cp: &ConstantPool, v_idx: usize) -> Oop {
+        match cp.get(v_idx) {
+            Some(ConstantPoolType::Long { v }) => {
+                let v =
+                    i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                Oop::new_long(v)
+            }
+            Some(ConstantPoolType::Float { v }) => {
+                let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                let v = f32::from_bits(v);
+                Oop::new_float(v)
+            }
+            Some(ConstantPoolType::Double { v }) => {
+                let v =
+                    u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+                let v = f64::from_bits(v);
+                Oop::new_double(v)
+            }
+            Some(ConstantPoolType::Integer { v }) => {
+                let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+                Oop::new_int(v)
+            }
+            Some(ConstantPoolType::String { string_index }) => {
+                if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
+                    Oop::new_const_utf8(v)
+                } else {
+                    unreachable!()
+                }
+            }
+            _ => unreachable!(),
+        }
     }
 }
