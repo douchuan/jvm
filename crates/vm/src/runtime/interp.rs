@@ -431,8 +431,8 @@ impl<'a> Interp<'a> {
         area.return_v = v;
     }
 
-    fn get_field_helper(&self, receiver: Oop, idx: i32, is_static: bool) {
-        let fir = { field::get_field_ref(&self.frame.cp, idx as usize, is_static) };
+    fn get_field_helper(&self, receiver: Oop, idx: usize, is_static: bool) {
+        let fir = { field::get_field_ref(&self.frame.cp, idx, is_static) };
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -488,8 +488,8 @@ impl<'a> Interp<'a> {
         }
     }
 
-    fn put_field_helper(&self, idx: i32, is_static: bool) {
-        let fir = { field::get_field_ref(&self.frame.cp, idx as usize, is_static) };
+    fn put_field_helper(&self, idx: usize, is_static: bool) {
+        let fir = { field::get_field_ref(&self.frame.cp, idx, is_static) };
 
         assert_eq!(fir.field.is_static(), is_static);
 
@@ -2671,19 +2671,19 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn get_static(&self) {
-        let cp_idx = self.read_i2();
+        let cp_idx = self.read_u2();
         self.get_field_helper(oop_consts::get_null(), cp_idx, true);
     }
 
     #[inline]
     pub fn put_static(&self) {
-        let cp_idx = self.read_i2();
+        let cp_idx = self.read_u2();
         self.put_field_helper(cp_idx, true);
     }
 
     #[inline]
     pub fn get_field(&self) {
-        let cp_idx = self.read_i2();
+        let idx = self.read_u2();
 
         let mut area = self.frame.area.write().unwrap();
         let rf = area.stack.pop_ref();
@@ -2694,38 +2694,38 @@ impl<'a> Interp<'a> {
                 exception::meet_ex(cls_const::J_NPE, None);
             }
             _ => {
-                self.get_field_helper(rf, cp_idx, false);
+                self.get_field_helper(rf, idx, false);
             }
         }
     }
 
     #[inline]
     pub fn put_field(&self) {
-        let cp_idx = self.read_i2();
-        self.put_field_helper(cp_idx, false);
+        let idx = self.read_u2();
+        self.put_field_helper(idx, false);
     }
 
     #[inline]
     pub fn invoke_virtual(&self) {
-        let cp_idx = self.read_i2();
-        self.invoke_helper(false, cp_idx as usize, false);
+        let idx = self.read_u2();
+        self.invoke_helper(false, idx, false);
     }
 
     #[inline]
     pub fn invoke_special(&self) {
-        let cp_idx = self.read_i2();
-        self.invoke_helper(false, cp_idx as usize, true);
+        let idx = self.read_u2();
+        self.invoke_helper(false, idx, true);
     }
 
     #[inline]
     pub fn invoke_static(&self) {
-        let cp_idx = self.read_i2();
-        self.invoke_helper(true, cp_idx as usize, true);
+        let idx = self.read_u2();
+        self.invoke_helper(true, idx, true);
     }
 
     #[inline]
     pub fn invoke_interface(&self) {
-        let cp_idx = self.read_i2();
+        let cp_idx = self.read_u2();
         let _count = self.read_u1();
         let zero = self.read_u1();
 
@@ -2733,7 +2733,7 @@ impl<'a> Interp<'a> {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
 
-        self.invoke_helper(false, cp_idx as usize, false);
+        self.invoke_helper(false, cp_idx, false);
     }
 
     #[inline]
@@ -2744,10 +2744,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn new_(&self) {
-        let cp_idx = self.read_i2();
+        let idx = self.read_u2();
 
         let class = {
-            match runtime::require_class2(cp_idx as u16, &self.frame.cp) {
+            match runtime::require_class2(idx as u16, &self.frame.cp) {
                 Some(class) => {
                     oop::class::init_class(&class);
                     oop::class::init_class_fully(&class);
