@@ -6,6 +6,8 @@ use crate::runtime::require_class3;
 use crate::{new_br, util};
 use std::fs;
 
+static mut FILE_PATH: usize = 0;
+
 //FileSystem.java define
 const BA_EXISTS: i32 = 0x01;
 const BA_REGULAR: i32 = 0x02;
@@ -42,6 +44,13 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+    let cls = require_class3(None, b"java/io/File").unwrap();
+    let cls = cls.get_class();
+    let fir = cls.get_field_id(new_br("path"), new_br("Ljava/lang/String;"), false);
+    unsafe {
+        FILE_PATH = fir.offset;
+    }
+
     Ok(None)
 }
 
@@ -123,11 +132,7 @@ fn jvm_createFileExclusively(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 fn get_File_path(file: &Oop) -> String {
-    let cls = require_class3(None, b"java/io/File").unwrap();
-    let path = {
-        let cls = cls.get_class();
-        let fir = cls.get_field_id(new_br("path"), new_br("Ljava/lang/String;"), false);
-        Class::get_field_value(file.extract_ref(), fir)
-    };
+    let offset = unsafe { FILE_PATH };
+    let path = Class::get_field_value2(file.extract_ref(), offset);
     OopRef::java_lang_string(path.extract_ref())
 }
