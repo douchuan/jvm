@@ -7,7 +7,6 @@ pub struct Local {
     locals: Vec<Slot>,
 }
 
-// Add type information, set_xx is detected
 impl Local {
     pub fn new(size: usize) -> Self {
         let size = size + 1;

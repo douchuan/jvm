@@ -13,8 +13,3 @@ vm = { path = "../crates/vm", version = "0.1.0" }
 [dev-dependencies]
 classfile = { path = "../crates/classfile", version = "0.1.0" }
 libc = "0.2.71"
-
-[profile.release]
-lto = "fat"
-codegen-units = 1
-panic = "abort"

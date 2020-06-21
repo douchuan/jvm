@@ -7,3 +7,9 @@ members = [
   "crates/vm",
   "tools/javap"
 ]
+
+#https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
