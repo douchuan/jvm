@@ -351,15 +351,13 @@ impl<'a> Interp<'a> {
     #[inline]
     fn read_byte(&self) -> u8 {
         let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        let v = self.frame.code[pc as usize];
-        v
+        self.frame.code[pc as usize]
     }
 
     #[inline]
     fn read_opcode(&self) -> Option<&U1> {
         let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        let v = self.frame.code.get(pc as usize);
-        v
+        self.frame.code.get(pc as usize)
     }
 
     #[inline]
@@ -2953,8 +2951,6 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn wide(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        info!("opcode wide");
         self.frame.op_widen.store(true, Ordering::Relaxed);
     }
 
