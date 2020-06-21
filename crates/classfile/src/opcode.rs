@@ -430,6 +430,7 @@ lazy_static! {
 }
 
 impl From<u8> for OpCode {
+    #[inline]
     fn from(v: u8) -> Self {
         match CODES.get(v as usize) {
             Some(op) => *op,
