@@ -12,7 +12,6 @@ use std::sync::{Arc, Mutex};
 pub struct JavaCall {
     pub mir: MethodIdRef,
     pub args: Vec<Oop>,
-    pub return_type: SignatureType,
 }
 
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
@@ -28,17 +27,13 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
 
 impl JavaCall {
     pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
-        let return_type = mir.method.signature.retype.clone();
         Self {
             mir,
             args,
-            return_type,
         }
     }
 
     pub fn new(caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        let return_type = mir.method.signature.retype.clone();
-
         let mut args = build_method_args(caller.clone(), &mir.method.signature);
         args.reverse();
 
@@ -75,7 +70,6 @@ impl JavaCall {
         Ok(Self {
             mir,
             args,
-            return_type,
         })
     }
 }
@@ -124,7 +118,7 @@ impl JavaCall {
                         let area = frame.area.read().unwrap();
                         area.return_v.clone()
                     };
-                    set_return(caller, self.return_type.clone(), return_value);
+                    set_return(caller, &self.mir.method.signature.retype, return_value);
                 }
             }
 
@@ -170,7 +164,7 @@ impl JavaCall {
         match v {
             Ok(v) => {
                 if !jt.read().unwrap().is_meet_ex() {
-                    set_return(caller, self.return_type.clone(), v);
+                    set_return(caller, &self.mir.method.signature.retype, v);
                 }
             }
             Err(ex) => jt.write().unwrap().set_ex(ex),
@@ -353,7 +347,7 @@ fn build_method_args(area: DataAreaRef, sig: &MethodSignature) -> Vec<Oop> {
         .collect()
 }
 
-pub fn set_return(caller: Option<DataAreaRef>, return_type: SignatureType, v: Option<Oop>) {
+pub fn set_return(caller: Option<DataAreaRef>, return_type: &SignatureType, v: Option<Oop>) {
     match return_type {
         SignatureType::Byte
         | SignatureType::Short

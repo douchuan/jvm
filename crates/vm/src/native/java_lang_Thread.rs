@@ -96,10 +96,9 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 
             //invoke 'run'
             let mut jc = JavaCall::new_with_args(mir, args);
-            let area = runtime::DataArea::new(0, 0);
             jt.write().unwrap().is_alive = true;
             jt.write().unwrap().java_thread_obj = Some(thread_oop.clone());
-            jc.invoke(Some(area), false);
+            jc.invoke(None, false);
             jt.write().unwrap().is_alive = false;
 
             //notify thread that invoke 'join'

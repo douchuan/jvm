@@ -79,11 +79,9 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let area = runtime::DataArea::new(0, 0);
     jc.invoke(Some(area.clone()), force_no_resolve);
 
-    // error!("invoke0 return_type = {:?}, desc={}", jc.return_type, String::from_utf8_lossy(mir.method.desc.as_slice()));
-
     let r = {
         let mut area = area.write().unwrap();
-        match jc.return_type {
+        match jc.mir.method.signature.retype {
             SignatureType::Byte
             | SignatureType::Char
             | SignatureType::Boolean

@@ -61,17 +61,11 @@ impl MainThread {
         let jt = runtime::thread::current_java_thread();
         match mir {
             Ok(mir) => {
-                let arg = self.build_main_arg();
-                let area = DataArea::new(0, 1);
-                area.write().unwrap().stack.push_ref(arg);
-                match JavaCall::new(area.clone(), mir) {
-                    Ok(mut jc) => {
-                        jt.write().unwrap().is_alive = true;
-                        jc.invoke(Some(area), true);
-                        jt.write().unwrap().is_alive = false;
-                    }
-                    _ => unreachable!(),
-                }
+                let args = self.build_main_arg();
+                let mut jc = JavaCall::new_with_args(mir, args);
+                jt.write().unwrap().is_alive = true;
+                jc.invoke(None, true);
+                jt.write().unwrap().is_alive = false;
             }
             _ => unreachable!("NotFound \"main\""),
         }
@@ -88,7 +82,7 @@ impl MainThread {
 }
 
 impl MainThread {
-    fn build_main_arg(&self) -> Oop {
+    fn build_main_arg(&self) -> Vec<Oop> {
         let args = match &self.args {
             Some(args) => args
                 .iter()
@@ -99,7 +93,7 @@ impl MainThread {
 
         //build ArrayOopDesc
         let ary_str_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
-        Oop::new_ref_ary2(ary_str_class, args)
+        vec![Oop::new_ref_ary2(ary_str_class, args)]
     }
 
     fn uncaught_ex(&mut self, main_cls: ClassRef) {
@@ -141,8 +135,7 @@ impl MainThread {
                         };
                         let args = vec![v, ex];
                         let mut jc = JavaCall::new_with_args(mir, args);
-                        let area = runtime::DataArea::new(0, 0);
-                        jc.invoke(Some(area), false);
+                        jc.invoke(None, false);
                     }
                     _ => self.uncaught_ex_internal(),
                 }

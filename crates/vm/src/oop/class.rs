@@ -231,9 +231,8 @@ pub fn init_class_fully(class: &ClassRef) {
             info!("call {}:<clinit>", unsafe {
                 std::str::from_utf8_unchecked(name.as_slice())
             });
-            let area = runtime::DataArea::new(0, 0);
             let mut jc = JavaCall::new_with_args(mir, vec![]);
-            jc.invoke(Some(area), true);
+            jc.invoke(None, true);
         }
     }
 }

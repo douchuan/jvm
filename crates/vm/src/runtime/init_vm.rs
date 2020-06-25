@@ -90,8 +90,7 @@ pub fn initialize_jvm() {
             .unwrap()
     };
     let mut jc = runtime::invoke::JavaCall::new_with_args(init_system_classes_method, vec![]);
-    let area = runtime::DataArea::new(0, 0);
-    jc.invoke(Some(area), false);
+    jc.invoke(None, false);
 
     //todo: re-enable sun.security.util.Debug
 
