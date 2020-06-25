@@ -75,6 +75,7 @@ impl JavaCall {
 }
 
 impl JavaCall {
+    //the 'caller' for store return value
     pub fn invoke(&mut self, caller: Option<DataAreaRef>, force_no_resolve: bool) {
         /*
         Do resolve again first, because you can override in a native way such as:

@@ -549,9 +549,13 @@ impl<'a> Interp<'a> {
     fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool) {
         let class = self.frame.class.extract_inst();
         let mir = class.cp_cache.get_method(idx);
+        let caller = match &mir.method.signature.retype {
+            classfile::SignatureType::Void => None,
+            _ => Some(self.frame.area.clone())
+        };
         assert_eq!(mir.method.is_static(), is_static);
         if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
-            jc.invoke(Some(self.frame.area.clone()), force_no_resolve);
+            jc.invoke(caller, force_no_resolve);
         }
     }
 
