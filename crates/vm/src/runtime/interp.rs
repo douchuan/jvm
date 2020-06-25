@@ -551,7 +551,7 @@ impl<'a> Interp<'a> {
         let mir = class.cp_cache.get_method(idx);
         let caller = match &mir.method.signature.retype {
             classfile::SignatureType::Void => None,
-            _ => Some(self.frame.area.clone())
+            _ => Some(self.frame.area.clone()),
         };
         assert_eq!(mir.method.is_static(), is_static);
         if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {

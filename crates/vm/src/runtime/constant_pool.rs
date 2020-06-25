@@ -1,27 +1,27 @@
-use crate::types::{FieldIdRef, MethodIdRef};
-use std::collections::HashMap;
-use std::cell::RefCell;
-use classfile::ConstantPool;
-use crate::oop::field;
 use crate::oop;
+use crate::oop::field;
+use crate::types::{FieldIdRef, MethodIdRef};
+use classfile::ConstantPool;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 enum CacheType {
     Field(FieldIdRef),
-    Method(MethodIdRef)
+    Method(MethodIdRef),
 }
 
 impl CacheType {
     fn extract_field(&self) -> FieldIdRef {
         match self {
             CacheType::Field(fid) => fid.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
     fn extract_method(&self) -> MethodIdRef {
         match self {
             CacheType::Method(mid) => mid.clone(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -35,7 +35,7 @@ impl ConstantPoolCache {
     pub fn new(cp: ConstantPool) -> Self {
         Self {
             cp,
-            cache: RefCell::new(HashMap::new())
+            cache: RefCell::new(HashMap::new()),
         }
     }
 
@@ -83,6 +83,3 @@ impl ConstantPoolCache {
         m
     }
 }
-
-
-

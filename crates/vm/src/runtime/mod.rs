@@ -3,8 +3,8 @@
 mod class_loader;
 mod class_path_manager;
 pub mod cmp;
-mod consts;
 mod constant_pool;
+mod consts;
 mod dataarea;
 pub mod exception;
 mod frame;
@@ -24,8 +24,8 @@ pub use class_path_manager::{
     add_path as add_class_path, add_paths as add_class_paths,
     find_class as find_class_in_classpath, ClassPathResult,
 };
-pub use consts::THREAD_MAX_STACK_FRAMES;
 pub use constant_pool::ConstantPoolCache;
+pub use consts::THREAD_MAX_STACK_FRAMES;
 pub use dataarea::DataArea;
 pub use frame::Frame;
 pub use interp::Interp;

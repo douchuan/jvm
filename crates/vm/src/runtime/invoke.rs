@@ -27,15 +27,11 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
 
 impl JavaCall {
     pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
-        Self {
-            mir,
-            args,
-        }
+        Self { mir, args }
     }
 
     pub fn new(caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
-        let mut args = build_method_args(caller.clone(), &mir.method.signature);
-        args.reverse();
+        let mut args = build_args_from_caller_stack(&caller, &mir.method.signature);
 
         //insert 'this' value
         let has_this = !mir.method.is_static();
@@ -67,10 +63,7 @@ impl JavaCall {
             args.insert(0, this);
         }
 
-        Ok(Self {
-            mir,
-            args,
-        })
+        Ok(Self { mir, args })
     }
 }
 
@@ -309,43 +302,44 @@ impl JavaCall {
     }
 }
 
-fn build_method_args(area: DataAreaRef, sig: &MethodSignature) -> Vec<Oop> {
-    //Note: iter args by reverse, because of stack
-    sig.args
-        .iter()
-        .rev()
-        .map(|t| match t {
+fn build_args_from_caller_stack(caller: &DataAreaRef, sig: &MethodSignature) -> Vec<Oop> {
+    let mut caller = caller.write().unwrap();
+    let mut args = Vec::new();
+
+    //build args from caller's stack, so should rev the signature args
+    for it in sig.args.iter().rev() {
+        let v = match it {
             SignatureType::Byte
             | SignatureType::Boolean
             | SignatureType::Int
             | SignatureType::Char
             | SignatureType::Short => {
-                let mut area = area.write().unwrap();
-                let v = area.stack.pop_int();
+                let v = caller.stack.pop_int();
                 Oop::new_int(v)
             }
             SignatureType::Long => {
-                let mut area = area.write().unwrap();
-                let v = area.stack.pop_long();
+                let v = caller.stack.pop_long();
                 Oop::new_long(v)
             }
             SignatureType::Float => {
-                let mut area = area.write().unwrap();
-                let v = area.stack.pop_float();
+                let v = caller.stack.pop_float();
                 Oop::new_float(v)
             }
             SignatureType::Double => {
-                let mut area = area.write().unwrap();
-                let v = area.stack.pop_double();
+                let v = caller.stack.pop_double();
                 Oop::new_double(v)
             }
-            SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
-                let mut area = area.write().unwrap();
-                area.stack.pop_ref()
-            }
+            SignatureType::Object(_, _, _) | SignatureType::Array(_) => caller.stack.pop_ref(),
             t => unreachable!("t = {:?}", t),
-        })
-        .collect()
+        };
+
+        args.push(v);
+    }
+
+    //the args built from caller's stack, should reverse args
+    args.reverse();
+
+    args
 }
 
 pub fn set_return(caller: Option<DataAreaRef>, return_type: &SignatureType, v: Option<Oop>) {

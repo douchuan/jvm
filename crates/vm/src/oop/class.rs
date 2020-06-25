@@ -1,7 +1,7 @@
 use crate::oop::method::MethodId;
 use crate::oop::{self, consts as oop_consts, field, method, Oop, OopRef, RefKindDesc, ValueType};
 use crate::runtime::thread::ReentrantMutex;
-use crate::runtime::{self, require_class2, ClassLoader, JavaCall, JavaThread, ConstantPoolCache};
+use crate::runtime::{self, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread};
 use crate::types::*;
 use crate::util;
 use classfile::{
