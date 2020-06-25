@@ -1,11 +1,10 @@
 use crate::oop::class::ClassPtr;
 use crate::oop::field::FieldId;
 use crate::oop::method::MethodId;
-use crate::runtime::DataArea;
 use crate::runtime::Frame;
 use crate::runtime::JavaThread;
 use classfile::ClassFile;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;

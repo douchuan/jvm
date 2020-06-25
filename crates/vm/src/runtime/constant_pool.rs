@@ -42,12 +42,12 @@ impl ConstantPoolCache {
     pub fn get_field(&self, idx: usize, is_static: bool) -> FieldIdRef {
         let cache = self.cache.borrow();
         let it = cache.get(&idx);
-        if it.is_none() {
-            drop(cache);
-            self.cache_field(idx, is_static)
-        } else {
-            let t = it.unwrap();
-            t.extract_field()
+        match it {
+            Some(it) => it.extract_field(),
+            None => {
+                drop(cache);
+                self.cache_field(idx, is_static)
+            }
         }
     }
 
@@ -64,12 +64,12 @@ impl ConstantPoolCache {
     pub fn get_method(&self, idx: usize) -> MethodIdRef {
         let cache = self.cache.borrow();
         let it = cache.get(&idx);
-        if it.is_none() {
-            drop(cache);
-            self.cache_method(idx)
-        } else {
-            let t = it.unwrap();
-            t.extract_method()
+        match it {
+            Some(it) => it.extract_method(),
+            None => {
+                drop(cache);
+                self.cache_method(idx)
+            }
         }
     }
 
