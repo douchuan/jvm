@@ -1,7 +1,7 @@
 use crate::oop::Oop;
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use crate::types::DataAreaRef;
+use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
 
 /*
@@ -22,20 +22,22 @@ The nature of RefCell makes this possible.
 In a read-only Frame context, to modify the DataArea, borrow_mut is fine.
 */
 pub struct DataArea {
-    pub local: Local,
-    pub stack: Stack,
-    pub return_v: Option<Oop>,
+    pub local: RefCell<Local>,
+    pub stack: RefCell<Stack>,
+    pub return_v: RefCell<Option<Oop>>,
 }
 
-impl DataArea {
-    pub fn new(max_locals: usize, max_stack: usize) -> DataAreaRef {
-        let local = Local::new(max_locals);
-        let stack = Stack::new(max_stack);
+unsafe impl Sync for DataArea {}
 
-        Arc::new(RwLock::new(DataArea {
+impl DataArea {
+    pub fn new(max_locals: usize, max_stack: usize) -> Self {
+        let local = RefCell::new(Local::new(max_locals));
+        let stack = RefCell::new(Stack::new(max_stack));
+
+        Self {
             local,
             stack,
-            return_v: None,
-        }))
+            return_v: RefCell::new(None),
+        }
     }
 }

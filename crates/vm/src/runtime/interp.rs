@@ -42,8 +42,7 @@ macro_rules! iarray_load {
             let msg = format!("length is {}, but index is {}", len, $pos);
             exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
         } else {
-            let stack = &mut ($area.stack);
-            stack.push_int($ary[$pos as usize] as i32);
+            $area.push_int($ary[$pos as usize] as i32);
         }
     };
 }
@@ -360,27 +359,27 @@ impl<'a> Interp<'a> {
     fn load_constant(&self, pos: usize) {
         match &self.frame.cp[pos] {
             ConstantPoolType::Integer { v } => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_int2(*v)
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_int2(*v)
             }
             ConstantPoolType::Float { v } => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_float2(*v)
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_float2(*v)
             }
             ConstantPoolType::Long { v } => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_long2(*v)
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_long2(*v)
             }
             ConstantPoolType::Double { v } => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_double2(*v)
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_double2(*v)
             }
             ConstantPoolType::String { string_index } => {
                 let s = get_cp_utf8(&self.frame.cp, *string_index as usize).unwrap();
                 let s = util::oop::new_java_lang_string3(s.as_slice());
 
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_ref(s);
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_ref(s);
             }
             ConstantPoolType::Class { name_index } => {
                 let name = get_cp_utf8(&self.frame.cp, *name_index as usize).unwrap();
@@ -392,8 +391,8 @@ impl<'a> Interp<'a> {
                 oop::class::init_class_fully(&class);
 
                 let mirror = { class.get_class().get_mirror() };
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_ref(mirror);
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_ref(mirror);
             }
             _ => unreachable!(),
         }
@@ -427,8 +426,8 @@ impl<'a> Interp<'a> {
     }
 
     fn set_return(&self, v: Option<Oop>) {
-        let mut area = self.frame.area.write().unwrap();
-        area.return_v = v;
+        let mut return_v = self.frame.area.return_v.borrow_mut();
+        *return_v = v;
     }
 
     fn get_field_helper(&self, receiver: Oop, idx: usize, is_static: bool) {
@@ -455,35 +454,35 @@ impl<'a> Interp<'a> {
             | ValueType::BOOLEAN
             | ValueType::BYTE => match v {
                 Oop::Int(v) => {
-                    let mut area = self.frame.area.write().unwrap();
-                    area.stack.push_int(v)
+                    let mut stack = self.frame.area.stack.borrow_mut();
+                    stack.push_int(v)
                 }
                 t => unreachable!("t = {:?}", t),
             },
             ValueType::FLOAT => match v {
                 Oop::Float(v) => {
-                    let mut area = self.frame.area.write().unwrap();
-                    area.stack.push_float(v)
+                    let mut stack = self.frame.area.stack.borrow_mut();
+                    stack.push_float(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::DOUBLE => match v {
                 Oop::Double(v) => {
-                    let mut area = self.frame.area.write().unwrap();
-                    area.stack.push_double(v)
+                    let mut stack = self.frame.area.stack.borrow_mut();
+                    stack.push_double(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::LONG => match v {
                 Oop::Long(v) => {
-                    let mut area = self.frame.area.write().unwrap();
-                    area.stack.push_long(v)
+                    let mut stack = self.frame.area.stack.borrow_mut();
+                    stack.push_long(v)
                 }
                 _ => unreachable!(),
             },
             ValueType::OBJECT | ValueType::ARRAY => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_ref(v)
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_ref(v)
             }
             _ => unreachable!(),
         }
@@ -505,28 +504,28 @@ impl<'a> Interp<'a> {
             | ValueType::CHAR
             | ValueType::BOOLEAN
             | ValueType::BYTE => {
-                let mut area = self.frame.area.write().unwrap();
-                let v = area.stack.pop_int();
+                let mut stack = self.frame.area.stack.borrow_mut();
+                let v = stack.pop_int();
                 Oop::new_int(v)
             }
             ValueType::FLOAT => {
-                let mut area = self.frame.area.write().unwrap();
-                let v = area.stack.pop_float();
+                let mut stack = self.frame.area.stack.borrow_mut();
+                let v = stack.pop_float();
                 Oop::new_float(v)
             }
             ValueType::DOUBLE => {
-                let mut area = self.frame.area.write().unwrap();
-                let v = area.stack.pop_double();
+                let mut stack = self.frame.area.stack.borrow_mut();
+                let v = stack.pop_double();
                 Oop::new_double(v)
             }
             ValueType::LONG => {
-                let mut area = self.frame.area.write().unwrap();
-                let v = area.stack.pop_long();
+                let mut stack = self.frame.area.stack.borrow_mut();
+                let v = stack.pop_long();
                 Oop::new_long(v)
             }
             ValueType::ARRAY | ValueType::OBJECT => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.pop_ref()
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.pop_ref()
             }
             _ => unreachable!(),
         };
@@ -536,8 +535,8 @@ impl<'a> Interp<'a> {
             class.put_static_field_value(fir.clone(), v);
         } else {
             let receiver = {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.pop_ref()
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.pop_ref()
             };
             match receiver {
                 Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -551,10 +550,10 @@ impl<'a> Interp<'a> {
         let mir = class.cp_cache.get_method(idx);
         let caller = match &mir.method.signature.retype {
             classfile::SignatureType::Void => None,
-            _ => Some(self.frame.area.clone()),
+            _ => Some(&self.frame.area),
         };
         assert_eq!(mir.method.is_static(), is_static);
-        if let Ok(mut jc) = runtime::invoke::JavaCall::new(self.frame.area.clone(), mir) {
+        if let Ok(mut jc) = runtime::invoke::JavaCall::new(&self.frame.area, mir) {
             jc.invoke(caller, force_no_resolve);
         }
     }
@@ -563,15 +562,15 @@ impl<'a> Interp<'a> {
         let cp_idx = self.read_i2();
         let target_cls = require_class2(cp_idx as U2, &self.frame.cp).unwrap();
 
-        let mut area = self.frame.area.write().unwrap();
-        let obj_rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let obj_rf = stack.pop_ref();
+        drop(stack);
 
         let obj_rf_clone = obj_rf.clone();
         let op_check_cast = |r: bool, obj_cls: ClassRef, target_cls: ClassRef| {
             if r {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.push_ref(obj_rf_clone);
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_ref(obj_rf_clone);
             } else {
                 let obj_name = { obj_cls.get_class().name.clone() };
                 let target_name = { target_cls.get_class().name.clone() };
@@ -584,21 +583,21 @@ impl<'a> Interp<'a> {
             }
         };
         let op_instance_of = |r: bool| {
-            let mut area = self.frame.area.write().unwrap();
+            let mut stack = self.frame.area.stack.borrow_mut();
             if r {
-                area.stack.push_const1(false);
+                stack.push_const1(false);
             } else {
-                area.stack.push_const0(false);
+                stack.push_const0(false);
             }
         };
 
         match obj_rf {
             Oop::Null => {
-                let mut area = self.frame.area.write().unwrap();
+                let mut stack = self.frame.area.stack.borrow_mut();
                 if is_cast {
-                    area.stack.push_ref(obj_rf);
+                    stack.push_ref(obj_rf);
                 } else {
-                    area.stack.push_const0(false);
+                    stack.push_const0(false);
                 }
             }
             Oop::Ref(rf) => {
@@ -670,10 +669,10 @@ impl<'a> Interp<'a> {
 
         match handler {
             Some(pc) => {
-                let mut area = self.frame.area.write().unwrap();
-                area.stack.clear();
-                area.stack.push_ref(ex);
-                drop(area);
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.clear();
+                stack.push_ref(ex);
+                drop(stack);
 
                 let line_num = self.frame.mir.method.get_line_num(pc);
 
@@ -708,108 +707,108 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn aconst_null(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_null();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_null();
     }
 
     #[inline]
     pub fn iconst_m1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const_m1();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const_m1();
     }
 
     #[inline]
     pub fn iconst_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const0(false);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const0(false);
     }
 
     #[inline]
     pub fn lconst_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const0(true);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const0(true);
     }
 
     #[inline]
     pub fn fconst_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const0(false);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const0(false);
     }
 
     #[inline]
     pub fn dconst_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const0(true);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const0(true);
     }
 
     #[inline]
     pub fn iconst_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const1(false);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const1(false);
     }
 
     #[inline]
     pub fn lconst_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const1(true);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const1(true);
     }
 
     #[inline]
     pub fn fconst_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const1(false);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const1(false);
     }
 
     #[inline]
     pub fn dconst_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const1(true);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const1(true);
     }
 
     #[inline]
     pub fn iconst_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const2();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const2();
     }
 
     #[inline]
     pub fn fconst_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const2();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const2();
     }
 
     #[inline]
     pub fn iconst_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const3();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const3();
     }
 
     #[inline]
     pub fn iconst_4(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const4();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const4();
     }
 
     #[inline]
     pub fn iconst_5(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_const5();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_const5();
     }
 
     #[inline]
     pub fn sipush(&self) {
         let v = self.read_i2();
 
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_int(v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn bipush(&self) {
         let v = (self.read_byte() as i8) as i32;
 
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_int(v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
@@ -840,9 +839,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(pos);
-        area.stack.push_int(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(pos);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
@@ -856,9 +856,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_long(pos);
-        area.stack.push_long(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_long(pos);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_long(v);
     }
 
     #[inline]
@@ -872,9 +873,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_float(pos);
-        area.stack.push_float(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_float(pos);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_float(v);
     }
 
     #[inline]
@@ -888,9 +890,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_double(pos);
-        area.stack.push_double(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_double(pos);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_double(v);
     }
 
     #[inline]
@@ -904,162 +907,183 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_ref(pos);
-        area.stack.push_ref(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_ref(pos);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn iload_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(0);
-        area.stack.push_int(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(0);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lload_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_long(0);
-        area.stack.push_long(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_long(0);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fload_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_float(0);
-        area.stack.push_float(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_float(0);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_float(v);
     }
 
     #[inline]
     pub fn dload_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_double(0);
-        area.stack.push_double(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_double(0);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_double(v);
     }
 
     #[inline]
     pub fn aload_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_ref(0);
-        area.stack.push_ref(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_ref(0);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn iload_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(1);
-        area.stack.push_int(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(1);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lload_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_long(1);
-        area.stack.push_long(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_long(1);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fload_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_float(1);
-        area.stack.push_float(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_float(1);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_float(v);
     }
 
     #[inline]
     pub fn dload_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_double(1);
-        area.stack.push_double(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_double(1);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_double(v);
     }
 
     #[inline]
     pub fn aload_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_ref(1);
-        area.stack.push_ref(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_ref(1);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn iload_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(2);
-        area.stack.push_int(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lload_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_long(2);
-        area.stack.push_long(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_long(2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fload_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_float(2);
-        area.stack.push_float(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_float(2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_float(v);
     }
 
     #[inline]
     pub fn dload_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_double(2);
-        area.stack.push_double(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_double(2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_double(v);
     }
 
     #[inline]
     pub fn aload_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_ref(2);
-        area.stack.push_ref(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_ref(2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn iload_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(3);
-        area.stack.push_int(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(3);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lload_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_long(3);
-        area.stack.push_long(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_long(3);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fload_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_float(3);
-        area.stack.push_float(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_float(3);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_float(v);
     }
 
     #[inline]
     pub fn dload_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_double(3);
-        area.stack.push_double(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_double(3);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_double(v);
     }
 
     #[inline]
     pub fn aload_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_ref(3);
-        area.stack.push_ref(v);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_ref(3);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn iaload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let ary = rf.extract_type_array();
                 let ary = ary.extract_ints();
-                iarray_load!(area, ary, pos);
+                iarray_load!(stack, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1067,15 +1091,15 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn saload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let ary = rf.extract_type_array();
                 let ary = ary.extract_shorts();
-                iarray_load!(area, ary, pos);
+                iarray_load!(stack, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1083,15 +1107,15 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn caload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
                 let ary = rf.extract_type_array();
                 let ary = ary.extract_chars();
-                iarray_load!(area, ary, pos);
+                iarray_load!(stack, ary, pos);
             }
             _ => unreachable!(),
         }
@@ -1099,9 +1123,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn baload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
@@ -1117,11 +1141,11 @@ impl<'a> Interp<'a> {
                         match ary {
                             TypeArrayDesc::Byte(ary) => {
                                 let v = ary[pos as usize];
-                                area.stack.push_int(v as i32);
+                                stack.push_int(v as i32);
                             }
                             TypeArrayDesc::Bool(ary) => {
                                 let v = ary[pos as usize];
-                                area.stack.push_int(v as i32);
+                                stack.push_int(v as i32);
                             }
                             t => unreachable!("t = {:?}", t),
                         }
@@ -1134,9 +1158,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn laload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
@@ -1148,7 +1172,7 @@ impl<'a> Interp<'a> {
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary[pos as usize];
-                    area.stack.push_long(v);
+                    stack.push_long(v);
                 }
             }
             _ => unreachable!(),
@@ -1157,9 +1181,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn faload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
@@ -1171,7 +1195,7 @@ impl<'a> Interp<'a> {
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary[pos as usize];
-                    area.stack.push_float(v);
+                    stack.push_float(v);
                 }
             }
             _ => unreachable!(),
@@ -1180,9 +1204,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn daload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
@@ -1194,7 +1218,7 @@ impl<'a> Interp<'a> {
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary[pos as usize];
-                    area.stack.push_double(v);
+                    stack.push_double(v);
                 }
             }
             _ => unreachable!(),
@@ -1203,9 +1227,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn aaload(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(rf) => {
@@ -1218,7 +1242,7 @@ impl<'a> Interp<'a> {
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary[pos as usize].clone();
-                    area.stack.push_ref(v);
+                    stack.push_ref(v);
                 }
             }
             _ => unreachable!(),
@@ -1236,9 +1260,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.local.set_int(pos, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_int(pos, v);
     }
 
     #[inline]
@@ -1252,9 +1277,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.local.set_long(pos, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_long(pos, v);
     }
 
     #[inline]
@@ -1268,9 +1294,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.local.set_float(pos, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_float(pos, v);
     }
 
     #[inline]
@@ -1284,9 +1311,10 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.local.set_double(pos, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_double(pos, v);
     }
 
     #[inline]
@@ -1300,158 +1328,179 @@ impl<'a> Interp<'a> {
             self.read_u1()
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        area.local.set_ref(pos, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_ref(pos, v);
     }
 
     #[inline]
     pub fn istore_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.local.set_int(0, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_int(0, v);
     }
 
     #[inline]
     pub fn istore_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.local.set_int(1, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_int(1, v);
     }
 
     #[inline]
     pub fn istore_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.local.set_int(2, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_int(2, v);
     }
 
     #[inline]
     pub fn istore_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.local.set_int(3, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_int(3, v);
     }
 
     #[inline]
     pub fn lstore_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.local.set_long(0, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_long(0, v);
     }
 
     #[inline]
     pub fn lstore_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.local.set_long(1, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_long(1, v);
     }
 
     #[inline]
     pub fn lstore_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.local.set_long(2, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_long(2, v);
     }
 
     #[inline]
     pub fn lstore_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.local.set_long(3, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_long(3, v);
     }
 
     #[inline]
     pub fn fstore_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.local.set_float(0, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_float(0, v);
     }
 
     #[inline]
     pub fn fstore_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.local.set_float(1, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_float(1, v);
     }
 
     #[inline]
     pub fn fstore_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.local.set_float(2, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_float(2, v);
     }
 
     #[inline]
     pub fn fstore_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.local.set_float(3, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_float(3, v);
     }
 
     #[inline]
     pub fn dstore_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.local.set_double(0, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_double(0, v);
     }
 
     #[inline]
     pub fn dstore_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.local.set_double(1, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_double(1, v);
     }
 
     #[inline]
     pub fn dstore_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.local.set_double(2, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_double(2, v);
     }
 
     #[inline]
     pub fn dstore_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.local.set_double(3, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_double(3, v);
     }
 
     #[inline]
     pub fn astore_0(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        area.local.set_ref(0, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_ref(0, v);
     }
 
     #[inline]
     pub fn astore_1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        area.local.set_ref(1, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_ref(1, v);
     }
 
     #[inline]
     pub fn astore_2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        area.local.set_ref(2, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_ref(2, v);
     }
 
     #[inline]
     pub fn astore_3(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        area.local.set_ref(3, v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let mut local = self.frame.area.local.borrow_mut();
+        local.set_ref(3, v);
     }
 
     #[inline]
     pub fn bastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1478,11 +1527,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn castore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1498,11 +1547,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn sastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1518,11 +1567,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn iastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1537,11 +1586,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn lastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1556,11 +1605,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn fastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1575,11 +1624,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn dastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        let pos = area.stack.pop_int();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        let pos = stack.pop_int();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1594,11 +1643,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn aastore(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        let pos = area.stack.pop_int();
-        let ary_rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        let pos = stack.pop_int();
+        let ary_rf = stack.pop_ref();
+        drop(stack);
 
         match ary_rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
@@ -1613,260 +1662,260 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn pop(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.drop_top();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.drop_top();
     }
 
     #[inline]
     pub fn pop2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.drop_top();
-        area.stack.drop_top();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.drop_top();
+        stack.drop_top();
     }
 
     #[inline]
     pub fn dup(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup();
     }
 
     #[inline]
     pub fn dup_x1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup_x1();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup_x1();
     }
 
     #[inline]
     pub fn dup_x2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup_x2();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup_x2();
     }
 
     #[inline]
     pub fn dup2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup2();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup2();
     }
 
     #[inline]
     pub fn dup2_x1(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup2_x1();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup2_x1();
     }
 
     #[inline]
     pub fn dup2_x2(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.dup2_x2();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.dup2_x2();
     }
 
     #[inline]
     pub fn swap(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.swap();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.swap();
     }
 
     #[inline]
     pub fn iadd(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         let v = v1.wrapping_add(v2);
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn ladd(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
         let v = v1.wrapping_add(v2);
-        area.stack.push_long(v);
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fadd(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_float();
-        let v1 = area.stack.pop_float();
-        area.stack.push_float(v1 + v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_float();
+        let v1 = stack.pop_float();
+        stack.push_float(v1 + v2);
     }
 
     #[inline]
     pub fn dadd(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_double();
-        let v1 = area.stack.pop_double();
-        area.stack.push_double(v1 + v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_double();
+        let v1 = stack.pop_double();
+        stack.push_double(v1 + v2);
     }
 
     #[inline]
     pub fn isub(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         let v = v1.wrapping_sub(v2);
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lsub(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
         let v = v1.wrapping_sub(v2);
-        area.stack.push_long(v);
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fsub(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_float();
-        let v1 = area.stack.pop_float();
-        area.stack.push_float(v1 - v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_float();
+        let v1 = stack.pop_float();
+        stack.push_float(v1 - v2);
     }
 
     #[inline]
     pub fn dsub(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_double();
-        let v1 = area.stack.pop_double();
-        area.stack.push_double(v1 - v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_double();
+        let v1 = stack.pop_double();
+        stack.push_double(v1 - v2);
     }
 
     #[inline]
     pub fn imul(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         let v = v1.wrapping_mul(v2);
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn lmul(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
         let v = v1.wrapping_mul(v2);
-        area.stack.push_long(v);
+        stack.push_long(v);
     }
 
     #[inline]
     pub fn fmul(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_float();
-        let v1 = area.stack.pop_float();
-        area.stack.push_float(v1 * v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_float();
+        let v1 = stack.pop_float();
+        stack.push_float(v1 * v2);
     }
 
     #[inline]
     pub fn dmul(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_double();
-        let v1 = area.stack.pop_double();
-        area.stack.push_double(v1 * v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_double();
+        let v1 = stack.pop_double();
+        stack.push_double(v1 * v2);
     }
 
     #[inline]
     pub fn idiv(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         if v2 == 0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_int(v1 / v2);
+            stack.push_int(v1 / v2);
         }
     }
 
     #[inline]
     pub fn ldiv(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
         if v2 == 0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_long(v1 / v2);
+            stack.push_long(v1 / v2);
         }
     }
 
     #[inline]
     pub fn fdiv(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_float();
-        let v1 = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_float();
+        let v1 = stack.pop_float();
         if v2 == 0.0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_float(v1 / v2);
+            stack.push_float(v1 / v2);
         }
     }
 
     #[inline]
     pub fn ddiv(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_double();
-        let v1 = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_double();
+        let v1 = stack.pop_double();
         if v2 == 0.0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_double(v1 / v2);
+            stack.push_double(v1 / v2);
         }
     }
 
     #[inline]
     pub fn irem(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         if v2 == 0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_int(v1 - (v1 / v2) * v2);
+            stack.push_int(v1 - (v1 / v2) * v2);
         }
     }
 
     #[inline]
     pub fn lrem(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
         if v2 == 0 {
-            drop(area);
+            drop(stack);
 
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
             );
         } else {
-            area.stack.push_long(v1 - (v1 / v2) * v2);
+            stack.push_long(v1 - (v1 / v2) * v2);
         }
     }
 
@@ -1882,16 +1931,16 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ineg(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.stack.push_int(-v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        stack.push_int(-v);
     }
 
     #[inline]
     pub fn lneg(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.stack.push_long(-v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        stack.push_long(-v);
     }
 
     #[inline]
@@ -1906,119 +1955,104 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ishl(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         let s = v2 & 0x1F;
-        //        info!("ishl v2={}, v1={}, s={}, v={}", v2, v1, s, (v1 << s));
-        area.stack.push_int(v1 << s);
+        stack.push_int(v1 << s);
     }
 
     #[inline]
     pub fn lshl(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_long();
         let s = (v2 & 0x3F) as i64;
-        area.stack.push_long(v1 << s);
+        stack.push_long(v1 << s);
     }
 
     #[inline]
     pub fn ishr(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
         let s = v2 & 0x1F;
-        area.stack.push_int(v1 >> s);
+        stack.push_int(v1 >> s);
     }
 
     #[inline]
     pub fn lshr(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_long();
         let s = (v2 & 0x3F) as i64;
-        area.stack.push_long(v1 >> s);
+        stack.push_long(v1 >> s);
     }
 
     #[inline]
     pub fn iushr(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int() as u32;
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int() as u32;
         let s = (v2 & 0x1F) as u32;
-        area.stack.push_int((v1 >> s) as i32);
-        /*
-        if v1 >= 0 {
-            area.stack.push_int(v1 >> s);
-        } else {
-            area.stack.push_int((v1 >> s) + (2 << !s));
-        }
-        */
+        stack.push_int((v1 >> s) as i32);
     }
 
     #[inline]
     pub fn lushr(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_long() as u64;
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_long() as u64;
         let s = (v2 & 0x3F) as u64;
-        area.stack.push_long((v1 >> s) as i64);
-        /*
-        if v1 >= 0 {
-            area.stack.push_long(v1 >> s);
-        } else {
-            area.stack.push_long((v1 >> s) + (2 << !s));
-        }
-        */
+        stack.push_long((v1 >> s) as i64);
     }
 
     #[inline]
     pub fn iand(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
-        area.stack.push_int(v1 & v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
+        stack.push_int(v1 & v2);
     }
 
     #[inline]
     pub fn land(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
-        area.stack.push_long(v1 & v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
+        stack.push_long(v1 & v2);
     }
 
     #[inline]
     pub fn ior(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
-        area.stack.push_int(v1 | v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
+        stack.push_int(v1 | v2);
     }
 
     #[inline]
     pub fn lor(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
-        area.stack.push_long(v1 | v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
+        stack.push_long(v1 | v2);
     }
 
     #[inline]
     pub fn ixor(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
-        area.stack.push_int(v1 ^ v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
+        stack.push_int(v1 ^ v2);
     }
 
     #[inline]
     pub fn lxor(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_long();
-        let v1 = area.stack.pop_long();
-        area.stack.push_long(v1 ^ v2);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
+        stack.push_long(v1 ^ v2);
     }
 
     #[inline]
@@ -2038,179 +2072,179 @@ impl<'a> Interp<'a> {
             (self.read_byte() as i8) as i32
         };
 
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.local.get_int(pos);
+        let mut local = self.frame.area.local.borrow_mut();
+        let v = local.get_int(pos);
         let v = v.wrapping_add(factor);
-        area.local.set_int(pos, v);
+        local.set_int(pos, v);
     }
 
     #[inline]
     pub fn i2l(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.stack.push_long(v as i64);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        stack.push_long(v as i64);
     }
 
     #[inline]
     pub fn i2f(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.stack.push_float(v as f32);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        stack.push_float(v as f32);
     }
 
     #[inline]
     pub fn i2d(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
-        area.stack.push_double(v as f64);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        stack.push_double(v as f64);
     }
 
     #[inline]
     pub fn l2i(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.stack.push_int(v as i32);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        stack.push_int(v as i32);
     }
 
     #[inline]
     pub fn l2f(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.stack.push_float(v as f32);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        stack.push_float(v as f32);
     }
 
     #[inline]
     pub fn l2d(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
-        area.stack.push_double(v as f64);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        stack.push_double(v as f64);
     }
 
     #[inline]
     pub fn f2i(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
         if v.is_nan() {
-            area.stack.push_int(0);
+            stack.push_int(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                area.stack.push_int(std::i32::MAX);
+                stack.push_int(std::i32::MAX);
             } else {
-                area.stack.push_int(std::i32::MIN);
+                stack.push_int(std::i32::MIN);
             }
         } else {
-            area.stack.push_int(v as i32);
+            stack.push_int(v as i32);
         }
     }
 
     #[inline]
     pub fn f2l(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
         if v.is_nan() {
-            area.stack.push_long(0);
+            stack.push_long(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                area.stack.push_long(std::i64::MAX);
+                stack.push_long(std::i64::MAX);
             } else {
-                area.stack.push_long(std::i64::MIN);
+                stack.push_long(std::i64::MIN);
             }
         } else {
-            area.stack.push_long(v as i64);
+            stack.push_long(v as i64);
         }
     }
 
     #[inline]
     pub fn f2d(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
-        area.stack.push_double(v as f64);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        stack.push_double(v as f64);
     }
 
     #[inline]
     pub fn d2i(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
         if v.is_nan() {
-            area.stack.push_int(0);
+            stack.push_int(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                area.stack.push_int(std::i32::MAX);
+                stack.push_int(std::i32::MAX);
             } else {
-                area.stack.push_int(std::i32::MIN);
+                stack.push_int(std::i32::MIN);
             }
         } else {
-            area.stack.push_int(v as i32);
+            stack.push_int(v as i32);
         }
     }
 
     #[inline]
     pub fn d2l(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
         if v.is_nan() {
-            area.stack.push_long(0);
+            stack.push_long(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                area.stack.push_long(std::i64::MAX);
+                stack.push_long(std::i64::MAX);
             } else {
-                area.stack.push_long(std::i64::MIN);
+                stack.push_long(std::i64::MIN);
             }
         } else {
-            area.stack.push_long(v as i64);
+            stack.push_long(v as i64);
         }
     }
 
     #[inline]
     pub fn d2f(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
-        area.stack.push_float(v as f32);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        stack.push_float(v as f32);
     }
 
     #[inline]
     pub fn i2b(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
         let v = v as i8;
-        area.stack.push_int(v as i32);
+        stack.push_int(v as i32);
     }
 
     #[inline]
     pub fn i2c(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
         let v = v as u16;
-        area.stack.push_int(v as i32);
+        stack.push_int(v as i32);
     }
 
     #[inline]
     pub fn i2s(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
         let v = v as i16;
-        area.stack.push_int(v as i32);
+        stack.push_int(v as i32);
     }
 
     #[inline]
     pub fn lcmp(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v1 = area.stack.pop_long();
-        let v2 = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v1 = stack.pop_long();
+        let v2 = stack.pop_long();
         let v = match v1.cmp(&v2) {
             std::cmp::Ordering::Greater => -1,
             std::cmp::Ordering::Less => 1,
             std::cmp::Ordering::Equal => 0,
         };
 
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn fcmpl(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v1 = area.stack.pop_float();
-        let v2 = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v1 = stack.pop_float();
+        let v2 = stack.pop_float();
         let v = if v1.is_nan() || v2.is_nan() {
             -1
         } else if v1 > v2 {
@@ -2221,14 +2255,14 @@ impl<'a> Interp<'a> {
             0
         };
 
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn fcmpg(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v1 = area.stack.pop_float();
-        let v2 = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v1 = stack.pop_float();
+        let v2 = stack.pop_float();
         let v = if v1.is_nan() || v2.is_nan() {
             1
         } else if v1 > v2 {
@@ -2239,14 +2273,14 @@ impl<'a> Interp<'a> {
             0
         };
 
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn dcmpl(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v1 = area.stack.pop_double();
-        let v2 = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v1 = stack.pop_double();
+        let v2 = stack.pop_double();
         let v = if v1.is_nan() || v2.is_nan() {
             -1
         } else if v1 > v2 {
@@ -2257,32 +2291,32 @@ impl<'a> Interp<'a> {
             0
         };
 
-        area.stack.push_int(v);
+        stack.push_int(v);
     }
 
     #[inline]
     pub fn dcmpg(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v1 = area.stack.pop_double();
-        let v2 = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v1 = stack.pop_double();
+        let v2 = stack.pop_double();
         if v1.is_nan() || v2.is_nan() {
-            area.stack.push_int(1);
+            stack.push_int(1);
         } else if v1 > v2 {
-            area.stack.push_int(-1);
+            stack.push_int(-1);
         } else if v1 < v2 {
-            area.stack.push_int(1);
+            stack.push_int(1);
         } else {
-            area.stack.push_int(0);
+            stack.push_int(0);
         }
     }
 
     #[inline]
     pub fn ifeq(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v == 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2291,11 +2325,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ifne(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v != 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2304,11 +2338,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn iflt(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v < 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2317,11 +2351,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ifge(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v >= 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2330,11 +2364,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ifgt(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v > 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2343,11 +2377,11 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ifle(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
 
         if v <= 0 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2356,12 +2390,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmpeq(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 == v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2370,12 +2404,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmpne(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 != v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2384,12 +2418,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmplt(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 < v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2398,12 +2432,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmpge(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 >= v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2412,12 +2446,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmpgt(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 > v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2426,12 +2460,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_icmple(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_int();
-        let v1 = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
 
         if v1 <= v2 {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2440,12 +2474,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_acmpeq(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_ref();
-        let v1 = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_ref();
+        let v1 = stack.pop_ref();
 
         if OopRef::is_eq(&v1, &v2) {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2454,12 +2488,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_acmpne(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v2 = area.stack.pop_ref();
-        let v1 = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_ref();
+        let v1 = stack.pop_ref();
 
         if !OopRef::is_eq(&v1, &v2) {
-            drop(area);
+            drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
             let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
@@ -2544,8 +2578,8 @@ impl<'a> Interp<'a> {
         jump_table.push(default_byte + origin_bc);
 
         let top_value = {
-            let mut area = self.frame.area.write().unwrap();
-            area.stack.pop_int()
+            let mut stack = self.frame.area.stack.borrow_mut();
+            stack.pop_int()
         };
         if (top_value > (jump_table.len() as i32 - 1 + low_byte)) || top_value < low_byte {
             self.goto_abs_with_occupied(*jump_table.last().unwrap() as i32, 1);
@@ -2606,8 +2640,8 @@ impl<'a> Interp<'a> {
         }
 
         let top_value = {
-            let mut area = self.frame.area.write().unwrap();
-            area.stack.pop_int()
+            let mut stack = self.frame.area.stack.borrow_mut();
+            stack.pop_int()
         };
         match jump_table.get(&(top_value as u32)) {
             Some(position) => self.goto_abs_with_occupied(*position as i32, 1),
@@ -2617,49 +2651,49 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn ireturn(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
         let v = Oop::new_int(v);
-        drop(area);
+        drop(stack);
 
         self.set_return(Some(v));
     }
 
     #[inline]
     pub fn lreturn(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_long();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
         let v = Oop::new_long(v);
-        drop(area);
+        drop(stack);
 
         self.set_return(Some(v));
     }
 
     #[inline]
     pub fn freturn(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_float();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
         let v = Oop::new_float(v);
-        drop(area);
+        drop(stack);
 
         self.set_return(Some(v));
     }
 
     #[inline]
     pub fn dreturn(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_double();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
         let v = Oop::new_double(v);
-        drop(area);
+        drop(stack);
 
         self.set_return(Some(v));
     }
 
     #[inline]
     pub fn areturn(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        drop(stack);
 
         self.set_return(Some(v));
     }
@@ -2685,9 +2719,9 @@ impl<'a> Interp<'a> {
     pub fn get_field(&self) {
         let idx = self.read_u2();
 
-        let mut area = self.frame.area.write().unwrap();
-        let rf = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let rf = stack.pop_ref();
+        drop(stack);
 
         match rf {
             Oop::Null => {
@@ -2758,20 +2792,20 @@ impl<'a> Interp<'a> {
             }
         };
 
-        let mut area = self.frame.area.write().unwrap();
         let v = oop::Oop::new_inst(class);
-        area.stack.push_ref(v);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
     }
 
     #[inline]
     pub fn new_array(&self) {
         let t = self.read_byte();
 
-        let mut area = self.frame.area.write().unwrap();
-        let len = area.stack.pop_int();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let len = stack.pop_int();
 
         if len < 0 {
-            drop(area);
+            drop(stack);
             exception::meet_ex(cls_const::J_NASE, Some("length < 0".to_string()));
         } else {
             let len = len as usize;
@@ -2795,7 +2829,7 @@ impl<'a> Interp<'a> {
                 _ => unreachable!(),
             };
 
-            area.stack.push_ref(ary);
+            stack.push_ref(ary);
         }
     }
 
@@ -2803,9 +2837,9 @@ impl<'a> Interp<'a> {
     pub fn anew_array(&self) {
         let cp_idx = self.read_i2();
 
-        let mut area = self.frame.area.write().unwrap();
-        let length = area.stack.pop_int();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let length = stack.pop_int();
+        drop(stack);
 
         //        info!("anew_array length={}", length);
         if length < 0 {
@@ -2853,9 +2887,9 @@ impl<'a> Interp<'a> {
                     oop::class::init_class(&ary_cls_obj);
                     oop::class::init_class_fully(&ary_cls_obj);
 
-                    let mut area = self.frame.area.write().unwrap();
+                    let mut stack = self.frame.area.stack.borrow_mut();
                     let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);
-                    area.stack.push_ref(ary);
+                    stack.push_ref(ary);
                 }
                 None => unreachable!(),
             }
@@ -2864,12 +2898,12 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn array_length(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
 
         match v {
             Oop::Null => {
-                drop(area);
+                drop(stack);
                 exception::meet_ex(cls_const::J_NPE, None)
             }
             Oop::Ref(rf) => {
@@ -2878,11 +2912,11 @@ impl<'a> Interp<'a> {
                     match &(*v).v {
                         oop::RefKind::Array(ary) => {
                             let len = ary.elements.len();
-                            area.stack.push_int(len as i32);
+                            stack.push_int(len as i32);
                         }
                         oop::RefKind::TypeArray(ary) => {
                             let len = ary.len();
-                            area.stack.push_int(len as i32);
+                            stack.push_int(len as i32);
                         }
                         _ => unreachable!(),
                     }
@@ -2894,9 +2928,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn athrow(&self, jt: JavaThreadRef) {
-        let mut area = self.frame.area.write().unwrap();
-        let ex = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let ex = stack.pop_ref();
+        drop(stack);
 
         jt.write().unwrap().set_ex(ex);
     }
@@ -2913,9 +2947,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn monitor_enter(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        drop(stack);
 
         match v {
             Oop::Null => {
@@ -2928,9 +2962,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn monitor_exit(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let mut v = area.stack.pop_ref();
-        drop(area);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let mut v = stack.pop_ref();
+        drop(stack);
 
         match v {
             Oop::Null => {
@@ -2952,29 +2986,29 @@ impl<'a> Interp<'a> {
         let dimension = self.read_u1();
 
         let mut lens = Vec::new();
-        let mut area = self.frame.area.write().unwrap();
+        let mut stack = self.frame.area.stack.borrow_mut();
         for _ in 0..dimension {
-            let sub = area.stack.pop_int();
+            let sub = stack.pop_int();
             //todo: check java/lang/NegativeArraySizeException
             lens.push(sub);
         }
-        drop(area);
+        drop(stack);
 
         let cls = require_class2(cp_idx as u16, &self.frame.cp).unwrap();
         let ary = new_multi_object_array_helper(cls, &lens, 0);
 
-        let mut area = self.frame.area.write().unwrap();
-        area.stack.push_ref(ary);
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(ary);
     }
 
     #[inline]
     pub fn if_null(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
 
         match v {
             Oop::Null => {
-                drop(area);
+                drop(stack);
                 self.goto_by_offset_hardcoded(2)
             }
             _ => {
@@ -2985,15 +3019,15 @@ impl<'a> Interp<'a> {
 
     #[inline]
     pub fn if_non_null(&self) {
-        let mut area = self.frame.area.write().unwrap();
-        let v = area.stack.pop_ref();
+        let mut stack = self.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
 
         match v {
             Oop::Null => {
                 let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
             }
             _ => {
-                drop(area);
+                drop(stack);
                 self.goto_by_offset_hardcoded(2)
             }
         }

@@ -77,32 +77,32 @@ fn jvm_invoke0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
     let mut jc = runtime::invoke::JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 0);
-    jc.invoke(Some(area.clone()), force_no_resolve);
+    jc.invoke(Some(&area), force_no_resolve);
 
     let r = {
-        let mut area = area.write().unwrap();
+        let mut stack = area.stack.borrow_mut();
         match jc.mir.method.signature.retype {
             SignatureType::Byte
             | SignatureType::Char
             | SignatureType::Boolean
             | SignatureType::Short
             | SignatureType::Int => {
-                let v = area.stack.pop_int();
+                let v = stack.pop_int();
                 Some(oop::Oop::new_int(v))
             }
             SignatureType::Double => {
-                let v = area.stack.pop_double();
+                let v = stack.pop_double();
                 Some(oop::Oop::new_double(v))
             }
             SignatureType::Float => {
-                let v = area.stack.pop_float();
+                let v = stack.pop_float();
                 Some(oop::Oop::new_float(v))
             }
             SignatureType::Long => {
-                let v = area.stack.pop_long();
+                let v = stack.pop_long();
                 Some(oop::Oop::new_long(v))
             }
-            SignatureType::Object(_, _, _) | SignatureType::Array(_) => Some(area.stack.pop_ref()),
+            SignatureType::Object(_, _, _) | SignatureType::Array(_) => Some(stack.pop_ref()),
             SignatureType::Void => Some(oop::consts::get_null()),
         }
     };

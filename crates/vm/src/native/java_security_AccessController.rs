@@ -48,12 +48,12 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     let args = vec![v.clone()];
     let mut jc = JavaCall::new_with_args(mir, args);
     let area = runtime::DataArea::new(0, 1);
-    jc.invoke(Some(area.clone()), false);
+    jc.invoke(Some(&area), false);
 
     let jt = runtime::thread::current_java_thread();
     if !jt.read().unwrap().is_meet_ex() {
-        let mut area = area.write().unwrap();
-        let r = area.stack.pop_ref();
+        let mut stack = area.stack.borrow_mut();
+        let r = stack.pop_ref();
         Ok(Some(r))
     } else {
         Ok(None)

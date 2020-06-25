@@ -17,7 +17,7 @@ pub struct Frame {
     pub ex_here: std::sync::atomic::AtomicBool,
 
     // The variable part of Frame is placed here
-    pub area: DataAreaRef,
+    pub area: DataArea,
 }
 
 // unsafe impl Sync for Frame {}

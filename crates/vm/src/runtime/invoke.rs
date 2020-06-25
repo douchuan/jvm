@@ -1,7 +1,7 @@
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
-use crate::runtime::{self, exception, frame::Frame, thread, Interp};
-use crate::types::{ClassRef, DataAreaRef, FrameRef, JavaThreadRef, MethodIdRef};
+use crate::runtime::{self, exception, frame::Frame, thread, DataArea, Interp};
+use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
 use class_parser::MethodSignature;
 use classfile::{consts as cls_const, BytesRef, SignatureType};
@@ -30,15 +30,15 @@ impl JavaCall {
         Self { mir, args }
     }
 
-    pub fn new(caller: DataAreaRef, mir: MethodIdRef) -> Result<JavaCall, ()> {
+    pub fn new(caller: &DataArea, mir: MethodIdRef) -> Result<JavaCall, ()> {
         let mut args = build_args_from_caller_stack(&caller, &mir.method.signature);
 
         //insert 'this' value
         let has_this = !mir.method.is_static();
         if has_this {
             let this = {
-                let mut area = caller.write().unwrap();
-                area.stack.pop_ref()
+                let mut stack = caller.stack.borrow_mut();
+                stack.pop_ref()
             };
 
             //check NPE
@@ -69,7 +69,7 @@ impl JavaCall {
 
 impl JavaCall {
     //the 'caller' for store return value
-    pub fn invoke(&mut self, caller: Option<DataAreaRef>, force_no_resolve: bool) {
+    pub fn invoke(&mut self, caller: Option<&DataArea>, force_no_resolve: bool) {
         /*
         Do resolve again first, because you can override in a native way such as:
         UnixFileSystem override FileSystem
@@ -92,7 +92,7 @@ impl JavaCall {
 }
 
 impl JavaCall {
-    fn invoke_java(&mut self, caller: Option<DataAreaRef>) {
+    fn invoke_java(&mut self, caller: Option<&DataArea>) {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
@@ -109,8 +109,8 @@ impl JavaCall {
                 if !jt.read().unwrap().is_meet_ex() {
                     let return_value = {
                         let frame = frame.try_read().unwrap();
-                        let area = frame.area.read().unwrap();
-                        area.return_v.clone()
+                        let area = frame.area.return_v.borrow();
+                        area.clone()
                     };
                     set_return(caller, &self.mir.method.signature.retype, return_value);
                 }
@@ -124,7 +124,7 @@ impl JavaCall {
         self.fin_sync();
     }
 
-    fn invoke_native(&mut self, caller: Option<DataAreaRef>) {
+    fn invoke_native(&mut self, caller: Option<&DataArea>) {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
@@ -206,28 +206,28 @@ impl JavaCall {
 
         if !is_native {
             //JVM spec, 2.6.1
-            let mut area = frame.area.write().unwrap();
+            let mut local = frame.area.local.borrow_mut();
             let mut slot_pos: usize = 0;
             self.args.iter().for_each(|v| {
                 let step = match v {
                     Oop::Int(v) => {
-                        area.local.set_int(slot_pos, *v);
+                        local.set_int(slot_pos, *v);
                         1
                     }
                     Oop::Float(v) => {
-                        area.local.set_float(slot_pos, *v);
+                        local.set_float(slot_pos, *v);
                         1
                     }
                     Oop::Double(v) => {
-                        area.local.set_double(slot_pos, *v);
+                        local.set_double(slot_pos, *v);
                         2
                     }
                     Oop::Long((v)) => {
-                        area.local.set_long(slot_pos, *v);
+                        local.set_long(slot_pos, *v);
                         2
                     }
                     _ => {
-                        area.local.set_ref(slot_pos, v.clone());
+                        local.set_ref(slot_pos, v.clone());
                         1
                     }
                 };
@@ -302,8 +302,8 @@ impl JavaCall {
     }
 }
 
-fn build_args_from_caller_stack(caller: &DataAreaRef, sig: &MethodSignature) -> Vec<Oop> {
-    let mut caller = caller.write().unwrap();
+fn build_args_from_caller_stack(caller: &DataArea, sig: &MethodSignature) -> Vec<Oop> {
+    let mut caller = caller.stack.borrow_mut();
     let mut args = Vec::new();
 
     //build args from caller's stack, so should rev the signature args
@@ -314,22 +314,22 @@ fn build_args_from_caller_stack(caller: &DataAreaRef, sig: &MethodSignature) -> 
             | SignatureType::Int
             | SignatureType::Char
             | SignatureType::Short => {
-                let v = caller.stack.pop_int();
+                let v = caller.pop_int();
                 Oop::new_int(v)
             }
             SignatureType::Long => {
-                let v = caller.stack.pop_long();
+                let v = caller.pop_long();
                 Oop::new_long(v)
             }
             SignatureType::Float => {
-                let v = caller.stack.pop_float();
+                let v = caller.pop_float();
                 Oop::new_float(v)
             }
             SignatureType::Double => {
-                let v = caller.stack.pop_double();
+                let v = caller.pop_double();
                 Oop::new_double(v)
             }
-            SignatureType::Object(_, _, _) | SignatureType::Array(_) => caller.stack.pop_ref(),
+            SignatureType::Object(_, _, _) | SignatureType::Array(_) => caller.pop_ref(),
             t => unreachable!("t = {:?}", t),
         };
 
@@ -342,7 +342,7 @@ fn build_args_from_caller_stack(caller: &DataAreaRef, sig: &MethodSignature) -> 
     args
 }
 
-pub fn set_return(caller: Option<DataAreaRef>, return_type: &SignatureType, v: Option<Oop>) {
+pub fn set_return(caller: Option<&DataArea>, return_type: &SignatureType, v: Option<Oop>) {
     match return_type {
         SignatureType::Byte
         | SignatureType::Short
@@ -352,35 +352,35 @@ pub fn set_return(caller: Option<DataAreaRef>, return_type: &SignatureType, v: O
             let v = v.unwrap();
             let v = v.extract_int();
             let caller = caller.unwrap();
-            let mut area = caller.write().unwrap();
-            area.stack.push_int(v);
+            let mut stack = caller.stack.borrow_mut();
+            stack.push_int(v);
         }
         SignatureType::Long => {
             let v = v.unwrap();
             let v = v.extract_long();
             let caller = caller.unwrap();
-            let mut area = caller.write().unwrap();
-            area.stack.push_long(v);
+            let mut stack = caller.stack.borrow_mut();
+            stack.push_long(v);
         }
         SignatureType::Float => {
             let v = v.unwrap();
             let v = v.extract_float();
             let caller = caller.unwrap();
-            let mut area = caller.write().unwrap();
-            area.stack.push_float(v);
+            let mut stack = caller.stack.borrow_mut();
+            stack.push_float(v);
         }
         SignatureType::Double => {
             let v = v.unwrap();
             let v = v.extract_double();
             let caller = caller.unwrap();
-            let mut area = caller.write().unwrap();
-            area.stack.push_double(v);
+            let mut stack = caller.stack.borrow_mut();
+            stack.push_double(v);
         }
         SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
             let v = v.unwrap();
             let caller = caller.unwrap();
-            let mut area = caller.write().unwrap();
-            area.stack.push_ref(v);
+            let mut stack = caller.stack.borrow_mut();
+            stack.push_ref(v);
         }
         SignatureType::Void => (),
     }

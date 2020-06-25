@@ -9,7 +9,6 @@ use std::sync::{Arc, RwLock};
 
 pub type FieldIdRef = Arc<FieldId>;
 pub type MethodIdRef = Arc<MethodId>;
-pub type DataAreaRef = Arc<RwLock<DataArea>>;
 pub type ClassRef = Arc<ClassPtr>;
 
 def_ref!(ClassFileRef, ClassFile);
