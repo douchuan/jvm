@@ -10,7 +10,10 @@ pub enum Slot {
     Const3,
     Const4,
     Const5,
-    Primitive(Vec<u8>),
+    I32(i32),
+    F32(f32),
+    F64(f64),
+    I64(i64),
     Ref(Oop),
-    Nop, //for long, double
+    Nop, //for Stack long, double
 }

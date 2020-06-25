@@ -15,48 +15,66 @@ impl Stack {
         }
     }
 
-    pub fn push_int(&mut self, i: i32) {
-        let v = i.to_be_bytes();
-        self.push_primitive2(v);
+    #[inline]
+    pub fn push_int(&mut self, v: i32) {
+        self.inner.push(Slot::I32(v));
     }
 
+    #[inline]
     pub fn push_int2(&mut self, v: [u8; 4]) {
-        self.push_primitive2(v)
+        let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+        self.inner.push(Slot::I32(v));
     }
 
-    pub fn push_float(&mut self, f: f32) {
-        let v = f.to_bits().to_be_bytes();
-        self.push_primitive2(v);
+    #[inline]
+    pub fn push_float(&mut self, v: f32) {
+        self.inner.push(Slot::F32(v));
     }
 
+    #[inline]
     pub fn push_float2(&mut self, v: [u8; 4]) {
-        self.push_primitive2(v);
+        let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+        let v = f32::from_bits(v);
+        self.inner.push(Slot::F32(v));
     }
 
-    pub fn push_double(&mut self, d: f64) {
-        let v = d.to_bits().to_be_bytes();
-        self.push_double2(v);
+    #[inline]
+    pub fn push_double(&mut self, v: f64) {
+        //todo: need push_nop?
+        self.push_nop();
+        self.inner.push(Slot::F64(v));
     }
 
+    #[inline]
     pub fn push_double2(&mut self, v: [u8; 8]) {
+        let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+        let v = f64::from_bits(v);
+
         self.push_nop();
-        self.push_primitive3(v);
+        self.inner.push(Slot::F64(v));
     }
 
-    pub fn push_long(&mut self, l: i64) {
-        let v = l.to_be_bytes();
-        self.push_long2(v);
+    #[inline]
+    pub fn push_long(&mut self, v: i64) {
+        //todo: need push_nop?
+        self.push_nop();
+        self.inner.push(Slot::I64(v));
     }
 
+    #[inline]
     pub fn push_long2(&mut self, v: [u8; 8]) {
+        let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+
         self.push_nop();
-        self.push_primitive3(v);
+        self.inner.push(Slot::I64(v));
     }
 
+    #[inline]
     pub fn push_null(&mut self) {
         self.inner.push(Slot::Ref(consts::get_null()));
     }
 
+    #[inline]
     pub fn push_const_m1(&mut self) {
         self.inner.push(Slot::ConstM1);
     }
@@ -64,6 +82,7 @@ impl Stack {
     /*
     double & long, with_nop = true
     */
+    #[inline]
     pub fn push_const0(&mut self, with_nop: bool) {
         if with_nop {
             self.push_nop();
@@ -74,6 +93,7 @@ impl Stack {
     /*
        double & long, with_nop = true
     */
+    #[inline]
     pub fn push_const1(&mut self, with_nop: bool) {
         if with_nop {
             self.push_nop();
@@ -81,26 +101,32 @@ impl Stack {
         self.inner.push(Slot::Const1);
     }
 
+    #[inline]
     pub fn push_const2(&mut self) {
         self.inner.push(Slot::Const2);
     }
 
+    #[inline]
     pub fn push_const3(&mut self) {
         self.inner.push(Slot::Const3);
     }
 
+    #[inline]
     pub fn push_const4(&mut self) {
         self.inner.push(Slot::Const4);
     }
 
+    #[inline]
     pub fn push_const5(&mut self) {
         self.inner.push(Slot::Const5);
     }
 
+    #[inline]
     pub fn push_ref(&mut self, v: Oop) {
         self.inner.push(Slot::Ref(v));
     }
 
+    #[inline]
     pub fn pop_int(&mut self) -> i32 {
         match self.inner.pop().unwrap() {
             Slot::ConstM1 => -1,
@@ -110,24 +136,23 @@ impl Stack {
             Slot::Const3 => 3,
             Slot::Const4 => 4,
             Slot::Const5 => 5,
-            Slot::Primitive(v) => i32::from_be_bytes([v[0], v[1], v[2], v[3]]),
+            Slot::I32(v) => v,
             _ => panic!("Illegal type"),
         }
     }
 
+    #[inline]
     pub fn pop_float(&mut self) -> f32 {
         match self.inner.pop().unwrap() {
             Slot::Const0 => 0.0,
             Slot::Const1 => 1.0,
             Slot::Const2 => 2.0,
-            Slot::Primitive(v) => {
-                let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                f32::from_bits(v)
-            }
+            Slot::F32(v) => v,
             _ => panic!("Illegal type"),
         }
     }
 
+    #[inline]
     pub fn pop_double(&mut self) -> f64 {
         match self.inner.pop() {
             Some(v) => {
@@ -135,11 +160,7 @@ impl Stack {
                 match v {
                     Slot::Const0 => 0.0,
                     Slot::Const1 => 1.0,
-                    Slot::Primitive(v) => {
-                        let v =
-                            u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                        f64::from_bits(v)
-                    }
+                    Slot::F64(v) => v,
                     _ => panic!("Illegal type"),
                 }
             }
@@ -147,6 +168,7 @@ impl Stack {
         }
     }
 
+    #[inline]
     pub fn pop_long(&mut self) -> i64 {
         match self.inner.pop() {
             Some(v) => {
@@ -154,9 +176,7 @@ impl Stack {
                 match v {
                     Slot::Const0 => 0,
                     Slot::Const1 => 1,
-                    Slot::Primitive(v) => {
-                        i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]])
-                    }
+                    Slot::I64(v) => v,
                     _ => panic!("Illegal type"),
                 }
             }
@@ -164,6 +184,7 @@ impl Stack {
         }
     }
 
+    #[inline]
     pub fn pop_ref(&mut self) -> Oop {
         match self.inner.pop() {
             Some(Slot::Ref(v)) => v,
@@ -179,12 +200,14 @@ impl Stack {
         self.inner.clear();
     }
 
+    #[inline]
     pub fn dup(&mut self) {
         let v = self.inner.pop().unwrap();
         self.inner.push(v.clone());
         self.inner.push(v);
     }
 
+    #[inline]
     pub fn dup_x1(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -193,6 +216,7 @@ impl Stack {
         self.inner.push(v1);
     }
 
+    #[inline]
     pub fn dup_x2(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -203,6 +227,7 @@ impl Stack {
         self.inner.push(v1);
     }
 
+    #[inline]
     pub fn dup2(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -212,6 +237,7 @@ impl Stack {
         self.inner.push(v1);
     }
 
+    #[inline]
     pub fn dup2_x1(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -223,6 +249,7 @@ impl Stack {
         self.inner.push(v1);
     }
 
+    #[inline]
     pub fn dup2_x2(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -236,6 +263,7 @@ impl Stack {
         self.inner.push(v1);
     }
 
+    #[inline]
     pub fn swap(&mut self) {
         let v1 = self.inner.pop().unwrap();
         let v2 = self.inner.pop().unwrap();
@@ -245,20 +273,6 @@ impl Stack {
 }
 
 impl Stack {
-    fn push_primitive(&mut self, b: Vec<u8>) {
-        self.inner.push(Slot::Primitive(b));
-    }
-
-    fn push_primitive2(&mut self, v: [u8; 4]) {
-        let v = vec![v[0], v[1], v[2], v[3]];
-        self.push_primitive(v);
-    }
-
-    fn push_primitive3(&mut self, v: [u8; 8]) {
-        let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
-        self.push_primitive(v);
-    }
-
     fn push_nop(&mut self) {
         self.inner.push(Slot::Nop);
     }
