@@ -113,12 +113,12 @@ export RUST_BACKTRACE=full
 #sum_t_int2integer = 13
 #################################
 ### mine release mode
-#sum_t_list_add = 2580
-#sum_t_map_get = 58
-#sum_t_map_put = 3
-#sum_t_parse_int = 334
-#sum_t_println = 1438
-#sum_t_int2integer = 1912
+#sum_t_list_add = 1846
+#sum_t_map_get = 39
+#sum_t_map_put = 8
+#sum_t_parse_int = 262
+#sum_t_println = 1072
+#sum_t_int2integer = 1537
 export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
 cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp1
