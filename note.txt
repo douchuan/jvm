@@ -116,3 +116,22 @@ avoid lock when access Oop::Ref
 2020.06.20
 study linux 'perf' && optimize, and performance is
 getting better and better
+
+2020.06.25
+github 600 commits
+improve vm performance
+  . rm RwLock of Frame's DataArea
+  . replace Slot::Primitive(vec bytes) by Slot::I32..., avoid vec malloc
+  . use jvm_initIDs to cache filed's offset(java_io_FileOutputStream)
+  . reimpl Oop::Ref as Box ptr, avoid lock
+  . ConstantPoolCache for method & field offset
+  . Cargo.toml profile.release conf
+  . cache MethodSignature in Method
+MyCheckProp:
+#sum_t_list_add     = 5494      -> 1846
+#sum_t_map_get      = 123       -> 39
+#sum_t_map_put      = 8         -> 8
+#sum_t_parse_int    = 626       -> 262
+#sum_t_println      = 3059      -> 1072
+#sum_t_int2integer  = 3201      -> 1537
+
