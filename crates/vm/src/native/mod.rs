@@ -53,8 +53,50 @@ pub struct JNIEnvStruct {
 lazy_static! {
     //(class name, method name, method signature) -> JNINativeMethod
     static ref NATIVES: HashMap<(&'static str, &'static str, &'static str), JNINativeMethod> = {
-        let mut dict = HashMap::new();
-        let natives = vec![
+        create_native_fn_tables()
+    };
+}
+
+pub fn new_fn(
+    name: &'static str,
+    signature: &'static str,
+    fnptr: NativeMethodPtr,
+) -> JNINativeMethod {
+    Arc::new(JNINativeMethodStruct {
+        name,
+        signature,
+        fnptr,
+    })
+}
+
+pub fn new_jni_env(class: ClassRef) -> JNIEnv {
+    Arc::new(RwLock::new(Box::new(JNIEnvStruct { class })))
+}
+
+pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {
+    let package = unsafe { std::str::from_utf8_unchecked(package) };
+    let name = unsafe { std::str::from_utf8_unchecked(name) };
+    let desc = unsafe { std::str::from_utf8_unchecked(desc) };
+
+    let k = (package, name, desc);
+    NATIVES.get(&k).cloned()
+}
+
+pub fn init() {
+    lazy_static::initialize(&NATIVES);
+    java_lang_Class::init();
+}
+
+impl JNINativeMethodStruct {
+    pub fn invoke(&self, jni: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+        (self.fnptr)(jni, args)
+    }
+}
+
+fn create_native_fn_tables() -> HashMap<(&'static str, &'static str, &'static str), JNINativeMethod>
+{
+    let mut dict = HashMap::new();
+    let natives = vec![
         (
             "java/io/FileDescriptor",
             java_io_FileDescriptor::get_native_methods(),
@@ -141,42 +183,5 @@ lazy_static! {
         });
     }
 
-        dict
-    };
-}
-
-pub fn new_fn(
-    name: &'static str,
-    signature: &'static str,
-    fnptr: NativeMethodPtr,
-) -> JNINativeMethod {
-    Arc::new(JNINativeMethodStruct {
-        name,
-        signature,
-        fnptr,
-    })
-}
-
-pub fn new_jni_env(class: ClassRef) -> JNIEnv {
-    Arc::new(RwLock::new(Box::new(JNIEnvStruct { class })))
-}
-
-pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINativeMethod> {
-    let package = unsafe { std::str::from_utf8_unchecked(package) };
-    let name = unsafe { std::str::from_utf8_unchecked(name) };
-    let desc = unsafe { std::str::from_utf8_unchecked(desc) };
-
-    let k = (package, name, desc);
-    NATIVES.get(&k).cloned()
-}
-
-pub fn init() {
-    lazy_static::initialize(&NATIVES);
-    java_lang_Class::init();
-}
-
-impl JNINativeMethodStruct {
-    pub fn invoke(&self, jni: JNIEnv, args: &Vec<Oop>) -> JNIResult {
-        (self.fnptr)(jni, args)
-    }
+    dict
 }
