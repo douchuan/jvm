@@ -114,12 +114,15 @@ impl JavaCall {
 
                 //if return void, not need set return value
                 if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
-                    let return_value = {
+                    let return_v = {
                         let frame = frame.try_read().unwrap();
                         let area = frame.area.return_v.borrow();
                         area.clone()
                     };
-                    set_return(caller, &self.mir.method.signature.retype, return_value);
+
+                    let caller = caller.unwrap();
+                    let return_v = return_v.unwrap();
+                    set_return(caller, &self.mir.method.signature.retype, return_v);
                 }
             }
 
@@ -165,7 +168,9 @@ impl JavaCall {
         match v {
             Ok(v) => {
                 if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
-                    set_return(caller, &self.mir.method.signature.retype, v);
+                    let caller = caller.unwrap();
+                    let return_v = v.unwrap();
+                    set_return(caller, &self.mir.method.signature.retype, return_v);
                 }
             }
             Err(ex) => jt.write().unwrap().set_ex(ex),
@@ -311,7 +316,7 @@ impl JavaCall {
 
 fn build_args_from_caller_stack(caller: &DataArea, sig: &MethodSignature) -> Vec<Oop> {
     let mut caller = caller.stack.borrow_mut();
-    let mut args = Vec::new();
+    let mut args = Vec::with_capacity(sig.args.len() + 1);
 
     //build args from caller's stack, so should rev the signature args
     for it in sig.args.iter().rev() {
@@ -349,46 +354,32 @@ fn build_args_from_caller_stack(caller: &DataArea, sig: &MethodSignature) -> Vec
     args
 }
 
-pub fn set_return(caller: Option<&DataArea>, return_type: &SignatureType, v: Option<Oop>) {
+pub fn set_return(caller: &DataArea, return_type: &SignatureType, v: Oop) {
+    let mut stack = caller.stack.borrow_mut();
     match return_type {
         SignatureType::Byte
         | SignatureType::Short
         | SignatureType::Char
         | SignatureType::Int
         | SignatureType::Boolean => {
-            let v = v.unwrap();
             let v = v.extract_int();
-            let caller = caller.unwrap();
-            let mut stack = caller.stack.borrow_mut();
             stack.push_int(v);
         }
         SignatureType::Long => {
-            let v = v.unwrap();
             let v = v.extract_long();
-            let caller = caller.unwrap();
-            let mut stack = caller.stack.borrow_mut();
             stack.push_long(v);
         }
         SignatureType::Float => {
-            let v = v.unwrap();
             let v = v.extract_float();
-            let caller = caller.unwrap();
-            let mut stack = caller.stack.borrow_mut();
             stack.push_float(v);
         }
         SignatureType::Double => {
-            let v = v.unwrap();
             let v = v.extract_double();
-            let caller = caller.unwrap();
-            let mut stack = caller.stack.borrow_mut();
             stack.push_double(v);
         }
         SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
-            let v = v.unwrap();
-            let caller = caller.unwrap();
-            let mut stack = caller.stack.borrow_mut();
             stack.push_ref(v);
         }
-        SignatureType::Void => (),
+        SignatureType::Void => unimplemented!(),
     }
 }
