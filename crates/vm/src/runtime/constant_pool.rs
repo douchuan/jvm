@@ -46,19 +46,17 @@ impl ConstantPoolCache {
             Some(it) => it.extract_field(),
             None => {
                 drop(cache);
-                self.cache_field(idx, is_static)
+                let fid = field::get_field_ref(&self.cp, idx, is_static);
+                self.cache_field(idx, fid.clone());
+                fid
             }
         }
     }
 
-    fn cache_field(&self, idx: usize, is_static: bool) -> FieldIdRef {
-        let fid = field::get_field_ref(&self.cp, idx, is_static);
-
+    fn cache_field(&self, k: usize, v: FieldIdRef) {
         let mut cache = self.cache.borrow_mut();
-        let v = CacheType::Field(fid.clone());
-        cache.insert(idx, v);
-
-        fid
+        let v = CacheType::Field(v);
+        cache.insert(k, v);
     }
 
     pub fn get_method(&self, idx: usize) -> MethodIdRef {
@@ -68,18 +66,16 @@ impl ConstantPoolCache {
             Some(it) => it.extract_method(),
             None => {
                 drop(cache);
-                self.cache_method(idx)
+                let m = oop::method::get_method_ref(&self.cp, idx).unwrap();
+                self.cache_method(idx, m.clone());
+                m
             }
         }
     }
 
-    fn cache_method(&self, idx: usize) -> MethodIdRef {
-        let m = oop::method::get_method_ref(&self.cp, idx).unwrap();
-
+    fn cache_method(&self, k: usize, v: MethodIdRef) {
         let mut cache = self.cache.borrow_mut();
-        let v = CacheType::Method(m.clone());
-        cache.insert(idx, v);
-
-        m
+        let v = CacheType::Method(v);
+        cache.insert(k, v);
     }
 }
