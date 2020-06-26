@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 pub struct JavaCall {
     pub mir: MethodIdRef,
     pub args: Vec<Oop>,
+    pub is_return_void: bool,
 }
 
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
@@ -27,7 +28,12 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
 
 impl JavaCall {
     pub fn new_with_args(mir: MethodIdRef, args: Vec<Oop>) -> Self {
-        Self { mir, args }
+        let is_return_void = mir.method.signature.retype == SignatureType::Void;
+        Self {
+            mir,
+            args,
+            is_return_void,
+        }
     }
 
     pub fn new(caller: &DataArea, mir: MethodIdRef) -> Result<JavaCall, ()> {
@@ -63,7 +69,7 @@ impl JavaCall {
             args.insert(0, this);
         }
 
-        Ok(Self { mir, args })
+        Ok(Self::new_with_args(mir, args))
     }
 }
 
@@ -106,7 +112,8 @@ impl JavaCall {
                 let interp = Interp::new(frame_h);
                 interp.run();
 
-                if !jt.read().unwrap().is_meet_ex() {
+                //if return void, not need set return value
+                if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
                     let return_value = {
                         let frame = frame.try_read().unwrap();
                         let area = frame.area.return_v.borrow();
@@ -157,7 +164,7 @@ impl JavaCall {
 
         match v {
             Ok(v) => {
-                if !jt.read().unwrap().is_meet_ex() {
+                if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
                     set_return(caller, &self.mir.method.signature.retype, v);
                 }
             }
