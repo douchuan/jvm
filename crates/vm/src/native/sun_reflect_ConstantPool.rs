@@ -12,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_getUTF8At0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getUTF8At0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     let cp_oop = args.get(1).unwrap();
     let index = {

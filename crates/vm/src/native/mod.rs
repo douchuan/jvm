@@ -37,7 +37,7 @@ mod sun_reflect_Reflection;
 
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
-pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, Vec<Oop>) -> JNIResult + Send + Sync>;
+pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, &Vec<Oop>) -> JNIResult + Send + Sync>;
 pub type JNINativeMethod = Arc<JNINativeMethodStruct>;
 
 pub struct JNINativeMethodStruct {
@@ -179,7 +179,7 @@ pub fn init() {
 }
 
 impl JNINativeMethodStruct {
-    pub fn invoke(&self, jni: JNIEnv, args: Vec<Oop>) -> JNIResult {
+    pub fn invoke(&self, jni: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         (self.fnptr)(jni, args)
     }
 }

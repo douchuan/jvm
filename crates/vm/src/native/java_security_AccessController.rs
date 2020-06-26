@@ -26,7 +26,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
 
     let mir = {
@@ -61,15 +61,15 @@ fn jvm_doPrivileged(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
 }
 
 //todo: re impl
-fn jvm_doPrivileged2(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged2(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(env, args)
 }
 
 //todo: re impl
-fn jvm_doPrivileged3(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_doPrivileged3(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     jvm_doPrivileged(env, args)
 }
 
-fn jvm_getStackAccessControlContext(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_getStackAccessControlContext(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }

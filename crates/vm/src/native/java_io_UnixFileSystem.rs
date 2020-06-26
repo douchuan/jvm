@@ -43,7 +43,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let cls = cls.get_class();
     let fir = cls.get_field_id(new_br("path"), new_br("Ljava/lang/String;"), false);
@@ -54,7 +54,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getBooleanAttributes0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getBooleanAttributes0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file);
 
@@ -72,7 +72,7 @@ fn jvm_getBooleanAttributes0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_checkAccess(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_checkAccess(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let file = args.get(1).unwrap();
     let path = get_File_path(file);
 
@@ -102,7 +102,7 @@ fn jvm_checkAccess(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_canonicalize0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_canonicalize0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
     let path = OopRef::java_lang_string(path.extract_ref());
     let path = std::path::Path::new(&path);
@@ -113,7 +113,7 @@ fn jvm_canonicalize0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(path))
 }
 
-fn jvm_createFileExclusively(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_createFileExclusively(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let path = args.get(1).unwrap();
     let path = OopRef::java_lang_string(path.extract_ref());
     let v = match std::fs::OpenOptions::new()

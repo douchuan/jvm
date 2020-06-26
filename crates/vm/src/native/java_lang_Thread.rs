@@ -21,23 +21,23 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_currentThread(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_currentThread(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let jt = runtime::thread::current_java_thread();
     let obj = jt.read().unwrap().java_thread_obj.clone();
     Ok(obj)
 }
 
-fn jvm_setPriority0(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_setPriority0(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
 //'_jt' is caller's thread context, can't be used here
 //should find by 'eetop' in thread pool
-fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isAlive(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let eetop = OopRef::java_lang_thread_eetop(this.extract_ref());
     let vm = get_vm();
@@ -57,7 +57,7 @@ fn jvm_isAlive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(r)))
 }
 
-fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_start0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let thread_oop = args.get(0).unwrap().clone();
     let clazz = {
         let rf = thread_oop.extract_ref();
@@ -112,7 +112,7 @@ fn jvm_start0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_isInterrupted(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_isInterrupted(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     //todo: fix me
     let v = Oop::new_int(0);
     Ok(Some(v))

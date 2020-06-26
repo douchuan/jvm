@@ -257,15 +257,15 @@ pub fn create_delayed_ary_mirrors() {
     }
 }
 
-fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_desiredAssertionStatus0(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_desiredAssertionStatus0(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(0)))
 }
 
-fn jvm_getPrimitiveClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getPrimitiveClass(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = OopRef::java_lang_string(v.extract_ref());
     match SIGNATURE_DIC.get(v.as_str()) {
@@ -274,7 +274,7 @@ fn jvm_getPrimitiveClass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredFields0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();
@@ -318,7 +318,7 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_ref_ary2(ary_cls, fields)))
 }
 
-fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getName0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let (target, vt) = {
         let arg0 = args.get(0).unwrap();
         let rf = arg0.extract_ref();
@@ -344,7 +344,7 @@ fn jvm_getName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_forName0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let java_name = {
         let rf = arg0.extract_ref();
@@ -399,7 +399,7 @@ fn jvm_forName0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_isPrimitive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isPrimitive(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = {
         let rf = v.extract_ref();
@@ -413,7 +413,7 @@ fn jvm_isPrimitive(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isAssignableFrom(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isAssignableFrom(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let l = args.get(0).unwrap();
     let r = args.get(1).unwrap();
 
@@ -448,7 +448,7 @@ fn jvm_isAssignableFrom(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_isInterface(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isInterface(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = {
         let rf = v.extract_ref();
@@ -468,11 +468,11 @@ fn jvm_isInterface(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredConstructors0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredConstructors0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     get_declared_method_helper(true, env, args)
 }
 
-pub fn jvm_getModifiers(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+pub fn jvm_getModifiers(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = {
         let rf = v.extract_ref();
@@ -486,7 +486,7 @@ pub fn jvm_getModifiers(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_getSuperclass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getSuperclass(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let rf = arg0.extract_ref();
     let mirror = rf.extract_mirror();
@@ -506,7 +506,7 @@ fn jvm_getSuperclass(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_isArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isArray(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
 
     let mirror_cls = {
@@ -527,7 +527,7 @@ fn jvm_isArray(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getComponentType(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getComponentType(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let cls = {
         let rf = arg0.extract_ref();
@@ -552,7 +552,7 @@ fn jvm_getComponentType(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(v)
 }
 
-fn jvm_getEnclosingMethod0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getEnclosingMethod0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let target = {
         let rf = arg0.extract_ref();
@@ -612,7 +612,7 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(ary))
 }
 
-fn jvm_getDeclaringClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaringClass0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let target = {
         let rf = arg0.extract_ref();
@@ -664,7 +664,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(oop::consts::get_null()))
 }
 
-fn jvm_isInstance(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_isInstance(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let arg1 = args.get(1).unwrap();
 
@@ -694,11 +694,11 @@ fn jvm_isInstance(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredMethods0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredMethods0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     get_declared_method_helper(false, env, args)
 }
 
-fn jvm_getInterfaces0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getInterfaces0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let mirror = {
         let arg0 = args.get(0).unwrap();
         extract_mirror_target(arg0)
@@ -743,7 +743,7 @@ fn jvm_getInterfaces0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(ary))
 }
 
-fn jvm_getRawAnnotations(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getRawAnnotations(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let cls = args.get(0).unwrap();
     let annotations = match cls {
         Oop::Ref(rf) => {
@@ -762,7 +762,7 @@ fn jvm_getRawAnnotations(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(annotations))
 }
 
-fn jvm_getConstantPool(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getConstantPool(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let cp_oop = match this {
         Oop::Ref(_rf) => {
@@ -787,12 +787,12 @@ fn jvm_getConstantPool(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(cp_oop))
 }
 
-fn jvm_getDeclaredClasses0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     unimplemented!();
 }
 
-fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getGenericSignature0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let v = match this {
         Oop::Ref(rf) => {
@@ -819,7 +819,7 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     //parse args
     let mirror_target = {
         let arg0 = args.get(0).unwrap();

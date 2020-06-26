@@ -19,7 +19,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_getCallerClass(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_getCallerClass(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let jt = runtime::thread::current_java_thread();
     let mut callers = { jt.read().unwrap().frames.clone() };
 
@@ -51,6 +51,6 @@ fn jvm_getCallerClass(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_getClassAccessFlags(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_getClassAccessFlags(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     native::java_lang_Class::jvm_getModifiers(env, args)
 }

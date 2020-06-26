@@ -20,7 +20,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     //setup: java.io.FileInputStream fd
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let cls = cls.get_class();
@@ -40,7 +40,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_open0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_open0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
@@ -57,7 +57,7 @@ fn jvm_open0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_readBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_readBytes(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     let byte_ary = args.get(1).unwrap();
@@ -90,7 +90,7 @@ fn jvm_readBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(n)))
 }
 
-fn jvm_available0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_available0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
 
@@ -137,7 +137,7 @@ fn jvm_available0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_close0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_close0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(this);
     unsafe {

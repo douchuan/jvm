@@ -45,11 +45,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arraycopy(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_arraycopy(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let src = args.get(0).unwrap();
     let src_pos = args.get(1).unwrap().extract_int();
     let dest = args.get(2).unwrap();
@@ -84,7 +84,7 @@ fn jvm_arraycopy(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_initProperties(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_initProperties(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     //fixme:
     let props = vec![
         ("file.encoding.pkg", "sun.io"),
@@ -186,7 +186,7 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
     jc.invoke(Some(&area), false);
 }
 
-fn jvm_setIn0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setIn0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let cls = cls.get_mut_class();
@@ -195,7 +195,7 @@ fn jvm_setIn0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_setOut0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setOut0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let cls = cls.get_mut_class();
@@ -204,7 +204,7 @@ fn jvm_setOut0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_setErr0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_setErr0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
     let cls = cls.get_mut_class();
@@ -213,7 +213,7 @@ fn jvm_setErr0(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_mapLibraryName(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_mapLibraryName(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let v = args.get(0).unwrap();
     let s = OopRef::java_lang_string(v.extract_ref());
 
@@ -242,11 +242,11 @@ fn jvm_mapLibraryName(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn jvm_loadLibrary(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_loadLibrary(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_identityHashCode(env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_identityHashCode(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     native::java_lang_Object::jvm_hashCode(env, args)
 }
 
@@ -395,7 +395,7 @@ fn arraycopy_diff_obj(
     }
 }
 
-fn jvm_nanoTime(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_nanoTime(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_nanos(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
@@ -404,7 +404,7 @@ fn jvm_nanoTime(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_long(v as i64)))
 }
 
-fn jvm_currentTimeMillis(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_currentTimeMillis(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let v = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(n) => n.as_millis(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),

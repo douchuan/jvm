@@ -149,7 +149,7 @@ impl JavaCall {
                         {
                             jt.write().unwrap().frames.push(frame);
                         }
-                        method.invoke(env, self.args.clone())
+                        method.invoke(env, &self.args)
                     }
                     Err(ex) => Err(ex),
                 }

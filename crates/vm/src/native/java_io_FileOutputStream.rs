@@ -16,7 +16,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
+fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     //setup: java.io.FileOutputStream fd
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let cls = cls.get_class();
@@ -36,7 +36,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_writeBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_writeBytes(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let os = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(os);
     let byte_ary = args.get(1).unwrap();
@@ -63,7 +63,7 @@ fn jvm_writeBytes(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_open0(_env: JNIEnv, args: Vec<Oop>) -> JNIResult {
+fn jvm_open0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = args.get(1).unwrap();
     let name = OopRef::java_lang_string(name.extract_ref());
