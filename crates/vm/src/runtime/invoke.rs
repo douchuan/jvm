@@ -113,7 +113,7 @@ impl JavaCall {
                 interp.run();
 
                 //if return void, not need set return value
-                if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
+                if !self.is_return_void && !thread::is_meet_ex() {
                     let return_v = {
                         let frame = frame.try_read().unwrap();
                         let area = frame.area.return_v.borrow();
@@ -167,7 +167,7 @@ impl JavaCall {
 
         match v {
             Ok(v) => {
-                if !self.is_return_void && !jt.read().unwrap().is_meet_ex() {
+                if !self.is_return_void && !thread::is_meet_ex() {
                     let caller = caller.unwrap();
                     let return_v = v.unwrap();
                     set_return(caller, &self.mir.method.signature.retype, return_v);

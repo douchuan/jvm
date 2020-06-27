@@ -14,3 +14,5 @@ pub use mutex::raw as mutex_raw;
 pub use mutex::ReentrantMutex;
 pub use thread_pool::ThreadPool;
 pub use threads::Threads;
+
+pub use java_thread::is_meet_ex;

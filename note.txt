@@ -128,10 +128,10 @@ improve vm performance
   . Cargo.toml profile.release conf
   . cache MethodSignature in Method
 MyCheckProp:
-#sum_t_list_add     = 5494      -> 1846
-#sum_t_map_get      = 123       -> 39
-#sum_t_map_put      = 8         -> 8
-#sum_t_parse_int    = 626       -> 262
-#sum_t_println      = 3059      -> 1072
-#sum_t_int2integer  = 3201      -> 1537
+#sum_t_list_add     = 5494      -> 1507
+#sum_t_map_get      = 123       -> 27
+#sum_t_map_put      = 8         -> 3
+#sum_t_parse_int    = 626       -> 159
+#sum_t_println      = 3059      -> 768
+#sum_t_int2integer  = 3201      -> 1255
 

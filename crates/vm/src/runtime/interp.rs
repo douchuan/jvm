@@ -3,9 +3,7 @@ use crate::oop::{
 };
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use crate::runtime::{
-    self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame, JavaCall,
-};
+use crate::runtime::{self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame, JavaCall, thread};
 use crate::types::*;
 use crate::util;
 use classfile::{
@@ -305,7 +303,7 @@ impl<'a> Interp<'a> {
                 _ => unreachable!(),
             }
 
-            let is_meet_ex = jt.read().unwrap().is_meet_ex();
+            let is_meet_ex = thread::is_meet_ex();
             if is_meet_ex {
                 let mut th = jt.write().unwrap();
                 let ex = th.take_ex().unwrap();

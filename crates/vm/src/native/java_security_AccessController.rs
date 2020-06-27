@@ -2,7 +2,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
 use crate::oop::{self, Oop};
-use crate::runtime::{self, exception, JavaCall};
+use crate::runtime::{self, exception, JavaCall, thread};
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -50,8 +50,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let area = runtime::DataArea::new(0, 1);
     jc.invoke(Some(&area), false);
 
-    let jt = runtime::thread::current_java_thread();
-    if !jt.read().unwrap().is_meet_ex() {
+    if !thread::is_meet_ex() {
         let mut stack = area.stack.borrow_mut();
         let r = stack.pop_ref();
         Ok(Some(r))

@@ -2,13 +2,25 @@ use crate::oop::{self, consts, Oop};
 use crate::types::{FrameRef, JavaThreadRef};
 use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 thread_local! {
     pub static THREAD: RefCell<JavaThreadRef> = RefCell::new(JavaThread::main());
+    pub static IS_MEET_EX: AtomicBool = AtomicBool::new(false);
 }
 
 pub fn current_java_thread() -> JavaThreadRef {
     THREAD.with(|t| t.borrow().clone())
+}
+
+#[inline]
+pub fn is_meet_ex() -> bool {
+    IS_MEET_EX.with(|v| v.load(Ordering::Relaxed))
+}
+
+#[inline]
+fn set_meet_ex(val: bool) {
+   IS_MEET_EX.with(|v| v.store(val, Ordering::Relaxed));
 }
 
 pub struct JavaThread {
@@ -51,14 +63,12 @@ impl JavaThread {
 //exception
 impl JavaThread {
     pub fn set_ex(&mut self, ex: Oop) {
+        set_meet_ex(true);
         self.ex = Some(ex);
     }
 
-    pub fn is_meet_ex(&self) -> bool {
-        self.ex.is_some()
-    }
-
     pub fn take_ex(&mut self) -> Option<Oop> {
+        set_meet_ex(false);
         self.ex.take()
     }
 }

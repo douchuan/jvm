@@ -2,7 +2,7 @@
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
-use crate::runtime::{self, JavaCall};
+use crate::runtime::{self, JavaCall, thread};
 use crate::{new_br, util};
 use std::sync::Arc;
 use std::time::SystemTime;
@@ -151,8 +151,7 @@ fn jvm_initProperties(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         put_props_kv(props_oop, "test.src", v.as_str());
     }
 
-    let jt = runtime::thread::current_java_thread();
-    if jt.read().unwrap().is_meet_ex() {
+    if thread::is_meet_ex() {
         unreachable!("jvm_initProperties meet ex");
     }
 
