@@ -22,7 +22,7 @@ pub enum TypeArrayDesc {
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
-            assert!(class.get_class().is_array());
+            debug_assert!(class.get_class().is_array());
         }
 
         Self { class, elements }

@@ -29,7 +29,7 @@ fn jvm_getCallerClass(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
             let cur = cur.try_read().unwrap();
             cur.mir.clone()
         };
-        assert_eq!(cur.method.name.as_slice(), b"getCallerClass");
+        debug_assert_eq!(cur.method.name.as_slice(), b"getCallerClass");
     }
 
     loop {

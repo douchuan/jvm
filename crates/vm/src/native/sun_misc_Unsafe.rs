@@ -105,7 +105,7 @@ fn jvm_objectFieldOffset(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         let inst = rf.extract_inst();
         let cls = inst.class.clone();
         let cls = cls.get_class();
-        assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
+        debug_assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
     }
 
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();

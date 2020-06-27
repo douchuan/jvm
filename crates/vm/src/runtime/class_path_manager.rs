@@ -103,7 +103,7 @@ impl ClassPathManager {
                     if let Ok(mut zf) = zf {
                         let mut v = Vec::with_capacity(zf.size() as usize);
                         let r = zf.read_to_end(&mut v);
-                        assert!(r.is_ok());
+                        debug_assert!(r.is_ok());
                         return Ok(ClassPathResult(it.1.clone(), v));
                     }
                 }

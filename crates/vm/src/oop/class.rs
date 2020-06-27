@@ -737,7 +737,7 @@ impl Class {
 
     pub fn new_wrapped_ary(class_loader: ClassLoader, down_type: ClassRef) -> Self {
         let cls = down_type.get_class();
-        assert!(cls.is_array());
+        debug_assert!(cls.is_array());
 
         //build name
         let mut name2 = Vec::with_capacity(1 + cls.name.len());
@@ -810,8 +810,8 @@ impl ClassObject {
 
             {
                 let c = super_class.get_class();
-                assert!(c.is_instance());
-                assert!(!c.is_final(), "should not final");
+                debug_assert!(c.is_instance());
+                debug_assert!(!c.is_final(), "should not final");
             }
 
             Some(super_class)

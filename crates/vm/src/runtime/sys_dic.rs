@@ -13,7 +13,7 @@ lazy_static! {
 }
 
 pub fn put(key: &[u8], klass: ClassRef) {
-    assert!(!key.contains(&b'.'));
+    debug_assert!(!key.contains(&b'.'));
 
     let key = Vec::from(key);
     let key = unsafe { String::from_utf8_unchecked(key) };
@@ -23,7 +23,7 @@ pub fn put(key: &[u8], klass: ClassRef) {
 
 //key style: "sun/security/provider/Sun"
 pub fn find(key: &[u8]) -> Option<ClassRef> {
-    assert!(!key.contains(&b'.'));
+    debug_assert!(!key.contains(&b'.'));
     let key = unsafe { std::str::from_utf8_unchecked(key) };
     let dict = SYS_DIC.lock().unwrap();
     dict.get(key).cloned()
