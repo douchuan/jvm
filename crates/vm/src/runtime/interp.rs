@@ -360,19 +360,19 @@ impl<'a> Interp<'a> {
         match &self.frame.cp[pos] {
             ConstantPoolType::Integer { v } => {
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_int2(*v)
+                stack.push_int2(v)
             }
             ConstantPoolType::Float { v } => {
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_float2(*v)
+                stack.push_float2(v)
             }
             ConstantPoolType::Long { v } => {
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_long2(*v)
+                stack.push_long2(v)
             }
             ConstantPoolType::Double { v } => {
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_double2(*v)
+                stack.push_double2(v)
             }
             ConstantPoolType::String { string_index } => {
                 let s = get_cp_utf8(&self.frame.cp, *string_index as usize).unwrap();
@@ -434,8 +434,7 @@ impl<'a> Interp<'a> {
         let class = self.frame.class.extract_inst();
         let fir = class.cp_cache.get_field(idx, is_static);
 
-        assert_eq!(fir.field.is_static(), is_static);
-
+        debug_assert_eq!(fir.field.is_static(), is_static);
         trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
 
         let value_type = fir.field.value_type;
@@ -452,33 +451,21 @@ impl<'a> Interp<'a> {
             | ValueType::SHORT
             | ValueType::CHAR
             | ValueType::BOOLEAN
-            | ValueType::BYTE => match v {
-                Oop::Int(v) => {
-                    let mut stack = self.frame.area.stack.borrow_mut();
-                    stack.push_int(v)
-                }
-                t => unreachable!("t = {:?}", t),
+            | ValueType::BYTE => {
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_int(v.extract_int());
             },
-            ValueType::FLOAT => match v {
-                Oop::Float(v) => {
-                    let mut stack = self.frame.area.stack.borrow_mut();
-                    stack.push_float(v)
-                }
-                _ => unreachable!(),
+            ValueType::FLOAT => {
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_float(v.extract_float());
             },
-            ValueType::DOUBLE => match v {
-                Oop::Double(v) => {
-                    let mut stack = self.frame.area.stack.borrow_mut();
-                    stack.push_double(v)
-                }
-                _ => unreachable!(),
+            ValueType::DOUBLE => {
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_double(v.extract_double());
             },
-            ValueType::LONG => match v {
-                Oop::Long(v) => {
-                    let mut stack = self.frame.area.stack.borrow_mut();
-                    stack.push_long(v)
-                }
-                _ => unreachable!(),
+            ValueType::LONG => {
+                let mut stack = self.frame.area.stack.borrow_mut();
+                stack.push_long(v.extract_long());
             },
             ValueType::OBJECT | ValueType::ARRAY => {
                 let mut stack = self.frame.area.stack.borrow_mut();
@@ -492,8 +479,7 @@ impl<'a> Interp<'a> {
         let class = self.frame.class.extract_inst();
         let fir = class.cp_cache.get_field(idx, is_static);
 
-        assert_eq!(fir.field.is_static(), is_static);
-
+        debug_assert_eq!(fir.field.is_static(), is_static);
         trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
 
         let value_type = fir.field.value_type;
@@ -552,7 +538,7 @@ impl<'a> Interp<'a> {
             classfile::SignatureType::Void => None,
             _ => Some(&self.frame.area),
         };
-        assert_eq!(mir.method.is_static(), is_static);
+        debug_assert_eq!(mir.method.is_static(), is_static);
         if let Ok(mut jc) = runtime::invoke::JavaCall::new(&self.frame.area, mir) {
             jc.invoke(caller, force_no_resolve);
         }

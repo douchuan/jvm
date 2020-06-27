@@ -292,6 +292,7 @@ impl Oop {
         }
     }
 
+    #[inline]
     pub fn extract_int(&self) -> i32 {
         match self {
             Oop::Int(v) => *v,
@@ -299,6 +300,7 @@ impl Oop {
         }
     }
 
+    #[inline]
     pub fn extract_float(&self) -> f32 {
         match &self {
             Oop::Float(v) => *v,
@@ -306,6 +308,7 @@ impl Oop {
         }
     }
 
+    #[inline]
     pub fn extract_long(&self) -> i64 {
         match self {
             Oop::Long(v) => *v,
@@ -313,6 +316,7 @@ impl Oop {
         }
     }
 
+    #[inline]
     pub fn extract_double(&self) -> f64 {
         match self {
             Oop::Double(v) => *v,
@@ -320,6 +324,7 @@ impl Oop {
         }
     }
 
+    #[inline]
     pub fn extract_ref(&self) -> Arc<OopRef> {
         match self {
             Oop::Ref(v) => v.clone(),
