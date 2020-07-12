@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::new_br;
+use crate::{new_br, oop};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use std::os::raw::c_void;
+use classfile::flags::ACC_STATIC;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -77,6 +78,9 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JLjava/lang/Object;)V",
             Box::new(jvm_putObject),
         ),
+        new_fn("ensureClassInitialized", "(Ljava/lang/Class;)V", Box::new(jvm_ensureClassInitialized)),
+        new_fn("staticFieldOffset", "(Ljava/lang/reflect/Field;)J", Box::new(jvm_staticFieldOffset)),
+        new_fn("staticFieldBase", "(Ljava/lang/reflect/Field;)Ljava/lang/Object;", Box::new(jvm_staticFieldBase)),
     ]
 }
 
@@ -99,24 +103,7 @@ fn jvm_addressSize(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
 
 fn jvm_objectFieldOffset(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let field = args.get(1).unwrap();
-
-    {
-        let rf = field.extract_ref();
-        let inst = rf.extract_inst();
-        let cls = inst.class.clone();
-        let cls = cls.get_class();
-        debug_assert_eq!(cls.name.as_slice(), b"java/lang/reflect/Field");
-    }
-
-    let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
-    let v = {
-        let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("slot"), new_br("I"), false);
-        Class::get_field_value(field.extract_ref(), id)
-    };
-
-    let v = v.extract_int();
-    Ok(Some(Oop::new_long(v as i64)))
+    objectFieldOffset(field, false)
 }
 
 // fixme: The semantic requirement here is atomic operation, which needs to be re-implemented here
@@ -301,4 +288,53 @@ fn jvm_getChar(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
 
 fn jvm_putObject(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     unimplemented!();
+}
+
+fn jvm_ensureClassInitialized(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let clazz = args.get(1).unwrap();
+    let rf = clazz.extract_ref();
+    let mirror = rf.extract_mirror();
+    let target = mirror.target.clone().unwrap();
+    oop::class::init_class(&target);
+    oop::class::init_class_fully(&target);
+    Ok(None)
+}
+
+fn jvm_staticFieldOffset(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let field = args.get(1).unwrap();
+    objectFieldOffset(field, true)
+}
+
+fn jvm_staticFieldBase(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let field = args.get(1).unwrap();
+    let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
+    let cls = cls.get_class();
+    let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
+    let v = Class::get_field_value(field.extract_ref(), id);
+    Ok(Some(v))
+}
+
+////////helper
+
+fn objectFieldOffset(field: &Oop, is_static: bool) -> JNIResult {
+    let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
+
+    if is_static {
+        let modifier = {
+            let cls = cls.get_class();
+            let id = cls.get_field_id(new_br("modifiers"), new_br("I"), false);
+            let v = Class::get_field_value(field.extract_ref(), id);
+            v.extract_int() as u16
+        };
+        assert_eq!(modifier & ACC_STATIC, ACC_STATIC);
+    }
+
+    let slot = {
+        let cls = cls.get_class();
+        let id = cls.get_field_id(new_br("slot"), new_br("I"), false);
+        let v = Class::get_field_value(field.extract_ref(), id);
+        v.extract_int()
+    };
+
+    Ok(Some(Oop::new_long(slot as i64)))
 }

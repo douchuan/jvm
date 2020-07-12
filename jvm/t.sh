@@ -81,13 +81,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG Compare
 #cargo run -- --cp $JDK:$JDK_T_LANG HashCode
 #cargo run -- --cp $JDK:$JDK_T_LANG ToString
-
-###todo: optimize
-###init vm，初始化安全模块慢。
-### File.createTempFile，会使用SecureRandom，导致一系列安全相关的类被加载
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Appendable Basic
-#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Appendable Basic
-
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/AssertionError Cause
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean Factory
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean GetBoolean
@@ -96,7 +90,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Byte Decode
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM CopyMemory
+cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM CopyMemory
 
 ##todo: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
@@ -119,8 +113,8 @@ export RUST_BACKTRACE=full
 #sum_t_parse_int = 159
 #sum_t_println = 768
 #sum_t_int2integer = 1255
-export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
-cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
+#export TEST_SRC=$JDK_SRC/jdk/test/java/lang/Character
+#cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp1
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
