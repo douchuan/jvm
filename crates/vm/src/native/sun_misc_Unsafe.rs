@@ -1,11 +1,11 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::{new_br, oop};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
-use std::os::raw::c_void;
+use crate::{new_br, oop};
 use classfile::flags::ACC_STATIC;
+use std::os::raw::c_void;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -78,9 +78,21 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/Object;JLjava/lang/Object;)V",
             Box::new(jvm_putObject),
         ),
-        new_fn("ensureClassInitialized", "(Ljava/lang/Class;)V", Box::new(jvm_ensureClassInitialized)),
-        new_fn("staticFieldOffset", "(Ljava/lang/reflect/Field;)J", Box::new(jvm_staticFieldOffset)),
-        new_fn("staticFieldBase", "(Ljava/lang/reflect/Field;)Ljava/lang/Object;", Box::new(jvm_staticFieldBase)),
+        new_fn(
+            "ensureClassInitialized",
+            "(Ljava/lang/Class;)V",
+            Box::new(jvm_ensureClassInitialized),
+        ),
+        new_fn(
+            "staticFieldOffset",
+            "(Ljava/lang/reflect/Field;)J",
+            Box::new(jvm_staticFieldOffset),
+        ),
+        new_fn(
+            "staticFieldBase",
+            "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",
+            Box::new(jvm_staticFieldBase),
+        ),
     ]
 }
 

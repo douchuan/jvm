@@ -2,7 +2,7 @@
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop, OopRef};
-use crate::runtime::{self, JavaCall, thread};
+use crate::runtime::{self, thread, JavaCall};
 use crate::{new_br, util};
 use std::sync::Arc;
 use std::time::SystemTime;

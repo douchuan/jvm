@@ -2,7 +2,7 @@
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
 use crate::oop::{self, Oop};
-use crate::runtime::{self, exception, JavaCall, thread};
+use crate::runtime::{self, exception, thread, JavaCall};
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {

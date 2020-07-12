@@ -3,7 +3,10 @@ use crate::oop::{
 };
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
-use crate::runtime::{self, cmp, exception, require_class, require_class2, require_class3, DataArea, Frame, JavaCall, thread};
+use crate::runtime::{
+    self, cmp, exception, require_class, require_class2, require_class3, thread, DataArea, Frame,
+    JavaCall,
+};
 use crate::types::*;
 use crate::util;
 use classfile::{
@@ -452,19 +455,19 @@ impl<'a> Interp<'a> {
             | ValueType::BYTE => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_int(v.extract_int());
-            },
+            }
             ValueType::FLOAT => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_float(v.extract_float());
-            },
+            }
             ValueType::DOUBLE => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_double(v.extract_double());
-            },
+            }
             ValueType::LONG => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_long(v.extract_long());
-            },
+            }
             ValueType::OBJECT | ValueType::ARRAY => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_ref(v)

@@ -1,8 +1,8 @@
 use crate::oop::{self, consts, Oop};
 use crate::types::{FrameRef, JavaThreadRef};
 use std::cell::RefCell;
-use std::sync::{Arc, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, RwLock};
 
 thread_local! {
     pub static THREAD: RefCell<JavaThreadRef> = RefCell::new(JavaThread::main());
@@ -20,7 +20,7 @@ pub fn is_meet_ex() -> bool {
 
 #[inline]
 fn set_meet_ex(val: bool) {
-   IS_MEET_EX.with(|v| v.store(val, Ordering::Relaxed));
+    IS_MEET_EX.with(|v| v.store(val, Ordering::Relaxed));
 }
 
 pub struct JavaThread {
