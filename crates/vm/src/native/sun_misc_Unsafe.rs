@@ -6,6 +6,7 @@ use crate::runtime::require_class3;
 use crate::{new_br, oop};
 use classfile::flags::ACC_STATIC;
 use std::os::raw::c_void;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -95,6 +96,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         ),
         new_fn("putByte", "(Ljava/lang/Object;JB)V", Box::new(jvm_putByte)),
         new_fn("getByte", "(Ljava/lang/Object;J)B", Box::new(jvm_getByte2)),
+        new_fn("park", "(ZJ)V", Box::new(jvm_park)),
     ]
 }
 
@@ -351,8 +353,15 @@ fn jvm_getChar(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_putObject(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
-    unimplemented!();
+fn jvm_putObject(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let o = args.get(1).unwrap();
+    let offset = args.get(2).unwrap().extract_long() as usize;
+    let x = args.get(3).unwrap();
+
+    let rf = o.extract_ref();
+    Class::put_field_value2(rf, offset, x.clone());
+    Ok(None)
 }
 
 fn jvm_ensureClassInitialized(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
@@ -424,6 +433,26 @@ fn jvm_getByte2(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     };
 
     Ok(Some(v))
+}
+
+fn jvm_park(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let is_absolute = args.get(1).unwrap().extract_int() != 0;
+    let time = args.get(2).unwrap().extract_long() as u64;
+
+    if is_absolute {
+        let epoch_duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let diff = Duration::from_millis(time) - epoch_duration;
+        std::thread::park_timeout(diff);
+    } else {
+        if time != 0 {
+            std::thread::park_timeout(Duration::from_nanos(time));
+        } else {
+            std::thread::park();
+        }
+    }
+
+    Ok(None)
 }
 
 ////////helper

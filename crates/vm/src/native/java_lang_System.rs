@@ -399,7 +399,7 @@ fn jvm_nanoTime(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
         Ok(n) => n.as_nanos(),
         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
     };
-
+    // let v = chrono::Utc::now().timestamp_nanos();
     Ok(Some(Oop::new_long(v as i64)))
 }
 

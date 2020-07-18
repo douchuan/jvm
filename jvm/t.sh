@@ -88,15 +88,30 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean MakeBooleanComparable
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean ParseBoolean
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Byte Decode
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsSynthetic
+##TODO: GC needed
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class TypeCheckMicroBenchmark
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
+
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
-cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM CopyMemory
 
-##todo: depend on testng
+##jdk/test/sun/misc
+#TODO: CopyMemory getUnsafe return null
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM MyCopyMemory
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM Safe
+
+##TODO: depend on testng
 ##IntegralPrimitiveToString.java, PrimitiveSumMinMaxTest.java
 ##CharSequence/DefaultTest.java
 
-##todo: optimize
+##TODO: optimize
 ################################
 ### oracle java
 #sum_t_list_add = 16
@@ -118,22 +133,13 @@ cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_SM CopyMemory
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character MyCheckProp1
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckProp
 #cargo run --release -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Character CheckScript
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsSynthetic
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class TypeCheckMicroBenchmark
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
 
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/reflect/Constructor TestParameterAnnotations
 
-##todo: NonJavaNames just ignored currently
+##TODO: NonJavaNames just ignored currently
 ##NonJavaNames
 
-##todo: impl getDeclaredClasses0
+##TODO: impl getDeclaredClasses0
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
 
 
