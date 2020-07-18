@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::native::{java_lang_System, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use crate::{new_br, oop};
@@ -93,6 +93,8 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
             "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",
             Box::new(jvm_staticFieldBase),
         ),
+        new_fn("putByte", "(Ljava/lang/Object;JB)V", Box::new(jvm_putByte)),
+        new_fn("getByte", "(Ljava/lang/Object;J)B", Box::new(jvm_getByte2)),
     ]
 }
 
@@ -237,17 +239,27 @@ fn jvm_getLongVolatile(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
 fn jvm_setMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
-    let offset = args.get(2).unwrap().extract_long();
-    let size = args.get(3).unwrap().extract_long();
+    let offset = args.get(2).unwrap().extract_long() as usize;
+    let size = args.get(3).unwrap().extract_long() as usize;
     let value = args.get(4).unwrap().extract_int();
 
-    let dest = match obj {
-        Oop::Null => offset as *mut libc::c_void,
+    match obj {
+        Oop::Null => {
+            let dest = offset as *mut libc::c_void;
+            unsafe {
+                libc::memset(dest, value, size as usize);
+            }
+        }
+        Oop::Ref(rf) => {
+            let ary = rf.extract_mut_type_array();
+            let bytes = ary.extract_mut_bytes();
+            unsafe {
+                let addr = bytes.as_mut_ptr();
+                let addr = addr.add(offset);
+                std::ptr::write_bytes(addr, value as u8, size);
+            }
+        }
         _ => unimplemented!(),
-    };
-
-    unsafe {
-        libc::memset(dest, value, size as usize);
     }
 
     Ok(None)
@@ -274,15 +286,56 @@ fn jvm_copyMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
 
     match src_obj {
         Oop::Null => {
-            let rf = dest_obj.extract_ref();
-            let dest_ary = rf.extract_mut_type_array();
-            let dest_ary = dest_ary.extract_mut_chars();
-            let dest_ptr = dest_ary.as_mut_ptr() as usize + dest_offset;
-            let dest_ptr = dest_ptr as *mut libc::c_void;
-
-            let src_ptr = src_offset as *const libc::c_void;
-            unsafe {
-                libc::memcpy(dest_ptr, src_ptr, size);
+            match dest_obj {
+                //raw -> raw
+                Oop::Null => {
+                    let src_ptr = src_offset as *const u8;
+                    let dest_ptr = dest_offset as *mut u8;
+                    unsafe {
+                        std::ptr::copy(src_ptr, dest_ptr, size);
+                    }
+                }
+                //raw -> byte[]
+                Oop::Ref(dest) => {
+                    let dest = dest.extract_mut_type_array();
+                    let dest = dest.extract_mut_bytes();
+                    let dest = &mut dest[dest_offset..];
+                    let src_ptr = src_offset as *const u8;
+                    unsafe {
+                        for i in 0..size {
+                            let p = src_ptr.add(i);
+                            dest[i] = *p;
+                        }
+                    }
+                }
+                _ => unimplemented!(),
+            }
+        }
+        Oop::Ref(src) => {
+            match dest_obj {
+                //byte[] -> raw
+                Oop::Null => {
+                    let src = src.extract_type_array();
+                    let src = src.extract_bytes();
+                    let ptr = dest_offset as *mut u8;
+                    unsafe {
+                        for i in 0..size {
+                            let p = ptr.add(i);
+                            *p = src[src_offset + i];
+                        }
+                    }
+                }
+                //byte[] -> byte[]
+                Oop::Ref(dest) => {
+                    java_lang_System::arraycopy_diff_obj(
+                        src.clone(),
+                        src_offset,
+                        dest.clone(),
+                        dest_offset,
+                        size,
+                    );
+                }
+                _ => unimplemented!(),
             }
         }
         _ => unreachable!(),
@@ -323,6 +376,53 @@ fn jvm_staticFieldBase(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let cls = cls.get_class();
     let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
     let v = Class::get_field_value(field.extract_ref(), id);
+    Ok(Some(v))
+}
+
+fn jvm_putByte(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let obj = args.get(1).unwrap();
+    let offset = args.get(2).unwrap().extract_long() as usize;
+    let x = args.get(3).unwrap().extract_int();
+
+    match obj {
+        Oop::Null => {
+            let dest = offset as *mut libc::c_void;
+            unsafe {
+                libc::memset(dest, x, 1);
+            }
+        }
+        Oop::Ref(rf) => {
+            let ary = rf.extract_mut_type_array();
+            let bytes = ary.extract_mut_bytes();
+            bytes[offset] = x as u8;
+        }
+        t => unimplemented!("{:?}", t),
+    }
+
+    Ok(None)
+}
+
+fn jvm_getByte2(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let obj = args.get(1).unwrap();
+    let offset = args.get(2).unwrap().extract_long() as usize;
+
+    let v = match obj {
+        Oop::Null => {
+            let ptr = offset as *const u8;
+            let v = unsafe { *ptr };
+            Oop::new_int(v as i32)
+        }
+        Oop::Ref(rf) => {
+            let ary = rf.extract_mut_type_array();
+            let bytes = ary.extract_bytes();
+            let v = bytes[offset];
+            Oop::new_int(v as i32)
+        }
+        t => unimplemented!("{:?}", t),
+    };
+
     Ok(Some(v))
 }
 

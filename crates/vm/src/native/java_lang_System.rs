@@ -331,7 +331,7 @@ fn arraycopy_same_obj(buf: Arc<OopRef>, src_pos: usize, dest_pos: usize, length:
     }
 }
 
-fn arraycopy_diff_obj(
+pub fn arraycopy_diff_obj(
     src: Arc<OopRef>,
     src_pos: usize,
     dest: Arc<OopRef>,
