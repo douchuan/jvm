@@ -391,7 +391,7 @@ fn jvm_forName0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
             Ok(Some(mirror))
         }
         None => {
-            error!("forName0, NotFound: {}", java_name);
+            // error!("forName0, NotFound: {}", java_name);
             let msg = Some(java_name);
             let ex = runtime::exception::new(cls_consts::J_CLASS_NOT_FOUND, msg);
             Err(ex)
