@@ -89,17 +89,20 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Boolean ParseBoolean
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Byte Decode
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class ArrayMethods
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class GenericStringTest
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsSynthetic
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsEnum
 ##TODO: GC needed
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class TypeCheckMicroBenchmark
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class Cast
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsAnnotationType
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class IsSynthetic
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InitArg
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName NonJavaNames
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName Z
+cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
 
-#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/asSubclass BasicUnit
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
 
 ##jdk/test/sun/misc

@@ -468,8 +468,14 @@ fn jvm_isInterface(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredConstructors0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
-    get_declared_method_helper(true, env, args)
+fn jvm_getDeclaredConstructors0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    //parse args
+    let mirror_target = {
+        let arg0 = args.get(0).unwrap();
+        extract_mirror_target(arg0)
+    };
+    let public_only = args.get(1).unwrap().extract_int() == 1;
+    get_declared_method_helper(mirror_target, public_only, true)
 }
 
 pub fn jvm_getModifiers(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
@@ -478,7 +484,30 @@ pub fn jvm_getModifiers(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         let rf = v.extract_ref();
         let mirror = rf.extract_mirror();
         match &mirror.target {
-            Some(target) => target.get_class().acc_flags,
+            Some(target) => {
+                let mut acc_flags = target.get_class().acc_flags;
+
+                //use access_flags in InnerClasses Attribute
+                //don't know why. just read the JDK codes
+                let inst = target.extract_inst();
+                let this_class = inst.class_file.this_class;
+                match &inst.inner_classes {
+                    Some(inner_classes) => {
+                        for it in inner_classes {
+                            if it.inner_class_info_index == 0 {
+                                continue;
+                            }
+
+                            if it.inner_class_info_index == this_class {
+                                acc_flags = it.inner_class_access_flags;
+                            }
+                        }
+                    }
+                    None => {}
+                }
+
+                acc_flags
+            },
             None => acc::ACC_ABSTRACT | acc::ACC_FINAL | acc::ACC_PUBLIC,
         }
     };
@@ -694,8 +723,14 @@ fn jvm_isInstance(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_int(v)))
 }
 
-fn jvm_getDeclaredMethods0(env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
-    get_declared_method_helper(false, env, args)
+fn jvm_getDeclaredMethods0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+    //parse args
+    let mirror_target = {
+        let arg0 = args.get(0).unwrap();
+        extract_mirror_target(arg0)
+    };
+    let public_only = args.get(1).unwrap().extract_int() == 1;
+    get_declared_method_helper(mirror_target, public_only, false)
 }
 
 fn jvm_getInterfaces0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
@@ -783,13 +818,40 @@ fn jvm_getConstantPool(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         _ => oop::consts::get_null(),
     };
 
-    // unreachable!();
     Ok(Some(cp_oop))
 }
 
 fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
-    let _this = args.get(0).unwrap();
-    unimplemented!();
+    let this = args.get(0).unwrap();
+    let target_clz = extract_mirror_target(this);
+
+    let array_class = require_class3(None, b"[Ljava/lang/Class;").unwrap();
+
+    let target_class = target_clz.get_class();
+    let v = match &target_class.kind {
+        ClassKind::Instance(inst) => {
+            let cp = &inst.class_file.cp;
+            match &inst.inner_classes {
+                Some(inner_classes) => {
+                    let this_class = inst.class_file.this_class;
+                    let mut inners = Vec::with_capacity(inner_classes.len());
+                    for it in inner_classes {
+                        if it.outer_class_info_index == this_class {
+                            let inner_clz = require_class2(it.inner_class_info_index, cp).unwrap();
+                            let v = Oop::new_mirror(inner_clz);
+                            inners.push(v);
+                        }
+                    }
+
+                    Oop::new_ref_ary2(array_class, inners)
+                }
+                _ => Oop::new_ref_ary(array_class, 0)
+            }
+        },
+        _ => Oop::new_ref_ary(array_class, 0),
+    };
+
+    Ok(Some(v))
 }
 
 fn jvm_getGenericSignature0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
@@ -819,15 +881,7 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
-    //parse args
-    let mirror_target = {
-        let arg0 = args.get(0).unwrap();
-        extract_mirror_target(arg0)
-    };
-
-    let public_only = args.get(1).unwrap().extract_int() == 1;
-
+fn get_declared_method_helper(mirror_target: ClassRef, public_only: bool, want_constructor: bool) -> JNIResult {
     //fixme: super methods
     let selected_methods = {
         let cls = mirror_target.get_class();
@@ -868,7 +922,7 @@ fn get_declared_method_helper(want_constructor: bool, _env: JNIEnv, args: &Vec<O
     };
 
     //build methods ary
-    let mut methods = Vec::new();
+    let mut methods = Vec::with_capacity(selected_methods.len());
     for m in selected_methods {
         let v = if want_constructor {
             common::reflect::new_method_ctor(m)
