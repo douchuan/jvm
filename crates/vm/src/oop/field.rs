@@ -108,8 +108,8 @@ pub struct Field {
 
 impl Field {
     pub fn new(cp: &ConstantPool, fi: &FieldInfo, cls_name: BytesRef, class: ClassRef) -> Self {
-        let name = constant_pool::get_utf8(cp, fi.name_index as usize);
-        let desc = constant_pool::get_utf8(cp, fi.desc_index as usize);
+        let name = constant_pool::get_utf8(cp, fi.name_index as usize).clone();
+        let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).clone();
         let value_type = desc.first().unwrap().into();
         let acc_flags = fi.acc_flags;
 
@@ -211,7 +211,7 @@ impl Field {
                 Oop::new_int(v)
             }
             Some(ConstantPoolType::String { string_index }) => {
-                let v = constant_pool::get_utf8(cp, *string_index as usize);
+                let v = constant_pool::get_utf8(cp, *string_index as usize).clone();
                 Oop::new_const_utf8(v)
             }
             _ => unreachable!(),

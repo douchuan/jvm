@@ -373,7 +373,7 @@ named_args!(annotation_entry(cp: ConstantPool)<attributes::AnnotationEntry>, do_
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
-    type_name: value!(constant_pool::get_utf8(&cp, type_index as usize)) >>
+    type_name: value!(constant_pool::get_utf8(&cp, type_index as usize).clone()) >>
     (attributes::AnnotationEntry {type_name, pairs})
 ));
 

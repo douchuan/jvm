@@ -498,7 +498,7 @@ impl OopRef {
             let inst = rf.extract_inst();
             let cls = inst.class.clone();
             let cls = cls.get_class();
-            cls.get_field_id(new_br("eetop"), new_br("J"), false)
+            cls.get_field_id(&new_br("eetop"), &new_br("J"), false)
         };
 
         Class::get_field_value(rf, fid).extract_long()

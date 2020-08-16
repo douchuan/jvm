@@ -86,7 +86,7 @@ fn jvm_start0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
             let mir = {
                 //setup eetop
                 let eetop = jt.read().unwrap().eetop;
-                let fid = cls.get_field_id(new_br("eetop"), new_br("J"), false);
+                let fid = cls.get_field_id(&new_br("eetop"), &new_br("J"), false);
                 Class::put_field_value(thread_oop.extract_ref(), fid, Oop::new_long(eetop));
 
                 //obtain 'run' method

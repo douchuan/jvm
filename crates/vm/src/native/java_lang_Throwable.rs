@@ -123,12 +123,12 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     {
         let cls = throwable_cls.get_class();
         let id = cls.get_field_id(
-            new_br("stackTrace"),
-            new_br("[Ljava/lang/StackTraceElement;"),
+            &new_br("stackTrace"),
+            &new_br("[Ljava/lang/StackTraceElement;"),
             false,
         );
         Class::put_field_value(throwable_oop.extract_ref(), id, oop::consts::get_null());
-        let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
+        let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
         Class::put_field_value(throwable_oop.extract_ref(), id, stack_trace_ary);
     }
 
@@ -144,7 +144,7 @@ fn jvm_getStackTraceDepth(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     };
     let backtrace = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
+        let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
         Class::get_field_value(throwable.extract_ref(), id)
     };
 
@@ -171,7 +171,7 @@ fn jvm_getStackTraceElement(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     };
     let backtrace = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("backtrace"), new_br("Ljava/lang/Object;"), false);
+        let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
         Class::get_field_value(throwable.extract_ref(), id)
     };
 

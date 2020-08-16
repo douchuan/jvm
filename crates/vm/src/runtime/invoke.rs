@@ -18,7 +18,7 @@ pub struct JavaCall {
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
         let cls = cls.get_class();
-        cls.get_this_class_method(util::S_INIT.clone(), desc)
+        cls.get_this_class_method(&util::S_INIT, &desc)
             .unwrap()
     };
 

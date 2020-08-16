@@ -20,21 +20,19 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         index.extract_int()
     };
 
-    let s = {
-        let rf = cp_oop.extract_ref();
-        let mirror = rf.extract_mirror();
-        let target = mirror.target.clone().unwrap();
-        let cls = target.get_class();
-        match &cls.kind {
-            oop::class::ClassKind::Instance(inst) => {
-                let cp = &inst.class_file.cp;
-                constant_pool::get_utf8(cp, index as usize)
-            }
-            _ => unimplemented!(),
+    let rf = cp_oop.extract_ref();
+    let mirror = rf.extract_mirror();
+    let target = mirror.target.clone().unwrap();
+    let cls = target.get_class();
+    match &cls.kind {
+        oop::class::ClassKind::Instance(inst) => {
+            let cp = &inst.class_file.cp;
+            let s = constant_pool::get_utf8(cp, index as usize);
+            let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
+            let r = util::oop::new_java_lang_string2(s);
+            Ok(Some(r))
         }
-    };
+        _ => unimplemented!(),
+    }
 
-    let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
-    let r = util::oop::new_java_lang_string2(s);
-    Ok(Some(r))
 }

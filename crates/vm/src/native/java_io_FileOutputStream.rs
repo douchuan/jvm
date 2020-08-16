@@ -20,7 +20,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     //setup: java.io.FileOutputStream fd
     let cls = require_class3(None, b"java/io/FileOutputStream").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(util::S_FD.clone(), util::S_JAVA_IO_FD.clone(), false);
+    let id = cls.get_field_id(&util::S_FD, &util::S_JAVA_IO_FD, false);
     unsafe {
         FILE_OUTPUT_STREAM_FD = id.offset;
     }
@@ -28,7 +28,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     //setup: java.io.FileDescriptor fd
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(util::S_FD.clone(), util::S_I.clone(), false);
+    let id = cls.get_field_id(&util::S_FD, &util::S_I, false);
     unsafe {
         FILE_DESCRIPTOR_FD = id.offset;
     }

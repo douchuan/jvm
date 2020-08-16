@@ -2869,7 +2869,7 @@ impl<'a> Interp<'a> {
             trace!("anew_array name={}", unsafe {
                 std::str::from_utf8_unchecked(name.as_slice())
             });
-            match runtime::require_class(cl, name) {
+            match runtime::require_class(cl, &name) {
                 Some(ary_cls_obj) => {
                     oop::class::init_class(&ary_cls_obj);
                     oop::class::init_class_fully(&ary_cls_obj);

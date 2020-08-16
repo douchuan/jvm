@@ -383,7 +383,7 @@ fn jvm_staticFieldBase(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let field = args.get(1).unwrap();
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
+    let id = cls.get_field_id(&new_br("clazz"), &new_br("Ljava/lang/Class;"), false);
     let v = Class::get_field_value(field.extract_ref(), id);
     Ok(Some(v))
 }
@@ -463,7 +463,7 @@ fn objectFieldOffset(field: &Oop, is_static: bool) -> JNIResult {
     if is_static {
         let modifier = {
             let cls = cls.get_class();
-            let id = cls.get_field_id(new_br("modifiers"), new_br("I"), false);
+            let id = cls.get_field_id(&new_br("modifiers"), &new_br("I"), false);
             let v = Class::get_field_value(field.extract_ref(), id);
             v.extract_int() as u16
         };
@@ -472,7 +472,7 @@ fn objectFieldOffset(field: &Oop, is_static: bool) -> JNIResult {
 
     let slot = {
         let cls = cls.get_class();
-        let id = cls.get_field_id(new_br("slot"), new_br("I"), false);
+        let id = cls.get_field_id(&new_br("slot"), &new_br("I"), false);
         let v = Class::get_field_value(field.extract_ref(), id);
         v.extract_int()
     };

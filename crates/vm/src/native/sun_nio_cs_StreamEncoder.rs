@@ -22,8 +22,8 @@ fn jvm_forOutputStreamWriter(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let default_charset_oop = {
         let cls = charset_cls.get_class();
         let id = cls.get_field_id(
-            new_br("defaultCharset"),
-            new_br("Ljava/nio/charset/Charset;"),
+            &new_br("defaultCharset"),
+            &new_br("Ljava/nio/charset/Charset;"),
             true,
         );
         cls.get_static_field_value(id)

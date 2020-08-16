@@ -14,7 +14,7 @@ pub enum ClassLoader {
     Bootstrap,
 }
 
-pub fn require_class(class_loader: Option<ClassLoader>, name: BytesRef) -> Option<ClassRef> {
+pub fn require_class(class_loader: Option<ClassLoader>, name: &BytesRef) -> Option<ClassRef> {
     require_class3(class_loader, name.as_slice())
 }
 

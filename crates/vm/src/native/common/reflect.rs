@@ -228,7 +228,7 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
 
     //todo: optimize, avoid obtain id
     let cls = cls.get_class();
-    let id = cls.get_field_id(new_br("clazz"), new_br("Ljava/lang/Class;"), false);
+    let id = cls.get_field_id(&new_br("clazz"), &new_br("Ljava/lang/Class;"), false);
     Class::get_field_value(ctor.extract_ref(), id)
 }
 
@@ -260,7 +260,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
 
     //todo: optimize, cache id
     let cls = cls.get_class();
-    let id = cls.get_field_id(new_br("signature"), new_br("Ljava/lang/String;"), false);
+    let id = cls.get_field_id(&new_br("signature"), &new_br("Ljava/lang/String;"), false);
     let v = Class::get_field_value(ctor.extract_ref(), id);
     OopRef::java_lang_string(v.extract_ref())
 }

@@ -223,7 +223,7 @@ pub fn init_class_fully(class: &ClassRef) {
             class.set_class_state(State::FullyIni);
 
             let mir =
-                class.get_this_class_method(util::S_CLINIT.clone(), util::S_CLINIT_SIG.clone());
+                class.get_this_class_method(&util::S_CLINIT, &util::S_CLINIT_SIG);
             (mir, class.name.clone())
         };
 
@@ -415,7 +415,7 @@ impl Class {
         }
     }
 
-    pub fn get_attr_signatrue(&self) -> Option<BytesRef> {
+    pub fn get_attr_signatrue(&self) -> Option<&BytesRef> {
         match &self.kind {
             ClassKind::Instance(cls) => {
                 let idx = util::attributes::get_signature(&cls.class_file.attrs);
@@ -452,15 +452,15 @@ impl ArrayClassObject {
 //open api
 impl Class {
     //todo: confirm static method
-    pub fn get_static_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_static_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_class_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_class_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_this_class_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_this_class_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, false)
     }
 
@@ -468,11 +468,11 @@ impl Class {
         self.get_virtual_method_inner(name, desc)
     }
 
-    pub fn get_interface_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         self.get_interface_method_inner(name, desc)
     }
 
-    pub fn get_field_id(&self, name: BytesRef, desc: BytesRef, is_static: bool) -> FieldIdRef {
+    pub fn get_field_id(&self, name: &BytesRef, desc: &BytesRef, is_static: bool) -> FieldIdRef {
         let k = (self.name.clone(), name.clone(), desc.clone());
 
         if is_static {
@@ -640,7 +640,7 @@ impl Class {
 impl Class {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = class_file.cp.clone();
-        let name = constant_pool::get_class_name(&cp, class_file.this_class as usize);
+        let name = constant_pool::get_class_name(&cp, class_file.this_class as usize).clone();
         let acc_flags = class_file.acc_flags;
         let class_obj = ClassObject {
             class_file,
@@ -908,11 +908,11 @@ impl ClassObject {
         class_file.attrs.iter().for_each(|a| match a {
             AttributeType::Signature { signature_index } => {
                 let s = get_cp_utf8(cp, *signature_index as usize);
-                self.signature = Some(s);
+                self.signature = Some(s.clone());
             }
             AttributeType::SourceFile { source_file_index } => {
                 let s = get_cp_utf8(cp, *source_file_index as usize);
-                self.source_file = Some(s);
+                self.source_file = Some(s.clone());
             }
             AttributeType::EnclosingMethod { em } => {
                 self.enclosing_method = Some(em.clone());
@@ -942,8 +942,8 @@ impl ClassObject {
 impl Class {
     pub fn get_class_method_inner(
         &self,
-        name: BytesRef,
-        desc: BytesRef,
+        name: &BytesRef,
+        desc: &BytesRef,
         with_super: bool,
     ) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
@@ -992,8 +992,8 @@ impl Class {
 
     pub fn get_interface_method_inner(
         &self,
-        name: BytesRef,
-        desc: BytesRef,
+        name: &BytesRef,
+        desc: &BytesRef,
     ) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
@@ -1002,7 +1002,7 @@ impl Class {
                 None => {
                     for (_, itf) in cls_obj.interfaces.iter() {
                         let cls = itf.get_class();
-                        let m = cls.get_interface_method(name.clone(), desc.clone());
+                        let m = cls.get_interface_method(name, desc);
                         if m.is_ok() {
                             return m;
                         }

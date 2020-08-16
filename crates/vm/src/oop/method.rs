@@ -79,8 +79,8 @@ impl Method {
         method_info_index: usize,
         cls_name: BytesRef,
     ) -> Self {
-        let name = constant_pool::get_utf8(cp, mi.name_index as usize);
-        let desc = constant_pool::get_utf8(cp, mi.desc_index as usize);
+        let name = constant_pool::get_utf8(cp, mi.name_index as usize).clone();
+        let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).clone();
         let acc_flags = mi.acc_flags;
         let signature = MethodSignature::new(desc.as_slice());
         let code = mi.get_code();

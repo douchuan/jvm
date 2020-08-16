@@ -55,7 +55,7 @@ impl MainThread {
                 panic!("Error: Could not find or load main class {}", self.class);
             }
 
-            cls.get_static_method(new_br("main"), new_br("([Ljava/lang/String;)V"))
+            cls.get_static_method(&new_br("main"), &new_br("([Ljava/lang/String;)V"))
         };
 
         let jt = runtime::thread::current_java_thread();
@@ -122,8 +122,8 @@ impl MainThread {
                 let mir = {
                     let cls = cls.get_class();
                     cls.get_this_class_method(
-                        new_br("dispatchUncaughtException"),
-                        new_br("(Ljava/lang/Throwable;)V"),
+                        &new_br("dispatchUncaughtException"),
+                        &new_br("(Ljava/lang/Throwable;)V"),
                     )
                 };
 
@@ -161,7 +161,7 @@ impl MainThread {
         let detail_message = {
             let fid = {
                 let cls = cls.get_class();
-                cls.get_field_id(new_br("detailMessage"), new_br("Ljava/lang/String;"), false)
+                cls.get_field_id(&new_br("detailMessage"), &new_br("Ljava/lang/String;"), false)
             };
             let v = Class::get_field_value(ex.extract_ref(), fid);
             OopRef::java_lang_string(v.extract_ref())

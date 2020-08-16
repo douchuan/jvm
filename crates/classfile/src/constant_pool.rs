@@ -7,7 +7,7 @@ use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;
 
-pub fn get_class_name(cp: &ConstantPool, idx: usize) -> BytesRef {
+pub fn get_class_name(cp: &ConstantPool, idx: usize) -> &BytesRef {
     match cp.get(idx) {
         Some(Type::Class { name_index }) => get_utf8(cp, *name_index as usize),
         _ => unreachable!(),
@@ -42,7 +42,7 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
     }
 }
 
-pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (BytesRef, BytesRef) {
+pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (&BytesRef, &BytesRef) {
     match cp.get(idx) {
         Some(Type::NameAndType {
             name_index,
@@ -55,9 +55,9 @@ pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (BytesRef, BytesRef) 
     }
 }
 
-pub fn get_utf8(cp: &ConstantPool, idx: usize) -> BytesRef {
+pub fn get_utf8(cp: &ConstantPool, idx: usize) -> &BytesRef {
     match cp.get(idx) {
-        Some(Type::Utf8 { bytes }) => bytes.clone(),
+        Some(Type::Utf8 { bytes }) => bytes,
         _ => unreachable!(),
     }
 }
