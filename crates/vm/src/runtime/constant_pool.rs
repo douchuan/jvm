@@ -2,8 +2,8 @@ use crate::oop;
 use crate::oop::field;
 use crate::types::{FieldIdRef, MethodIdRef};
 use classfile::ConstantPool;
+use rustc_hash::FxHashMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
 enum CacheType {
     Field(FieldIdRef),
@@ -28,14 +28,14 @@ impl CacheType {
 
 pub struct ConstantPoolCache {
     cp: ConstantPool,
-    cache: RefCell<HashMap<usize, CacheType>>,
+    cache: RefCell<FxHashMap<usize, CacheType>>,
 }
 
 impl ConstantPoolCache {
     pub fn new(cp: ConstantPool) -> Self {
         Self {
             cp,
-            cache: RefCell::new(HashMap::new()),
+            cache: RefCell::new(FxHashMap::default()),
         }
     }
 

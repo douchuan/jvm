@@ -1,15 +1,13 @@
 use crate::types::ClassRef;
 use crate::util;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use rustc_hash::FxHashMap;
+use std::sync::{Arc, Mutex};
 
-type SystemDictionary = Mutex<HashMap<String, ClassRef>>;
+type SystemDictionary = Mutex<FxHashMap<String, ClassRef>>;
 
 lazy_static! {
-    static ref SYS_DIC: SystemDictionary = { Mutex::new(HashMap::new()) };
+    static ref SYS_DIC: SystemDictionary = { Mutex::new(FxHashMap::default()) };
 }
 
 pub fn put(key: &[u8], klass: ClassRef) {

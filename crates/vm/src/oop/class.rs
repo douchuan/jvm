@@ -8,7 +8,7 @@ use classfile::{
     attributes::EnclosingMethod, attributes::InnerClass, constant_pool,
     constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, types::U2, AttributeType, BytesRef,
 };
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::Ordering;
@@ -154,17 +154,17 @@ pub struct ClassObject {
 
     pub n_inst_fields: usize,
 
-    //  HashMap<(name, desc), MethodIdRef>
-    pub all_methods: HashMap<(BytesRef, BytesRef), MethodIdRef>,
-    v_table: HashMap<(BytesRef, BytesRef), MethodIdRef>,
+    //  FxHashMap<(name, desc), MethodIdRef>
+    pub all_methods: FxHashMap<(BytesRef, BytesRef), MethodIdRef>,
+    v_table: FxHashMap<(BytesRef, BytesRef), MethodIdRef>,
 
-    //  HashMap<(package, name, desc), FieldIdRef>
-    pub static_fields: HashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
-    pub inst_fields: HashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
+    //  FxHashMap<(package, name, desc), FieldIdRef>
+    pub static_fields: FxHashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
+    pub inst_fields: FxHashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>,
 
     static_field_values: Vec<Oop>,
 
-    interfaces: HashMap<BytesRef, ClassRef>,
+    interfaces: FxHashMap<BytesRef, ClassRef>,
 
     mirror: Option<Oop>,
 
@@ -644,12 +644,12 @@ impl Class {
         let class_obj = ClassObject {
             class_file,
             n_inst_fields: 0,
-            all_methods: HashMap::new(),
-            v_table: HashMap::new(),
-            static_fields: HashMap::new(),
-            inst_fields: HashMap::new(),
+            all_methods: FxHashMap::default(),
+            v_table: FxHashMap::default(),
+            static_fields: FxHashMap::default(),
+            inst_fields: FxHashMap::default(),
             static_field_values: vec![],
-            interfaces: HashMap::new(),
+            interfaces: FxHashMap::default(),
             mirror: None,
             signature: None,
             source_file: None,

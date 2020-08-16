@@ -2,7 +2,7 @@
 
 use crate::oop::Oop;
 use crate::types::ClassRef;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::sync::{Arc, RwLock};
 
 mod common;
@@ -52,7 +52,7 @@ pub struct JNIEnvStruct {
 
 lazy_static! {
     //(class name, method name, method signature) -> JNINativeMethod
-    static ref NATIVES: HashMap<(&'static str, &'static str, &'static str), JNINativeMethod> = {
+    static ref NATIVES: FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod> = {
         create_native_fn_tables()
     };
 }
@@ -93,9 +93,9 @@ impl JNINativeMethodStruct {
     }
 }
 
-fn create_native_fn_tables() -> HashMap<(&'static str, &'static str, &'static str), JNINativeMethod>
+fn create_native_fn_tables() -> FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod>
 {
-    let mut dict = HashMap::new();
+    let mut dict = FxHashMap::default();
     let natives = vec![
         (
             "java/io/FileDescriptor",

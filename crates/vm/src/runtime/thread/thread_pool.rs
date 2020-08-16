@@ -1,5 +1,4 @@
 use crate::types::JavaThreadRef;
-use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;

@@ -6,7 +6,7 @@ use crate::runtime::{self, require_class2, require_class3};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::{new_br, util};
 use classfile::{constant_pool, consts as cls_consts, flags as acc};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::sync::{Arc, RwLock};
 
 pub fn get_primitive_class_mirror(key: &str) -> Option<Oop> {
@@ -115,12 +115,12 @@ enum ClassMirrorState {
 
 lazy_static! {
     static ref MIRROR_STATE: RwLock<ClassMirrorState> = RwLock::new(ClassMirrorState::NotFixed);
-    static ref PRIM_MIRROS: RwLock<HashMap<String, Oop>> = {
-        let hm = HashMap::new();
+    static ref PRIM_MIRROS: RwLock<FxHashMap<String, Oop>> = {
+        let hm = FxHashMap::default();
         RwLock::new(hm)
     };
-    static ref SIGNATURE_DIC: HashMap<&'static str, &'static str> = {
-        let dic: HashMap<&'static str, &'static str> = [
+    static ref SIGNATURE_DIC: FxHashMap<&'static str, &'static str> = {
+        let dic: FxHashMap<&'static str, &'static str> = [
             ("byte", "B"),
             ("boolean", "Z"),
             ("char", "C"),

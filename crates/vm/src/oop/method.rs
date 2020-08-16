@@ -9,7 +9,6 @@ use classfile::{
     attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, types::U2,
     AttributeType, BytesRef, ConstantPool, FieldInfo, MethodInfo,
 };
-use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
