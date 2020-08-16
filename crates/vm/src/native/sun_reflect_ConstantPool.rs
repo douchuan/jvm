@@ -34,13 +34,7 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         }
     };
 
-    let r = match s {
-        Some(s) => {
-            let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
-            util::oop::new_java_lang_string2(s)
-        }
-        None => oop::consts::get_null(),
-    };
-
+    let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
+    let r = util::oop::new_java_lang_string2(s);
     Ok(Some(r))
 }

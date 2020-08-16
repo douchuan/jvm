@@ -376,14 +376,14 @@ impl<'a> Interp<'a> {
                 stack.push_double2(v)
             }
             ConstantPoolType::String { string_index } => {
-                let s = get_cp_utf8(&self.frame.cp, *string_index as usize).unwrap();
+                let s = get_cp_utf8(&self.frame.cp, *string_index as usize);
                 let s = util::oop::new_java_lang_string3(s.as_slice());
 
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_ref(s);
             }
             ConstantPoolType::Class { name_index } => {
-                let name = get_cp_utf8(&self.frame.cp, *name_index as usize).unwrap();
+                let name = get_cp_utf8(&self.frame.cp, *name_index as usize);
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
                 let cl = { self.frame.class.get_class().class_loader };
                 trace!("load_constant name={}, cl={:?}", name, cl);

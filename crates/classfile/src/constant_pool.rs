@@ -7,10 +7,10 @@ use fmt::Debug;
 use std::fmt;
 use std::sync::Arc;
 
-pub fn get_class_name(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
+pub fn get_class_name(cp: &ConstantPool, idx: usize) -> BytesRef {
     match cp.get(idx) {
         Some(Type::Class { name_index }) => get_utf8(cp, *name_index as usize),
-        _ => None,
+        _ => unreachable!(),
     }
 }
 
@@ -42,7 +42,7 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
     }
 }
 
-pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Option<BytesRef>) {
+pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (BytesRef, BytesRef) {
     match cp.get(idx) {
         Some(Type::NameAndType {
             name_index,
@@ -51,25 +51,25 @@ pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (Option<BytesRef>, Op
             get_utf8(cp, *name_index as usize),
             get_utf8(cp, *desc_index as usize),
         ),
-        _ => (None, None),
+        _ => unreachable!(),
     }
 }
 
-pub fn get_utf8(cp: &ConstantPool, idx: usize) -> Option<BytesRef> {
+pub fn get_utf8(cp: &ConstantPool, idx: usize) -> BytesRef {
     match cp.get(idx) {
-        Some(Type::Utf8 { bytes }) => Some(bytes.clone()),
-        _ => None,
+        Some(Type::Utf8 { bytes }) => bytes.clone(),
+        _ => unreachable!(),
     }
 }
 
-pub fn get_string(cp: &ConstantPool, idx: usize) -> Option<String> {
+pub fn get_string(cp: &ConstantPool, idx: usize) -> String {
     match cp.get(idx) {
         Some(Type::String { string_index }) => {
-            let v = get_utf8(cp, *string_index as usize).unwrap();
+            let v = get_utf8(cp, *string_index as usize);
             let raw = construct_string_raw(v.as_slice());
-            Some(String::from_utf16_lossy(raw.as_slice()))
+            String::from_utf16_lossy(raw.as_slice())
         }
-        _ => None,
+        _ => unreachable!(),
     }
 }
 

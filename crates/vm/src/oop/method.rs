@@ -30,13 +30,7 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
     oop::class::init_class(&class);
     oop::class::init_class_fully(&class);
 
-    let (name, desc) = {
-        let (name, typ) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
-        let name = name.unwrap();
-        let typ = typ.unwrap();
-
-        (name, typ)
-    };
+    let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
     let class = class.get_class();
 
     trace!(
@@ -85,8 +79,8 @@ impl Method {
         method_info_index: usize,
         cls_name: BytesRef,
     ) -> Self {
-        let name = constant_pool::get_utf8(cp, mi.name_index as usize).unwrap();
-        let desc = constant_pool::get_utf8(cp, mi.desc_index as usize).unwrap();
+        let name = constant_pool::get_utf8(cp, mi.name_index as usize);
+        let desc = constant_pool::get_utf8(cp, mi.desc_index as usize);
         let acc_flags = mi.acc_flags;
         let signature = MethodSignature::new(desc.as_slice());
         let code = mi.get_code();

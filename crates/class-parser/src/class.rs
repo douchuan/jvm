@@ -373,7 +373,7 @@ named_args!(annotation_entry(cp: ConstantPool)<attributes::AnnotationEntry>, do_
     type_index: be_u16 >>
     pair_count: be_u16 >>
     pairs: count!(call!(element_value_pair, cp.clone()), pair_count as usize) >>
-    type_name: value!(constant_pool::get_utf8(&cp, type_index as usize).expect("Missing type name")) >>
+    type_name: value!(constant_pool::get_utf8(&cp, type_index as usize)) >>
     (attributes::AnnotationEntry {type_name, pairs})
 ));
 
@@ -635,7 +635,7 @@ named_args!(attr_sized(tag: AttrTag, self_len: usize, cp: ConstantPool)<Attribut
 
 named_args!(attr_tag(cp: ConstantPool)<AttrTag>, do_parse!(
     name_index: be_u16 >>
-    name: value!(constant_pool::get_utf8(&cp, name_index as usize).expect("Missing name")) >>
+    name: value!(constant_pool::get_utf8(&cp, name_index as usize)) >>
     inner: value!(AttrTag::from(name.as_slice())) >>
     (inner)
 ));

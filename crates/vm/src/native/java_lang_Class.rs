@@ -623,9 +623,7 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     //push EnclosingMethod name&desc
     if em.method_index != 0 {
         let (name, desc) = constant_pool::get_name_and_type(&cls_file.cp, em.method_index as usize);
-        let name = name.unwrap();
         let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-        let desc = desc.unwrap();
         let desc = unsafe { std::str::from_utf8_unchecked(desc.as_slice()) };
 
         elms.push(util::oop::new_java_lang_string2(name));

@@ -28,13 +28,7 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdR
     oop::class::init_class(&class);
     oop::class::init_class_fully(&class);
 
-    let (name, desc) = {
-        let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
-        let name = name.unwrap();
-        let desc = desc.unwrap();
-
-        (name, desc)
-    };
+    let (name, desc) = constant_pool::get_name_and_type(cp, name_and_type_index as usize);
     let class = class.get_class();
     class.get_field_id(name, desc, is_static)
 }
@@ -114,8 +108,8 @@ pub struct Field {
 
 impl Field {
     pub fn new(cp: &ConstantPool, fi: &FieldInfo, cls_name: BytesRef, class: ClassRef) -> Self {
-        let name = constant_pool::get_utf8(cp, fi.name_index as usize).unwrap();
-        let desc = constant_pool::get_utf8(cp, fi.desc_index as usize).unwrap();
+        let name = constant_pool::get_utf8(cp, fi.name_index as usize);
+        let desc = constant_pool::get_utf8(cp, fi.desc_index as usize);
         let value_type = desc.first().unwrap().into();
         let acc_flags = fi.acc_flags;
 
@@ -217,11 +211,8 @@ impl Field {
                 Oop::new_int(v)
             }
             Some(ConstantPoolType::String { string_index }) => {
-                if let Some(v) = constant_pool::get_utf8(cp, *string_index as usize) {
-                    Oop::new_const_utf8(v)
-                } else {
-                    unreachable!()
-                }
+                let v = constant_pool::get_utf8(cp, *string_index as usize);
+                Oop::new_const_utf8(v)
             }
             _ => unreachable!(),
         }

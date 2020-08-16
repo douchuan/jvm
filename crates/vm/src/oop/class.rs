@@ -421,7 +421,8 @@ impl Class {
                 let idx = util::attributes::get_signature(&cls.class_file.attrs);
                 if idx != 0 {
                     let cp = &cls.class_file.cp;
-                    get_cp_utf8(cp, idx as usize)
+                    let s = get_cp_utf8(cp, idx as usize);
+                    Some(s)
                 } else {
                     None
                 }
@@ -639,7 +640,7 @@ impl Class {
 impl Class {
     pub fn new_class(class_file: ClassFileRef, class_loader: Option<ClassLoader>) -> Self {
         let cp = class_file.cp.clone();
-        let name = constant_pool::get_class_name(&cp, class_file.this_class as usize).unwrap();
+        let name = constant_pool::get_class_name(&cp, class_file.this_class as usize);
         let acc_flags = class_file.acc_flags;
         let class_obj = ClassObject {
             class_file,
@@ -805,7 +806,7 @@ impl ClassObject {
 
             None
         } else {
-            let name = constant_pool::get_class_name(cp, class_file.super_class as usize).unwrap();
+            let name = constant_pool::get_class_name(cp, class_file.super_class as usize);
             let super_class = runtime::require_class(class_loader, name).unwrap();
 
             {
@@ -906,14 +907,12 @@ impl ClassObject {
 
         class_file.attrs.iter().for_each(|a| match a {
             AttributeType::Signature { signature_index } => {
-                if let Some(s) = get_cp_utf8(cp, *signature_index as usize) {
-                    self.signature = Some(s);
-                }
+                let s = get_cp_utf8(cp, *signature_index as usize);
+                self.signature = Some(s);
             }
             AttributeType::SourceFile { source_file_index } => {
-                if let Some(s) = get_cp_utf8(cp, *source_file_index as usize) {
-                    self.source_file = Some(s);
-                }
+                let s = get_cp_utf8(cp, *source_file_index as usize);
+                self.source_file = Some(s);
             }
             AttributeType::EnclosingMethod { em } => {
                 self.enclosing_method = Some(em.clone());
