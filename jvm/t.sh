@@ -101,7 +101,7 @@ export RUST_BACKTRACE=full
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName InvalidNameWithSlash
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName NonJavaNames
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/forName Z
-cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
+#cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Class/getClasses Sanity
 
 #cargo run -- --cp $JDK:$JDK_T_LANG:$JDK_T_LANG/Math AbsPositiveZero
 

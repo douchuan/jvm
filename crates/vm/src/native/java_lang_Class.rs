@@ -838,7 +838,7 @@ fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
                     for it in inner_classes {
                         if it.outer_class_info_index == this_class {
                             let inner_clz = require_class2(it.inner_class_info_index, cp).unwrap();
-                            let v = Oop::new_mirror(inner_clz);
+                            let v = inner_clz.get_class().get_mirror();
                             inners.push(v);
                         }
                     }
