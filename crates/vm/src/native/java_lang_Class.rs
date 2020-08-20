@@ -507,7 +507,7 @@ pub fn jvm_getModifiers(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
                 }
 
                 acc_flags
-            },
+            }
             None => acc::ACC_ABSTRACT | acc::ACC_FINAL | acc::ACC_PUBLIC,
         }
     };
@@ -803,11 +803,8 @@ fn jvm_getConstantPool(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
             let cp_oop = Oop::new_inst(cp_cls.clone());
 
             let cls = cp_cls.get_class();
-            let fid = cls.get_field_id(
-                &util::S_CONSTANT_POOL_OOP,
-                &util::S_JAVA_LANG_OBJECT,
-                false,
-            );
+            let fid =
+                cls.get_field_id(&util::S_CONSTANT_POOL_OOP, &util::S_JAVA_LANG_OBJECT, false);
             //todo: reimpl maybe, create one JNIHandles, like jdk
             Class::put_field_value(cp_oop.extract_ref(), fid, this.clone());
 
@@ -843,9 +840,9 @@ fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
 
                     Oop::new_ref_ary2(array_class, inners)
                 }
-                _ => Oop::new_ref_ary(array_class, 0)
+                _ => Oop::new_ref_ary(array_class, 0),
             }
-        },
+        }
         _ => Oop::new_ref_ary(array_class, 0),
     };
 
@@ -879,7 +876,11 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn get_declared_method_helper(mirror_target: ClassRef, public_only: bool, want_constructor: bool) -> JNIResult {
+fn get_declared_method_helper(
+    mirror_target: ClassRef,
+    public_only: bool,
+    want_constructor: bool,
+) -> JNIResult {
     //fixme: super methods
     let selected_methods = {
         let cls = mirror_target.get_class();

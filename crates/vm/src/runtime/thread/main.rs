@@ -83,7 +83,8 @@ impl MainThread {
 
 impl MainThread {
     fn build_main_arg(&self) -> Vec<Oop> {
-        let args = self.args
+        let args = self
+            .args
             .iter()
             .map(|it| util::oop::new_java_lang_string2(it))
             .collect();
@@ -158,7 +159,11 @@ impl MainThread {
         let detail_message = {
             let fid = {
                 let cls = cls.get_class();
-                cls.get_field_id(&new_br("detailMessage"), &new_br("Ljava/lang/String;"), false)
+                cls.get_field_id(
+                    &new_br("detailMessage"),
+                    &new_br("Ljava/lang/String;"),
+                    false,
+                )
             };
             let v = Class::get_field_value(ex.extract_ref(), fid);
             OopRef::java_lang_string(v.extract_ref())

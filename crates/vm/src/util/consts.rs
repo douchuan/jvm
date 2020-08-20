@@ -7,7 +7,6 @@ lazy_static! {
     pub static ref S_CLINIT_SIG: BytesRef = new_br("()V");
     pub static ref S_RUN_SIG: BytesRef = new_br("()Ljava/lang/Object;");
     pub static ref S_NEW_STRING_SIG: BytesRef = new_br("([C)V");
-
     pub static ref S_CLAZZ: BytesRef = new_br("clazz");
     pub static ref S_FD: BytesRef = new_br("fd");
     pub static ref S_I: BytesRef = new_br("I");
@@ -20,7 +19,6 @@ lazy_static! {
     pub static ref S_ERR: BytesRef = new_br("err");
     pub static ref S_OUT: BytesRef = new_br("out");
     pub static ref S_IN: BytesRef = new_br("in");
-
     pub static ref S_JAVA_LANG_CLASS: BytesRef = new_br("Ljava/lang/Class;");
     pub static ref S_JAVA_LANG_OBJECT: BytesRef = new_br("Ljava/lang/Object;");
     pub static ref S_JAVA_LANG_STRING: BytesRef = new_br("Ljava/lang/String;");

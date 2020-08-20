@@ -222,8 +222,7 @@ pub fn init_class_fully(class: &ClassRef) {
             let mut class = class.get_mut_class();
             class.set_class_state(State::FullyIni);
 
-            let mir =
-                class.get_this_class_method(&util::S_CLINIT, &util::S_CLINIT_SIG);
+            let mir = class.get_this_class_method(&util::S_CLINIT, &util::S_CLINIT_SIG);
             (mir, class.name.clone())
         };
 
@@ -460,7 +459,11 @@ impl Class {
         self.get_class_method_inner(name, desc, true)
     }
 
-    pub fn get_this_class_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_this_class_method(
+        &self,
+        name: &BytesRef,
+        desc: &BytesRef,
+    ) -> Result<MethodIdRef, ()> {
         self.get_class_method_inner(name, desc, false)
     }
 
@@ -468,7 +471,11 @@ impl Class {
         self.get_virtual_method_inner(name, desc)
     }
 
-    pub fn get_interface_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_interface_method(
+        &self,
+        name: &BytesRef,
+        desc: &BytesRef,
+    ) -> Result<MethodIdRef, ()> {
         self.get_interface_method_inner(name, desc)
     }
 
@@ -973,7 +980,11 @@ impl Class {
         Err(())
     }
 
-    fn get_virtual_method_inner(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(
+        &self,
+        name: &BytesRef,
+        desc: &BytesRef,
+    ) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
             ClassKind::Instance(cls_obj) => {

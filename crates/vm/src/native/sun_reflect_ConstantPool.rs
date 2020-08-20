@@ -34,5 +34,4 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
         }
         _ => unimplemented!(),
     }
-
 }

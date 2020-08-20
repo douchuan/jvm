@@ -93,8 +93,8 @@ impl JNINativeMethodStruct {
     }
 }
 
-fn create_native_fn_tables() -> FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod>
-{
+fn create_native_fn_tables(
+) -> FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod> {
     let mut dict = FxHashMap::default();
     let natives = vec![
         (
