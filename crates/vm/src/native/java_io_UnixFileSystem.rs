@@ -46,7 +46,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_initIDs(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let cls = cls.get_class();
-    let fir = cls.get_field_id(&new_br("path"), &new_br("Ljava/lang/String;"), false);
+    let fir = cls.get_field_id(&new_br("path"), &util::S_JAVA_LANG_STRING, false);
     unsafe {
         FILE_PATH = fir.offset;
     }

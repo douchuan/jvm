@@ -90,7 +90,7 @@ fn jvm_start0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
                 Class::put_field_value(thread_oop.extract_ref(), fid, Oop::new_long(eetop));
 
                 //obtain 'run' method
-                cls.get_virtual_method(new_br("run"), new_br("()V"))
+                cls.get_virtual_method(&new_br("run"), &new_br("()V"))
                     .unwrap()
             };
 

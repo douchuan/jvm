@@ -3,6 +3,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
 use crate::oop::{self, Oop};
 use crate::runtime::{self, exception, thread, JavaCall};
+use crate::util;
 use classfile::consts as cls_consts;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -38,7 +39,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
             Oop::Ref(v) => {
                 let inst = v.extract_inst();
                 let cls = inst.class.get_class();
-                cls.get_virtual_method(new_br("run"), new_br("()Ljava/lang/Object;"))
+                cls.get_virtual_method(&util::S_RUN, &util::S_RUN_SIG)
                     .unwrap()
             }
             _ => unreachable!(),

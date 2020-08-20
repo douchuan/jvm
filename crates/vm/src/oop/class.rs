@@ -464,7 +464,7 @@ impl Class {
         self.get_class_method_inner(name, desc, false)
     }
 
-    pub fn get_virtual_method(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    pub fn get_virtual_method(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         self.get_virtual_method_inner(name, desc)
     }
 
@@ -973,7 +973,7 @@ impl Class {
         Err(())
     }
 
-    fn get_virtual_method_inner(&self, name: BytesRef, desc: BytesRef) -> Result<MethodIdRef, ()> {
+    fn get_virtual_method_inner(&self, name: &BytesRef, desc: &BytesRef) -> Result<MethodIdRef, ()> {
         let k = (name.clone(), desc.clone());
         match &self.kind {
             ClassKind::Instance(cls_obj) => {

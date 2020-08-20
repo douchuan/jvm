@@ -285,7 +285,7 @@ impl JavaCall {
                     let name = self.mir.method.name.clone();
                     let desc = self.mir.method.desc.clone();
                     let cls = inst.class.get_class();
-                    match cls.get_virtual_method(name.clone(), desc.clone()) {
+                    match cls.get_virtual_method(&name, &desc) {
                         Ok(mir) => self.mir = mir,
                         _ => {
                             let cls = self.mir.method.class.get_class();

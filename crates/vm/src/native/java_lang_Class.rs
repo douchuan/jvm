@@ -804,8 +804,8 @@ fn jvm_getConstantPool(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
 
             let cls = cp_cls.get_class();
             let fid = cls.get_field_id(
-                &new_br("constantPoolOop"),
-                &new_br("Ljava/lang/Object;"),
+                &util::S_CONSTANT_POOL_OOP,
+                &util::S_JAVA_LANG_OBJECT,
                 false,
             );
             //todo: reimpl maybe, create one JNIHandles, like jdk

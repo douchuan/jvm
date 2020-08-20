@@ -21,7 +21,7 @@ fn main() {
         runtime::add_class_path(classpath);
     }
 
-    let class = opt.main_class;
+    let class = opt.class;
     let args = opt.args;
     // println!("main class: {}, args: {:?}", class, args);
     let mut thread = MainThread::new(class.replace(".", util::FILE_SEP), args);

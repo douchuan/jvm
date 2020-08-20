@@ -4,6 +4,7 @@ use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
 use crate::oop::{self, Class, Oop, OopRef};
 use crate::runtime::{self, require_class3};
+use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -24,15 +25,15 @@ fn jvm_invoke0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let (m_clazz, m_name, m_signature) = {
         let cls = cls.get_class();
 
-        let fid = cls.get_field_id(&new_br("clazz"), &new_br("Ljava/lang/Class;"), false);
+        let fid = cls.get_field_id(&util::S_CLAZZ, &util::S_JAVA_LANG_CLASS, false);
         let method_clazz = Class::get_field_value(method.extract_ref(), fid);
 
-        let fid = cls.get_field_id(&new_br("name"), &new_br("Ljava/lang/String;"), false);
+        let fid = cls.get_field_id(&util::S_NAME, &util::S_JAVA_LANG_STRING, false);
         let method_name = Class::get_field_value(method.extract_ref(), fid);
         let method_name = OopRef::java_lang_string(method_name.extract_ref());
         let method_name = new_br(method_name.as_str());
 
-        let fid = cls.get_field_id(&new_br("signature"), &new_br("Ljava/lang/String;"), false);
+        let fid = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
         let signature = Class::get_field_value(method.extract_ref(), fid);
         let signature = OopRef::java_lang_string(signature.extract_ref());
         let signature = new_br(signature.as_str());
