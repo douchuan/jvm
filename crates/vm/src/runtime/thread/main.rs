@@ -7,12 +7,12 @@ use std::borrow::Borrow;
 
 pub struct MainThread {
     pub class: String,
-    pub args: Option<Vec<String>>,
+    pub args: Vec<String>,
     dispatch_uncaught_exception_called: bool,
 }
 
 impl MainThread {
-    pub fn new(class: String, args: Option<Vec<String>>) -> Self {
+    pub fn new(class: String, args: Vec<String>) -> Self {
         Self {
             class,
             args,
@@ -83,13 +83,10 @@ impl MainThread {
 
 impl MainThread {
     fn build_main_arg(&self) -> Vec<Oop> {
-        let args = match &self.args {
-            Some(args) => args
-                .iter()
-                .map(|it| util::oop::new_java_lang_string2(it))
-                .collect(),
-            None => vec![],
-        };
+        let args = self.args
+            .iter()
+            .map(|it| util::oop::new_java_lang_string2(it))
+            .collect();
 
         //build ArrayOopDesc
         let ary_str_class = runtime::require_class3(None, b"[Ljava/lang/String;").unwrap();
