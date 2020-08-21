@@ -6,7 +6,7 @@ use crate::types::*;
 use crate::util;
 use classfile::{
     attributes::EnclosingMethod, attributes::InnerClass, constant_pool,
-    constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, types::U2, AttributeType, BytesRef,
+    constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, U2, AttributeType, BytesRef,
 };
 use rustc_hash::FxHashMap;
 use std::fmt::{self, Debug, Error, Formatter};

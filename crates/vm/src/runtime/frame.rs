@@ -1,7 +1,7 @@
 use crate::oop;
 use crate::runtime::DataArea;
 use crate::types::*;
-use classfile::{types::U1, ConstantPool};
+use classfile::{U1, ConstantPool};
 use std::sync::Arc;
 
 pub struct Frame {

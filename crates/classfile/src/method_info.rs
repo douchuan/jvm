@@ -1,6 +1,6 @@
 use crate::attributes::{Code, CodeException, LineNumber, LocalVariable, StackMapFrame, Type};
 use crate::constant_pool;
-use crate::types::{BytesRef, ConstantPool, U2};
+use crate::{BytesRef, ConstantPool, U2};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

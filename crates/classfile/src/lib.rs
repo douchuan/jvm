@@ -19,8 +19,13 @@ pub mod flags;
 mod method_info;
 mod opcode;
 mod signature;
-pub mod types;
 mod version;
+
+pub type U1 = u8;
+pub type U2 = u16;
+pub type U4 = u32;
+pub type BytesRef = std::sync::Arc<Vec<u8>>;
+pub type ConstantPool = std::sync::Arc<Vec<constant_pool::Type>>;
 
 pub use crate::classfile::ClassFile;
 pub use attributes::Type as AttributeType;
@@ -29,6 +34,4 @@ pub use field_info::FieldInfo;
 pub use method_info::MethodInfo;
 pub use opcode::OpCode;
 pub use signature::Type as SignatureType;
-pub use types::BytesRef;
-pub use types::ConstantPool;
 pub use version::Version;

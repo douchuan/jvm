@@ -5,7 +5,7 @@ use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
 use classfile::{
-    constant_pool, consts, flags::*, types::U2, AttributeType, BytesRef, ConstantPool,
+    constant_pool, consts, flags::*, U2, AttributeType, BytesRef, ConstantPool,
     ConstantPoolType, FieldInfo,
 };
 use std::fmt;

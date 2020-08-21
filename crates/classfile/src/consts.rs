@@ -1,4 +1,4 @@
-use crate::types::U4;
+use crate::U4;
 
 pub const MAGIC: U4 = 0xCAFEBABE;
 

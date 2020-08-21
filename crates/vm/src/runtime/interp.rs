@@ -12,7 +12,7 @@ use crate::util;
 use classfile::{
     constant_pool::get_utf8 as get_cp_utf8,
     consts as cls_const,
-    types::{U1, U2},
+    U1, U2,
     ClassFile, ConstantPoolType, OpCode,
 };
 use nix::sys::socket::SockType::Datagram;

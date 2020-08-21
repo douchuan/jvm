@@ -5,7 +5,7 @@ use crate::runtime::{self, ClassPathResult};
 use crate::types::*;
 use crate::util;
 use class_parser::parse_class;
-use classfile::{constant_pool, types::U2, BytesRef, ConstantPool};
+use classfile::{constant_pool, U2, BytesRef, ConstantPool};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Copy, Clone)]

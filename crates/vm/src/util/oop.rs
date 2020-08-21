@@ -1,4 +1,3 @@
-use crate::new_br;
 use crate::oop::Oop;
 use crate::runtime::{self, require_class3};
 use crate::util;
