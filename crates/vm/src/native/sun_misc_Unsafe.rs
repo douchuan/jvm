@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
 use crate::native::{java_lang_System, new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::oop;
 use crate::oop::{Class, Oop, OopRef};
 use crate::runtime::require_class3;
 use crate::util;
-use crate::oop;
 use classfile::flags::ACC_STATIC;
 use std::os::raw::c_void;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

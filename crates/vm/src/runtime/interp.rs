@@ -10,10 +10,8 @@ use crate::runtime::{
 use crate::types::*;
 use crate::util;
 use classfile::{
-    constant_pool::get_utf8 as get_cp_utf8,
-    consts as cls_const,
-    U1, U2,
-    ClassFile, ConstantPoolType, OpCode,
+    constant_pool::get_utf8 as get_cp_utf8, consts as cls_const, ClassFile, ConstantPoolType,
+    OpCode, U1, U2,
 };
 use nix::sys::socket::SockType::Datagram;
 use std::borrow::BorrowMut;

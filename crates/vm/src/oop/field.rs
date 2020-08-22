@@ -5,8 +5,8 @@ use crate::types::*;
 use crate::util;
 use crate::util::PATH_SEP;
 use classfile::{
-    constant_pool, consts, flags::*, U2, AttributeType, BytesRef, ConstantPool,
-    ConstantPoolType, FieldInfo,
+    constant_pool, consts, flags::*, AttributeType, BytesRef, ConstantPool, ConstantPoolType,
+    FieldInfo, U2,
 };
 use std::fmt;
 use std::ops::Deref;
@@ -58,21 +58,21 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
                         | ValueType::CHAR
                         | ValueType::SHORT
                         | ValueType::INT => {
-                            field_values[fir.offset] = Oop::new_int(0);
+                            field_values[fir.offset] = oop_consts::get_int0();
                         }
                         ValueType::LONG => {
-                            field_values[fir.offset] = Oop::new_long(0);
+                            field_values[fir.offset] = oop_consts::get_long0();
                         }
                         ValueType::FLOAT => {
-                            field_values[fir.offset] = Oop::new_float(0.0);
+                            field_values[fir.offset] = oop_consts::get_float0();
                         }
                         ValueType::DOUBLE => {
-                            field_values[fir.offset] = Oop::new_double(0.0);
+                            field_values[fir.offset] = oop_consts::get_double0();
                         }
                         ValueType::OBJECT | ValueType::ARRAY => {
                             //ignore, has been inited by NULL
                         }
-                        ValueType::VOID => (),
+                        ValueType::VOID => unreachable!(),
                     }
                 });
             }
@@ -119,7 +119,7 @@ impl Field {
                 constant_value_index,
             } = it
             {
-                let v = Self::constant_value(cp, *constant_value_index as usize);
+                let v = constant_value(cp, *constant_value_index as usize);
                 attr_constant_value = Some(v);
                 break;
             }
@@ -189,32 +189,30 @@ impl fmt::Debug for Field {
     }
 }
 
-impl Field {
-    fn constant_value(cp: &ConstantPool, v_idx: usize) -> Oop {
-        match cp.get(v_idx) {
-            Some(ConstantPoolType::Long { v }) => {
-                let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                Oop::new_long(v)
-            }
-            Some(ConstantPoolType::Float { v }) => {
-                let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                let v = f32::from_bits(v);
-                Oop::new_float(v)
-            }
-            Some(ConstantPoolType::Double { v }) => {
-                let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
-                let v = f64::from_bits(v);
-                Oop::new_double(v)
-            }
-            Some(ConstantPoolType::Integer { v }) => {
-                let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
-                Oop::new_int(v)
-            }
-            Some(ConstantPoolType::String { string_index }) => {
-                let v = constant_pool::get_utf8(cp, *string_index as usize).clone();
-                Oop::new_const_utf8(v)
-            }
-            _ => unreachable!(),
+fn constant_value(cp: &ConstantPool, v_idx: usize) -> Oop {
+    match cp.get(v_idx) {
+        Some(ConstantPoolType::Long { v }) => {
+            let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            Oop::new_long(v)
         }
+        Some(ConstantPoolType::Float { v }) => {
+            let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+            let v = f32::from_bits(v);
+            Oop::new_float(v)
+        }
+        Some(ConstantPoolType::Double { v }) => {
+            let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            let v = f64::from_bits(v);
+            Oop::new_double(v)
+        }
+        Some(ConstantPoolType::Integer { v }) => {
+            let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+            Oop::new_int(v)
+        }
+        Some(ConstantPoolType::String { string_index }) => {
+            let v = constant_pool::get_utf8(cp, *string_index as usize).clone();
+            Oop::new_const_utf8(v)
+        }
+        _ => unreachable!(),
     }
 }
