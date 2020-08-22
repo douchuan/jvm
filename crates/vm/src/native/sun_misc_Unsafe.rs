@@ -188,7 +188,6 @@ fn jvm_putLong(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     let ptr = args.get(1).unwrap().extract_long() as *mut libc::c_void;
     let l = args.get(2).unwrap().extract_long();
     let v = l.to_be_bytes();
-    let v = vec![v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]];
     unsafe {
         libc::memcpy(ptr, v.as_ptr() as *const c_void, 8);
     }

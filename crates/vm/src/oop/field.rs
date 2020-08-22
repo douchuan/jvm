@@ -192,21 +192,21 @@ impl fmt::Debug for Field {
 fn constant_value(cp: &ConstantPool, v_idx: usize) -> Oop {
     match cp.get(v_idx) {
         Some(ConstantPoolType::Long { v }) => {
-            let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            let v = i64::from_be_bytes(*v);
             Oop::new_long(v)
         }
         Some(ConstantPoolType::Float { v }) => {
-            let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+            let v = u32::from_be_bytes(*v);
             let v = f32::from_bits(v);
             Oop::new_float(v)
         }
         Some(ConstantPoolType::Double { v }) => {
-            let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+            let v = u64::from_be_bytes(*v);
             let v = f64::from_bits(v);
             Oop::new_double(v)
         }
         Some(ConstantPoolType::Integer { v }) => {
-            let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+            let v = i32::from_be_bytes(*v);
             Oop::new_int(v)
         }
         Some(ConstantPoolType::String { string_index }) => {

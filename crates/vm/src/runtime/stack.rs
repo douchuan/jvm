@@ -22,7 +22,7 @@ impl Stack {
 
     #[inline]
     pub fn push_int2(&mut self, v: &[u8; 4]) {
-        let v = i32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+        let v = i32::from_be_bytes(*v);
         self.inner.push(Slot::I32(v));
     }
 
@@ -33,21 +33,20 @@ impl Stack {
 
     #[inline]
     pub fn push_float2(&mut self, v: &[u8; 4]) {
-        let v = u32::from_be_bytes([v[0], v[1], v[2], v[3]]);
+        let v = u32::from_be_bytes(*v);
         let v = f32::from_bits(v);
         self.inner.push(Slot::F32(v));
     }
 
     #[inline]
     pub fn push_double(&mut self, v: f64) {
-        //todo: need push_nop?
         self.push_nop();
         self.inner.push(Slot::F64(v));
     }
 
     #[inline]
     pub fn push_double2(&mut self, v: &[u8; 8]) {
-        let v = u64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+        let v = u64::from_be_bytes(*v);
         let v = f64::from_bits(v);
 
         self.push_nop();
@@ -56,14 +55,13 @@ impl Stack {
 
     #[inline]
     pub fn push_long(&mut self, v: i64) {
-        //todo: need push_nop?
         self.push_nop();
         self.inner.push(Slot::I64(v));
     }
 
     #[inline]
     pub fn push_long2(&mut self, v: &[u8; 8]) {
-        let v = i64::from_be_bytes([v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]]);
+        let v = i64::from_be_bytes(*v);
 
         self.push_nop();
         self.inner.push(Slot::I64(v));
