@@ -1,7 +1,6 @@
 use crate::oop::{Oop, OopRef};
 use crate::runtime::Slot;
 use crate::util;
-use std::sync::Arc;
 
 pub struct Local {
     locals: Vec<Slot>,

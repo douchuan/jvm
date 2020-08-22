@@ -13,7 +13,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_forOutputStreamWriter(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_forOutputStreamWriter(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let os = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let _charset_name = args.get(2).unwrap();

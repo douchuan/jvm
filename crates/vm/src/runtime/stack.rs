@@ -1,7 +1,5 @@
 use crate::oop::{consts, Oop};
 use crate::runtime::Slot;
-use crate::types::*;
-use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Stack {
@@ -48,9 +46,7 @@ impl Stack {
     pub fn push_double2(&mut self, v: &[u8; 8]) {
         let v = u64::from_be_bytes(*v);
         let v = f64::from_bits(v);
-
-        self.push_nop();
-        self.inner.push(Slot::F64(v));
+        self.push_double(v);
     }
 
     #[inline]
@@ -62,9 +58,7 @@ impl Stack {
     #[inline]
     pub fn push_long2(&mut self, v: &[u8; 8]) {
         let v = i64::from_be_bytes(*v);
-
-        self.push_nop();
-        self.inner.push(Slot::I64(v));
+        self.push_long(v);
     }
 
     #[inline]

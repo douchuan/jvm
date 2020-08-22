@@ -15,11 +15,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 //todo: impl me
-fn jvm_findSignal(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_findSignal(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_int(1)))
 }
 
 //todo: impl me
-fn jvm_handle0(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_handle0(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_long(0)))
 }

@@ -172,7 +172,7 @@ fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type,
     //Ljava/lang/Class<+Lcom/google/inject/Module;>;
     //<=> 'java.lang.Class<? extends com.google.inject.Module>'
     let mut prefix = None;
-    if i.chars().nth(0) == Some('+') {
+    if i.starts_with('+') {
         prefix = Some(b'+');
         let (i2, _) = tag("+")(i)?;
         i = i2;

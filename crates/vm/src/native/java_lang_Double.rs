@@ -14,14 +14,14 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_doubleToRawLongBits(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_doubleToRawLongBits(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap().extract_double();
     let v = v.to_bits().to_be_bytes();
     let v = i64::from_be_bytes(v);
     Ok(Some(Oop::new_long(v)))
 }
 
-fn jvm_longBitsToDouble(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_longBitsToDouble(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap().extract_long();
     let v = v.to_be_bytes();
     let v = f64::from_be_bytes(v);

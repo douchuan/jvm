@@ -15,7 +15,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_invoke0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let method = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let args = args.get(2).unwrap();

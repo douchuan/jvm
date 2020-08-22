@@ -1,5 +1,4 @@
 use crate::oop::Oop;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum Slot {

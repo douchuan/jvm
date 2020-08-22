@@ -12,7 +12,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     )]
 }
 
-fn jvm_newInstance0(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_newInstance0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let ctor = args.get(0).unwrap();
     let arguments = args.get(1).unwrap();
 

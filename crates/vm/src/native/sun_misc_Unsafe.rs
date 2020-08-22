@@ -101,30 +101,30 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     ]
 }
 
-fn jvm_registerNatives(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_registerNatives(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_arrayBaseOffset(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_arrayBaseOffset(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_int(0)))
 }
 
-fn jvm_arrayIndexScale(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_arrayIndexScale(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_int(1)))
 }
 
-fn jvm_addressSize(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_addressSize(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     let v = std::mem::size_of::<*mut u8>();
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_objectFieldOffset(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_objectFieldOffset(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let field = args.get(1).unwrap();
     objectFieldOffset(field, false)
 }
 
 // fixme: The semantic requirement here is atomic operation, which needs to be re-implemented here
-fn jvm_compareAndSwapObject(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_compareAndSwapObject(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let old_data = args.get(3).unwrap();
@@ -140,14 +140,14 @@ fn jvm_compareAndSwapObject(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_getIntVolatile(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getIntVolatile(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let v = Class::get_field_value2(owner.extract_ref(), offset as usize);
     Ok(Some(v))
 }
 
-fn jvm_compareAndSwapInt(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_compareAndSwapInt(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let old_data = args.get(3).unwrap().extract_int();
@@ -166,7 +166,7 @@ fn jvm_compareAndSwapInt(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_allocateMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_allocateMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let size = args.get(1).unwrap().extract_long() as usize;
     let arr = unsafe { libc::malloc(std::mem::size_of::<u8>() * size) };
     let v = arr as i64;
@@ -174,7 +174,7 @@ fn jvm_allocateMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(Oop::new_long(v)))
 }
 
-fn jvm_freeMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_freeMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let ptr = args.get(1).unwrap().extract_long() as *mut libc::c_void;
 
     unsafe {
@@ -184,7 +184,7 @@ fn jvm_freeMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_putLong(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_putLong(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let ptr = args.get(1).unwrap().extract_long() as *mut libc::c_void;
     let l = args.get(2).unwrap().extract_long();
     let v = l.to_be_bytes();
@@ -195,13 +195,13 @@ fn jvm_putLong(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getByte(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getByte(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let ptr = args.get(1).unwrap().extract_long() as *const u8;
     let v = unsafe { *ptr };
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_compareAndSwapLong(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_compareAndSwapLong(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let old_data = args.get(3).unwrap().extract_long();
@@ -220,25 +220,25 @@ fn jvm_compareAndSwapLong(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     }
 }
 
-fn jvm_getObjectVolatile(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getObjectVolatile(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
     Ok(Some(v_at_offset))
 }
 
-fn jvm_pageSize(_env: JNIEnv, _args: &Vec<Oop>) -> JNIResult {
+fn jvm_pageSize(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_int(4 * 1024)))
 }
 
-fn jvm_getLongVolatile(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getLongVolatile(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let owner = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long();
     let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
     Ok(Some(v_at_offset))
 }
 
-fn jvm_setMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_setMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long() as usize;
@@ -267,7 +267,7 @@ fn jvm_setMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_putChar(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_putChar(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let dest = args.get(1).unwrap().extract_long() as *mut libc::c_void;
     let value = args.get(2).unwrap().extract_int();
 
@@ -278,7 +278,7 @@ fn jvm_putChar(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_copyMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_copyMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let src_obj = args.get(1).unwrap();
     let src_offset = args.get(2).unwrap().extract_long() as usize;
@@ -346,14 +346,14 @@ fn jvm_copyMemory(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getChar(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getChar(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let arg1 = args.get(1).unwrap();
     let ptr = arg1.extract_long() as *const u16;
     let v = unsafe { *ptr };
     Ok(Some(Oop::new_int(v as i32)))
 }
 
-fn jvm_putObject(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_putObject(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let o = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long() as usize;
@@ -364,7 +364,7 @@ fn jvm_putObject(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_ensureClassInitialized(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_ensureClassInitialized(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let clazz = args.get(1).unwrap();
     let rf = clazz.extract_ref();
     let mirror = rf.extract_mirror();
@@ -374,12 +374,12 @@ fn jvm_ensureClassInitialized(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_staticFieldOffset(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_staticFieldOffset(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let field = args.get(1).unwrap();
     objectFieldOffset(field, true)
 }
 
-fn jvm_staticFieldBase(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_staticFieldBase(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let field = args.get(1).unwrap();
     let cls = require_class3(None, b"java/lang/reflect/Field").unwrap();
     let cls = cls.get_class();
@@ -388,7 +388,7 @@ fn jvm_staticFieldBase(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn jvm_putByte(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_putByte(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long() as usize;
@@ -412,7 +412,7 @@ fn jvm_putByte(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(None)
 }
 
-fn jvm_getByte2(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_getByte2(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let obj = args.get(1).unwrap();
     let offset = args.get(2).unwrap().extract_long() as usize;
@@ -435,7 +435,7 @@ fn jvm_getByte2(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
     Ok(Some(v))
 }
 
-fn jvm_park(_env: JNIEnv, args: &Vec<Oop>) -> JNIResult {
+fn jvm_park(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _this = args.get(0).unwrap();
     let is_absolute = args.get(1).unwrap().extract_int() != 0;
     let time = args.get(2).unwrap().extract_long() as u64;
