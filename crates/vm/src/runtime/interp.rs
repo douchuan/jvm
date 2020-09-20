@@ -688,100 +688,100 @@ impl<'a> Interp<'a> {
 //byte code impl
 impl<'a> Interp<'a> {
     #[inline]
-    pub fn nop(&self) {}
+    fn nop(&self) {}
 
     #[inline]
-    pub fn aconst_null(&self) {
+    fn aconst_null(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_null();
     }
 
     #[inline]
-    pub fn iconst_m1(&self) {
+    fn iconst_m1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const_m1();
     }
 
     #[inline]
-    pub fn iconst_0(&self) {
+    fn iconst_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const0(false);
     }
 
     #[inline]
-    pub fn lconst_0(&self) {
+    fn lconst_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const0(true);
     }
 
     #[inline]
-    pub fn fconst_0(&self) {
+    fn fconst_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const0(false);
     }
 
     #[inline]
-    pub fn dconst_0(&self) {
+    fn dconst_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const0(true);
     }
 
     #[inline]
-    pub fn iconst_1(&self) {
+    fn iconst_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const1(false);
     }
 
     #[inline]
-    pub fn lconst_1(&self) {
+    fn lconst_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const1(true);
     }
 
     #[inline]
-    pub fn fconst_1(&self) {
+    fn fconst_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const1(false);
     }
 
     #[inline]
-    pub fn dconst_1(&self) {
+    fn dconst_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const1(true);
     }
 
     #[inline]
-    pub fn iconst_2(&self) {
+    fn iconst_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const2();
     }
 
     #[inline]
-    pub fn fconst_2(&self) {
+    fn fconst_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const2();
     }
 
     #[inline]
-    pub fn iconst_3(&self) {
+    fn iconst_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const3();
     }
 
     #[inline]
-    pub fn iconst_4(&self) {
+    fn iconst_4(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const4();
     }
 
     #[inline]
-    pub fn iconst_5(&self) {
+    fn iconst_5(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_const5();
     }
 
     #[inline]
-    pub fn sipush(&self) {
+    fn sipush(&self) {
         let v = self.read_i2();
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -789,7 +789,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn bipush(&self) {
+    fn bipush(&self) {
         let v = (self.read_byte() as i8) as i32;
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -797,24 +797,24 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ldc(&self) {
+    fn ldc(&self) {
         let pos = self.read_u1();
         self.load_constant(pos);
     }
 
     #[inline]
-    pub fn ldc_w(&self) {
+    fn ldc_w(&self) {
         let pos = self.read_u2();
         self.load_constant(pos);
     }
 
     #[inline]
-    pub fn ldc2_w(&self) {
+    fn ldc2_w(&self) {
         self.ldc_w();
     }
 
     #[inline]
-    pub fn iload(&self) {
+    fn iload(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -831,7 +831,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lload(&self) {
+    fn lload(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -848,7 +848,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fload(&self) {
+    fn fload(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -865,7 +865,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dload(&self) {
+    fn dload(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -882,7 +882,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aload(&self) {
+    fn aload(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -899,7 +899,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iload_0(&self) {
+    fn iload_0(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_int(0);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -907,7 +907,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lload_0(&self) {
+    fn lload_0(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_long(0);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -915,7 +915,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fload_0(&self) {
+    fn fload_0(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_float(0);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -923,7 +923,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dload_0(&self) {
+    fn dload_0(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_double(0);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -931,7 +931,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aload_0(&self) {
+    fn aload_0(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_ref(0);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -939,7 +939,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iload_1(&self) {
+    fn iload_1(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_int(1);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -947,7 +947,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lload_1(&self) {
+    fn lload_1(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_long(1);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -955,7 +955,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fload_1(&self) {
+    fn fload_1(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_float(1);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -963,7 +963,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dload_1(&self) {
+    fn dload_1(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_double(1);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -971,7 +971,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aload_1(&self) {
+    fn aload_1(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_ref(1);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -979,7 +979,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iload_2(&self) {
+    fn iload_2(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_int(2);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -987,7 +987,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lload_2(&self) {
+    fn lload_2(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_long(2);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -995,7 +995,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fload_2(&self) {
+    fn fload_2(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_float(2);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1003,7 +1003,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dload_2(&self) {
+    fn dload_2(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_double(2);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1011,7 +1011,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aload_2(&self) {
+    fn aload_2(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_ref(2);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1019,7 +1019,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iload_3(&self) {
+    fn iload_3(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_int(3);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1027,7 +1027,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lload_3(&self) {
+    fn lload_3(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_long(3);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1035,7 +1035,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fload_3(&self) {
+    fn fload_3(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_float(3);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1043,7 +1043,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dload_3(&self) {
+    fn dload_3(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_double(3);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1051,7 +1051,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aload_3(&self) {
+    fn aload_3(&self) {
         let mut local = self.frame.area.local.borrow_mut();
         let v = local.get_ref(3);
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1059,7 +1059,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iaload(&self) {
+    fn iaload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1075,7 +1075,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn saload(&self) {
+    fn saload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1091,7 +1091,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn caload(&self) {
+    fn caload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1107,7 +1107,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn baload(&self) {
+    fn baload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1142,7 +1142,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn laload(&self) {
+    fn laload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1165,7 +1165,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn faload(&self) {
+    fn faload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1188,7 +1188,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn daload(&self) {
+    fn daload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1211,7 +1211,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aaload(&self) {
+    fn aaload(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let pos = stack.pop_int();
         let rf = stack.pop_ref();
@@ -1235,7 +1235,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn istore(&self) {
+    fn istore(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -1252,7 +1252,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lstore(&self) {
+    fn lstore(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -1269,7 +1269,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fstore(&self) {
+    fn fstore(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -1286,7 +1286,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dstore(&self) {
+    fn dstore(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -1303,7 +1303,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn astore(&self) {
+    fn astore(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -1320,7 +1320,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn istore_0(&self) {
+    fn istore_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1328,7 +1328,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn istore_1(&self) {
+    fn istore_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1336,7 +1336,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn istore_2(&self) {
+    fn istore_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1344,7 +1344,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn istore_3(&self) {
+    fn istore_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1352,7 +1352,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lstore_0(&self) {
+    fn lstore_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1360,7 +1360,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lstore_1(&self) {
+    fn lstore_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1368,7 +1368,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lstore_2(&self) {
+    fn lstore_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1376,7 +1376,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lstore_3(&self) {
+    fn lstore_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1384,7 +1384,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fstore_0(&self) {
+    fn fstore_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1392,7 +1392,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fstore_1(&self) {
+    fn fstore_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1400,7 +1400,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fstore_2(&self) {
+    fn fstore_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1408,7 +1408,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fstore_3(&self) {
+    fn fstore_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1416,7 +1416,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dstore_0(&self) {
+    fn dstore_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1424,7 +1424,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dstore_1(&self) {
+    fn dstore_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1432,7 +1432,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dstore_2(&self) {
+    fn dstore_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1440,7 +1440,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dstore_3(&self) {
+    fn dstore_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1448,7 +1448,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn astore_0(&self) {
+    fn astore_0(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1456,7 +1456,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn astore_1(&self) {
+    fn astore_1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1464,7 +1464,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn astore_2(&self) {
+    fn astore_2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1472,7 +1472,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn astore_3(&self) {
+    fn astore_3(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         let mut local = self.frame.area.local.borrow_mut();
@@ -1480,7 +1480,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn bastore(&self) {
+    fn bastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let pos = stack.pop_int();
@@ -1511,7 +1511,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn castore(&self) {
+    fn castore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let pos = stack.pop_int();
@@ -1531,7 +1531,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn sastore(&self) {
+    fn sastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let pos = stack.pop_int();
@@ -1551,7 +1551,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iastore(&self) {
+    fn iastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let pos = stack.pop_int();
@@ -1570,7 +1570,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lastore(&self) {
+    fn lastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let pos = stack.pop_int();
@@ -1589,7 +1589,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fastore(&self) {
+    fn fastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let pos = stack.pop_int();
@@ -1608,7 +1608,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dastore(&self) {
+    fn dastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let pos = stack.pop_int();
@@ -1627,7 +1627,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn aastore(&self) {
+    fn aastore(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         let pos = stack.pop_int();
@@ -1646,62 +1646,62 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn pop(&self) {
+    fn pop(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.drop_top();
     }
 
     #[inline]
-    pub fn pop2(&self) {
+    fn pop2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.drop_top();
         stack.drop_top();
     }
 
     #[inline]
-    pub fn dup(&self) {
+    fn dup(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup();
     }
 
     #[inline]
-    pub fn dup_x1(&self) {
+    fn dup_x1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup_x1();
     }
 
     #[inline]
-    pub fn dup_x2(&self) {
+    fn dup_x2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup_x2();
     }
 
     #[inline]
-    pub fn dup2(&self) {
+    fn dup2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup2();
     }
 
     #[inline]
-    pub fn dup2_x1(&self) {
+    fn dup2_x1(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup2_x1();
     }
 
     #[inline]
-    pub fn dup2_x2(&self) {
+    fn dup2_x2(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.dup2_x2();
     }
 
     #[inline]
-    pub fn swap(&self) {
+    fn swap(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.swap();
     }
 
     #[inline]
-    pub fn iadd(&self) {
+    fn iadd(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1710,7 +1710,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ladd(&self) {
+    fn ladd(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -1719,7 +1719,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fadd(&self) {
+    fn fadd(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
         let v1 = stack.pop_float();
@@ -1727,7 +1727,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dadd(&self) {
+    fn dadd(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_double();
         let v1 = stack.pop_double();
@@ -1735,7 +1735,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn isub(&self) {
+    fn isub(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1744,7 +1744,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lsub(&self) {
+    fn lsub(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -1753,7 +1753,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fsub(&self) {
+    fn fsub(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
         let v1 = stack.pop_float();
@@ -1761,7 +1761,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dsub(&self) {
+    fn dsub(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_double();
         let v1 = stack.pop_double();
@@ -1769,7 +1769,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn imul(&self) {
+    fn imul(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1778,7 +1778,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lmul(&self) {
+    fn lmul(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -1787,7 +1787,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fmul(&self) {
+    fn fmul(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
         let v1 = stack.pop_float();
@@ -1795,7 +1795,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dmul(&self) {
+    fn dmul(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_double();
         let v1 = stack.pop_double();
@@ -1803,7 +1803,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn idiv(&self) {
+    fn idiv(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1820,7 +1820,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ldiv(&self) {
+    fn ldiv(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -1837,7 +1837,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fdiv(&self) {
+    fn fdiv(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
         let v1 = stack.pop_float();
@@ -1854,7 +1854,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ddiv(&self) {
+    fn ddiv(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_double();
         let v1 = stack.pop_double();
@@ -1871,7 +1871,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn irem(&self) {
+    fn irem(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1888,7 +1888,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lrem(&self) {
+    fn lrem(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -1905,41 +1905,41 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn frem(&self) {
+    fn frem(&self) {
         panic!("Use of deprecated instruction frem, please check your Java compiler");
     }
 
     #[inline]
-    pub fn drem(&self) {
+    fn drem(&self) {
         panic!("Use of deprecated instruction drem, please check your Java compiler");
     }
 
     #[inline]
-    pub fn ineg(&self) {
+    fn ineg(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         stack.push_int(-v);
     }
 
     #[inline]
-    pub fn lneg(&self) {
+    fn lneg(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         stack.push_long(-v);
     }
 
     #[inline]
-    pub fn fneg(&self) {
+    fn fneg(&self) {
         panic!("Use of deprecated instruction fneg, please check your Java compiler");
     }
 
     #[inline]
-    pub fn dneg(&self) {
+    fn dneg(&self) {
         panic!("Use of deprecated instruction dneg, please check your Java compiler");
     }
 
     #[inline]
-    pub fn ishl(&self) {
+    fn ishl(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1948,7 +1948,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lshl(&self) {
+    fn lshl(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_long();
@@ -1957,7 +1957,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ishr(&self) {
+    fn ishr(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -1966,7 +1966,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lshr(&self) {
+    fn lshr(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_long();
@@ -1975,7 +1975,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iushr(&self) {
+    fn iushr(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int() as u32;
@@ -1984,7 +1984,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lushr(&self) {
+    fn lushr(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_long() as u64;
@@ -1993,7 +1993,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iand(&self) {
+    fn iand(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2001,7 +2001,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn land(&self) {
+    fn land(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -2009,7 +2009,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ior(&self) {
+    fn ior(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2017,7 +2017,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lor(&self) {
+    fn lor(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -2025,7 +2025,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ixor(&self) {
+    fn ixor(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2033,7 +2033,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lxor(&self) {
+    fn lxor(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_long();
         let v1 = stack.pop_long();
@@ -2041,7 +2041,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iinc(&self) {
+    fn iinc(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
@@ -2064,49 +2064,49 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn i2l(&self) {
+    fn i2l(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         stack.push_long(v as i64);
     }
 
     #[inline]
-    pub fn i2f(&self) {
+    fn i2f(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         stack.push_float(v as f32);
     }
 
     #[inline]
-    pub fn i2d(&self) {
+    fn i2d(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         stack.push_double(v as f64);
     }
 
     #[inline]
-    pub fn l2i(&self) {
+    fn l2i(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         stack.push_int(v as i32);
     }
 
     #[inline]
-    pub fn l2f(&self) {
+    fn l2f(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         stack.push_float(v as f32);
     }
 
     #[inline]
-    pub fn l2d(&self) {
+    fn l2d(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         stack.push_double(v as f64);
     }
 
     #[inline]
-    pub fn f2i(&self) {
+    fn f2i(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         if v.is_nan() {
@@ -2123,7 +2123,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn f2l(&self) {
+    fn f2l(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         if v.is_nan() {
@@ -2140,14 +2140,14 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn f2d(&self) {
+    fn f2d(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         stack.push_double(v as f64);
     }
 
     #[inline]
-    pub fn d2i(&self) {
+    fn d2i(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         if v.is_nan() {
@@ -2164,7 +2164,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn d2l(&self) {
+    fn d2l(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         if v.is_nan() {
@@ -2181,14 +2181,14 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn d2f(&self) {
+    fn d2f(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         stack.push_float(v as f32);
     }
 
     #[inline]
-    pub fn i2b(&self) {
+    fn i2b(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let v = v as i8;
@@ -2196,7 +2196,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn i2c(&self) {
+    fn i2c(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let v = v as u16;
@@ -2204,7 +2204,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn i2s(&self) {
+    fn i2s(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let v = v as i16;
@@ -2212,7 +2212,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lcmp(&self) {
+    fn lcmp(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v1 = stack.pop_long();
         let v2 = stack.pop_long();
@@ -2226,7 +2226,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fcmpl(&self) {
+    fn fcmpl(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v1 = stack.pop_float();
         let v2 = stack.pop_float();
@@ -2244,7 +2244,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn fcmpg(&self) {
+    fn fcmpg(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v1 = stack.pop_float();
         let v2 = stack.pop_float();
@@ -2262,7 +2262,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dcmpl(&self) {
+    fn dcmpl(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v1 = stack.pop_double();
         let v2 = stack.pop_double();
@@ -2280,7 +2280,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dcmpg(&self) {
+    fn dcmpg(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v1 = stack.pop_double();
         let v2 = stack.pop_double();
@@ -2296,7 +2296,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ifeq(&self) {
+    fn ifeq(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2309,7 +2309,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ifne(&self) {
+    fn ifne(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2322,7 +2322,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn iflt(&self) {
+    fn iflt(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2335,7 +2335,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ifge(&self) {
+    fn ifge(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2348,7 +2348,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ifgt(&self) {
+    fn ifgt(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2361,7 +2361,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ifle(&self) {
+    fn ifle(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
 
@@ -2374,7 +2374,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmpeq(&self) {
+    fn if_icmpeq(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2388,7 +2388,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmpne(&self) {
+    fn if_icmpne(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2402,7 +2402,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmplt(&self) {
+    fn if_icmplt(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2416,7 +2416,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmpge(&self) {
+    fn if_icmpge(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2430,7 +2430,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmpgt(&self) {
+    fn if_icmpgt(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2444,7 +2444,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_icmple(&self) {
+    fn if_icmple(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
         let v1 = stack.pop_int();
@@ -2458,7 +2458,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_acmpeq(&self) {
+    fn if_acmpeq(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
@@ -2472,7 +2472,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_acmpne(&self) {
+    fn if_acmpne(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
@@ -2486,18 +2486,18 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn goto(&self) {
+    fn goto(&self) {
         self.goto_by_offset_hardcoded(2);
     }
 
     #[inline]
-    pub fn jsr(&self) {
+    fn jsr(&self) {
         let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
         panic!("Use of deprecated instruction jsr, please check your Java compiler");
     }
 
     #[inline]
-    pub fn ret(&self) {
+    fn ret(&self) {
         let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
 
         let pc = if op_widen {
@@ -2511,7 +2511,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn table_switch(&self) {
+    fn table_switch(&self) {
         let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
@@ -2577,7 +2577,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lookup_switch(&self) {
+    fn lookup_switch(&self) {
         let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
@@ -2635,7 +2635,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn ireturn(&self) {
+    fn ireturn(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
         let v = Oop::new_int(v);
@@ -2645,7 +2645,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn lreturn(&self) {
+    fn lreturn(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
         let v = Oop::new_long(v);
@@ -2655,7 +2655,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn freturn(&self) {
+    fn freturn(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
         let v = Oop::new_float(v);
@@ -2665,7 +2665,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn dreturn(&self) {
+    fn dreturn(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
         let v = Oop::new_double(v);
@@ -2675,7 +2675,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn areturn(&self) {
+    fn areturn(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         drop(stack);
@@ -2684,24 +2684,24 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn return_void(&self) {
+    fn return_void(&self) {
         self.set_return(None);
     }
 
     #[inline]
-    pub fn get_static(&self) {
+    fn get_static(&self) {
         let cp_idx = self.read_u2();
         self.get_field_helper(oop_consts::get_null(), cp_idx, true);
     }
 
     #[inline]
-    pub fn put_static(&self) {
+    fn put_static(&self) {
         let cp_idx = self.read_u2();
         self.put_field_helper(cp_idx, true);
     }
 
     #[inline]
-    pub fn get_field(&self) {
+    fn get_field(&self) {
         let idx = self.read_u2();
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -2719,31 +2719,31 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn put_field(&self) {
+    fn put_field(&self) {
         let idx = self.read_u2();
         self.put_field_helper(idx, false);
     }
 
     #[inline]
-    pub fn invoke_virtual(&self) {
+    fn invoke_virtual(&self) {
         let idx = self.read_u2();
         self.invoke_helper(false, idx, false);
     }
 
     #[inline]
-    pub fn invoke_special(&self) {
+    fn invoke_special(&self) {
         let idx = self.read_u2();
         self.invoke_helper(false, idx, true);
     }
 
     #[inline]
-    pub fn invoke_static(&self) {
+    fn invoke_static(&self) {
         let idx = self.read_u2();
         self.invoke_helper(true, idx, true);
     }
 
     #[inline]
-    pub fn invoke_interface(&self) {
+    fn invoke_interface(&self) {
         let cp_idx = self.read_u2();
         let _count = self.read_u1();
         let zero = self.read_u1();
@@ -2756,13 +2756,13 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn invoke_dynamic(&self) {
+    fn invoke_dynamic(&self) {
         //todo: impl
         unimplemented!()
     }
 
     #[inline]
-    pub fn new_(&self) {
+    fn new_(&self) {
         let idx = self.read_u2();
 
         let class = {
@@ -2783,7 +2783,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn new_array(&self) {
+    fn new_array(&self) {
         let t = self.read_byte();
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -2819,7 +2819,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn anew_array(&self) {
+    fn anew_array(&self) {
         let cp_idx = self.read_i2();
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -2882,7 +2882,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn array_length(&self) {
+    fn array_length(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
 
@@ -2912,7 +2912,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn athrow(&self, jt: JavaThreadRef) {
+    fn athrow(&self, jt: JavaThreadRef) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let ex = stack.pop_ref();
         drop(stack);
@@ -2921,17 +2921,17 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn check_cast(&self) {
+    fn check_cast(&self) {
         self.check_cast_helper(true);
     }
 
     #[inline]
-    pub fn instance_of(&self) {
+    fn instance_of(&self) {
         self.check_cast_helper(false);
     }
 
     #[inline]
-    pub fn monitor_enter(&self) {
+    fn monitor_enter(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         drop(stack);
@@ -2946,7 +2946,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn monitor_exit(&self) {
+    fn monitor_exit(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let mut v = stack.pop_ref();
         drop(stack);
@@ -2961,12 +2961,12 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn wide(&self) {
+    fn wide(&self) {
         self.frame.op_widen.store(true, Ordering::Relaxed);
     }
 
     #[inline]
-    pub fn multi_anew_array(&self) {
+    fn multi_anew_array(&self) {
         let cp_idx = self.read_u2();
         let dimension = self.read_u1();
 
@@ -2987,7 +2987,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_null(&self) {
+    fn if_null(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
 
@@ -3003,7 +3003,7 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn if_non_null(&self) {
+    fn if_non_null(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
 
@@ -3019,19 +3019,19 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    pub fn goto_w(&self) {
+    fn goto_w(&self) {
         let _ = self.frame.pc.fetch_add(4, Ordering::Relaxed);
         panic!("Use of deprecated instruction goto_w, please check your Java compiler")
     }
 
     #[inline]
-    pub fn jsr_w(&self) {
+    fn jsr_w(&self) {
         let _ = self.frame.pc.fetch_add(4, Ordering::Relaxed);
         panic!("Use of deprecated instruction jsr_w, please check your Java compiler")
     }
 
     #[inline]
-    pub fn other_wise(&self) {
+    fn other_wise(&self) {
         let pc = self.frame.pc.load(Ordering::Relaxed);
         let pc = pc - 1;
         panic!(
