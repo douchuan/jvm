@@ -3,7 +3,7 @@
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::class::ClassPtr;
-use crate::oop::{self, Class, Oop, OopRef};
+use crate::oop::{self, Class, Oop, OopPtr};
 use crate::runtime;
 use crate::types::ClassRef;
 use class_parser::parse_class;
@@ -20,7 +20,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_defineClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _loader = args.get(0).unwrap();
     let name = args.get(1).unwrap();
-    let name = OopRef::java_lang_string(name.extract_ref());
+    let name = OopPtr::java_lang_string(name.extract_ref());
     let b = args.get(2).unwrap();
     let off = args.get(3).unwrap().extract_int();
     let len = args.get(4).unwrap().extract_int();

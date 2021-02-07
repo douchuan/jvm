@@ -1,5 +1,5 @@
 use crate::oop::method::MethodId;
-use crate::oop::{self, consts as oop_consts, field, method, Oop, OopRef, RefKindDesc, ValueType};
+use crate::oop::{self, consts as oop_consts, field, method, Oop, OopPtr, RefKindDesc, ValueType};
 use crate::runtime::thread::ReentrantMutex;
 use crate::runtime::{self, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread};
 use crate::types::*;
@@ -509,11 +509,11 @@ impl Class {
             .get_field_id(name, desc, is_static)
     }
 
-    pub fn put_field_value(rf: Arc<OopRef>, fir: FieldIdRef, v: Oop) {
+    pub fn put_field_value(rf: Arc<OopPtr>, fir: FieldIdRef, v: Oop) {
         Self::put_field_value2(rf, fir.offset, v);
     }
 
-    pub fn put_field_value2(rf: Arc<OopRef>, offset: usize, v: Oop) {
+    pub fn put_field_value2(rf: Arc<OopPtr>, offset: usize, v: Oop) {
         let ptr = rf.get_mut_raw_ptr();
         unsafe {
             match &mut (*ptr).v {
@@ -525,11 +525,11 @@ impl Class {
         }
     }
 
-    pub fn get_field_value(rf: Arc<OopRef>, fid: FieldIdRef) -> Oop {
+    pub fn get_field_value(rf: Arc<OopPtr>, fid: FieldIdRef) -> Oop {
         Self::get_field_value2(rf, fid.offset)
     }
 
-    pub fn get_field_value2(rf: Arc<OopRef>, offset: usize) -> Oop {
+    pub fn get_field_value2(rf: Arc<OopPtr>, offset: usize) -> Oop {
         unsafe {
             let ptr = rf.get_raw_ptr();
             match &(*ptr).v {

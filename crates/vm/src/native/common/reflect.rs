@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::java_lang_Class;
-use crate::oop::{self, Class, Oop, OopRef};
+use crate::oop::{self, Class, Oop, OopPtr};
 use crate::runtime::{self, require_class3};
 use crate::types::*;
 use crate::util;
@@ -262,7 +262,7 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
     let cls = cls.get_class();
     let id = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
     let v = Class::get_field_value(ctor.extract_ref(), id);
-    OopRef::java_lang_string(v.extract_ref())
+    OopPtr::java_lang_string(v.extract_ref())
 }
 
 fn create_value_type(t: SignatureType) -> Oop {

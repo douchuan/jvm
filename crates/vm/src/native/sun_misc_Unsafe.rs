@@ -2,7 +2,7 @@
 
 use crate::native::{java_lang_System, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop;
-use crate::oop::{Class, Oop, OopRef};
+use crate::oop::{Class, Oop, OopPtr};
 use crate::runtime::require_class3;
 use crate::util;
 use classfile::flags::ACC_STATIC;
@@ -132,7 +132,7 @@ fn jvm_compareAndSwapObject(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
 
-    if OopRef::is_eq(&v_at_offset, old_data) {
+    if OopPtr::is_eq(&v_at_offset, old_data) {
         Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {

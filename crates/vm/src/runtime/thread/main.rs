@@ -1,4 +1,4 @@
-use crate::oop::{self, Class, Oop, OopRef};
+use crate::oop::{self, Class, Oop, OopPtr};
 use crate::runtime::thread::thread_pool;
 use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
@@ -166,7 +166,7 @@ impl MainThread {
                 )
             };
             let v = Class::get_field_value(ex.extract_ref(), fid);
-            OopRef::java_lang_string(v.extract_ref())
+            OopPtr::java_lang_string(v.extract_ref())
         };
         let name = {
             let cls = cls.get_class();

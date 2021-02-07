@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Class, Oop, OopRef};
+use crate::oop::{Class, Oop, OopPtr};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::consts as cls_consts;
@@ -44,7 +44,7 @@ fn jvm_open0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
-        OopRef::java_lang_string(v.extract_ref())
+        OopPtr::java_lang_string(v.extract_ref())
     };
     let fd = unsafe {
         use std::ffi::CString;

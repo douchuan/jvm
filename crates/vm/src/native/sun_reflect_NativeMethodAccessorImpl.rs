@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
-use crate::oop::{self, Class, Oop, OopRef};
+use crate::oop::{self, Class, Oop, OopPtr};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
@@ -30,12 +30,12 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
         let fid = cls.get_field_id(&util::S_NAME, &util::S_JAVA_LANG_STRING, false);
         let method_name = Class::get_field_value(method.extract_ref(), fid);
-        let method_name = OopRef::java_lang_string(method_name.extract_ref());
+        let method_name = OopPtr::java_lang_string(method_name.extract_ref());
         let method_name = new_br(method_name.as_str());
 
         let fid = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
         let signature = Class::get_field_value(method.extract_ref(), fid);
-        let signature = OopRef::java_lang_string(signature.extract_ref());
+        let signature = OopPtr::java_lang_string(signature.extract_ref());
         let signature = new_br(signature.as_str());
 
         (method_clazz, method_name, signature)

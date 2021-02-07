@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopRef};
+use crate::oop::{self, Oop, OopPtr};
 use crate::runtime::{self, thread, JavaCall};
 use crate::{new_br, util};
 use std::sync::Arc;
@@ -62,7 +62,7 @@ fn jvm_arraycopy(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         return Ok(None);
     }
 
-    let is_same_obj = OopRef::is_eq(src, dest);
+    let is_same_obj = OopPtr::is_eq(src, dest);
 
     if is_same_obj {
         arraycopy_same_obj(
@@ -214,7 +214,7 @@ fn jvm_setErr0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn jvm_mapLibraryName(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
-    let s = OopRef::java_lang_string(v.extract_ref());
+    let s = OopPtr::java_lang_string(v.extract_ref());
 
     trace!("mapLibraryName libname = {}", s);
     let mut name = String::new();
@@ -286,7 +286,7 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 */
 
-fn arraycopy_same_obj(buf: Arc<OopRef>, src_pos: usize, dest_pos: usize, length: usize) {
+fn arraycopy_same_obj(buf: Arc<OopPtr>, src_pos: usize, dest_pos: usize, length: usize) {
     let is_type_ary = {
         let ptr = buf.get_raw_ptr();
         unsafe {
@@ -332,9 +332,9 @@ fn arraycopy_same_obj(buf: Arc<OopRef>, src_pos: usize, dest_pos: usize, length:
 }
 
 pub fn arraycopy_diff_obj(
-    src: Arc<OopRef>,
+    src: Arc<OopPtr>,
     src_pos: usize,
-    dest: Arc<OopRef>,
+    dest: Arc<OopPtr>,
     dest_pos: usize,
     length: usize,
 ) {

@@ -1,5 +1,5 @@
 use crate::oop::{
-    self, consts as oop_consts, field, Class, ClassKind, Oop, OopRef, TypeArrayDesc, ValueType,
+    self, consts as oop_consts, field, Class, ClassKind, Oop, OopPtr, TypeArrayDesc, ValueType,
 };
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
@@ -2463,7 +2463,7 @@ impl<'a> Interp<'a> {
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
 
-        if OopRef::is_eq(&v1, &v2) {
+        if OopPtr::is_eq(&v1, &v2) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -2477,7 +2477,7 @@ impl<'a> Interp<'a> {
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
 
-        if !OopRef::is_eq(&v1, &v2) {
+        if !OopPtr::is_eq(&v1, &v2) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {

@@ -40,11 +40,11 @@ pub enum Oop {
     //used by oop::field::Filed::get_constant_value
     Null,
 
-    Ref(Arc<OopRef>),
+    Ref(Arc<OopPtr>),
 }
 
 #[derive(Debug)]
-pub struct OopRef(u64);
+pub struct OopPtr(u64);
 
 impl fmt::Debug for Oop {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -263,7 +263,7 @@ impl Oop {
         let v = RefKindDesc::new(v);
         let v = Box::new(v);
         let ptr = Box::into_raw(v) as u64;
-        let rf = Arc::new(OopRef(ptr));
+        let rf = Arc::new(OopPtr(ptr));
         Oop::Ref(rf)
     }
 }
@@ -272,8 +272,8 @@ impl Oop {
     pub fn hash_code(&self) -> i32 {
         match self {
             Oop::Ref(rf) => {
-                if OopRef::is_java_lang_string(rf.clone()) {
-                    OopRef::java_lang_string_hash(rf.clone())
+                if OopPtr::is_java_lang_string(rf.clone()) {
+                    OopPtr::java_lang_string_hash(rf.clone())
                 } else {
                     rf.0 as i32
                 }
@@ -325,7 +325,7 @@ impl Oop {
     }
 
     #[inline]
-    pub fn extract_ref(&self) -> Arc<OopRef> {
+    pub fn extract_ref(&self) -> Arc<OopPtr> {
         match self {
             Oop::Ref(v) => v.clone(),
             t => unreachable!("t = {:?}", t),
@@ -333,7 +333,7 @@ impl Oop {
     }
 }
 
-impl OopRef {
+impl OopPtr {
     pub fn get_raw_ptr(&self) -> *const RefKindDesc {
         self.0 as *const RefKindDesc
     }
@@ -343,7 +343,7 @@ impl OopRef {
     }
 }
 
-impl OopRef {
+impl OopPtr {
     pub fn extract_inst(&self) -> &InstOopDesc {
         let ptr = self.get_raw_ptr();
         unsafe { (*ptr).v.extract_inst() }
@@ -375,7 +375,7 @@ impl OopRef {
     }
 }
 
-impl OopRef {
+impl OopPtr {
     pub fn monitor_enter(&self) {
         let ptr = self.get_raw_ptr();
         unsafe { (*ptr).monitor_enter() };
@@ -402,7 +402,7 @@ impl OopRef {
     }
 }
 
-impl OopRef {
+impl OopPtr {
     pub fn is_eq(l: &Oop, r: &Oop) -> bool {
         let l_is_null = l.is_null();
         let r_is_null = r.is_null();
@@ -456,7 +456,7 @@ impl OopRef {
     }
 }
 
-impl OopRef {
+impl OopPtr {
     pub fn java_lang_string(rf: Arc<Self>) -> String {
         let v = Self::java_lang_string_value(rf);
         String::from_utf16_lossy(v.as_slice())
@@ -505,7 +505,7 @@ impl OopRef {
     }
 }
 
-impl Drop for OopRef {
+impl Drop for OopPtr {
     fn drop(&mut self) {
         let _v = unsafe { Box::from_raw(self.0 as *mut RefKindDesc) };
     }

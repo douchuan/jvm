@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
-use crate::oop::{Class, Oop, OopRef};
+use crate::oop::{Class, Oop, OopPtr};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
 
@@ -39,7 +39,7 @@ fn jvm_setPriority0(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
 //should find by 'eetop' in thread pool
 fn jvm_isAlive(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
-    let eetop = OopRef::java_lang_thread_eetop(this.extract_ref());
+    let eetop = OopPtr::java_lang_thread_eetop(this.extract_ref());
     let vm = get_vm();
 
     let r = match vm.threads.find_java_thread(eetop) {

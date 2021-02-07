@@ -1,4 +1,4 @@
-use crate::oop::{Oop, OopRef};
+use crate::oop::{Oop, OopPtr};
 use crate::runtime::Slot;
 use crate::util;
 
@@ -42,7 +42,7 @@ impl Local {
     pub fn get_int(&self, pos: usize) -> i32 {
         match self.locals.get(pos).unwrap() {
             Slot::I32(v) => *v,
-            Slot::Ref(v) => OopRef::java_lang_integer_value(v.extract_ref()),
+            Slot::Ref(v) => OopPtr::java_lang_integer_value(v.extract_ref()),
             t => panic!("Illegal type {:?}", t),
         }
     }

@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Class, Oop, OopRef};
+use crate::oop::{Class, Oop, OopPtr};
 use crate::runtime::require_class3;
 use crate::util;
 
@@ -66,7 +66,7 @@ fn jvm_writeBytes(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_open0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = args.get(1).unwrap();
-    let name = OopRef::java_lang_string(name.extract_ref());
+    let name = OopPtr::java_lang_string(name.extract_ref());
     let append = {
         let v = args.get(2).unwrap().extract_int();
         v == 1

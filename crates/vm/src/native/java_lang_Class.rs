@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Class, ClassKind, Oop, OopRef, ValueType};
+use crate::oop::{self, Class, ClassKind, Oop, OopPtr, ValueType};
 use crate::runtime::{self, require_class2, require_class3};
 use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
@@ -267,7 +267,7 @@ fn jvm_desiredAssertionStatus0(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
 
 fn jvm_getPrimitiveClass(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
-    let v = OopRef::java_lang_string(v.extract_ref());
+    let v = OopPtr::java_lang_string(v.extract_ref());
     match SIGNATURE_DIC.get(v.as_str()) {
         Some(&s) => Ok(get_primitive_class_mirror(s)),
         _ => unreachable!("Unknown primitive type: {}", v),
@@ -348,7 +348,7 @@ fn jvm_forName0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let arg0 = args.get(0).unwrap();
     let java_name = {
         let rf = arg0.extract_ref();
-        OopRef::java_lang_string(rf)
+        OopPtr::java_lang_string(rf)
     };
     let initialize = {
         let arg1 = args.get(1).unwrap();
