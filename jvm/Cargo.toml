@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 clap = "3.0.0-beta.1"
 class-parser = { path = "../crates/class-parser", version = "0.1.0" }
-env_logger = "0.7.1"
+env_logger = "0.8.2"
 vm = { path = "../crates/vm", version = "0.1.0" }
 
 [dev-dependencies]
