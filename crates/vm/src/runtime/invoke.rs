@@ -108,7 +108,7 @@ impl JavaCall {
                 }
 
                 let frame_h = frame.try_read().unwrap();
-                let interp = Interp::new(frame_h);
+                let mut interp = Interp::new(frame_h);
                 interp.run();
 
                 //if return void, not need set return value

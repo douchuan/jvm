@@ -47,14 +47,14 @@ pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     cp: ConstantPool,
     code: Arc<Vec<U1>>,
-    op_widen: AtomicBool,
+    op_widen: bool,
 }
 
 impl<'a> Interp<'a> {
     pub fn new(frame: RwLockReadGuard<'a, Box<Frame>>) -> Self {
         let cp = frame.cp.clone();
         let code = frame.code.clone();
-        let op_widen = AtomicBool::new(false);
+        let op_widen = false;
         Self { frame, cp, code, op_widen }
     }
 }
@@ -74,7 +74,7 @@ impl<'a> Interp<'a> {
 }
 
 impl<'a> Interp<'a> {
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         let jt = runtime::thread::current_java_thread();
 
         loop {
@@ -817,11 +817,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn iload(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn iload(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -834,11 +834,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn lload(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn lload(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -851,11 +851,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn fload(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn fload(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -868,11 +868,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn dload(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn dload(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -885,11 +885,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn aload(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn aload(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -1238,11 +1238,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn istore(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn istore(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -1255,11 +1255,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn lstore(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn lstore(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -1272,11 +1272,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn fstore(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn fstore(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -1289,11 +1289,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn dstore(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn dstore(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -1306,11 +1306,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn astore(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn astore(&mut self) {
+        let op_widen = self.op_widen;
 
         let pos = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -2044,20 +2044,18 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn iinc(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn iinc(&mut self) {
+        let op_widen = self.op_widen;
+        let pos;
+        let factor;
 
-        let pos = if op_widen {
-            self.read_u2()
+        if op_widen {
+            self.op_widen = false;
+            pos = self.read_u2();
+            factor = (self.read_u2() as i16) as i32
         } else {
-            self.read_u1()
-        };
-
-        let factor = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
-            (self.read_u2() as i16) as i32
-        } else {
-            (self.read_byte() as i8) as i32
+            pos = self.read_u1();
+            factor = (self.read_byte() as i8) as i32
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -2500,11 +2498,11 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn ret(&self) {
-        let op_widen = self.op_widen.load(Ordering::Relaxed);
+    fn ret(&mut self) {
+        let op_widen = self.op_widen;
 
         let pc = if op_widen {
-            self.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen = false;
             self.read_u2()
         } else {
             self.read_u1()
@@ -2964,8 +2962,8 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn wide(&self) {
-        self.op_widen.store(true, Ordering::Relaxed);
+    fn wide(&mut self) {
+        self.op_widen = true;
     }
 
     #[inline]
