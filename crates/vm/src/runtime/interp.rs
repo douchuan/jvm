@@ -48,11 +48,13 @@ macro_rules! iarray_load {
 
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
+    code: Arc<Vec<U1>>,
 }
 
 impl<'a> Interp<'a> {
     pub fn new(frame: RwLockReadGuard<'a, Box<Frame>>) -> Self {
-        Self { frame }
+        let code = frame.code.clone();
+        Self { frame, code }
     }
 }
 
@@ -334,20 +336,20 @@ impl<'a> Interp<'a> {
     #[inline]
     fn read_u1(&self) -> usize {
         let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        let v = self.frame.code[pc as usize];
+        let v = self.code[pc as usize];
         v as usize
     }
 
     #[inline]
     fn read_byte(&self) -> u8 {
         let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        self.frame.code[pc as usize]
+        self.code[pc as usize]
     }
 
     #[inline]
     fn read_opcode(&self) -> U1 {
         let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        self.frame.code[pc as usize]
+        self.code[pc as usize]
     }
 
     #[inline]
@@ -412,8 +414,8 @@ impl<'a> Interp<'a> {
 
     fn goto_by_offset_hardcoded(&self, occupied: i32) {
         let pc = self.frame.pc.load(Ordering::Relaxed);
-        let high = self.frame.code[pc as usize] as i16;
-        let low = self.frame.code[(pc + 1) as usize] as i16;
+        let high = self.code[pc as usize] as i16;
+        let low = self.code[(pc + 1) as usize] as i16;
         let branch = (high << 8) | low;
 
         self.goto_by_offset_with_occupied(branch as i32, occupied);
@@ -2522,24 +2524,24 @@ impl<'a> Interp<'a> {
         }
         let mut ptr = bc as usize;
         let default_byte = [
-            self.frame.code[ptr],
-            self.frame.code[ptr + 1],
-            self.frame.code[ptr + 2],
-            self.frame.code[ptr + 3],
+            self.code[ptr],
+            self.code[ptr + 1],
+            self.code[ptr + 2],
+            self.code[ptr + 3],
         ];
         let default_byte = i32::from_be_bytes(default_byte);
         let low_byte = [
-            self.frame.code[ptr + 4],
-            self.frame.code[ptr + 5],
-            self.frame.code[ptr + 6],
-            self.frame.code[ptr + 7],
+            self.code[ptr + 4],
+            self.code[ptr + 5],
+            self.code[ptr + 6],
+            self.code[ptr + 7],
         ];
         let low_byte = i32::from_be_bytes(low_byte);
         let high_byte = [
-            self.frame.code[ptr + 8],
-            self.frame.code[ptr + 9],
-            self.frame.code[ptr + 10],
-            self.frame.code[ptr + 11],
+            self.code[ptr + 8],
+            self.code[ptr + 9],
+            self.code[ptr + 10],
+            self.code[ptr + 11],
         ];
         let high_byte = i32::from_be_bytes(high_byte);
         let num = high_byte - low_byte + 1;
@@ -2549,10 +2551,10 @@ impl<'a> Interp<'a> {
         let mut jump_table = Vec::with_capacity(num as usize);
         for pos in 0..num {
             let pos = [
-                self.frame.code[ptr],
-                self.frame.code[ptr + 1],
-                self.frame.code[ptr + 2],
-                self.frame.code[ptr + 3],
+                self.code[ptr],
+                self.code[ptr + 1],
+                self.code[ptr + 2],
+                self.code[ptr + 3],
             ];
             let pos = i32::from_be_bytes(pos);
             let jump_pos = pos + origin_bc;
@@ -2589,17 +2591,17 @@ impl<'a> Interp<'a> {
         let mut ptr = bc as usize;
 
         let default_byte = [
-            self.frame.code[ptr],
-            self.frame.code[ptr + 1],
-            self.frame.code[ptr + 2],
-            self.frame.code[ptr + 3],
+            self.code[ptr],
+            self.code[ptr + 1],
+            self.code[ptr + 2],
+            self.code[ptr + 3],
         ];
         let default_byte = u32::from_be_bytes(default_byte);
         let count = [
-            self.frame.code[ptr + 4],
-            self.frame.code[ptr + 5],
-            self.frame.code[ptr + 6],
-            self.frame.code[ptr + 7],
+            self.code[ptr + 4],
+            self.code[ptr + 5],
+            self.code[ptr + 6],
+            self.code[ptr + 7],
         ];
         let count = u32::from_be_bytes(count);
         ptr += 8;
@@ -2607,17 +2609,17 @@ impl<'a> Interp<'a> {
         let mut jump_table: HashMap<u32, u32> = HashMap::new();
         for i in 0..count {
             let value = [
-                self.frame.code[ptr],
-                self.frame.code[ptr + 1],
-                self.frame.code[ptr + 2],
-                self.frame.code[ptr + 3],
+                self.code[ptr],
+                self.code[ptr + 1],
+                self.code[ptr + 2],
+                self.code[ptr + 3],
             ];
             let value = u32::from_be_bytes(value);
             let position = [
-                self.frame.code[ptr + 4],
-                self.frame.code[ptr + 5],
-                self.frame.code[ptr + 6],
-                self.frame.code[ptr + 7],
+                self.code[ptr + 4],
+                self.code[ptr + 5],
+                self.code[ptr + 6],
+                self.code[ptr + 7],
             ];
             let position = u32::from_be_bytes(position) + origin_bc as u32;
             ptr += 8;
@@ -3036,7 +3038,7 @@ impl<'a> Interp<'a> {
         let pc = pc - 1;
         panic!(
             "Use of undefined bytecode: {} at {}",
-            self.frame.code[pc as usize], pc
+            self.code[pc as usize], pc
         );
     }
 }
