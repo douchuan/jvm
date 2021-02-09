@@ -9,16 +9,13 @@ use crate::runtime::{
 };
 use crate::types::*;
 use crate::util;
-use classfile::{
-    constant_pool::get_utf8 as get_cp_utf8, consts as cls_const, ClassFile, ConstantPoolType,
-    OpCode, U1, U2,
-};
+use classfile::{constant_pool::get_utf8 as get_cp_utf8, consts as cls_const, ClassFile, ConstantPoolType, OpCode, U1, U2, ConstantPool};
 use nix::sys::socket::SockType::Datagram;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::{Arc, RwLockReadGuard};
 
 macro_rules! array_store {
@@ -48,13 +45,17 @@ macro_rules! iarray_load {
 
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
+    cp: ConstantPool,
     code: Arc<Vec<U1>>,
+    op_widen: AtomicBool,
 }
 
 impl<'a> Interp<'a> {
     pub fn new(frame: RwLockReadGuard<'a, Box<Frame>>) -> Self {
+        let cp = frame.cp.clone();
         let code = frame.code.clone();
-        Self { frame, code }
+        let op_widen = AtomicBool::new(false);
+        Self { frame, cp, code, op_widen }
     }
 }
 
@@ -358,7 +359,7 @@ impl<'a> Interp<'a> {
     }
 
     fn load_constant(&self, pos: usize) {
-        match &self.frame.cp[pos] {
+        match &self.cp[pos] {
             ConstantPoolType::Integer { v } => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_int2(v)
@@ -376,14 +377,14 @@ impl<'a> Interp<'a> {
                 stack.push_double2(v)
             }
             ConstantPoolType::String { string_index } => {
-                let s = get_cp_utf8(&self.frame.cp, *string_index as usize);
+                let s = get_cp_utf8(&self.cp, *string_index as usize);
                 let s = util::oop::new_java_lang_string3(s.as_slice());
 
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.push_ref(s);
             }
             ConstantPoolType::Class { name_index } => {
-                let name = get_cp_utf8(&self.frame.cp, *name_index as usize);
+                let name = get_cp_utf8(&self.cp, *name_index as usize);
                 let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
                 let cl = { self.frame.class.get_class().class_loader };
                 trace!("load_constant name={}, cl={:?}", name, cl);
@@ -547,7 +548,7 @@ impl<'a> Interp<'a> {
 
     pub fn check_cast_helper(&self, is_cast: bool) {
         let cp_idx = self.read_i2();
-        let target_cls = require_class2(cp_idx as U2, &self.frame.cp).unwrap();
+        let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let obj_rf = stack.pop_ref();
@@ -651,7 +652,7 @@ impl<'a> Interp<'a> {
             self.frame
                 .mir
                 .method
-                .find_exception_handler(&self.frame.cp, pc as u16, ex_cls)
+                .find_exception_handler(&self.cp, pc as u16, ex_cls)
         };
 
         match handler {
@@ -817,10 +818,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn iload(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -834,10 +835,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn lload(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -851,10 +852,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn fload(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -868,10 +869,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn dload(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -885,10 +886,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn aload(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1238,10 +1239,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn istore(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1255,10 +1256,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn lstore(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1272,10 +1273,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn fstore(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1289,10 +1290,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn dstore(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -1306,10 +1307,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn astore(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -2044,7 +2045,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn iinc(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pos = if op_widen {
             self.read_u2()
@@ -2053,7 +2054,7 @@ impl<'a> Interp<'a> {
         };
 
         let factor = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             (self.read_u2() as i16) as i32
         } else {
             (self.read_byte() as i8) as i32
@@ -2500,10 +2501,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn ret(&self) {
-        let op_widen = self.frame.op_widen.load(Ordering::Relaxed);
+        let op_widen = self.op_widen.load(Ordering::Relaxed);
 
         let pc = if op_widen {
-            self.frame.op_widen.store(false, Ordering::Relaxed);
+            self.op_widen.store(false, Ordering::Relaxed);
             self.read_u2()
         } else {
             self.read_u1()
@@ -2768,7 +2769,7 @@ impl<'a> Interp<'a> {
         let idx = self.read_u2();
 
         let class = {
-            match runtime::require_class2(idx as u16, &self.frame.cp) {
+            match runtime::require_class2(idx as u16, &self.cp) {
                 Some(class) => {
                     oop::class::init_class(&class);
                     oop::class::init_class_fully(&class);
@@ -2832,7 +2833,7 @@ impl<'a> Interp<'a> {
         if length < 0 {
             exception::meet_ex(cls_const::J_NASE, Some("length < 0".to_string()));
         } else {
-            let class = match runtime::require_class2(cp_idx as u16, &self.frame.cp) {
+            let class = match runtime::require_class2(cp_idx as u16, &self.cp) {
                 Some(class) => class,
                 None => panic!("Cannot get class info from constant pool"),
             };
@@ -2964,7 +2965,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn wide(&self) {
-        self.frame.op_widen.store(true, Ordering::Relaxed);
+        self.op_widen.store(true, Ordering::Relaxed);
     }
 
     #[inline]
@@ -2981,7 +2982,7 @@ impl<'a> Interp<'a> {
         }
         drop(stack);
 
-        let cls = require_class2(cp_idx as u16, &self.frame.cp).unwrap();
+        let cls = require_class2(cp_idx as u16, &self.cp).unwrap();
         let ary = new_multi_object_array_helper(cls, &lens, 0);
 
         let mut stack = self.frame.area.stack.borrow_mut();
