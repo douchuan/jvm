@@ -1,9 +1,9 @@
 #![allow(unused)]
 
-pub use class_loader::{ClassLoader, require_class, require_class2, require_class3};
+pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 pub use class_path_manager::{
     add_path as add_class_path, add_paths as add_class_paths,
-    ClassPathResult, find_class as find_class_in_classpath,
+    find_class as find_class_in_classpath, ClassPathResult,
 };
 pub use constant_pool::ConstantPoolCache;
 pub use consts::THREAD_MAX_STACK_FRAMES;
@@ -27,12 +27,12 @@ mod init_vm;
 pub mod interp;
 pub mod invoke;
 mod local;
+pub mod method;
 mod slot;
 mod stack;
 mod sys_dic;
 pub mod thread;
 pub mod vm;
-pub mod method;
 
 pub fn init() {
     sys_dic::init();

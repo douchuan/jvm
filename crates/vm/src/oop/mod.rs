@@ -7,7 +7,7 @@ use classfile::{BytesRef, ClassFile};
 
 use crate::new_br;
 use crate::oop::class::ClassObject;
-use crate::runtime::{ClassLoader, require_class3};
+use crate::runtime::{require_class3, ClassLoader};
 use crate::types::*;
 use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
 

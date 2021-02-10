@@ -4,9 +4,9 @@ use rustc_hash::FxHashMap;
 
 use classfile::ConstantPool;
 
-use crate::{oop, runtime};
 use crate::oop::field;
 use crate::types::{FieldIdRef, MethodIdRef};
+use crate::{oop, runtime};
 
 enum CacheType {
     Field(FieldIdRef),
