@@ -1,18 +1,21 @@
-use crate::oop::method::MethodId;
-use crate::oop::{self, consts as oop_consts, field, method, Oop, OopPtr, RefKindDesc, ValueType};
-use crate::runtime::thread::ReentrantMutex;
-use crate::runtime::{self, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread};
-use crate::types::*;
-use crate::util;
-use classfile::{
-    attributes::EnclosingMethod, attributes::InnerClass, constant_pool,
-    constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, AttributeType, BytesRef, U2,
-};
-use rustc_hash::FxHashMap;
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Deref, DerefMut};
-use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
+
+use rustc_hash::FxHashMap;
+
+use classfile::{
+    attributes::EnclosingMethod, attributes::InnerClass, AttributeType,
+    BytesRef, constant_pool, constant_pool::get_utf8 as get_cp_utf8, consts, flags::*, U2,
+};
+
+use crate::oop::{self, consts as oop_consts, field, Oop, OopPtr, RefKindDesc, ValueType};
+use crate::runtime::{self, ClassLoader, ConstantPoolCache, JavaCall, JavaThread, method, require_class2};
+use crate::runtime::method::MethodId;
+use crate::runtime::thread::ReentrantMutex;
+use crate::types::*;
+use crate::util;
 
 pub struct ClassPtr(u64);
 

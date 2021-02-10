@@ -1,20 +1,15 @@
 #![allow(unused)]
-use classfile::{BytesRef, ClassFile};
+
 use std::fmt;
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 
-use crate::runtime::{require_class3, ClassLoader};
-use crate::types::*;
+use classfile::{BytesRef, ClassFile};
 
-pub mod ary;
-pub mod class;
-pub mod consts;
-pub mod field;
-pub mod inst;
-pub mod method;
-pub mod mirror;
-pub mod reference;
-pub mod values;
+use crate::new_br;
+use crate::oop::class::ClassObject;
+use crate::runtime::{ClassLoader, require_class3};
+use crate::types::*;
+use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
 
 pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
 pub use self::class::{Class, ClassKind};
@@ -22,9 +17,15 @@ pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
-use crate::new_br;
-use crate::oop::class::ClassObject;
-use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
+
+pub mod ary;
+pub mod class;
+pub mod consts;
+pub mod field;
+pub mod inst;
+pub mod mirror;
+pub mod reference;
+pub mod values;
 
 #[derive(Clone)]
 pub enum Oop {

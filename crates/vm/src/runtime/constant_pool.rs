@@ -1,9 +1,12 @@
-use crate::oop;
+use std::cell::RefCell;
+
+use rustc_hash::FxHashMap;
+
+use classfile::ConstantPool;
+
+use crate::{oop, runtime};
 use crate::oop::field;
 use crate::types::{FieldIdRef, MethodIdRef};
-use classfile::ConstantPool;
-use rustc_hash::FxHashMap;
-use std::cell::RefCell;
 
 enum CacheType {
     Field(FieldIdRef),
@@ -66,7 +69,7 @@ impl ConstantPoolCache {
             Some(it) => it.extract_method(),
             None => {
                 drop(cache);
-                let m = oop::method::get_method_ref(&self.cp, idx).unwrap();
+                let m = runtime::method::get_method_ref(&self.cp, idx).unwrap();
                 self.cache_method(idx, m.clone());
                 m
             }
