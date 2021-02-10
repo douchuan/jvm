@@ -213,42 +213,46 @@ impl JavaCall {
         }
 
         let frame_id = frame_len + 1;
-        let mut frame = Frame::new(self.mir.clone(), frame_id);
+        let frame = Frame::new(self.mir.clone(), frame_id);
 
         if !is_native {
-            //JVM spec, 2.6.1
-            let mut local = frame.area.local.borrow_mut();
-            let mut slot_pos: usize = 0;
-            self.args.iter().for_each(|v| {
-                let step = match v {
-                    Oop::Int(v) => {
-                        local.set_int(slot_pos, *v);
-                        1
-                    }
-                    Oop::Float(v) => {
-                        local.set_float(slot_pos, *v);
-                        1
-                    }
-                    Oop::Double(v) => {
-                        local.set_double(slot_pos, *v);
-                        2
-                    }
-                    Oop::Long((v)) => {
-                        local.set_long(slot_pos, *v);
-                        2
-                    }
-                    _ => {
-                        local.set_ref(slot_pos, v.clone());
-                        1
-                    }
-                };
-
-                slot_pos += step;
-            });
+            self.setup_local(&frame);
         }
 
         let frame_ref = new_sync_ref!(frame);
         Ok(frame_ref)
+    }
+
+    fn setup_local(&self, frame: &Frame) {
+        //JVM spec, 2.6.1
+        let mut local = frame.area.local.borrow_mut();
+        let mut slot_pos: usize = 0;
+        for v in self.args.iter() {
+            let step = match v {
+                Oop::Int(v) => {
+                    local.set_int(slot_pos, *v);
+                    1
+                }
+                Oop::Float(v) => {
+                    local.set_float(slot_pos, *v);
+                    1
+                }
+                Oop::Double(v) => {
+                    local.set_double(slot_pos, *v);
+                    2
+                }
+                Oop::Long((v)) => {
+                    local.set_long(slot_pos, *v);
+                    2
+                }
+                _ => {
+                    local.set_ref(slot_pos, v.clone());
+                    1
+                }
+            };
+
+            slot_pos += step;
+        }
     }
 
     fn resolve_virtual_method(&mut self, force_no_resolve: bool) {
