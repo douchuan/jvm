@@ -102,19 +102,27 @@ impl Method {
         }
     }
 
-    pub fn build_local(&self) -> Local {
-        let max_locals = match &self.code {
+    pub fn get_max_locals(&self) -> usize {
+        match &self.code {
             Some(code) => code.max_locals as usize,
             None => 0,
-        };
+        }
+    }
+
+    pub fn get_max_stack(&self) -> usize {
+        match &self.code {
+            Some(code) => code.max_stack as usize,
+            None => 0,
+        }
+    }
+
+    pub fn build_local(&self) -> Local {
+        let max_locals = self.get_max_locals();
         Local::new(max_locals)
     }
 
     pub fn build_stack(&self) -> Stack {
-        let max_stack = match &self.code {
-            Some(code) => code.max_stack as usize,
-            None => 0,
-        };
+        let max_stack = self.get_max_stack();
         Stack::new(max_stack)
     }
 
