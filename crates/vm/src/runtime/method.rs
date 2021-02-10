@@ -1,4 +1,6 @@
 use crate::oop::{self, ValueType};
+use crate::runtime::local::Local;
+use crate::runtime::stack::Stack;
 use crate::runtime::{self, require_class2};
 use crate::types::ClassRef;
 use crate::types::*;
@@ -98,6 +100,22 @@ impl Method {
             line_num_table,
             method_info_index,
         }
+    }
+
+    pub fn build_local(&self) -> Local {
+        let max_locals = match &self.code {
+            Some(code) => code.max_locals as usize,
+            None => 0,
+        };
+        Local::new(max_locals)
+    }
+
+    pub fn build_stack(&self) -> Stack {
+        let max_stack = match &self.code {
+            Some(code) => code.max_stack as usize,
+            None => 0,
+        };
+        Stack::new(max_stack)
     }
 
     pub fn find_exception_handler(&self, cp: &ConstantPool, pc: U2, ex: ClassRef) -> Option<U2> {
