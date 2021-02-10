@@ -9,13 +9,16 @@ use crate::runtime::{
 };
 use crate::types::*;
 use crate::util;
-use classfile::{constant_pool::get_utf8 as get_cp_utf8, consts as cls_const, ClassFile, ConstantPoolType, OpCode, U1, U2, ConstantPool};
+use classfile::{
+    constant_pool::get_utf8 as get_cp_utf8, consts as cls_const, ClassFile, ConstantPool,
+    ConstantPoolType, OpCode, U1, U2,
+};
 use nix::sys::socket::SockType::Datagram;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::atomic::{Ordering, AtomicBool};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLockReadGuard};
 
 macro_rules! array_store {
@@ -43,6 +46,34 @@ macro_rules! iarray_load {
     };
 }
 
+macro_rules! read_byte {
+    ($pc:expr, $code:expr) => {{
+        let pc = $pc.fetch_add(1, Ordering::Relaxed);
+        $code[pc as usize]
+    }};
+}
+
+macro_rules! read_i2 {
+    ($pc:expr, $code:expr) => {{
+        let h = read_byte!($pc, $code) as i16;
+        let l = read_byte!($pc, $code) as i16;
+        (h << 8 | l) as i32
+    }};
+}
+
+macro_rules! read_u1 {
+    ($pc:expr, $code:expr) => {{
+        let pc = $pc.fetch_add(1, Ordering::Relaxed);
+        $code[pc as usize] as usize
+    }};
+}
+
+macro_rules! read_u2 {
+    ($pc:expr, $code:expr) => {{
+        read_u1!($pc, $code) << 8 | read_u1!($pc, $code)
+    }};
+}
+
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     cp: ConstantPool,
@@ -55,7 +86,12 @@ impl<'a> Interp<'a> {
         let cp = frame.cp.clone();
         let code = frame.code.clone();
         let op_widen = false;
-        Self { frame, cp, code, op_widen }
+        Self {
+            frame,
+            cp,
+            code,
+            op_widen,
+        }
     }
 }
 
@@ -78,7 +114,7 @@ impl<'a> Interp<'a> {
         let jt = runtime::thread::current_java_thread();
 
         loop {
-            let code = self.read_opcode();
+            let code = read_byte!(self.frame.pc, self.code);
             let code = OpCode::from(code);
             match code {
                 OpCode::athrow => {
@@ -327,37 +363,6 @@ impl<'a> Interp<'a> {
 
 //helper methods
 impl<'a> Interp<'a> {
-    #[inline]
-    fn read_i2(&self) -> i32 {
-        let h = self.read_byte() as i16;
-        let l = self.read_byte() as i16;
-        (h << 8 | l) as i32
-    }
-
-    #[inline]
-    fn read_u1(&self) -> usize {
-        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        let v = self.code[pc as usize];
-        v as usize
-    }
-
-    #[inline]
-    fn read_byte(&self) -> u8 {
-        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        self.code[pc as usize]
-    }
-
-    #[inline]
-    fn read_opcode(&self) -> U1 {
-        let pc = self.frame.pc.fetch_add(1, Ordering::Relaxed);
-        self.code[pc as usize]
-    }
-
-    #[inline]
-    fn read_u2(&self) -> usize {
-        self.read_u1() << 8 | self.read_u1()
-    }
-
     fn load_constant(&self, pos: usize) {
         match &self.cp[pos] {
             ConstantPoolType::Integer { v } => {
@@ -547,7 +552,7 @@ impl<'a> Interp<'a> {
     }
 
     pub fn check_cast_helper(&self, is_cast: bool) {
-        let cp_idx = self.read_i2();
+        let cp_idx = read_i2!(self.frame.pc, self.code);
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -785,7 +790,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn sipush(&self) {
-        let v = self.read_i2();
+        let v = read_i2!(self.frame.pc, self.code);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
@@ -793,7 +798,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn bipush(&self) {
-        let v = (self.read_byte() as i8) as i32;
+        let v = (read_byte!(self.frame.pc, self.code) as i8) as i32;
 
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
@@ -801,13 +806,13 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn ldc(&self) {
-        let pos = self.read_u1();
+        let pos = read_u1!(self.frame.pc, self.code);
         self.load_constant(pos);
     }
 
     #[inline]
     fn ldc_w(&self) {
-        let pos = self.read_u2();
+        let pos = read_u2!(self.frame.pc, self.code);
         self.load_constant(pos);
     }
 
@@ -822,9 +827,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -839,9 +844,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -856,9 +861,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -873,9 +878,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -890,9 +895,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -1243,9 +1248,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1260,9 +1265,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1277,9 +1282,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1294,9 +1299,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -1311,9 +1316,9 @@ impl<'a> Interp<'a> {
 
         let pos = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         let mut stack = self.frame.area.stack.borrow_mut();
@@ -2051,11 +2056,11 @@ impl<'a> Interp<'a> {
 
         if op_widen {
             self.op_widen = false;
-            pos = self.read_u2();
-            factor = (self.read_u2() as i16) as i32
+            pos = read_u2!(self.frame.pc, self.code);
+            factor = (read_u2!(self.frame.pc, self.code) as i16) as i32
         } else {
-            pos = self.read_u1();
-            factor = (self.read_byte() as i8) as i32
+            pos = read_u1!(self.frame.pc, self.code);
+            factor = (read_byte!(self.frame.pc, self.code) as i8) as i32
         };
 
         let mut local = self.frame.area.local.borrow_mut();
@@ -2503,9 +2508,9 @@ impl<'a> Interp<'a> {
 
         let pc = if op_widen {
             self.op_widen = false;
-            self.read_u2()
+            read_u2!(self.frame.pc, self.code)
         } else {
-            self.read_u1()
+            read_u1!(self.frame.pc, self.code)
         };
 
         self.frame.pc.store(pc as i32, Ordering::Relaxed);
@@ -2691,19 +2696,19 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn get_static(&self) {
-        let cp_idx = self.read_u2();
+        let cp_idx = read_u2!(self.frame.pc, self.code);
         self.get_field_helper(oop_consts::get_null(), cp_idx, true);
     }
 
     #[inline]
     fn put_static(&self) {
-        let cp_idx = self.read_u2();
+        let cp_idx = read_u2!(self.frame.pc, self.code);
         self.put_field_helper(cp_idx, true);
     }
 
     #[inline]
     fn get_field(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let rf = stack.pop_ref();
@@ -2721,34 +2726,33 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn put_field(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
         self.put_field_helper(idx, false);
     }
 
     #[inline]
     fn invoke_virtual(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
         self.invoke_helper(false, idx, false);
     }
 
     #[inline]
     fn invoke_special(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
         self.invoke_helper(false, idx, true);
     }
 
     #[inline]
     fn invoke_static(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
         self.invoke_helper(true, idx, true);
     }
 
     #[inline]
     fn invoke_interface(&self) {
-        let cp_idx = self.read_u2();
-        let _count = self.read_u1();
-        let zero = self.read_u1();
-
+        let cp_idx = read_u2!(self.frame.pc, self.code);
+        let _count = read_u1!(self.frame.pc, self.code);
+        let zero = read_u1!(self.frame.pc, self.code);
         if zero != 0 {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
@@ -2764,7 +2768,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn new_(&self) {
-        let idx = self.read_u2();
+        let idx = read_u2!(self.frame.pc, self.code);
 
         let class = {
             match runtime::require_class2(idx as u16, &self.cp) {
@@ -2785,7 +2789,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn new_array(&self) {
-        let t = self.read_byte();
+        let t = read_byte!(self.frame.pc, self.code);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let len = stack.pop_int();
@@ -2821,7 +2825,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn anew_array(&self) {
-        let cp_idx = self.read_i2();
+        let cp_idx = read_i2!(self.frame.pc, self.code);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let length = stack.pop_int();
@@ -2968,8 +2972,8 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn multi_anew_array(&self) {
-        let cp_idx = self.read_u2();
-        let dimension = self.read_u1();
+        let cp_idx = read_u2!(self.frame.pc, self.code);
+        let dimension = read_u1!(self.frame.pc, self.code);
 
         let mut lens = Vec::new();
         let mut stack = self.frame.area.stack.borrow_mut();
