@@ -22,7 +22,6 @@ The nature of RefCell makes this possible.
 In a read-only Frame context, to modify the DataArea, borrow_mut is fine.
 */
 pub struct DataArea {
-    pub local: RefCell<Local>,
     pub stack: RefCell<Stack>,
     pub return_v: RefCell<Option<Oop>>,
 }
@@ -30,12 +29,10 @@ pub struct DataArea {
 unsafe impl Sync for DataArea {}
 
 impl DataArea {
-    pub fn new(max_locals: usize, max_stack: usize) -> Self {
-        let local = RefCell::new(Local::new(max_locals));
+    pub fn new(max_stack: usize) -> Self {
         let stack = RefCell::new(Stack::new(max_stack));
 
         Self {
-            local,
             stack,
             return_v: RefCell::new(None),
         }

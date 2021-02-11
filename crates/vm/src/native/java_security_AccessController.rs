@@ -47,7 +47,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let args = vec![v.clone()];
     let mut jc = JavaCall::new_with_args(mir, args);
-    let area = runtime::DataArea::new(0, 1);
+    let area = runtime::DataArea::new(1);
     jc.invoke(Some(&area), false);
 
     if !thread::is_meet_ex() {

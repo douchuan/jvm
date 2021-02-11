@@ -181,7 +181,7 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
     let args = vec![props.clone(), k, v];
 
     let mut jc = JavaCall::new_with_args(mir, args);
-    let area = runtime::DataArea::new(0, 1);
+    let area = runtime::DataArea::new(1);
     jc.invoke(Some(&area), false);
 }
 

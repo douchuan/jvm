@@ -34,7 +34,7 @@ impl Frame {
         match &mir.method.code {
             Some(code) => {
                 // trace!("max_locals = {}, max_stack = {}", code.max_locals, code.max_stack);
-                let area = DataArea::new(code.max_locals as usize, code.max_stack as usize);
+                let area = DataArea::new(code.max_stack as usize);
                 let code = code.code.clone();
 
                 Self {
@@ -57,7 +57,7 @@ impl Frame {
                 code: Arc::new(vec![]),
                 pc: std::sync::atomic::AtomicI32::new(0),
                 ex_here: std::sync::atomic::AtomicBool::new(false),
-                area: DataArea::new(0, 0),
+                area: DataArea::new(0),
             },
         }
     }

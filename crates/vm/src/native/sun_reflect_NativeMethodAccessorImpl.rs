@@ -77,7 +77,7 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let force_no_resolve = mir.method.name.as_slice() == b"<init>" || mir.method.is_static();
     let mut jc = runtime::invoke::JavaCall::new_with_args(mir, args);
-    let area = runtime::DataArea::new(0, 0);
+    let area = runtime::DataArea::new(0);
     jc.invoke(Some(&area), force_no_resolve);
 
     let r = {

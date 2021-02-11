@@ -1,5 +1,6 @@
 use crate::native;
 use crate::oop::{self, Oop, ValueType};
+use crate::runtime::local::Local;
 use crate::runtime::{self, exception, frame::Frame, thread, DataArea, Interp};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::util;
@@ -101,14 +102,15 @@ impl JavaCall {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
-        match self.prepare_frame(false) {
+        match self.prepare_frame() {
             Ok(frame) => {
                 {
                     jt.write().unwrap().frames.push(frame.clone());
                 }
 
+                let local = self.build_local();
                 let frame_h = frame.try_read().unwrap();
-                let mut interp = Interp::new(frame_h);
+                let mut interp = Interp::new(frame_h, local);
                 interp.run();
 
                 //if return void, not need set return value
@@ -146,7 +148,7 @@ impl JavaCall {
                 let class = self.mir.method.class.clone();
                 let env = native::new_jni_env(class);
 
-                match self.prepare_frame(true) {
+                match self.prepare_frame() {
                     Ok(frame) => {
                         {
                             jt.write().unwrap().frames.push(frame);
@@ -204,7 +206,7 @@ impl JavaCall {
         }
     }
 
-    fn prepare_frame(&mut self, is_native: bool) -> Result<FrameRef, Oop> {
+    fn prepare_frame(&mut self) -> Result<FrameRef, Oop> {
         let jt = runtime::thread::current_java_thread();
         let frame_len = { jt.read().unwrap().frames.len() };
         if frame_len >= runtime::consts::THREAD_MAX_STACK_FRAMES {
@@ -214,18 +216,14 @@ impl JavaCall {
 
         let frame_id = frame_len + 1;
         let frame = Frame::new(self.mir.clone(), frame_id);
-
-        if !is_native {
-            self.setup_local(&frame);
-        }
-
         let frame_ref = new_sync_ref!(frame);
         Ok(frame_ref)
     }
 
-    fn setup_local(&self, frame: &Frame) {
+    fn build_local(&self) -> Local {
         //JVM spec, 2.6.1
-        let mut local = frame.area.local.borrow_mut();
+        let max_locals = self.mir.method.get_max_locals();
+        let mut local = Local::new(max_locals);
         let mut slot_pos: usize = 0;
         for v in self.args.iter() {
             let step = match v {
@@ -253,6 +251,8 @@ impl JavaCall {
 
             slot_pos += step;
         }
+
+        local
     }
 
     fn resolve_virtual_method(&mut self, force_no_resolve: bool) {

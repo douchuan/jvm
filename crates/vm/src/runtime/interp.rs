@@ -76,18 +76,20 @@ macro_rules! read_u2 {
 
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
+    local: Local,
     cp: ConstantPool,
     code: Arc<Vec<U1>>,
     op_widen: bool,
 }
 
 impl<'a> Interp<'a> {
-    pub fn new(frame: RwLockReadGuard<'a, Box<Frame>>) -> Self {
+    pub fn new(frame: RwLockReadGuard<'a, Box<Frame>>, local: Local) -> Self {
         let cp = frame.cp.clone();
         let code = frame.code.clone();
         let op_widen = false;
         Self {
             frame,
+            local,
             cp,
             code,
             op_widen,
@@ -832,8 +834,7 @@ impl<'a> Interp<'a> {
             read_u1!(self.frame.pc, self.code)
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(pos);
+        let v = self.local.get_int(pos);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
@@ -849,8 +850,7 @@ impl<'a> Interp<'a> {
             read_u1!(self.frame.pc, self.code)
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_long(pos);
+        let v = self.local.get_long(pos);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_long(v);
     }
@@ -866,8 +866,7 @@ impl<'a> Interp<'a> {
             read_u1!(self.frame.pc, self.code)
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_float(pos);
+        let v = self.local.get_float(pos);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_float(v);
     }
@@ -883,8 +882,7 @@ impl<'a> Interp<'a> {
             read_u1!(self.frame.pc, self.code)
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_double(pos);
+        let v = self.local.get_double(pos);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_double(v);
     }
@@ -900,168 +898,147 @@ impl<'a> Interp<'a> {
             read_u1!(self.frame.pc, self.code)
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_ref(pos);
+        let v = self.local.get_ref(pos);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_ref(v);
     }
 
     #[inline]
     fn iload_0(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(0);
+        let v = self.local.get_int(0);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn lload_0(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_long(0);
+        let v = self.local.get_long(0);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_long(v);
     }
 
     #[inline]
     fn fload_0(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_float(0);
+        let v = self.local.get_float(0);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_float(v);
     }
 
     #[inline]
     fn dload_0(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_double(0);
+        let v = self.local.get_double(0);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_double(v);
     }
 
     #[inline]
     fn aload_0(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_ref(0);
+        let v = self.local.get_ref(0);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_ref(v);
     }
 
     #[inline]
     fn iload_1(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(1);
+        let v = self.local.get_int(1);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn lload_1(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_long(1);
+        let v = self.local.get_long(1);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_long(v);
     }
 
     #[inline]
     fn fload_1(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_float(1);
+        let v = self.local.get_float(1);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_float(v);
     }
 
     #[inline]
     fn dload_1(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_double(1);
+        let v = self.local.get_double(1);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_double(v);
     }
 
     #[inline]
     fn aload_1(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_ref(1);
+        let v = self.local.get_ref(1);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_ref(v);
     }
 
     #[inline]
     fn iload_2(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(2);
+        let v = self.local.get_int(2);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn lload_2(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_long(2);
+        let v = self.local.get_long(2);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_long(v);
     }
 
     #[inline]
     fn fload_2(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_float(2);
+        let v = self.local.get_float(2);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_float(v);
     }
 
     #[inline]
     fn dload_2(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_double(2);
+        let v = self.local.get_double(2);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_double(v);
     }
 
     #[inline]
     fn aload_2(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_ref(2);
+        let v = self.local.get_ref(2);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_ref(v);
     }
 
     #[inline]
     fn iload_3(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(3);
+        let v = self.local.get_int(3);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn lload_3(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_long(3);
+        let v = self.local.get_long(3);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_long(v);
     }
 
     #[inline]
     fn fload_3(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_float(3);
+        let v = self.local.get_float(3);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_float(v);
     }
 
     #[inline]
     fn dload_3(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_double(3);
+        let v = self.local.get_double(3);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_double(v);
     }
 
     #[inline]
     fn aload_3(&self) {
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_ref(3);
+        let v = self.local.get_ref(3);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_ref(v);
     }
@@ -1255,8 +1232,7 @@ impl<'a> Interp<'a> {
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_int(pos, v);
+        self.local.set_int(pos, v);
     }
 
     #[inline]
@@ -1272,8 +1248,7 @@ impl<'a> Interp<'a> {
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_long(pos, v);
+        self.local.set_long(pos, v);
     }
 
     #[inline]
@@ -1289,8 +1264,7 @@ impl<'a> Interp<'a> {
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_float(pos, v);
+        self.local.set_float(pos, v);
     }
 
     #[inline]
@@ -1306,8 +1280,7 @@ impl<'a> Interp<'a> {
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_double(pos, v);
+        self.local.set_double(pos, v);
     }
 
     #[inline]
@@ -1323,168 +1296,147 @@ impl<'a> Interp<'a> {
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_ref(pos, v);
+        self.local.set_ref(pos, v);
     }
 
     #[inline]
-    fn istore_0(&self) {
+    fn istore_0(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_int(0, v);
+        self.local.set_int(0, v);
     }
 
     #[inline]
-    fn istore_1(&self) {
+    fn istore_1(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_int(1, v);
+        self.local.set_int(1, v);
     }
 
     #[inline]
-    fn istore_2(&self) {
+    fn istore_2(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_int(2, v);
+        self.local.set_int(2, v);
     }
 
     #[inline]
-    fn istore_3(&self) {
+    fn istore_3(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_int();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_int(3, v);
+        self.local.set_int(3, v);
     }
 
     #[inline]
-    fn lstore_0(&self) {
+    fn lstore_0(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_long(0, v);
+        self.local.set_long(0, v);
     }
 
     #[inline]
-    fn lstore_1(&self) {
+    fn lstore_1(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_long(1, v);
+        self.local.set_long(1, v);
     }
 
     #[inline]
-    fn lstore_2(&self) {
+    fn lstore_2(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_long(2, v);
+        self.local.set_long(2, v);
     }
 
     #[inline]
-    fn lstore_3(&self) {
+    fn lstore_3(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_long();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_long(3, v);
+        self.local.set_long(3, v);
     }
 
     #[inline]
-    fn fstore_0(&self) {
+    fn fstore_0(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_float(0, v);
+        self.local.set_float(0, v);
     }
 
     #[inline]
-    fn fstore_1(&self) {
+    fn fstore_1(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_float(1, v);
+        self.local.set_float(1, v);
     }
 
     #[inline]
-    fn fstore_2(&self) {
+    fn fstore_2(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_float(2, v);
+        self.local.set_float(2, v);
     }
 
     #[inline]
-    fn fstore_3(&self) {
+    fn fstore_3(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_float();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_float(3, v);
+        self.local.set_float(3, v);
     }
 
     #[inline]
-    fn dstore_0(&self) {
+    fn dstore_0(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_double(0, v);
+        self.local.set_double(0, v);
     }
 
     #[inline]
-    fn dstore_1(&self) {
+    fn dstore_1(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_double(1, v);
+        self.local.set_double(1, v);
     }
 
     #[inline]
-    fn dstore_2(&self) {
+    fn dstore_2(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_double(2, v);
+        self.local.set_double(2, v);
     }
 
     #[inline]
-    fn dstore_3(&self) {
+    fn dstore_3(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_double();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_double(3, v);
+        self.local.set_double(3, v);
     }
 
     #[inline]
-    fn astore_0(&self) {
+    fn astore_0(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_ref(0, v);
+        self.local.set_ref(0, v);
     }
 
     #[inline]
-    fn astore_1(&self) {
+    fn astore_1(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_ref(1, v);
+        self.local.set_ref(1, v);
     }
 
     #[inline]
-    fn astore_2(&self) {
+    fn astore_2(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_ref(2, v);
+        self.local.set_ref(2, v);
     }
 
     #[inline]
-    fn astore_3(&self) {
+    fn astore_3(&mut self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
-        let mut local = self.frame.area.local.borrow_mut();
-        local.set_ref(3, v);
+        self.local.set_ref(3, v);
     }
 
     #[inline]
@@ -2063,10 +2015,9 @@ impl<'a> Interp<'a> {
             factor = (read_byte!(self.frame.pc, self.code) as i8) as i32
         };
 
-        let mut local = self.frame.area.local.borrow_mut();
-        let v = local.get_int(pos);
+        let v = self.local.get_int(pos);
         let v = v.wrapping_add(factor);
-        local.set_int(pos, v);
+        self.local.set_int(pos, v);
     }
 
     #[inline]
