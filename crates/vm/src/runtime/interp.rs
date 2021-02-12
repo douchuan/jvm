@@ -2799,7 +2799,7 @@ impl<'a> Interp<'a> {
                 let t = class.get_class_kind_type();
                 let name = match t {
                     oop::class::ClassKindType::Instance | oop::class::ClassKindType::ObjectAry => {
-                        let mut v = Vec::with_capacity(class.name.len() + 2);
+                        let mut v = Vec::with_capacity(class.name.len() + 3);
                         v.push(b'[');
                         v.push(b'L');
                         v.extend_from_slice(class.name.as_slice());
@@ -2828,8 +2828,8 @@ impl<'a> Interp<'a> {
                     oop::class::init_class(&ary_cls_obj);
                     oop::class::init_class_fully(&ary_cls_obj);
 
-                    let mut stack = self.frame.area.stack.borrow_mut();
                     let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);
+                    let mut stack = self.frame.area.stack.borrow_mut();
                     stack.push_ref(ary);
                 }
                 None => unreachable!(),
