@@ -1,5 +1,6 @@
 use std::cell::UnsafeCell;
 use std::mem;
+use std::mem::MaybeUninit;
 
 /// # Safety
 pub unsafe fn raw(m: &ReentrantMutex) -> *mut libc::pthread_mutex_t {
@@ -25,15 +26,16 @@ impl ReentrantMutex {
     /// # Safety
     /// todo: This function should really be documented
     pub unsafe fn init(&mut self) {
-        let mut attr: libc::pthread_mutexattr_t = mem::uninitialized();
-        let result = libc::pthread_mutexattr_init(&mut attr as *mut _);
+        let mut attr = MaybeUninit::<libc::pthread_mutexattr_t>::uninit();
+        let mut ptr_attr = attr.as_mut_ptr();
+        let result = libc::pthread_mutexattr_init(ptr_attr as *mut _);
         debug_assert_eq!(result, 0);
         let result =
-            libc::pthread_mutexattr_settype(&mut attr as *mut _, libc::PTHREAD_MUTEX_RECURSIVE);
+            libc::pthread_mutexattr_settype(ptr_attr as *mut _, libc::PTHREAD_MUTEX_RECURSIVE);
         debug_assert_eq!(result, 0);
-        let result = libc::pthread_mutex_init(self.inner.get(), &attr as *const _);
+        let result = libc::pthread_mutex_init(self.inner.get(), ptr_attr as *const _);
         debug_assert_eq!(result, 0);
-        let result = libc::pthread_mutexattr_destroy(&mut attr as *mut _);
+        let result = libc::pthread_mutexattr_destroy(ptr_attr as *mut _);
         debug_assert_eq!(result, 0);
     }
 
