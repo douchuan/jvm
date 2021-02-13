@@ -2070,9 +2070,9 @@ impl<'a> Interp<'a> {
             stack.push_int(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                stack.push_int(std::i32::MAX);
+                stack.push_int(i32::MAX);
             } else {
-                stack.push_int(std::i32::MIN);
+                stack.push_int(i32::MIN);
             }
         } else {
             stack.push_int(v as i32);
@@ -2087,9 +2087,9 @@ impl<'a> Interp<'a> {
             stack.push_long(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                stack.push_long(std::i64::MAX);
+                stack.push_long(i64::MAX);
             } else {
-                stack.push_long(std::i64::MIN);
+                stack.push_long(i64::MIN);
             }
         } else {
             stack.push_long(v as i64);
@@ -2111,9 +2111,9 @@ impl<'a> Interp<'a> {
             stack.push_int(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                stack.push_int(std::i32::MAX);
+                stack.push_int(i32::MAX);
             } else {
-                stack.push_int(std::i32::MIN);
+                stack.push_int(i32::MIN);
             }
         } else {
             stack.push_int(v as i32);
@@ -2128,9 +2128,9 @@ impl<'a> Interp<'a> {
             stack.push_long(0);
         } else if v.is_infinite() {
             if v.is_sign_positive() {
-                stack.push_long(std::i64::MAX);
+                stack.push_long(i64::MAX);
             } else {
-                stack.push_long(std::i64::MIN);
+                stack.push_long(i64::MIN);
             }
         } else {
             stack.push_long(v as i64);
