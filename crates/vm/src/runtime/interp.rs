@@ -74,6 +74,41 @@ macro_rules! read_u2 {
     }};
 }
 
+macro_rules! opcode_const {
+    (null, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_null();
+    };
+    (m1, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const_m1();
+    };
+    (0, $interp:ident, $with_nop:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const0($with_nop);
+    };
+    (1, $interp:ident, $with_nop:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const1($with_nop);
+    };
+    (2, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const2();
+    };
+    (3, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const3();
+    };
+    (4, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const4();
+    };
+    (5, $interp:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_const5();
+    };
+}
+
 macro_rules! opcode_load {
     (int, $interp:ident, $pos:expr) => {
         let v = $interp.local.get_int($pos);
@@ -203,22 +238,52 @@ impl<'a> Interp<'a> {
                     self.return_void();
                     break;
                 }
-                OpCode::nop => self.nop(),
-                OpCode::aconst_null => self.aconst_null(),
-                OpCode::iconst_m1 => self.iconst_m1(),
-                OpCode::iconst_0 => self.iconst_0(),
-                OpCode::iconst_1 => self.iconst_1(),
-                OpCode::iconst_2 => self.iconst_2(),
-                OpCode::iconst_3 => self.iconst_3(),
-                OpCode::iconst_4 => self.iconst_4(),
-                OpCode::iconst_5 => self.iconst_5(),
-                OpCode::lconst_0 => self.lconst_0(),
-                OpCode::lconst_1 => self.lconst_1(),
-                OpCode::fconst_0 => self.fconst_0(),
-                OpCode::fconst_1 => self.fconst_1(),
-                OpCode::fconst_2 => self.fconst_2(),
-                OpCode::dconst_0 => self.dconst_0(),
-                OpCode::dconst_1 => self.dconst_1(),
+                OpCode::nop => (),
+                OpCode::aconst_null => {
+                    opcode_const!(null, self);
+                }
+                OpCode::iconst_m1 => {
+                    opcode_const!(m1, self);
+                }
+                OpCode::iconst_0 => {
+                    opcode_const!(0, self, false);
+                }
+                OpCode::iconst_1 => {
+                    opcode_const!(1, self, false);
+                }
+                OpCode::iconst_2 => {
+                    opcode_const!(2, self);
+                }
+                OpCode::iconst_3 => {
+                    opcode_const!(3, self);
+                }
+                OpCode::iconst_4 => {
+                    opcode_const!(4, self);
+                }
+                OpCode::iconst_5 => {
+                    opcode_const!(5, self);
+                }
+                OpCode::lconst_0 => {
+                    opcode_const!(0, self, true);
+                }
+                OpCode::lconst_1 => {
+                    opcode_const!(1, self, true);
+                }
+                OpCode::fconst_0 => {
+                    opcode_const!(0, self, false);
+                }
+                OpCode::fconst_1 => {
+                    opcode_const!(1, self, false);
+                }
+                OpCode::fconst_2 => {
+                    opcode_const!(2, self);
+                }
+                OpCode::dconst_0 => {
+                    opcode_const!(0, self, true);
+                }
+                OpCode::dconst_1 => {
+                    opcode_const!(1, self, true);
+                }
                 OpCode::bipush => self.bipush(),
                 OpCode::sipush => self.sipush(),
                 OpCode::ldc => self.ldc(),
@@ -858,99 +923,6 @@ impl<'a> Interp<'a> {
 
 //byte code impl
 impl<'a> Interp<'a> {
-    #[inline]
-    fn nop(&self) {}
-
-    #[inline]
-    fn aconst_null(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_null();
-    }
-
-    #[inline]
-    fn iconst_m1(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const_m1();
-    }
-
-    #[inline]
-    fn iconst_0(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const0(false);
-    }
-
-    #[inline]
-    fn lconst_0(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const0(true);
-    }
-
-    #[inline]
-    fn fconst_0(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const0(false);
-    }
-
-    #[inline]
-    fn dconst_0(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const0(true);
-    }
-
-    #[inline]
-    fn iconst_1(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const1(false);
-    }
-
-    #[inline]
-    fn lconst_1(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const1(true);
-    }
-
-    #[inline]
-    fn fconst_1(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const1(false);
-    }
-
-    #[inline]
-    fn dconst_1(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const1(true);
-    }
-
-    #[inline]
-    fn iconst_2(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const2();
-    }
-
-    #[inline]
-    fn fconst_2(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const2();
-    }
-
-    #[inline]
-    fn iconst_3(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const3();
-    }
-
-    #[inline]
-    fn iconst_4(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const4();
-    }
-
-    #[inline]
-    fn iconst_5(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_const5();
-    }
-
     #[inline]
     fn sipush(&self) {
         let v = read_i2!(self.frame.pc, self.code);
