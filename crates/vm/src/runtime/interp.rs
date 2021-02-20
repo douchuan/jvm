@@ -377,11 +377,26 @@ impl<'a> Interp<'a> {
                 OpCode::baload => self.baload(),
                 OpCode::caload => self.caload(),
                 OpCode::saload => self.saload(),
-                OpCode::istore => self.istore(),
-                OpCode::lstore => self.lstore(),
-                OpCode::fstore => self.fstore(),
-                OpCode::dstore => self.dstore(),
-                OpCode::astore => self.astore(),
+                OpCode::istore => {
+                    let pos = self.opcode_pos();
+                    opcode_store!(int, self, pos);
+                }
+                OpCode::lstore => {
+                    let pos = self.opcode_pos();
+                    opcode_store!(long, self, pos);
+                }
+                OpCode::fstore => {
+                    let pos = self.opcode_pos();
+                    opcode_store!(float, self, pos);
+                }
+                OpCode::dstore => {
+                    let pos = self.opcode_pos();
+                    opcode_store!(double, self, pos);
+                }
+                OpCode::astore => {
+                    let pos = self.opcode_pos();
+                    opcode_store!(a, self, pos);
+                }
                 OpCode::istore_0 => {
                     opcode_store!(int, self, 0);
                 }
@@ -1130,114 +1145,6 @@ impl<'a> Interp<'a> {
             }
             _ => unreachable!(),
         }
-    }
-
-    #[inline]
-    fn istore(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-        self.local.set_int(pos, v);
-    }
-
-    #[inline]
-    fn lstore(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_long();
-        self.local.set_long(pos, v);
-    }
-
-    #[inline]
-    fn fstore(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_float();
-        self.local.set_float(pos, v);
-    }
-
-    #[inline]
-    fn dstore(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_double();
-        self.local.set_double(pos, v);
-    }
-
-    #[inline]
-    fn astore(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_ref();
-        self.local.set_ref(pos, v);
-    }
-
-    #[inline]
-    fn astore_0(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_ref();
-        self.local.set_ref(0, v);
-    }
-
-    #[inline]
-    fn astore_1(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_ref();
-        self.local.set_ref(1, v);
-    }
-
-    #[inline]
-    fn astore_2(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_ref();
-        self.local.set_ref(2, v);
-    }
-
-    #[inline]
-    fn astore_3(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_ref();
-        self.local.set_ref(3, v);
     }
 
     #[inline]
