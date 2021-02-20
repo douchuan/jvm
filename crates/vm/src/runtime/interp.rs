@@ -196,31 +196,86 @@ impl<'a> Interp<'a> {
                 OpCode::ldc => self.ldc(),
                 OpCode::ldc_w => self.ldc_w(),
                 OpCode::ldc2_w => self.ldc2_w(),
-                OpCode::iload => self.iload(),
-                OpCode::lload => self.lload(),
-                OpCode::fload => self.fload(),
-                OpCode::dload => self.dload(),
-                OpCode::aload => self.aload(),
-                OpCode::iload_0 => self.iload_0(),
-                OpCode::iload_1 => self.iload_1(),
-                OpCode::iload_2 => self.iload_2(),
-                OpCode::iload_3 => self.iload_3(),
-                OpCode::lload_0 => self.lload_0(),
-                OpCode::lload_1 => self.lload_1(),
-                OpCode::lload_2 => self.lload_2(),
-                OpCode::lload_3 => self.lload_3(),
-                OpCode::fload_0 => self.fload_0(),
-                OpCode::fload_1 => self.fload_1(),
-                OpCode::fload_2 => self.fload_2(),
-                OpCode::fload_3 => self.fload_3(),
-                OpCode::dload_0 => self.dload_0(),
-                OpCode::dload_1 => self.dload_1(),
-                OpCode::dload_2 => self.dload_2(),
-                OpCode::dload_3 => self.dload_3(),
-                OpCode::aload_0 => self.aload_0(),
-                OpCode::aload_1 => self.aload_1(),
-                OpCode::aload_2 => self.aload_2(),
-                OpCode::aload_3 => self.aload_3(),
+                OpCode::iload => {
+                    let pos = self.opcode_pos();
+                    opcode_load!(int, self, pos);
+                }
+                OpCode::lload => {
+                    let pos = self.opcode_pos();
+                    opcode_load!(long, self, pos);
+                }
+                OpCode::fload => {
+                    let pos = self.opcode_pos();
+                    opcode_load!(float, self, pos);
+                }
+                OpCode::dload => {
+                    let pos = self.opcode_pos();
+                    opcode_load!(double, self, pos);
+                }
+                OpCode::aload => {
+                    let pos = self.opcode_pos();
+                    opcode_load!(a, self, pos);
+                }
+                OpCode::iload_0 => {
+                    opcode_load!(int, self, 0);
+                }
+                OpCode::iload_1 => {
+                    opcode_load!(int, self, 1);
+                }
+                OpCode::iload_2 => {
+                    opcode_load!(int, self, 2);
+                }
+                OpCode::iload_3 => {
+                    opcode_load!(int, self, 3);
+                }
+                OpCode::lload_0 => {
+                    opcode_load!(long, self, 0);
+                }
+                OpCode::lload_1 => {
+                    opcode_load!(long, self, 1);
+                }
+                OpCode::lload_2 => {
+                    opcode_load!(long, self, 2);
+                }
+                OpCode::lload_3 => {
+                    opcode_load!(long, self, 3);
+                }
+                OpCode::fload_0 => {
+                    opcode_load!(float, self, 0);
+                }
+                OpCode::fload_1 => {
+                    opcode_load!(float, self, 1);
+                }
+                OpCode::fload_2 => {
+                    opcode_load!(float, self, 2);
+                }
+                OpCode::fload_3 => {
+                    opcode_load!(float, self, 3);
+                }
+                OpCode::dload_0 => {
+                    opcode_load!(double, self, 0);
+                }
+                OpCode::dload_1 => {
+                    opcode_load!(double, self, 1);
+                }
+                OpCode::dload_2 => {
+                    opcode_load!(double, self, 2);
+                }
+                OpCode::dload_3 => {
+                    opcode_load!(double, self, 3);
+                }
+                OpCode::aload_0 => {
+                    opcode_load!(a, self, 0);
+                }
+                OpCode::aload_1 => {
+                    opcode_load!(a, self, 1);
+                }
+                OpCode::aload_2 => {
+                    opcode_load!(a, self, 2);
+                }
+                OpCode::aload_3 => {
+                    opcode_load!(a, self, 3);
+                }
                 OpCode::iaload => self.iaload(),
                 OpCode::laload => self.laload(),
                 OpCode::faload => self.faload(),
@@ -859,136 +914,6 @@ impl<'a> Interp<'a> {
     #[inline]
     fn ldc2_w(&self) {
         self.ldc_w();
-    }
-
-    #[inline]
-    fn iload(&mut self) {
-        let pos = self.opcode_pos();
-        opcode_load!(int, self, pos);
-    }
-
-    #[inline]
-    fn lload(&mut self) {
-        let pos = self.opcode_pos();
-        opcode_load!(long, self, pos);
-    }
-
-    #[inline]
-    fn fload(&mut self) {
-        let pos = self.opcode_pos();
-        opcode_load!(float, self, pos);
-    }
-
-    #[inline]
-    fn dload(&mut self) {
-        let pos = self.opcode_pos();
-        opcode_load!(double, self, pos);
-    }
-
-    #[inline]
-    fn aload(&mut self) {
-        let pos = self.opcode_pos();
-        opcode_load!(a, self, pos);
-    }
-
-    #[inline]
-    fn iload_0(&self) {
-        opcode_load!(int, self, 0);
-    }
-
-    #[inline]
-    fn lload_0(&self) {
-        opcode_load!(long, self, 0);
-    }
-
-    #[inline]
-    fn fload_0(&self) {
-        opcode_load!(float, self, 0);
-    }
-
-    #[inline]
-    fn dload_0(&self) {
-        opcode_load!(double, self, 0);
-    }
-
-    #[inline]
-    fn aload_0(&self) {
-        opcode_load!(a, self, 0);
-    }
-
-    #[inline]
-    fn iload_1(&self) {
-        opcode_load!(int, self, 1);
-    }
-
-    #[inline]
-    fn lload_1(&self) {
-        opcode_load!(long, self, 1);
-    }
-
-    #[inline]
-    fn fload_1(&self) {
-        opcode_load!(float, self, 1);
-    }
-
-    #[inline]
-    fn dload_1(&self) {
-        opcode_load!(double, self, 1);
-    }
-
-    #[inline]
-    fn aload_1(&self) {
-        opcode_load!(a, self, 1);
-    }
-
-    #[inline]
-    fn iload_2(&self) {
-        opcode_load!(int, self, 2);
-    }
-
-    #[inline]
-    fn lload_2(&self) {
-        opcode_load!(long, self, 2);
-    }
-
-    #[inline]
-    fn fload_2(&self) {
-        opcode_load!(float, self, 2);
-    }
-
-    #[inline]
-    fn dload_2(&self) {
-        opcode_load!(double, self, 2);
-    }
-
-    #[inline]
-    fn aload_2(&self) {
-        opcode_load!(a, self, 2);
-    }
-
-    #[inline]
-    fn iload_3(&self) {
-        opcode_load!(int, self, 3);
-    }
-
-    #[inline]
-    fn lload_3(&self) {
-        opcode_load!(long, self, 3);
-    }
-
-    #[inline]
-    fn fload_3(&self) {
-        opcode_load!(float, self, 3);
-    }
-
-    #[inline]
-    fn dload_3(&self) {
-        opcode_load!(double, self, 3);
-    }
-
-    #[inline]
-    fn aload_3(&self) {
-        opcode_load!(a, self, 3);
     }
 
     #[inline]
