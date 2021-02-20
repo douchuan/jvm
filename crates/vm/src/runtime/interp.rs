@@ -102,6 +102,34 @@ macro_rules! opcode_load {
     };
 }
 
+macro_rules! opcode_store {
+    (int, $interp:ident, $pos:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        $interp.local.set_int($pos, v);
+    };
+    (long, $interp:ident, $pos:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_long();
+        $interp.local.set_long($pos, v);
+    };
+    (float, $interp:ident, $pos:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_float();
+        $interp.local.set_float($pos, v);
+    };
+    (double, $interp:ident, $pos:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_double();
+        $interp.local.set_double($pos, v);
+    };
+    (a, $interp:ident, $pos:expr) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_ref();
+        $interp.local.set_ref($pos, v);
+    };
+}
+
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     local: Local,
@@ -289,26 +317,66 @@ impl<'a> Interp<'a> {
                 OpCode::fstore => self.fstore(),
                 OpCode::dstore => self.dstore(),
                 OpCode::astore => self.astore(),
-                OpCode::istore_0 => self.istore_0(),
-                OpCode::istore_1 => self.istore_1(),
-                OpCode::istore_2 => self.istore_2(),
-                OpCode::istore_3 => self.istore_3(),
-                OpCode::lstore_0 => self.lstore_0(),
-                OpCode::lstore_1 => self.lstore_1(),
-                OpCode::lstore_2 => self.lstore_2(),
-                OpCode::lstore_3 => self.lstore_3(),
-                OpCode::fstore_0 => self.fstore_0(),
-                OpCode::fstore_1 => self.fstore_1(),
-                OpCode::fstore_2 => self.fstore_2(),
-                OpCode::fstore_3 => self.fstore_3(),
-                OpCode::dstore_0 => self.dstore_0(),
-                OpCode::dstore_1 => self.dstore_1(),
-                OpCode::dstore_2 => self.dstore_2(),
-                OpCode::dstore_3 => self.dstore_3(),
-                OpCode::astore_0 => self.astore_0(),
-                OpCode::astore_1 => self.astore_1(),
-                OpCode::astore_2 => self.astore_2(),
-                OpCode::astore_3 => self.astore_3(),
+                OpCode::istore_0 => {
+                    opcode_store!(int, self, 0);
+                }
+                OpCode::istore_1 => {
+                    opcode_store!(int, self, 1);
+                }
+                OpCode::istore_2 => {
+                    opcode_store!(int, self, 2);
+                }
+                OpCode::istore_3 => {
+                    opcode_store!(int, self, 3);
+                }
+                OpCode::lstore_0 => {
+                    opcode_store!(long, self, 0);
+                }
+                OpCode::lstore_1 => {
+                    opcode_store!(long, self, 1);
+                }
+                OpCode::lstore_2 => {
+                    opcode_store!(long, self, 2);
+                }
+                OpCode::lstore_3 => {
+                    opcode_store!(long, self, 3);
+                }
+                OpCode::fstore_0 => {
+                    opcode_store!(float, self, 0);
+                }
+                OpCode::fstore_1 => {
+                    opcode_store!(float, self, 1);
+                }
+                OpCode::fstore_2 => {
+                    opcode_store!(float, self, 2);
+                }
+                OpCode::fstore_3 => {
+                    opcode_store!(float, self, 3);
+                }
+                OpCode::dstore_0 => {
+                    opcode_store!(double, self, 0);
+                }
+                OpCode::dstore_1 => {
+                    opcode_store!(double, self, 1);
+                }
+                OpCode::dstore_2 => {
+                    opcode_store!(double, self, 2);
+                }
+                OpCode::dstore_3 => {
+                    opcode_store!(double, self, 3);
+                }
+                OpCode::astore_0 => {
+                    opcode_store!(a, self, 0);
+                }
+                OpCode::astore_1 => {
+                    opcode_store!(a, self, 1);
+                }
+                OpCode::astore_2 => {
+                    opcode_store!(a, self, 2);
+                }
+                OpCode::astore_3 => {
+                    opcode_store!(a, self, 3);
+                }
                 OpCode::iastore => self.iastore(),
                 OpCode::lastore => self.lastore(),
                 OpCode::fastore => self.fastore(),
@@ -1170,118 +1238,6 @@ impl<'a> Interp<'a> {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
         self.local.set_ref(pos, v);
-    }
-
-    #[inline]
-    fn istore_0(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-        self.local.set_int(0, v);
-    }
-
-    #[inline]
-    fn istore_1(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-        self.local.set_int(1, v);
-    }
-
-    #[inline]
-    fn istore_2(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-        self.local.set_int(2, v);
-    }
-
-    #[inline]
-    fn istore_3(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-        self.local.set_int(3, v);
-    }
-
-    #[inline]
-    fn lstore_0(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_long();
-        self.local.set_long(0, v);
-    }
-
-    #[inline]
-    fn lstore_1(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_long();
-        self.local.set_long(1, v);
-    }
-
-    #[inline]
-    fn lstore_2(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_long();
-        self.local.set_long(2, v);
-    }
-
-    #[inline]
-    fn lstore_3(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_long();
-        self.local.set_long(3, v);
-    }
-
-    #[inline]
-    fn fstore_0(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_float();
-        self.local.set_float(0, v);
-    }
-
-    #[inline]
-    fn fstore_1(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_float();
-        self.local.set_float(1, v);
-    }
-
-    #[inline]
-    fn fstore_2(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_float();
-        self.local.set_float(2, v);
-    }
-
-    #[inline]
-    fn fstore_3(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_float();
-        self.local.set_float(3, v);
-    }
-
-    #[inline]
-    fn dstore_0(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_double();
-        self.local.set_double(0, v);
-    }
-
-    #[inline]
-    fn dstore_1(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_double();
-        self.local.set_double(1, v);
-    }
-
-    #[inline]
-    fn dstore_2(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_double();
-        self.local.set_double(2, v);
-    }
-
-    #[inline]
-    fn dstore_3(&mut self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_double();
-        self.local.set_double(3, v);
     }
 
     #[inline]
