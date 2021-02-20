@@ -74,6 +74,34 @@ macro_rules! read_u2 {
     }};
 }
 
+macro_rules! opcode_load {
+    (int, $interp:ident, $pos:expr) => {
+        let v = $interp.local.get_int($pos);
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_int(v);
+    };
+    (long, $interp:ident, $pos:expr) => {
+        let v = $interp.local.get_long($pos);
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_long(v);
+    };
+    (float, $interp:ident, $pos:expr) => {
+        let v = $interp.local.get_float($pos);
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_float(v);
+    };
+    (double, $interp:ident, $pos:expr) => {
+        let v = $interp.local.get_double($pos);
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_double(v);
+    };
+    (a, $interp:ident, $pos:expr) => {
+        let v = $interp.local.get_ref($pos);
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        stack.push_ref(v);
+    };
+}
+
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     local: Local,
@@ -643,6 +671,16 @@ impl<'a> Interp<'a> {
             _ => unreachable!(),
         }
     }
+
+    fn opcode_pos(&mut self) -> usize {
+        let op_widen = self.op_widen;
+        if op_widen {
+            self.op_widen = false;
+            read_u2!(self.frame.pc, self.code)
+        } else {
+            read_u1!(self.frame.pc, self.code)
+        }
+    }
 }
 
 //handle exception
@@ -825,222 +863,132 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn iload(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let v = self.local.get_int(pos);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_int(v);
+        let pos = self.opcode_pos();
+        opcode_load!(int, self, pos);
     }
 
     #[inline]
     fn lload(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let v = self.local.get_long(pos);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_long(v);
+        let pos = self.opcode_pos();
+        opcode_load!(long, self, pos);
     }
 
     #[inline]
     fn fload(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let v = self.local.get_float(pos);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_float(v);
+        let pos = self.opcode_pos();
+        opcode_load!(float, self, pos);
     }
 
     #[inline]
     fn dload(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let v = self.local.get_double(pos);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_double(v);
+        let pos = self.opcode_pos();
+        opcode_load!(double, self, pos);
     }
 
     #[inline]
     fn aload(&mut self) {
-        let op_widen = self.op_widen;
-
-        let pos = if op_widen {
-            self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
-        } else {
-            read_u1!(self.frame.pc, self.code)
-        };
-
-        let v = self.local.get_ref(pos);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        let pos = self.opcode_pos();
+        opcode_load!(a, self, pos);
     }
 
     #[inline]
     fn iload_0(&self) {
-        let v = self.local.get_int(0);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_int(v);
+        opcode_load!(int, self, 0);
     }
 
     #[inline]
     fn lload_0(&self) {
-        let v = self.local.get_long(0);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_long(v);
+        opcode_load!(long, self, 0);
     }
 
     #[inline]
     fn fload_0(&self) {
-        let v = self.local.get_float(0);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_float(v);
+        opcode_load!(float, self, 0);
     }
 
     #[inline]
     fn dload_0(&self) {
-        let v = self.local.get_double(0);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_double(v);
+        opcode_load!(double, self, 0);
     }
 
     #[inline]
     fn aload_0(&self) {
-        let v = self.local.get_ref(0);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        opcode_load!(a, self, 0);
     }
 
     #[inline]
     fn iload_1(&self) {
-        let v = self.local.get_int(1);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_int(v);
+        opcode_load!(int, self, 1);
     }
 
     #[inline]
     fn lload_1(&self) {
-        let v = self.local.get_long(1);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_long(v);
+        opcode_load!(long, self, 1);
     }
 
     #[inline]
     fn fload_1(&self) {
-        let v = self.local.get_float(1);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_float(v);
+        opcode_load!(float, self, 1);
     }
 
     #[inline]
     fn dload_1(&self) {
-        let v = self.local.get_double(1);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_double(v);
+        opcode_load!(double, self, 1);
     }
 
     #[inline]
     fn aload_1(&self) {
-        let v = self.local.get_ref(1);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        opcode_load!(a, self, 1);
     }
 
     #[inline]
     fn iload_2(&self) {
-        let v = self.local.get_int(2);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_int(v);
+        opcode_load!(int, self, 2);
     }
 
     #[inline]
     fn lload_2(&self) {
-        let v = self.local.get_long(2);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_long(v);
+        opcode_load!(long, self, 2);
     }
 
     #[inline]
     fn fload_2(&self) {
-        let v = self.local.get_float(2);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_float(v);
+        opcode_load!(float, self, 2);
     }
 
     #[inline]
     fn dload_2(&self) {
-        let v = self.local.get_double(2);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_double(v);
+        opcode_load!(double, self, 2);
     }
 
     #[inline]
     fn aload_2(&self) {
-        let v = self.local.get_ref(2);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        opcode_load!(a, self, 2);
     }
 
     #[inline]
     fn iload_3(&self) {
-        let v = self.local.get_int(3);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_int(v);
+        opcode_load!(int, self, 3);
     }
 
     #[inline]
     fn lload_3(&self) {
-        let v = self.local.get_long(3);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_long(v);
+        opcode_load!(long, self, 3);
     }
 
     #[inline]
     fn fload_3(&self) {
-        let v = self.local.get_float(3);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_float(v);
+        opcode_load!(float, self, 3);
     }
 
     #[inline]
     fn dload_3(&self) {
-        let v = self.local.get_double(3);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_double(v);
+        opcode_load!(double, self, 3);
     }
 
     #[inline]
     fn aload_3(&self) {
-        let v = self.local.get_ref(3);
-        let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        opcode_load!(a, self, 3);
     }
 
     #[inline]
