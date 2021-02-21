@@ -165,6 +165,37 @@ macro_rules! opcode_store {
     };
 }
 
+macro_rules! opcode_math_op {
+    (int, $interp:ident, $op:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
+        let v = v1.$op(v2);
+        stack.push_int(v);
+    };
+    (long, $interp:ident, $op:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_long();
+        let v1 = stack.pop_long();
+        let v = v1.$op(v2);
+        stack.push_long(v);
+    };
+    (float, $interp:ident, $op:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_float();
+        let v1 = stack.pop_float();
+        let v = v1.$op(v2);
+        stack.push_float(v);
+    };
+    (double, $interp:ident, $op:ident) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_double();
+        let v1 = stack.pop_double();
+        let v = v1.$op(v2);
+        stack.push_double(v);
+    };
+}
+
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     local: Local,
@@ -474,16 +505,28 @@ impl<'a> Interp<'a> {
                 OpCode::dup2_x1 => self.dup2_x1(),
                 OpCode::dup2_x2 => self.dup2_x2(),
                 OpCode::swap => self.swap(),
-                OpCode::iadd => self.iadd(),
-                OpCode::ladd => self.ladd(),
+                OpCode::iadd => {
+                    opcode_math_op!(int, self, wrapping_add);
+                }
+                OpCode::ladd => {
+                    opcode_math_op!(long, self, wrapping_add);
+                }
                 OpCode::fadd => self.fadd(),
                 OpCode::dadd => self.dadd(),
-                OpCode::isub => self.isub(),
-                OpCode::lsub => self.lsub(),
+                OpCode::isub => {
+                    opcode_math_op!(int, self, wrapping_sub);
+                }
+                OpCode::lsub => {
+                    opcode_math_op!(long, self, wrapping_sub);
+                }
                 OpCode::fsub => self.fsub(),
                 OpCode::dsub => self.dsub(),
-                OpCode::imul => self.imul(),
-                OpCode::lmul => self.lmul(),
+                OpCode::imul => {
+                    opcode_math_op!(int, self, wrapping_mul);
+                }
+                OpCode::lmul => {
+                    opcode_math_op!(long, self, wrapping_mul);
+                }
                 OpCode::fmul => self.fmul(),
                 OpCode::dmul => self.dmul(),
                 OpCode::idiv => self.idiv(),
@@ -1369,24 +1412,6 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn iadd(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        let v = v1.wrapping_add(v2);
-        stack.push_int(v);
-    }
-
-    #[inline]
-    fn ladd(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        let v = v1.wrapping_add(v2);
-        stack.push_long(v);
-    }
-
-    #[inline]
     fn fadd(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
@@ -1403,24 +1428,6 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn isub(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        let v = v1.wrapping_sub(v2);
-        stack.push_int(v);
-    }
-
-    #[inline]
-    fn lsub(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        let v = v1.wrapping_sub(v2);
-        stack.push_long(v);
-    }
-
-    #[inline]
     fn fsub(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_float();
@@ -1434,24 +1441,6 @@ impl<'a> Interp<'a> {
         let v2 = stack.pop_double();
         let v1 = stack.pop_double();
         stack.push_double(v1 - v2);
-    }
-
-    #[inline]
-    fn imul(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        let v = v1.wrapping_mul(v2);
-        stack.push_int(v);
-    }
-
-    #[inline]
-    fn lmul(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        let v = v1.wrapping_mul(v2);
-        stack.push_long(v);
     }
 
     #[inline]
