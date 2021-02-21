@@ -511,24 +511,42 @@ impl<'a> Interp<'a> {
                 OpCode::ladd => {
                     opcode_math_op!(long, self, wrapping_add);
                 }
-                OpCode::fadd => self.fadd(),
-                OpCode::dadd => self.dadd(),
+                OpCode::fadd => {
+                    use std::ops::Add;
+                    opcode_math_op!(float, self, add);
+                }
+                OpCode::dadd => {
+                    use std::ops::Add;
+                    opcode_math_op!(double, self, add);
+                }
                 OpCode::isub => {
                     opcode_math_op!(int, self, wrapping_sub);
                 }
                 OpCode::lsub => {
                     opcode_math_op!(long, self, wrapping_sub);
                 }
-                OpCode::fsub => self.fsub(),
-                OpCode::dsub => self.dsub(),
+                OpCode::fsub => {
+                    use std::ops::Sub;
+                    opcode_math_op!(float, self, sub);
+                }
+                OpCode::dsub => {
+                    use std::ops::Sub;
+                    opcode_math_op!(double, self, sub);
+                }
                 OpCode::imul => {
                     opcode_math_op!(int, self, wrapping_mul);
                 }
                 OpCode::lmul => {
                     opcode_math_op!(long, self, wrapping_mul);
                 }
-                OpCode::fmul => self.fmul(),
-                OpCode::dmul => self.dmul(),
+                OpCode::fmul => {
+                    use std::ops::Mul;
+                    opcode_math_op!(float, self, mul);
+                }
+                OpCode::dmul => {
+                    use std::ops::Mul;
+                    opcode_math_op!(double, self, mul);
+                }
                 OpCode::idiv => self.idiv(),
                 OpCode::ldiv => self.ldiv(),
                 OpCode::fdiv => self.fdiv(),
@@ -547,12 +565,30 @@ impl<'a> Interp<'a> {
                 OpCode::lshr => self.lshr(),
                 OpCode::iushr => self.iushr(),
                 OpCode::lushr => self.lushr(),
-                OpCode::iand => self.iand(),
-                OpCode::land => self.land(),
-                OpCode::ior => self.ior(),
-                OpCode::lor => self.lor(),
-                OpCode::ixor => self.ixor(),
-                OpCode::lxor => self.lxor(),
+                OpCode::iand => {
+                    use std::ops::BitAnd;
+                    opcode_math_op!(int, self, bitand);
+                }
+                OpCode::land => {
+                    use std::ops::BitAnd;
+                    opcode_math_op!(long, self, bitand);
+                }
+                OpCode::ior => {
+                    use std::ops::BitOr;
+                    opcode_math_op!(int, self, bitor);
+                }
+                OpCode::lor => {
+                    use std::ops::BitOr;
+                    opcode_math_op!(long, self, bitor);
+                }
+                OpCode::ixor => {
+                    use std::ops::BitXor;
+                    opcode_math_op!(int, self, bitxor);
+                }
+                OpCode::lxor => {
+                    use std::ops::BitXor;
+                    opcode_math_op!(long, self, bitxor);
+                }
                 OpCode::iinc => self.iinc(),
                 OpCode::i2l => self.i2l(),
                 OpCode::i2f => self.i2f(),
@@ -1412,54 +1448,6 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn fadd(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_float();
-        let v1 = stack.pop_float();
-        stack.push_float(v1 + v2);
-    }
-
-    #[inline]
-    fn dadd(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_double();
-        let v1 = stack.pop_double();
-        stack.push_double(v1 + v2);
-    }
-
-    #[inline]
-    fn fsub(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_float();
-        let v1 = stack.pop_float();
-        stack.push_float(v1 - v2);
-    }
-
-    #[inline]
-    fn dsub(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_double();
-        let v1 = stack.pop_double();
-        stack.push_double(v1 - v2);
-    }
-
-    #[inline]
-    fn fmul(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_float();
-        let v1 = stack.pop_float();
-        stack.push_float(v1 * v2);
-    }
-
-    #[inline]
-    fn dmul(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_double();
-        let v1 = stack.pop_double();
-        stack.push_double(v1 * v2);
-    }
-
-    #[inline]
     fn idiv(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_int();
@@ -1647,54 +1635,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_long() as u64;
         let s = (v2 & 0x3F) as u64;
         stack.push_long((v1 >> s) as i64);
-    }
-
-    #[inline]
-    fn iand(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        stack.push_int(v1 & v2);
-    }
-
-    #[inline]
-    fn land(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        stack.push_long(v1 & v2);
-    }
-
-    #[inline]
-    fn ior(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        stack.push_int(v1 | v2);
-    }
-
-    #[inline]
-    fn lor(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        stack.push_long(v1 | v2);
-    }
-
-    #[inline]
-    fn ixor(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-        stack.push_int(v1 ^ v2);
-    }
-
-    #[inline]
-    fn lxor(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_long();
-        let v1 = stack.pop_long();
-        stack.push_long(v1 ^ v2);
     }
 
     #[inline]
