@@ -196,6 +196,30 @@ macro_rules! opcode_math_op {
     };
 }
 
+macro_rules! opcode_if {
+    ($interp:ident, $op:tt) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v2 = stack.pop_int();
+        let v1 = stack.pop_int();
+        if v1 $op v2 {
+            drop(stack);
+            $interp.goto_by_offset_hardcoded(2);
+        } else {
+            let _ = $interp.frame.pc.fetch_add(2, Ordering::Relaxed);
+        }
+    };
+    ($interp:ident, $op:tt, 0) => {
+        let mut stack = $interp.frame.area.stack.borrow_mut();
+        let v = stack.pop_int();
+        if v $op 0 {
+            drop(stack);
+            $interp.goto_by_offset_hardcoded(2);
+        } else {
+            let _ = $interp.frame.pc.fetch_add(2, Ordering::Relaxed);
+        }
+    };
+}
+
 pub struct Interp<'a> {
     frame: RwLockReadGuard<'a, Box<Frame>>,
     local: Local,
@@ -610,18 +634,42 @@ impl<'a> Interp<'a> {
                 OpCode::fcmpg => self.fcmpg(),
                 OpCode::dcmpl => self.dcmpl(),
                 OpCode::dcmpg => self.dcmpg(),
-                OpCode::ifeq => self.ifeq(),
-                OpCode::ifne => self.ifne(),
-                OpCode::iflt => self.iflt(),
-                OpCode::ifge => self.ifge(),
-                OpCode::ifgt => self.ifgt(),
-                OpCode::ifle => self.ifle(),
-                OpCode::if_icmpeq => self.if_icmpeq(),
-                OpCode::if_icmpne => self.if_icmpne(),
-                OpCode::if_icmplt => self.if_icmplt(),
-                OpCode::if_icmpge => self.if_icmpge(),
-                OpCode::if_icmpgt => self.if_icmpgt(),
-                OpCode::if_icmple => self.if_icmple(),
+                OpCode::ifeq => {
+                    opcode_if!(self, ==, 0);
+                }
+                OpCode::ifne => {
+                    opcode_if!(self, !=, 0);
+                }
+                OpCode::iflt => {
+                    opcode_if!(self, <, 0);
+                }
+                OpCode::ifge => {
+                    opcode_if!(self, >=, 0);
+                }
+                OpCode::ifgt => {
+                    opcode_if!(self, >, 0);
+                }
+                OpCode::ifle => {
+                    opcode_if!(self, <=, 0);
+                }
+                OpCode::if_icmpeq => {
+                    opcode_if!(self, ==);
+                }
+                OpCode::if_icmpne => {
+                    opcode_if!(self, !=);
+                }
+                OpCode::if_icmplt => {
+                    opcode_if!(self, <);
+                }
+                OpCode::if_icmpge => {
+                    opcode_if!(self, >=);
+                }
+                OpCode::if_icmpgt => {
+                    opcode_if!(self, >);
+                }
+                OpCode::if_icmple => {
+                    opcode_if!(self, <=);
+                }
                 OpCode::if_acmpeq => self.if_acmpeq(),
                 OpCode::if_acmpne => self.if_acmpne(),
                 OpCode::goto => self.goto(),
@@ -1020,7 +1068,6 @@ impl<'a> Interp<'a> {
     #[inline]
     fn sipush(&self) {
         let v = read_i2!(self.frame.pc, self.code);
-
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
@@ -1028,7 +1075,6 @@ impl<'a> Interp<'a> {
     #[inline]
     fn bipush(&self) {
         let v = (read_byte!(self.frame.pc, self.code) as i8) as i32;
-
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
@@ -1454,7 +1500,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_int();
         if v2 == 0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1471,7 +1516,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_long();
         if v2 == 0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1488,7 +1532,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_float();
         if v2 == 0.0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1505,7 +1548,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_double();
         if v2 == 0.0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1522,7 +1564,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_int();
         if v2 == 0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1539,7 +1580,6 @@ impl<'a> Interp<'a> {
         let v1 = stack.pop_long();
         if v2 == 0 {
             drop(stack);
-
             exception::meet_ex(
                 cls_const::J_ARITHMETIC_EX,
                 Some("divide by zero".to_string()),
@@ -1642,7 +1682,6 @@ impl<'a> Interp<'a> {
         let op_widen = self.op_widen;
         let pos;
         let factor;
-
         if op_widen {
             self.op_widen = false;
             pos = read_u2!(self.frame.pc, self.code);
@@ -1815,7 +1854,6 @@ impl<'a> Interp<'a> {
             std::cmp::Ordering::Less => 1,
             std::cmp::Ordering::Equal => 0,
         };
-
         stack.push_int(v);
     }
 
@@ -1833,7 +1871,6 @@ impl<'a> Interp<'a> {
         } else {
             0
         };
-
         stack.push_int(v);
     }
 
@@ -1851,7 +1888,6 @@ impl<'a> Interp<'a> {
         } else {
             0
         };
-
         stack.push_int(v);
     }
 
@@ -1869,7 +1905,6 @@ impl<'a> Interp<'a> {
         } else {
             0
         };
-
         stack.push_int(v);
     }
 
@@ -1890,173 +1925,10 @@ impl<'a> Interp<'a> {
     }
 
     #[inline]
-    fn ifeq(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v == 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn ifne(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v != 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn iflt(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v < 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn ifge(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v >= 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn ifgt(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v > 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn ifle(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v = stack.pop_int();
-
-        if v <= 0 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmpeq(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 == v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmpne(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 != v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmplt(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 < v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmpge(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 >= v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmpgt(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 > v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
-    fn if_icmple(&self) {
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let v2 = stack.pop_int();
-        let v1 = stack.pop_int();
-
-        if v1 <= v2 {
-            drop(stack);
-            self.goto_by_offset_hardcoded(2);
-        } else {
-            let _ = self.frame.pc.fetch_add(2, Ordering::Relaxed);
-        }
-    }
-
-    #[inline]
     fn if_acmpeq(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
-
         if OopPtr::is_eq(&v1, &v2) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
@@ -2070,7 +1942,6 @@ impl<'a> Interp<'a> {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
-
         if !OopPtr::is_eq(&v1, &v2) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
@@ -2093,14 +1964,12 @@ impl<'a> Interp<'a> {
     #[inline]
     fn ret(&mut self) {
         let op_widen = self.op_widen;
-
         let pc = if op_widen {
             self.op_widen = false;
             read_u2!(self.frame.pc, self.code)
         } else {
             read_u1!(self.frame.pc, self.code)
         };
-
         self.frame.pc.store(pc as i32, Ordering::Relaxed);
     }
 
@@ -2377,36 +2246,15 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn new_array(&self) {
-        let t = read_byte!(self.frame.pc, self.code);
-
+        let ary_type = read_byte!(self.frame.pc, self.code);
         let mut stack = self.frame.area.stack.borrow_mut();
         let len = stack.pop_int();
-
         if len < 0 {
             drop(stack);
             exception::meet_ex(cls_const::J_NASE, Some("length < 0".to_string()));
         } else {
             let len = len as usize;
-            let ary = match t {
-                //boolean
-                4 => Oop::new_bool_ary(len),
-                //char
-                5 => Oop::new_char_ary(len),
-                //float
-                6 => Oop::new_float_ary(len),
-                //double
-                7 => Oop::new_double_ary(len),
-                //byte
-                8 => Oop::new_byte_ary(len),
-                //short
-                9 => Oop::new_short_ary(len),
-                //int
-                10 => Oop::new_int_ary(len),
-                //long
-                11 => Oop::new_long_ary(len),
-                _ => unreachable!(),
-            };
-
+            let ary = Oop::new_type_ary(ary_type, len);
             stack.push_ref(ary);
         }
     }
