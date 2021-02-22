@@ -114,7 +114,10 @@ impl Stack {
     }
 
     #[inline]
-    pub fn push_ref(&mut self, v: Oop) {
+    pub fn push_ref(&mut self, v: Oop, with_nop: bool) {
+        if with_nop {
+            self.push_nop();
+        }
         self.inner.push(Slot::Ref(v));
     }
 
@@ -129,6 +132,7 @@ impl Stack {
             Slot::Const4 => 4,
             Slot::Const5 => 5,
             Slot::I32(v) => v,
+            Slot::Ref(v) => v.extract_int(),
             _ => panic!("Illegal type"),
         }
     }
@@ -140,6 +144,7 @@ impl Stack {
             Slot::Const1 => 1.0,
             Slot::Const2 => 2.0,
             Slot::F32(v) => v,
+            Slot::Ref(v) => v.extract_float(),
             _ => panic!("Illegal type"),
         }
     }
@@ -153,6 +158,7 @@ impl Stack {
                     Slot::Const0 => 0.0,
                     Slot::Const1 => 1.0,
                     Slot::F64(v) => v,
+                    Slot::Ref(v) => v.extract_double(),
                     _ => panic!("Illegal type"),
                 }
             }
@@ -169,6 +175,7 @@ impl Stack {
                     Slot::Const0 => 0,
                     Slot::Const1 => 1,
                     Slot::I64(v) => v,
+                    Slot::Ref(v) => v.extract_long(),
                     _ => panic!("Illegal type"),
                 }
             }

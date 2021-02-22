@@ -358,31 +358,10 @@ fn build_args_from_caller_stack(caller: &DataArea, sig: &MethodSignature) -> Vec
 }
 
 pub fn set_return(caller: &DataArea, return_type: &SignatureType, v: Oop) {
+    let with_nop = match return_type {
+        SignatureType::Double | SignatureType::Long => true,
+        _ => false,
+    };
     let mut stack = caller.stack.borrow_mut();
-    match return_type {
-        SignatureType::Byte
-        | SignatureType::Short
-        | SignatureType::Char
-        | SignatureType::Int
-        | SignatureType::Boolean => {
-            let v = v.extract_int();
-            stack.push_int(v);
-        }
-        SignatureType::Long => {
-            let v = v.extract_long();
-            stack.push_long(v);
-        }
-        SignatureType::Float => {
-            let v = v.extract_float();
-            stack.push_float(v);
-        }
-        SignatureType::Double => {
-            let v = v.extract_double();
-            stack.push_double(v);
-        }
-        SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
-            stack.push_ref(v);
-        }
-        SignatureType::Void => unimplemented!(),
-    }
+    stack.push_ref(v, with_nop);
 }

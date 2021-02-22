@@ -133,7 +133,7 @@ macro_rules! opcode_load {
     (a, $interp:ident, $pos:expr) => {
         let v = $interp.local.get_ref($pos);
         let mut stack = $interp.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        stack.push_ref(v, false);
     };
 }
 
@@ -746,7 +746,7 @@ impl<'a> Interp<'a> {
                 let s = util::oop::new_java_lang_string3(s.as_slice());
 
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_ref(s);
+                stack.push_ref(s, false);
             }
             ConstantPoolType::Class { name_index } => {
                 let name = get_cp_utf8(&self.cp, *name_index as usize);
@@ -759,7 +759,7 @@ impl<'a> Interp<'a> {
 
                 let mirror = { class.get_class().get_mirror() };
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_ref(mirror);
+                stack.push_ref(mirror, false);
             }
             _ => unreachable!(),
         }
@@ -812,34 +812,12 @@ impl<'a> Interp<'a> {
             let rf = receiver.extract_ref();
             Class::get_field_value2(rf, fir.offset)
         };
-
-        match value_type {
-            ValueType::INT
-            | ValueType::SHORT
-            | ValueType::CHAR
-            | ValueType::BOOLEAN
-            | ValueType::BYTE => {
-                let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_int(v.extract_int());
-            }
-            ValueType::FLOAT => {
-                let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_float(v.extract_float());
-            }
-            ValueType::DOUBLE => {
-                let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_double(v.extract_double());
-            }
-            ValueType::LONG => {
-                let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_long(v.extract_long());
-            }
-            ValueType::OBJECT | ValueType::ARRAY => {
-                let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_ref(v)
-            }
-            _ => unreachable!(),
-        }
+        let with_nop = match value_type {
+            ValueType::DOUBLE | ValueType::LONG => true,
+            _ => false,
+        };
+        let mut stack = self.frame.area.stack.borrow_mut();
+        stack.push_ref(v, with_nop);
     }
 
     fn put_field_helper(&self, idx: usize, is_static: bool) {
@@ -923,7 +901,7 @@ impl<'a> Interp<'a> {
         let op_check_cast = |r: bool, obj_cls: ClassRef, target_cls: ClassRef| {
             if r {
                 let mut stack = self.frame.area.stack.borrow_mut();
-                stack.push_ref(obj_rf_clone);
+                stack.push_ref(obj_rf_clone, false);
             } else {
                 let obj_name = { obj_cls.get_class().name.clone() };
                 let target_name = { target_cls.get_class().name.clone() };
@@ -948,7 +926,7 @@ impl<'a> Interp<'a> {
             Oop::Null => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 if is_cast {
-                    stack.push_ref(obj_rf);
+                    stack.push_ref(obj_rf, false);
                 } else {
                     stack.push_const0(false);
                 }
@@ -1034,7 +1012,7 @@ impl<'a> Interp<'a> {
             Some(pc) => {
                 let mut stack = self.frame.area.stack.borrow_mut();
                 stack.clear();
-                stack.push_ref(ex);
+                stack.push_ref(ex, false);
                 drop(stack);
 
                 let line_num = self.frame.mir.method.get_line_num(pc);
@@ -1265,7 +1243,7 @@ impl<'a> Interp<'a> {
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
                     let v = ary[pos as usize].clone();
-                    stack.push_ref(v);
+                    stack.push_ref(v, false);
                 }
             }
             _ => unreachable!(),
@@ -2241,7 +2219,7 @@ impl<'a> Interp<'a> {
 
         let v = oop::Oop::new_inst(class);
         let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(v);
+        stack.push_ref(v, false);
     }
 
     #[inline]
@@ -2255,7 +2233,7 @@ impl<'a> Interp<'a> {
         } else {
             let len = len as usize;
             let ary = Oop::new_type_ary(ary_type, len);
-            stack.push_ref(ary);
+            stack.push_ref(ary, false);
         }
     }
 
@@ -2315,7 +2293,7 @@ impl<'a> Interp<'a> {
 
                     let ary = Oop::new_ref_ary(ary_cls_obj, length as usize);
                     let mut stack = self.frame.area.stack.borrow_mut();
-                    stack.push_ref(ary);
+                    stack.push_ref(ary, false);
                 }
                 None => unreachable!(),
             }
@@ -2424,7 +2402,7 @@ impl<'a> Interp<'a> {
         let ary = new_multi_object_array_helper(cls, &lens, 0);
 
         let mut stack = self.frame.area.stack.borrow_mut();
-        stack.push_ref(ary);
+        stack.push_ref(ary, false);
     }
 
     #[inline]
