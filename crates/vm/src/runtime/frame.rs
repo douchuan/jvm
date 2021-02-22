@@ -29,6 +29,8 @@ impl Frame {
             let cls_obj = class.extract_inst();
             cls_obj.class_file.cp.clone()
         };
+        let pc = std::sync::atomic::AtomicI32::new(0);
+        let ex_here = std::sync::atomic::AtomicBool::new(false);
 
         // trace!("method.code.is_some = {}", mir.method.code.is_some());
         match &mir.method.code {
@@ -43,8 +45,8 @@ impl Frame {
                     cp,
                     mir,
                     code,
-                    pc: std::sync::atomic::AtomicI32::new(0),
-                    ex_here: std::sync::atomic::AtomicBool::new(false),
+                    pc,
+                    ex_here,
                     area,
                 }
             }
@@ -55,8 +57,8 @@ impl Frame {
                 cp: Arc::new(Vec::new()),
                 mir,
                 code: Arc::new(vec![]),
-                pc: std::sync::atomic::AtomicI32::new(0),
-                ex_here: std::sync::atomic::AtomicBool::new(false),
+                pc,
+                ex_here,
                 area: DataArea::new(0),
             },
         }
