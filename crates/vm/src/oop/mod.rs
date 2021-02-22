@@ -11,7 +11,7 @@ use crate::runtime::{require_class3, ClassLoader};
 use crate::types::*;
 use crate::util::oop::{get_java_lang_integer_value_offset, get_java_lang_string_value_offset};
 
-pub use self::ary::{ArrayOopDesc, TypeArrayDesc};
+pub use self::ary::{ArrayOopDesc, TypeArrayDesc, TypeArrayEnum};
 pub use self::class::{Class, ClassKind};
 pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
@@ -96,6 +96,19 @@ impl Oop {
 
 //primitive ary value factor
 impl Oop {
+    pub fn new_type_ary(v: u8, len: usize) -> Oop {
+        match TypeArrayEnum::from(v) {
+            TypeArrayEnum::Boolean => Self::new_bool_ary(len),
+            TypeArrayEnum::Char => Self::new_char_ary(len),
+            TypeArrayEnum::Float => Self::new_float_ary(len),
+            TypeArrayEnum::Double => Self::new_double_ary(len),
+            TypeArrayEnum::Byte => Self::new_byte_ary(len),
+            TypeArrayEnum::Short => Self::new_short_ary(len),
+            TypeArrayEnum::Int => Self::new_int_ary(len),
+            TypeArrayEnum::Long => Self::new_long_ary(len),
+        }
+    }
+
     pub fn char_ary_from1(v: &[u16]) -> Oop {
         let elms = Vec::from(v);
         Self::new_char_ary2(elms)
@@ -106,37 +119,37 @@ impl Oop {
         Self::new_byte_ary2(elms)
     }
 
-    pub fn new_bool_ary(len: usize) -> Oop {
+    fn new_bool_ary(len: usize) -> Oop {
         let elms = vec![0; len];
         Self::new_bool_ary2(elms)
     }
 
-    pub fn new_char_ary(len: usize) -> Oop {
+    fn new_char_ary(len: usize) -> Oop {
         let elms = vec![0; len];
         Self::new_char_ary2(elms)
     }
 
-    pub fn new_short_ary(len: usize) -> Oop {
+    fn new_short_ary(len: usize) -> Oop {
         let elms = vec![0; len];
         Self::new_short_ary2(elms)
     }
 
-    pub fn new_int_ary(len: usize) -> Oop {
+    fn new_int_ary(len: usize) -> Oop {
         let elms = vec![0; len];
         Self::new_int_ary2(elms)
     }
 
-    pub fn new_float_ary(len: usize) -> Oop {
+    fn new_float_ary(len: usize) -> Oop {
         let elms = vec![0.0; len];
         Self::new_float_ary2(elms)
     }
 
-    pub fn new_double_ary(len: usize) -> Oop {
+    fn new_double_ary(len: usize) -> Oop {
         let elms = vec![0.0; len];
         Self::new_double_ary2(elms)
     }
 
-    pub fn new_long_ary(len: usize) -> Oop {
+    fn new_long_ary(len: usize) -> Oop {
         let elms = vec![0; len];
         Self::new_long_ary2(elms)
     }

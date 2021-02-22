@@ -19,6 +19,17 @@ pub enum TypeArrayDesc {
     Long(LongAry),
 }
 
+pub enum TypeArrayEnum {
+    Boolean,
+    Char,
+    Float,
+    Double,
+    Byte,
+    Short,
+    Int,
+    Long,
+}
+
 impl ArrayOopDesc {
     pub fn new(class: ClassRef, elements: Vec<Oop>) -> Self {
         {
@@ -162,6 +173,22 @@ impl TypeArrayDesc {
     pub fn extract_mut_longs(&mut self) -> &mut LongAry {
         match self {
             TypeArrayDesc::Long(v) => v,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<u8> for TypeArrayEnum {
+    fn from(b: u8) -> Self {
+        match b {
+            4 => Self::Boolean,
+            5 => Self::Char,
+            6 => Self::Float,
+            7 => Self::Double,
+            8 => Self::Byte,
+            9 => Self::Short,
+            10 => Self::Int,
+            11 => Self::Long,
             _ => unreachable!(),
         }
     }
