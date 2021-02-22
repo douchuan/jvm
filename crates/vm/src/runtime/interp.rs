@@ -980,6 +980,7 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline]
     fn opcode_pos(&mut self) -> usize {
         let op_widen = self.op_widen;
         if op_widen {
