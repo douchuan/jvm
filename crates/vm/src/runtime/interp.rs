@@ -765,19 +765,23 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline]
     fn goto_abs(&self, pc: i32) {
         self.frame.pc.store(pc, Ordering::Relaxed);
     }
 
+    #[inline]
     fn goto_by_offset(&self, branch: i32) {
         let _ = self.frame.pc.fetch_add(branch, Ordering::Relaxed);
     }
 
+    #[inline]
     fn goto_by_offset_with_occupied(&self, branch: i32, occupied: i32) {
         self.goto_by_offset(branch);
         self.goto_by_offset(-(occupied - 1));
     }
 
+    #[inline]
     fn goto_by_offset_hardcoded(&self, occupied: i32) {
         let pc = self.frame.pc.load(Ordering::Relaxed);
         let high = self.code[pc as usize] as i16;
@@ -787,6 +791,7 @@ impl<'a> Interp<'a> {
         self.goto_by_offset_with_occupied(branch as i32, occupied);
     }
 
+    #[inline]
     fn goto_abs_with_occupied(&self, pc: i32, occupied: i32) {
         self.goto_abs(pc);
         self.goto_by_offset(-(occupied - 1));
@@ -800,13 +805,11 @@ impl<'a> Interp<'a> {
     fn get_field_helper(&self, receiver: Oop, idx: usize, is_static: bool) {
         let class = self.frame.class.extract_inst();
         let fir = class.cp_cache.get_field(idx, is_static);
-
         debug_assert_eq!(fir.field.is_static(), is_static);
         trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
-
         let value_type = fir.field.value_type;
-        let class = fir.field.class.get_class();
         let v = if is_static {
+            let class = fir.field.class.get_class();
             class.get_static_field_value(fir.clone())
         } else {
             let rf = receiver.extract_ref();
@@ -820,49 +823,46 @@ impl<'a> Interp<'a> {
         stack.push_ref(v, with_nop);
     }
 
-    fn put_field_helper(&self, idx: usize, is_static: bool) {
-        let class = self.frame.class.extract_inst();
-        let fir = class.cp_cache.get_field(idx, is_static);
-
-        debug_assert_eq!(fir.field.is_static(), is_static);
-        trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
-
-        let value_type = fir.field.value_type;
-        //        info!("value_type = {:?}", value_type);
-        let v = match value_type {
+    fn pop_value(&self, vt: ValueType) -> Oop {
+        let mut stack = self.frame.area.stack.borrow_mut();
+        match vt {
             ValueType::INT
             | ValueType::SHORT
             | ValueType::CHAR
             | ValueType::BOOLEAN
             | ValueType::BYTE => {
-                let mut stack = self.frame.area.stack.borrow_mut();
                 let v = stack.pop_int();
                 Oop::new_int(v)
             }
             ValueType::FLOAT => {
-                let mut stack = self.frame.area.stack.borrow_mut();
                 let v = stack.pop_float();
                 Oop::new_float(v)
             }
             ValueType::DOUBLE => {
-                let mut stack = self.frame.area.stack.borrow_mut();
                 let v = stack.pop_double();
                 Oop::new_double(v)
             }
             ValueType::LONG => {
-                let mut stack = self.frame.area.stack.borrow_mut();
                 let v = stack.pop_long();
                 Oop::new_long(v)
             }
             ValueType::ARRAY | ValueType::OBJECT => {
-                let mut stack = self.frame.area.stack.borrow_mut();
                 stack.pop_ref()
             }
             _ => unreachable!(),
-        };
+        }
+    }
 
-        let mut class = fir.field.class.get_mut_class();
+    fn put_field_helper(&self, idx: usize, is_static: bool) {
+        let class = self.frame.class.extract_inst();
+        let fir = class.cp_cache.get_field(idx, is_static);
+        debug_assert_eq!(fir.field.is_static(), is_static);
+        trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
+        let value_type = fir.field.value_type;
+        //        info!("value_type = {:?}", value_type);
+        let v = self.pop_value(value_type);
         if is_static {
+            let mut class = fir.field.class.get_mut_class();
             class.put_static_field_value(fir.clone(), v);
         } else {
             let receiver = {
@@ -892,11 +892,7 @@ impl<'a> Interp<'a> {
     pub fn check_cast_helper(&self, is_cast: bool) {
         let cp_idx = read_i2!(self.frame.pc, self.code);
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
-
-        let mut stack = self.frame.area.stack.borrow_mut();
-        let obj_rf = stack.pop_ref();
-        drop(stack);
-
+        let obj_rf = self.pop_value(ValueType::OBJECT);
         let obj_rf_clone = obj_rf.clone();
         let op_check_cast = |r: bool, obj_cls: ClassRef, target_cls: ClassRef| {
             if r {
