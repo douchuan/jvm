@@ -17,7 +17,7 @@ use crate::runtime::{
     self, method, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread,
 };
 use crate::types::*;
-use crate::util;
+use crate::{native, util};
 
 pub struct ClassPtr(u64);
 
@@ -626,10 +626,7 @@ impl Class {
                     let it = cls.all_methods.get_mut(&k).unwrap();
                     let mut method = it.method.clone();
                     method.acc_flags |= ACC_NATIVE;
-                    let m = Arc::new(method::MethodId {
-                        offset: it.offset,
-                        method,
-                    });
+                    let m = method::MethodId::new(it.offset, method);
                     cls.all_methods.insert(k, m.clone());
 
                     m
@@ -899,12 +896,10 @@ impl ClassObject {
                 i,
                 cls_name.clone(),
             );
-            let method_id = Arc::new(method::MethodId { offset: i, method });
-
+            let method_id = method::MethodId::new(i, method);
             let name = method_id.method.name.clone();
             let desc = method_id.method.desc.clone();
             let k = (name, desc);
-
             self.all_methods.insert(k.clone(), method_id.clone());
 
             if !method_id.method.is_static() {

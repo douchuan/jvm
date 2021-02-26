@@ -1,11 +1,12 @@
+use crate::native::JNINativeMethod;
 use crate::oop::{self, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
 use crate::runtime::{self, require_class2};
 use crate::types::ClassRef;
 use crate::types::*;
-use crate::util;
 use crate::util::PATH_SEP;
+use crate::{native, util};
 use class_parser::MethodSignature;
 use classfile::{
     attributes::Code, attributes::LineNumber, constant_pool, consts, flags::*, AttributeType,
@@ -50,10 +51,30 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MethodId {
     pub offset: usize,
     pub method: Method,
+    pub native_impl: Option<JNINativeMethod>,
+}
+
+impl MethodId {
+    pub fn new(offset: usize, method: Method) -> Arc<Self> {
+        let native_impl = if method.is_native() {
+            let package = method.class.get_class().name.as_slice();
+            let desc = method.desc.as_slice();
+            let name = method.name.as_slice();
+            native::find_symbol(package, name, desc)
+        } else {
+            None
+        };
+
+        Arc::new(Self {
+            offset,
+            method,
+            native_impl,
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -232,6 +253,19 @@ impl Method {
 
     pub fn is_interface(&self) -> bool {
         self.acc_flags & ACC_INTERFACE != 0
+    }
+}
+
+impl fmt::Debug for MethodId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let cls_name = unsafe { std::str::from_utf8_unchecked(self.method.cls_name.as_slice()) };
+        let name = unsafe { std::str::from_utf8_unchecked(self.method.name.as_slice()) };
+        let desc = unsafe { std::str::from_utf8_unchecked(self.method.desc.as_slice()) };
+        write!(
+            f,
+            "{}:{}:{}, offset = {}",
+            cls_name, name, desc, self.offset
+        )
     }
 }
 

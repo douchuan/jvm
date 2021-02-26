@@ -846,9 +846,7 @@ impl<'a> Interp<'a> {
                 let v = stack.pop_long();
                 Oop::new_long(v)
             }
-            ValueType::ARRAY | ValueType::OBJECT => {
-                stack.pop_ref()
-            }
+            ValueType::ARRAY | ValueType::OBJECT => stack.pop_ref(),
             _ => unreachable!(),
         }
     }
