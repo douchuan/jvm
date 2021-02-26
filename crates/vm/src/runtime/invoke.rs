@@ -1,4 +1,5 @@
 use crate::native;
+use crate::native::JNINativeMethodStruct;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::local::Local;
 use crate::runtime::{self, exception, frame::Frame, thread, DataArea, Interp};
@@ -139,31 +140,31 @@ impl JavaCall {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
-        let v = match self.mir.native_impl.clone() {
-            Some(method) => {
-                let class = self.mir.method.class.clone();
-                let env = native::new_jni_env(class);
-                match self.prepare_frame() {
-                    Ok(frame) => {
-                        {
-                            jt.write().unwrap().frames.push(frame);
-                        }
+        let v = match self.prepare_frame() {
+            Ok(frame) => {
+                {
+                    jt.write().unwrap().frames.push(frame);
+                }
+                match &self.mir.native_impl {
+                    Some(method) => {
+                        let class = self.mir.method.class.clone();
+                        let env = native::new_jni_env(class);
                         method.invoke(env, &self.args)
                     }
-                    Err(ex) => Err(ex),
+                    None => {
+                        let package = self.mir.method.class.get_class().name.as_slice();
+                        let desc = self.mir.method.desc.as_slice();
+                        let name = self.mir.method.name.as_slice();
+                        panic!(
+                            "Native method not found: {}:{}:{}",
+                            unsafe { std::str::from_utf8_unchecked(package) },
+                            unsafe { std::str::from_utf8_unchecked(name) },
+                            unsafe { std::str::from_utf8_unchecked(desc) },
+                        )
+                    }
                 }
             }
-            None => {
-                let package = self.mir.method.class.get_class().name.as_slice();
-                let desc = self.mir.method.desc.as_slice();
-                let name = self.mir.method.name.as_slice();
-                panic!(
-                    "Native method not found: {}:{}:{}",
-                    unsafe { std::str::from_utf8_unchecked(package) },
-                    unsafe { std::str::from_utf8_unchecked(name) },
-                    unsafe { std::str::from_utf8_unchecked(desc) },
-                )
-            }
+            Err(ex) => Err(ex),
         };
 
         match v {
