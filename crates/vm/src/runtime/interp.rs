@@ -260,9 +260,10 @@ impl<'a> Interp<'a> {
 impl<'a> Interp<'a> {
     pub fn run(&mut self) {
         let jt = runtime::thread::current_java_thread();
+        let codes = self.code.clone();
 
         loop {
-            let code = read_byte!(self.frame.pc, self.code);
+            let code = read_byte!(self.frame.pc, codes);
             let code = OpCode::from(code);
             match code {
                 OpCode::athrow => {
@@ -783,9 +784,10 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn goto_by_offset_hardcoded(&self, occupied: i32) {
+        let codes = &self.code;
         let pc = self.frame.pc.load(Ordering::Relaxed);
-        let high = self.code[pc as usize] as i16;
-        let low = self.code[(pc + 1) as usize] as i16;
+        let high = codes[pc as usize] as i16;
+        let low = codes[(pc + 1) as usize] as i16;
         let branch = (high << 8) | low;
 
         self.goto_by_offset_with_occupied(branch as i32, occupied);
@@ -888,7 +890,8 @@ impl<'a> Interp<'a> {
     }
 
     pub fn check_cast_helper(&self, is_cast: bool) {
-        let cp_idx = read_i2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_i2!(self.frame.pc, codes);
         let target_cls = require_class2(cp_idx as U2, &self.cp).unwrap();
         let obj_rf = self.pop_value(ValueType::OBJECT);
         let obj_rf_clone = obj_rf.clone();
@@ -976,12 +979,13 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn opcode_pos(&mut self) -> usize {
+        let codes = &self.code;
         let op_widen = self.op_widen;
         if op_widen {
             self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
+            read_u2!(self.frame.pc, codes)
         } else {
-            read_u1!(self.frame.pc, self.code)
+            read_u1!(self.frame.pc, codes)
         }
     }
 }
@@ -1040,27 +1044,31 @@ impl<'a> Interp<'a> {
 impl<'a> Interp<'a> {
     #[inline]
     fn sipush(&self) {
-        let v = read_i2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let v = read_i2!(self.frame.pc, codes);
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn bipush(&self) {
-        let v = (read_byte!(self.frame.pc, self.code) as i8) as i32;
+        let codes = &self.code;
+        let v = (read_byte!(self.frame.pc, codes) as i8) as i32;
         let mut stack = self.frame.area.stack.borrow_mut();
         stack.push_int(v);
     }
 
     #[inline]
     fn ldc(&self) {
-        let pos = read_u1!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let pos = read_u1!(self.frame.pc, codes);
         self.load_constant(pos);
     }
 
     #[inline]
     fn ldc_w(&self) {
-        let pos = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let pos = read_u2!(self.frame.pc, codes);
         self.load_constant(pos);
     }
 
@@ -1652,16 +1660,17 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn iinc(&mut self) {
+        let codes = &self.code;
         let op_widen = self.op_widen;
         let pos;
         let factor;
         if op_widen {
             self.op_widen = false;
-            pos = read_u2!(self.frame.pc, self.code);
-            factor = (read_u2!(self.frame.pc, self.code) as i16) as i32
+            pos = read_u2!(self.frame.pc, codes);
+            factor = (read_u2!(self.frame.pc, codes) as i16) as i32
         } else {
-            pos = read_u1!(self.frame.pc, self.code);
-            factor = (read_byte!(self.frame.pc, self.code) as i8) as i32
+            pos = read_u1!(self.frame.pc, codes);
+            factor = (read_byte!(self.frame.pc, codes) as i8) as i32
         };
 
         let v = self.local.get_int(pos);
@@ -1936,18 +1945,20 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn ret(&mut self) {
+        let codes = &self.code;
         let op_widen = self.op_widen;
         let pc = if op_widen {
             self.op_widen = false;
-            read_u2!(self.frame.pc, self.code)
+            read_u2!(self.frame.pc, codes)
         } else {
-            read_u1!(self.frame.pc, self.code)
+            read_u1!(self.frame.pc, codes)
         };
         self.frame.pc.store(pc as i32, Ordering::Relaxed);
     }
 
     #[inline]
     fn table_switch(&self) {
+        let codes = &self.code;
         let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
@@ -1957,25 +1968,21 @@ impl<'a> Interp<'a> {
             bc += 4;
         }
         let mut ptr = bc as usize;
-        let default_byte = [
-            self.code[ptr],
-            self.code[ptr + 1],
-            self.code[ptr + 2],
-            self.code[ptr + 3],
-        ];
+
+        let default_byte = [codes[ptr], codes[ptr + 1], codes[ptr + 2], codes[ptr + 3]];
         let default_byte = i32::from_be_bytes(default_byte);
         let low_byte = [
-            self.code[ptr + 4],
-            self.code[ptr + 5],
-            self.code[ptr + 6],
-            self.code[ptr + 7],
+            codes[ptr + 4],
+            codes[ptr + 5],
+            codes[ptr + 6],
+            codes[ptr + 7],
         ];
         let low_byte = i32::from_be_bytes(low_byte);
         let high_byte = [
-            self.code[ptr + 8],
-            self.code[ptr + 9],
-            self.code[ptr + 10],
-            self.code[ptr + 11],
+            codes[ptr + 8],
+            codes[ptr + 9],
+            codes[ptr + 10],
+            codes[ptr + 11],
         ];
         let high_byte = i32::from_be_bytes(high_byte);
         let num = high_byte - low_byte + 1;
@@ -1984,12 +1991,7 @@ impl<'a> Interp<'a> {
         // switch-case jump table
         let mut jump_table = Vec::with_capacity(num as usize);
         for pos in 0..num {
-            let pos = [
-                self.code[ptr],
-                self.code[ptr + 1],
-                self.code[ptr + 2],
-                self.code[ptr + 3],
-            ];
+            let pos = [codes[ptr], codes[ptr + 1], codes[ptr + 2], codes[ptr + 3]];
             let pos = i32::from_be_bytes(pos);
             let jump_pos = pos + origin_bc;
             ptr += 4;
@@ -2014,6 +2016,7 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn lookup_switch(&self) {
+        let codes = &self.code;
         let mut bc = self.frame.pc.load(Ordering::Relaxed) - 1;
 
         let origin_bc = bc;
@@ -2024,36 +2027,26 @@ impl<'a> Interp<'a> {
         }
         let mut ptr = bc as usize;
 
-        let default_byte = [
-            self.code[ptr],
-            self.code[ptr + 1],
-            self.code[ptr + 2],
-            self.code[ptr + 3],
-        ];
+        let default_byte = [codes[ptr], codes[ptr + 1], codes[ptr + 2], codes[ptr + 3]];
         let default_byte = u32::from_be_bytes(default_byte);
         let count = [
-            self.code[ptr + 4],
-            self.code[ptr + 5],
-            self.code[ptr + 6],
-            self.code[ptr + 7],
+            codes[ptr + 4],
+            codes[ptr + 5],
+            codes[ptr + 6],
+            codes[ptr + 7],
         ];
         let count = u32::from_be_bytes(count);
         ptr += 8;
 
         let mut jump_table: HashMap<u32, u32> = HashMap::new();
         for i in 0..count {
-            let value = [
-                self.code[ptr],
-                self.code[ptr + 1],
-                self.code[ptr + 2],
-                self.code[ptr + 3],
-            ];
+            let value = [codes[ptr], codes[ptr + 1], codes[ptr + 2], codes[ptr + 3]];
             let value = u32::from_be_bytes(value);
             let position = [
-                self.code[ptr + 4],
-                self.code[ptr + 5],
-                self.code[ptr + 6],
-                self.code[ptr + 7],
+                codes[ptr + 4],
+                codes[ptr + 5],
+                codes[ptr + 6],
+                codes[ptr + 7],
             ];
             let position = u32::from_be_bytes(position) + origin_bc as u32;
             ptr += 8;
@@ -2126,19 +2119,22 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn get_static(&self) {
-        let cp_idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_u2!(self.frame.pc, codes);
         self.get_field_helper(oop_consts::get_null(), cp_idx, true);
     }
 
     #[inline]
     fn put_static(&self) {
-        let cp_idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_u2!(self.frame.pc, codes);
         self.put_field_helper(cp_idx, true);
     }
 
     #[inline]
     fn get_field(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let rf = stack.pop_ref();
@@ -2156,33 +2152,38 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn put_field(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
         self.put_field_helper(idx, false);
     }
 
     #[inline]
     fn invoke_virtual(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
         self.invoke_helper(false, idx, false);
     }
 
     #[inline]
     fn invoke_special(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
         self.invoke_helper(false, idx, true);
     }
 
     #[inline]
     fn invoke_static(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
         self.invoke_helper(true, idx, true);
     }
 
     #[inline]
     fn invoke_interface(&self) {
-        let cp_idx = read_u2!(self.frame.pc, self.code);
-        let _count = read_u1!(self.frame.pc, self.code);
-        let zero = read_u1!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_u2!(self.frame.pc, codes);
+        let _count = read_u1!(self.frame.pc, codes);
+        let zero = read_u1!(self.frame.pc, codes);
         if zero != 0 {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
@@ -2198,7 +2199,8 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn new_(&self) {
-        let idx = read_u2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let idx = read_u2!(self.frame.pc, codes);
 
         let class = {
             match runtime::require_class2(idx as u16, &self.cp) {
@@ -2219,7 +2221,8 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn new_array(&self) {
-        let ary_type = read_byte!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let ary_type = read_byte!(self.frame.pc, codes);
         let mut stack = self.frame.area.stack.borrow_mut();
         let len = stack.pop_int();
         if len < 0 {
@@ -2234,7 +2237,8 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn anew_array(&self) {
-        let cp_idx = read_i2!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_i2!(self.frame.pc, codes);
 
         let mut stack = self.frame.area.stack.borrow_mut();
         let length = stack.pop_int();
@@ -2381,8 +2385,9 @@ impl<'a> Interp<'a> {
 
     #[inline]
     fn multi_anew_array(&self) {
-        let cp_idx = read_u2!(self.frame.pc, self.code);
-        let dimension = read_u1!(self.frame.pc, self.code);
+        let codes = &self.code;
+        let cp_idx = read_u2!(self.frame.pc, codes);
+        let dimension = read_u1!(self.frame.pc, codes);
 
         let mut lens = Vec::new();
         let mut stack = self.frame.area.stack.borrow_mut();
