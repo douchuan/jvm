@@ -41,11 +41,9 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
             _ => unreachable!(),
         }
     };
-
-    let null = oop_consts::get_null();
-    let mut field_values = vec![null; n];
-
+    let mut field_values = vec![Oop::Null; n];
     let mut cur_cls = class;
+
     loop {
         let cls = cur_cls.clone();
         let cls = cls.get_class();
@@ -170,7 +168,7 @@ impl Field {
             ValueType::LONG => oop_consts::get_long0(),
             ValueType::FLOAT => oop_consts::get_float0(),
             ValueType::DOUBLE => oop_consts::get_double0(),
-            ValueType::OBJECT | ValueType::ARRAY => oop_consts::get_null(),
+            ValueType::OBJECT | ValueType::ARRAY => Oop::Null,
             _ => unreachable!(),
         }
     }

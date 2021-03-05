@@ -63,7 +63,7 @@ impl Stack {
 
     #[inline]
     pub fn push_null(&mut self) {
-        self.inner.push(Slot::Ref(consts::get_null()));
+        self.inner.push(Slot::Ref(Oop::Null));
     }
 
     #[inline]
@@ -191,6 +191,7 @@ impl Stack {
         }
     }
 
+    #[inline]
     pub fn drop_top(&mut self) {
         let _ = self.inner.pop();
     }

@@ -318,7 +318,7 @@ fn arraycopy_same_obj(buf: Arc<OopPtr>, src_pos: usize, dest_pos: usize, length:
     } else {
         let tmp = {
             let ary = buf.extract_array();
-            let mut tmp = vec![oop::consts::get_null(); length];
+            let mut tmp = vec![Oop::Null; length];
 
             let (_, ary) = ary.elements.split_at(src_pos);
             tmp.clone_from_slice(&ary[..length]);

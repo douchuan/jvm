@@ -261,7 +261,7 @@ impl Oop {
 //array reference factory
 impl Oop {
     pub fn new_ref_ary(ary_cls_obj: ClassRef, len: usize) -> Oop {
-        let elements = vec![consts::get_null(); len];
+        let elements = vec![Oop::Null; len];
         Self::new_ref_ary2(ary_cls_obj, elements)
     }
 

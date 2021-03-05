@@ -1,5 +1,5 @@
 use crate::oop;
-use crate::oop::Class;
+use crate::oop::{Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::types::JavaThreadRef;
 use crate::util;
@@ -56,7 +56,7 @@ pub fn initialize_jvm() {
     // Construct the main thread group
     let args = vec![
         main_thread_group.clone(),
-        oop::consts::get_null(),
+        Oop::Null,
         system_thread_group,
         util::oop::new_java_lang_string2("main"),
     ];

@@ -528,10 +528,10 @@ fn jvm_getSuperclass(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                     let mirror = cls.get_mirror();
                     Ok(Some(mirror))
                 }
-                None => Ok(Some(oop::consts::get_null())),
+                None => Ok(Some(Oop::Null)),
             }
         }
-        None => Ok(Some(oop::consts::get_null())),
+        None => Ok(Some(Oop::Null)),
     }
 }
 
@@ -589,7 +589,7 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         unsafe {
             match &(*ptr).v {
                 oop::RefKind::Mirror(mirror) => mirror.target.clone(),
-                _ => return Ok(Some(oop::consts::get_null())),
+                _ => return Ok(Some(Oop::Null)),
             }
         }
     };
@@ -600,12 +600,12 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             match &cls.kind {
                 ClassKind::Instance(cls) => match &cls.enclosing_method {
                     Some(em) => (cls.class_file.clone(), em.clone()),
-                    None => return Ok(Some(oop::consts::get_null())),
+                    None => return Ok(Some(Oop::Null)),
                 },
-                _ => return Ok(Some(oop::consts::get_null())),
+                _ => return Ok(Some(Oop::Null)),
             }
         }
-        None => return Ok(Some(oop::consts::get_null())),
+        None => return Ok(Some(Oop::Null)),
     };
 
     //push EnclosingMethod class mirror
@@ -629,8 +629,8 @@ fn jvm_getEnclosingMethod0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         elms.push(util::oop::new_java_lang_string2(name));
         elms.push(util::oop::new_java_lang_string2(desc));
     } else {
-        elms.push(oop::consts::get_null());
-        elms.push(oop::consts::get_null());
+        elms.push(Oop::Null);
+        elms.push(Oop::Null);
     }
 
     let ary = require_class3(None, b"[Ljava/lang/Object;").unwrap();
@@ -647,7 +647,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         unsafe {
             match &(*ptr).v {
                 oop::RefKind::Mirror(mirror) => mirror.target.clone(),
-                _ => return Ok(Some(oop::consts::get_null())),
+                _ => return Ok(Some(Oop::Null)),
             }
         }
     };
@@ -662,12 +662,12 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                         target.clone(),
                         inner_classes.clone(),
                     ),
-                    None => return Ok(Some(oop::consts::get_null())),
+                    None => return Ok(Some(Oop::Null)),
                 },
-                _ => return Ok(Some(oop::consts::get_null())),
+                _ => return Ok(Some(Oop::Null)),
             }
         }
-        None => return Ok(Some(oop::consts::get_null())),
+        None => return Ok(Some(Oop::Null)),
     };
 
     for it in inner_classes.iter() {
@@ -679,7 +679,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
         if Arc::ptr_eq(&inner_class, &target) {
             return if it.outer_class_info_index == 0 {
-                Ok(Some(oop::consts::get_null()))
+                Ok(Some(Oop::Null))
             } else {
                 let outer_class = require_class2(it.outer_class_info_index, &cls_file.cp).unwrap();
                 let v = outer_class.get_class();
@@ -688,7 +688,7 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         }
     }
 
-    Ok(Some(oop::consts::get_null()))
+    Ok(Some(Oop::Null))
 }
 
 fn jvm_isInstance(_env: JNIEnv, args: &[Oop]) -> JNIResult {
@@ -786,10 +786,10 @@ fn jvm_getRawAnnotations(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             let raw = cls.get_annotation();
             match raw {
                 Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-                None => oop::consts::get_null(),
+                None => Oop::Null,
             }
         }
-        _ => oop::consts::get_null(),
+        _ => Oop::Null,
     };
 
     Ok(Some(annotations))
@@ -810,7 +810,7 @@ fn jvm_getConstantPool(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
             cp_oop
         }
-        _ => oop::consts::get_null(),
+        _ => Oop::Null,
     };
 
     Ok(Some(cp_oop))
@@ -861,12 +861,12 @@ fn jvm_getGenericSignature0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                     let target = mirror.target.clone().unwrap();
                     let cls = target.get_class();
                     let sig = cls.get_attr_signatrue();
-                    sig.map_or_else(oop::consts::get_null, |v| {
+                    sig.map_or(Oop::Null, |v| {
                         let sig = std::str::from_utf8_unchecked(v.as_slice());
                         util::oop::new_java_lang_string2(sig)
                     })
                 } else {
-                    oop::consts::get_null()
+                    Oop::Null
                 }
             }
         }

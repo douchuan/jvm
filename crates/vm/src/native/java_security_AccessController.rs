@@ -70,5 +70,5 @@ fn jvm_doPrivileged3(env: JNIEnv, args: &[Oop]) -> JNIResult {
 }
 
 fn jvm_getStackAccessControlContext(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
-    Ok(Some(oop::consts::get_null()))
+    Ok(Some(Oop::Null))
 }

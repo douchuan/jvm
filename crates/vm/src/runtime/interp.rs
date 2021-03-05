@@ -2132,7 +2132,7 @@ impl<'a> Interp<'a> {
         let pc = &self.frame.pc;
         let codes = &self.code;
         let cp_idx = read_u2!(pc, codes);
-        self.get_field_helper(oop_consts::get_null(), cp_idx, true);
+        self.get_field_helper(Oop::Null, cp_idx, true);
     }
 
     #[inline]

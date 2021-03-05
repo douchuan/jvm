@@ -104,7 +104,7 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                 Some(oop::Oop::new_long(v))
             }
             SignatureType::Object(_, _, _) | SignatureType::Array(_) => Some(stack.pop_ref()),
-            SignatureType::Void => Some(oop::consts::get_null()),
+            SignatureType::Void => Some(Oop::Null),
         }
     };
 

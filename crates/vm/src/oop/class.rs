@@ -859,9 +859,7 @@ impl ClassObject {
         });
 
         self.n_inst_fields = offset_field;
-
-        let null = oop_consts::get_null();
-        self.static_field_values = vec![null; n_static];
+        self.static_field_values = vec![Oop::Null; n_static];
     }
 
     fn link_interfaces(&mut self) {

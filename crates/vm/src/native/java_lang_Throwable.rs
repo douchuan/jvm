@@ -127,7 +127,7 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             &new_br("[Ljava/lang/StackTraceElement;"),
             false,
         );
-        Class::put_field_value(throwable_oop.extract_ref(), id, oop::consts::get_null());
+        Class::put_field_value(throwable_oop.extract_ref(), id, Oop::Null);
         let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
         Class::put_field_value(throwable_oop.extract_ref(), id, stack_trace_ary);
     }
@@ -181,7 +181,7 @@ fn jvm_getStackTraceElement(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         if index >= 0 && (index as usize) < ary.elements.len() {
             ary.elements[index as usize].clone()
         } else {
-            oop::consts::get_null()
+            Oop::Null
         }
     };
 

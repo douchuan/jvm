@@ -34,7 +34,7 @@ pub fn new_field(fir: FieldIdRef) -> Oop {
         ("modifiers", "I", Oop::new_int(fir.field.acc_flags as i32)),
         ("slot", "I", Oop::new_int(fir.offset as i32)),
         ("signature", "Ljava/lang/String;", signature),
-        ("annotations", "[B", oop::consts::get_null()),
+        ("annotations", "[B", Oop::Null),
     ]
     .iter()
     .map(|(_, t, v)| {
@@ -82,14 +82,14 @@ pub fn new_method_ctor(mir: MethodIdRef) -> Oop {
         let raw = mir.method.get_annotation();
         match raw {
             Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => oop::consts::get_null(),
+            None => Oop::Null,
         }
     };
     let parameter_annotations = {
         let raw = mir.method.get_param_annotation();
         match raw {
             Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => oop::consts::get_null(),
+            None => Oop::Null,
         }
     };
 
@@ -166,21 +166,21 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
         let raw = mir.method.get_annotation();
         match raw {
             Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => oop::consts::get_null(),
+            None => Oop::Null,
         }
     };
     let parameter_annotations = {
         let raw = mir.method.get_param_annotation();
         match raw {
             Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => oop::consts::get_null(),
+            None => Oop::Null,
         }
     };
     let annotation_default = {
         let raw = mir.method.get_annotation_default();
         match raw {
             Some(raw) => Oop::new_byte_ary2(raw.to_vec()),
-            None => oop::consts::get_null(),
+            None => Oop::Null,
         }
     };
 

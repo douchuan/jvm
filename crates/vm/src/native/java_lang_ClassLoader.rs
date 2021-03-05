@@ -47,7 +47,7 @@ fn jvm_findLoadedClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             let cls = cls.get_class();
             cls.get_mirror()
         }
-        None => oop::consts::get_null(),
+        None => Oop::Null,
     };
     Ok(Some(v))
 }
