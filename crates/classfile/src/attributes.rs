@@ -132,7 +132,9 @@ impl From<&[u8]> for Tag {
             b"BootstrapMethods" => Tag::BootstrapMethods,
             b"MethodParameters" => Tag::MethodParameters,
             _ => {
-                info!("Unknown attr {}", unsafe { std::str::from_utf8_unchecked(raw) });
+                info!("Unknown attr {}", unsafe {
+                    std::str::from_utf8_unchecked(raw)
+                });
                 // error!("Unknown attr {}", String::from_utf8_lossy(raw));
                 Tag::Unknown
             }

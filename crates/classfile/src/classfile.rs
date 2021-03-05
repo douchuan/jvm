@@ -1,6 +1,6 @@
 use crate::attributes::InnerClass;
-use crate::{ConstantPool, U2};
 use crate::{attributes::Type, field_info::FieldInfo, method_info::MethodInfo, version::Version};
+use crate::{ConstantPool, U2};
 
 #[derive(Debug)]
 pub struct ClassFile {
@@ -28,7 +28,7 @@ impl ClassFile {
 
     pub fn signature(&self) -> Option<usize> {
         for it in self.attrs.iter() {
-            if let Type::Signature { signature_index} = it {
+            if let Type::Signature { signature_index } = it {
                 return Some(*signature_index as usize);
             }
         }

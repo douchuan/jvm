@@ -28,7 +28,7 @@ impl MethodInfo {
         self.attrs.iter().for_each(|attr| {
             if let Type::Code(code) = attr {
                 code.attrs.iter().for_each(|it| {
-                    if let Type::LineNumberTable {tables} = it {
+                    if let Type::LineNumberTable { tables } = it {
                         line_num_table.extend_from_slice(tables.as_slice());
                     }
                 });
@@ -52,7 +52,7 @@ impl MethodInfo {
         for it in self.attrs.iter() {
             if let Type::Code(code) = it {
                 if !code.exceptions.is_empty() {
-                    return Some(code.exceptions.clone())
+                    return Some(code.exceptions.clone());
                 }
             }
         }
@@ -63,7 +63,7 @@ impl MethodInfo {
     pub fn get_stack_map_table(&self) -> Option<Vec<StackMapFrame>> {
         if let Some(code) = self.get_code() {
             for it in code.attrs.iter() {
-                if let Type::StackMapTable { entries} = it {
+                if let Type::StackMapTable { entries } = it {
                     return Some(entries.clone());
                 }
             }
