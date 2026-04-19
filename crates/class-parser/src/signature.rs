@@ -1,19 +1,17 @@
 use classfile::BytesRef;
 use classfile::SignatureType as Type;
 
-use nom::bytes::complete::{take, take_till};
-use nom::character::complete::{char, one_of};
-use nom::combinator::{peek, verify};
-use nom::error::make_error;
-use nom::lib::std::fmt::{Error, Formatter};
-use nom::{
-    branch::alt,
-    bytes::complete::{is_not, tag},
-    error::{ErrorKind, ParseError, VerboseError},
-    multi::many1,
-    sequence::delimited,
-    AsBytes, Err, IResult,
-};
+/// Minimal cursor-based parser for JVM signature strings.
+/// Replaces the nom 7.x version with character-by-character parsing.
+///
+/// Grammar reference (JVM Spec §4.7.9.1):
+///   JavaTypeSignature ::= BaseType | ObjectType | ArrayType
+///   BaseType          ::= B | C | D | F | I | J | S | Z | V
+///   ObjectType        ::= L ClassName [ < TypeArgs > ] ;
+///                       | T TypeVar   [ < TypeArgs > ] ;
+///   ArrayType         ::= [ JavaTypeSignature
+///   MethodSignature   ::= [ < FormalTypeParameters> ] ( JavaTypeSignature* ) ReturnType
+///   ClassSignature    ::= JavaTypeSignature+
 
 #[derive(Debug)]
 pub struct ClassSignature {
@@ -22,15 +20,7 @@ pub struct ClassSignature {
 
 #[derive(Debug, Clone)]
 pub struct MethodSignature {
-    /*
-    TestNG, org.testng.collections.Maps
-
-    <K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;
-
-    public static <K extends java.lang.Object, V extends java.lang.Object> java.util.Map<K, V> newHashMap(java.util.Map<K, V>);
-    */
     pub generics: Vec<(BytesRef, Type)>,
-
     pub args: Vec<Type>,
     pub retype: Type,
 }
@@ -39,79 +29,229 @@ pub struct FieldSignature {
     pub field_type: Type,
 }
 
+// ---------------------------------------------------------------------------
+// Parser
+// ---------------------------------------------------------------------------
+
+struct Parser<'a> {
+    s: &'a str,
+    pos: usize,
+}
+
+impl<'a> Parser<'a> {
+    fn new(s: &'a str) -> Self {
+        Parser { s, pos: 0 }
+    }
+
+    fn peek_char(&self) -> Option<char> {
+        self.s[self.pos..].chars().next()
+    }
+
+    fn advance(&mut self) -> char {
+        let c = self.s[self.pos..].chars().next().unwrap();
+        self.pos += c.len_utf8();
+        c
+    }
+
+    fn expect(&mut self, expected: char) {
+        let got = self.advance();
+        assert_eq!(got, expected, "expected '{expected}', got '{got}'");
+    }
+
+    /// Take bytes until any stop char, not consuming the stop char.
+    fn take_until(&mut self, stops: &[char]) -> &'a str {
+        let start = self.pos;
+        let rest = &self.s[self.pos..];
+        for (i, c) in rest.char_indices() {
+            if stops.contains(&c) {
+                self.pos = self.pos + i;
+                return &self.s[start..self.pos];
+            }
+        }
+        // No stop char found — consume to end
+        self.pos = self.s.len();
+        &self.s[start..]
+    }
+
+    // --- Type parsing ---
+
+    fn parse_primitive(&mut self) -> Type {
+        match self.advance() {
+            'B' => Type::Byte,
+            'C' => Type::Char,
+            'D' => Type::Double,
+            'F' => Type::Float,
+            'I' => Type::Int,
+            'J' => Type::Long,
+            'S' => Type::Short,
+            'Z' => Type::Boolean,
+            'V' => Type::Void,
+            c => unreachable!("bad primitive char: '{c}'"),
+        }
+    }
+
+    fn parse_object(&mut self) -> Type {
+        let prefix = self.advance(); // 'L' or 'T'
+        let name = self.take_until(&[';', '<']);
+        let mut buf = Vec::with_capacity(1 + name.len() + 1);
+        buf.push(prefix as u8);
+        buf.extend_from_slice(name.as_bytes());
+
+        if self.peek_char() == Some('<') {
+            // Has generic args
+            self.advance(); // '<'
+            let generic_args = self.parse_generic_args();
+            self.expect('>');
+            self.expect(';');
+            buf.push(b';');
+            Type::Object(std::sync::Arc::new(buf), Some(generic_args), None)
+        } else {
+            self.expect(';');
+            buf.push(b';');
+            Type::Object(std::sync::Arc::new(buf), None, None)
+        }
+    }
+
+    fn parse_generic_args(&mut self) -> Vec<Type> {
+        let mut args = Vec::new();
+        while self.peek_char().is_some() && self.peek_char() != Some('>') {
+            // Handle variance markers: +, -, *
+            match self.peek_char() {
+                Some('+') | Some('-') | Some('*') => {
+                    self.advance(); // skip marker, for now we don't track variance in Type
+                    args.push(self.parse_type());
+                }
+                _ => {
+                    args.push(self.parse_type());
+                }
+            }
+        }
+        args
+    }
+
+    fn parse_array(&mut self) -> Type {
+        // Count leading '['
+        let mut num_arrays = 0;
+        while self.peek_char() == Some('[') {
+            num_arrays += 1;
+            self.advance();
+        }
+        // Parse element type
+        let element = self.parse_type();
+
+        // Build raw descriptor: '[' * N + element_bytes
+        let element_bytes: Vec<u8> = match &element {
+            Type::Object(bytes, _, _) => bytes.to_vec(),
+            Type::Array(bytes) => bytes.to_vec(),
+            _ => {
+                // For primitives, extract the element chars from the source string
+                let elem_start = self.pos - 1; // primitives are 1 char
+                self.s[elem_start..self.pos].as_bytes().to_vec()
+            }
+        };
+
+        let mut buf = Vec::with_capacity(num_arrays + element_bytes.len());
+        for _ in 0..num_arrays {
+            buf.push(b'[');
+        }
+        buf.extend_from_slice(&element_bytes);
+
+        Type::Array(std::sync::Arc::new(buf))
+    }
+
+    fn parse_type(&mut self) -> Type {
+        match self.peek_char() {
+            Some('B') | Some('C') | Some('D') | Some('F') | Some('I')
+            | Some('J') | Some('S') | Some('Z') | Some('V') => self.parse_primitive(),
+            Some('L') | Some('T') => self.parse_object(),
+            Some('[') => self.parse_array(),
+            Some(c) => unreachable!("bad type char: '{c}'"),
+            None => unreachable!("unexpected end of signature"),
+        }
+    }
+
+    fn parse_types(&mut self) -> Vec<Type> {
+        let mut types = Vec::new();
+        while self.peek_char().is_some() {
+            types.push(self.parse_type());
+        }
+        types
+    }
+
+    fn parse_types_until(&mut self, stop: char) -> Vec<Type> {
+        let mut types = Vec::new();
+        while self.peek_char().is_some() && self.peek_char() != Some(stop) {
+            types.push(self.parse_type());
+        }
+        types
+    }
+
+    // --- Entry points ---
+
+    fn parse_method(&mut self) -> MethodSignature {
+        if self.peek_char() == Some('<') {
+            self.parse_generic_method()
+        } else {
+            self.parse_non_generic_method()
+        }
+    }
+
+    fn parse_generic_method(&mut self) -> MethodSignature {
+        self.expect('<');
+        let mut generics = Vec::new();
+        while self.peek_char().is_some() && self.peek_char() != Some('>') {
+            let name = self.take_until(&[':']);
+            self.expect(':');
+            let bound = self.parse_type();
+            generics.push((std::sync::Arc::new(name.as_bytes().to_vec()), bound));
+        }
+        self.expect('>');
+
+        let mut result = self.parse_non_generic_method();
+        result.generics = generics;
+        result
+    }
+
+    fn parse_non_generic_method(&mut self) -> MethodSignature {
+        self.expect('(');
+        let args = self.parse_types_until(')');
+        self.expect(')');
+        let retype = self.parse_type();
+        MethodSignature {
+            generics: Vec::new(),
+            args,
+            retype,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 impl ClassSignature {
     pub fn new(raw: &[u8]) -> Self {
         let s = unsafe { std::str::from_utf8_unchecked(raw) };
-        let (_, cs) = Self::parse(s).unwrap();
-        cs
-    }
-
-    fn parse(i: &str) -> IResult<&str, ClassSignature> {
-        let (i, items) = parse_types(i)?;
-        Ok((i, ClassSignature { items }))
+        let mut p = Parser::new(s);
+        let items = p.parse_types();
+        ClassSignature { items }
     }
 }
 
 impl MethodSignature {
     pub fn new(raw: &[u8]) -> Self {
         let s = unsafe { std::str::from_utf8_unchecked(raw) };
-        let (_, r) = Self::parse(s).unwrap();
-        r
-    }
-
-    fn parse(i: &str) -> IResult<&str, MethodSignature> {
-        fn arg0(i: &str) -> IResult<&str, MethodSignature> {
-            let (i, _) = tag("()")(i)?;
-            let (i, retype) = parse_type(i)?;
-            Ok((
-                i,
-                MethodSignature {
-                    generics: vec![],
-                    args: vec![],
-                    retype,
-                },
-            ))
-        }
-
-        fn args(i: &str) -> IResult<&str, MethodSignature> {
-            let (i_return, i_args) = delimited(char('('), is_not(")"), char(')'))(i)?;
-            let (_, args) = parse_types(i_args)?;
-            let (i, retype) = parse_type(i_return)?;
-            Ok((
-                i,
-                MethodSignature {
-                    generics: vec![],
-                    args,
-                    retype,
-                },
-            ))
-        }
-
-        fn generic(i: &str) -> IResult<&str, MethodSignature> {
-            let (i, _) = tag("<")(i)?;
-            let (i, generics) = many1(generic_declare)(i)?;
-            let (i, _) = tag(">")(i)?;
-            let (i, mut r) = MethodSignature::parse(i)?;
-
-            r.generics = generics;
-
-            Ok((i, r))
-        }
-
-        alt((arg0, args, generic))(i)
+        let mut p = Parser::new(s);
+        p.parse_method()
     }
 }
 
 impl FieldSignature {
     pub fn new(raw: &[u8]) -> Self {
         let s = unsafe { std::str::from_utf8_unchecked(raw) };
-        let (_, r) = Self::parse(s).unwrap();
-        r
-    }
-
-    fn parse(mut i: &str) -> IResult<&str, FieldSignature> {
-        let (i, field_type) = parse_type(i)?;
-        Ok((i, FieldSignature { field_type }))
+        let mut p = Parser::new(s);
+        let field_type = p.parse_type();
+        FieldSignature { field_type }
     }
 }
 
@@ -125,144 +265,12 @@ impl Default for MethodSignature {
     }
 }
 
-///////////////////////////
-//parser
-///////////////////////////
-
-fn primitive<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, t) = one_of("BCDFIJSZV")(i)?;
-    let t = match t {
-        'B' => Type::Byte,
-        'C' => Type::Char,
-        'D' => Type::Double,
-        'F' => Type::Float,
-        'I' => Type::Int,
-        'J' => Type::Long,
-        'S' => Type::Short,
-        'Z' => Type::Boolean,
-        'V' => Type::Void,
-        _ => unreachable!(),
-    };
-
-    Ok((i, t))
-}
-
-fn object_desc<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&str, BytesRef, E> {
-    // should stop when reach ';' or '<'
-    //such as:
-    //(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V
-    // if only take_till(|c| c == ';'), can't process like:
-    //    Lxx/xx/xx<Lxx/xx/xx;>;
-    let (_, _) = alt((tag("L"), tag("T")))(input)?;
-    let (i, desc) = take_till(|c| c == ';' || c == '<')(input)?;
-    let (i, _) = tag(";")(i)?;
-    let mut buf = Vec::with_capacity(1 + desc.len() + 1);
-    buf.extend_from_slice(desc.as_bytes());
-    buf.push(b';');
-    let desc = std::sync::Arc::new(buf);
-    Ok((i, desc))
-}
-
-fn object_generic<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, tag_prefix) = alt((tag("L"), tag("T")))(i)?;
-    let (i, container) = take_till(|c| c == '<')(i)?;
-    let (mut i, _) = tag("<")(i)?;
-
-    //signature like:
-    //Ljava/lang/Class<+Lcom/google/inject/Module;>;
-    //<=> 'java.lang.Class<? extends com.google.inject.Module>'
-    let mut prefix = None;
-    if i.starts_with('+') {
-        prefix = Some(b'+');
-        let (i2, _) = tag("+")(i)?;
-        i = i2;
-    }
-
-    let (i, generic_args) = many1(parse_type)(i)?;
-    let (i, _) = tag(">")(i)?;
-    let (i, _) = tag(";")(i)?;
-
-    //build results
-    let mut buf = Vec::with_capacity(1 + container.len() + 1);
-    buf.extend_from_slice(tag_prefix.as_bytes());
-    buf.extend_from_slice(container.as_bytes());
-    buf.push(b';');
-    let desc = std::sync::Arc::new(buf);
-    Ok((i, Type::Object(desc, Some(generic_args), prefix)))
-}
-
-fn object_normal<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, _) = peek(alt((tag("L"), tag("T"))))(i)?;
-    let (i, desc) = object_desc(i)?;
-    Ok((i, Type::Object(desc, None, None)))
-}
-
-fn object<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    alt((object_normal, object_generic))(i)
-}
-
-fn array<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    let (i, _) = peek(tag("["))(i)?;
-    let (i, ary_tags) = take_till(|c| c != '[')(i)?;
-    let (mut i, t) = peek(take(1u8))(i)?;
-
-    let mut buf = vec![];
-    buf.extend_from_slice(ary_tags.as_bytes());
-    match t {
-        "L" | "T" => {
-            let (i2, desc) = object_desc(i)?;
-            i = i2;
-            buf.extend_from_slice(desc.as_slice());
-        }
-        v => {
-            let (i2, _) = take(1u8)(i)?;
-            i = i2;
-            buf.extend_from_slice(v.as_bytes())
-        }
-    }
-    let desc = std::sync::Arc::new(buf);
-    Ok((i, Type::Array(desc)))
-}
-
-fn generic_declare<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, (BytesRef, Type), E> {
-    let (i, generic_type) = take_till(|c| c == ':')(i)?;
-    let (i, _) = tag(":")(i)?;
-    let (i, t) = parse_type(i)?;
-    let generic_type = std::sync::Arc::new(Vec::from(generic_type));
-    Ok((i, (generic_type, t)))
-}
-
-fn parse_type<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&str, Type, E> {
-    alt((primitive, object, array))(i)
-}
-
-fn parse_types<'a, E: ParseError<&'a str>>(mut input: &'a str) -> IResult<&str, Vec<Type>, E> {
-    let it = std::iter::from_fn(move || {
-        match parse_type::<'a, E>(input) {
-            // when successful, a nom parser returns a tuple of
-            // the remaining input and the output value.
-            // So we replace the captured input data with the
-            // remaining input, to be parsed on the next call
-            Ok((i, o)) => {
-                input = i;
-                Some(o)
-            }
-            _ => None,
-        }
-    });
-
-    let mut args = vec![];
-    for v in it {
-        args.push(v);
-    }
-
-    Ok((input, args))
-}
+// ---------------------------------------------------------------------------
+// Tests — same as before
+// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
-    use super::ClassSignature;
-    use super::FieldSignature;
     use super::MethodSignature;
     use super::Type as SignatureType;
     use std::sync::Arc;
@@ -274,7 +282,7 @@ mod tests {
             args: vec![],
             retype: SignatureType::Void,
         };
-        let (_, r) = MethodSignature::parse("()V").unwrap();
+        let r = MethodSignature::new(b"()V");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -349,7 +357,7 @@ mod tests {
         ];
 
         for (expected, desc) in table.iter() {
-            let (_, r) = MethodSignature::parse(desc).unwrap();
+            let r = MethodSignature::new(desc.as_bytes());
             assert_eq!(r.args, expected.args);
             assert_eq!(r.retype, expected.retype);
         }
@@ -364,7 +372,7 @@ mod tests {
             )))],
             retype: SignatureType::Void,
         };
-        let (_, r) = MethodSignature::parse("([[Ljava/lang/String;)V").unwrap();
+        let r = MethodSignature::new(b"([[Ljava/lang/String;)V");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -386,8 +394,7 @@ mod tests {
             ],
             retype: SignatureType::Object(Arc::new(Vec::from("Ljava/lang/String;")), None, None),
         };
-        let (_, r) =
-            MethodSignature::parse("(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;").unwrap();
+        let r = MethodSignature::new(b"(BCDFIJSZLjava/lang/Integer;)Ljava/lang/String;");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -408,7 +415,7 @@ mod tests {
             )],
             retype: SignatureType::Void,
         };
-        let (_, r) = MethodSignature::parse("(Ljava/util/List<Ljava/lang/String;>;)V").unwrap();
+        let r = MethodSignature::new(b"(Ljava/util/List<Ljava/lang/String;>;)V");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
 
@@ -443,7 +450,7 @@ mod tests {
             ],
             retype: SignatureType::Void,
         };
-        let (_, r) = MethodSignature::parse("(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V").unwrap();
+        let r = MethodSignature::new(b"(Lorg/testng/internal/IConfiguration;Lorg/testng/ISuite;Lorg/testng/xml/XmlTest;Ljava/lang/String;Lorg/testng/internal/annotations/IAnnotationFinder;ZLjava/util/List<Lorg/testng/IInvokedMethodListener;>;)V");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -458,12 +465,11 @@ mod tests {
             ],
             retype: SignatureType::Void,
         };
-        let (_, r) = MethodSignature::parse("(TK;TV;)V").unwrap();
+        let r = MethodSignature::new(b"(TK;TV;)V");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
 
-    //'T' tag in args
     #[test]
     fn generic2() {
         let expected = MethodSignature {
@@ -483,7 +489,7 @@ mod tests {
                 None,
             ),
         };
-        let (_, r) = MethodSignature::parse("(TK;)Ljava/util/Set<TV;>;").unwrap();
+        let r = MethodSignature::new(b"(TK;)Ljava/util/Set<TV;>;");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -514,10 +520,7 @@ mod tests {
                 None,
             ),
         };
-        let (_, r) = MethodSignature::parse(
-            "()Ljava/util/Set<Ljava/util/Map$Entry<TK;Ljava/util/Set<TV;>;>;>;",
-        )
-        .unwrap();
+        let r = MethodSignature::new(b"()Ljava/util/Set<Ljava/util/Map$Entry<TK;Ljava/util/Set<TV;>;>;>;");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -552,7 +555,7 @@ mod tests {
                 None,
             ),
         };
-        let (_, r) = MethodSignature::parse("<K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;").unwrap();
+        let r = MethodSignature::new(b"<K:Ljava/lang/Object;V:Ljava/lang/Object;>(Ljava/util/Map<TK;TV;>;)Ljava/util/Map<TK;TV;>;");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
@@ -573,17 +576,18 @@ mod tests {
                 None,
             ),
         };
-        let (_, r) =
-            MethodSignature::parse("()Ljava/util/List<Lorg/testng/ITestNGListener;>;").unwrap();
+        let r = MethodSignature::new(b"()Ljava/util/List<Lorg/testng/ITestNGListener;>;");
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }
 
     #[test]
     fn field() {
+        use super::FieldSignature;
+
         macro_rules! setup_test {
             ($desc: expr, $tp: expr) => {
-                let (_, sig) = FieldSignature::parse($desc).unwrap();
+                let sig = FieldSignature::new($desc.as_bytes());
                 assert_eq!(sig.field_type, $tp);
             };
         }
@@ -595,24 +599,23 @@ mod tests {
         setup_test!("I", SignatureType::Int);
         setup_test!("J", SignatureType::Long);
 
-        let v = Vec::from("Ljava/lang/Object;");
-        let v = Arc::new(v);
+        let v = Arc::new(Vec::from("Ljava/lang/Object;"));
         setup_test!("Ljava/lang/Object;", SignatureType::Object(v, None, None));
         setup_test!("S", SignatureType::Short);
         setup_test!("Z", SignatureType::Boolean);
 
-        let v = Vec::from("[Ljava/lang/Object;");
-        let v = Arc::new(v);
+        let v = Arc::new(Vec::from("[Ljava/lang/Object;"));
         setup_test!("[Ljava/lang/Object;", SignatureType::Array(v));
 
-        let v = Vec::from("[[[D");
-        let v = Arc::new(v);
+        let v = Arc::new(Vec::from("[[[D"));
         setup_test!("[[[D", SignatureType::Array(v));
     }
 
     #[test]
     fn t_class_signature() {
-        let (_, cs) = ClassSignature::parse("Ljava/lang/Object;Lorg/testng/ITestContext;Lorg/testng/internal/ITestResultNotifier;Lorg/testng/internal/thread/graph/IThreadWorkerFactory<Lorg/testng/ITestNGMethod;>;").unwrap();
+        use super::ClassSignature;
+
+        let cs = ClassSignature::new(b"Ljava/lang/Object;Lorg/testng/ITestContext;Lorg/testng/internal/ITestResultNotifier;Lorg/testng/internal/thread/graph/IThreadWorkerFactory<Lorg/testng/ITestNGMethod;>;");
         let expected = ClassSignature {
             items: vec![
                 SignatureType::Object(Arc::new(Vec::from("Ljava/lang/Object;")), None, None),
