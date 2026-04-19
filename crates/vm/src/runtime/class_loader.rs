@@ -160,7 +160,7 @@ impl ClassLoader {
         match runtime::find_class_in_classpath(name) {
             Ok(ClassPathResult(_, buf)) => match parse_class(&buf) {
                 Ok(cf) => {
-                    let cfr = Arc::new(Box::new(cf.1));
+                    let cfr = Arc::new(Box::new(cf));
                     let class = Class::new_class(cfr, Some(*self));
                     Some(ClassPtr::new(class))
                 }

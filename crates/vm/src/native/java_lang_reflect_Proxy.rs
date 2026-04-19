@@ -47,8 +47,8 @@ fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
     let ary = rf.extract_type_array();
     let ary = ary.extract_bytes();
     match parse_class(&ary[off..(off + len)]) {
-        Ok(r) => {
-            let cfr = Arc::new(Box::new(r.1));
+        Ok(cf) => {
+            let cfr = Arc::new(Box::new(cf));
             //fixme: setup classloader
             let class = Class::new_class(cfr, None);
             ClassPtr::new(class)

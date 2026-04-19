@@ -451,12 +451,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jni-sys"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
-
-[[package]]
 name = "jvm"
 version = "0.2.0"
 dependencies = [
@@ -479,16 +473,6 @@ name = "libc"
 version = "0.2.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ccac4b00700875e6a07c6cde370d44d32fa01c5a65cdd2fca6858c479d28bb3"
-
-[[package]]
-name = "libjvm"
-version = "0.1.0"
-dependencies = [
- "jni-sys",
- "lazy_static",
- "libc",
- "vm",
-]
 
 [[package]]
 name = "log"

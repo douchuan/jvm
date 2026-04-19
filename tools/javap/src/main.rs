@@ -145,7 +145,7 @@ fn main() {
             for it in classes {
                 match misc::find_class(it) {
                     Ok(r) => {
-                        if let Ok((_, cf)) = parse_class(&r.1) {
+                        if let Ok(cf) = parse_class(&r.1) {
                             commander.run(&r.0, cf);
                         } else {
                             error!("parse class error: {}", it);

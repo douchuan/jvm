@@ -74,18 +74,18 @@ impl<'a> Translator<'a> {
     }
 
     fn field_type(&self) -> String {
-        let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize).unwrap();
+        let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize);
         let signature = FieldSignature::new(desc.as_slice());
         signature.field_type.into_string()
     }
 
     fn name(&self) -> String {
-        let name = constant_pool::get_utf8(&self.cf.cp, self.field.name_index as usize).unwrap();
+        let name = constant_pool::get_utf8(&self.cf.cp, self.field.name_index as usize);
         String::from_utf8_lossy(name.as_slice()).to_string()
     }
 
     fn descriptor(&self) -> String {
-        let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize).unwrap();
+        let desc = constant_pool::get_utf8(&self.cf.cp, self.field.desc_index as usize);
         String::from_utf8_lossy(desc.as_slice()).to_string()
     }
 
@@ -99,7 +99,7 @@ impl<'a> Translator<'a> {
         self.field.attrs.iter().find_map(|v| {
             if let classfile::attributes::Type::Signature { signature_index } = v {
                 let signature_index = *signature_index as usize;
-                let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
+                let v = constant_pool::get_utf8(&self.cf.cp, signature_index).clone();
                 Some((signature_index, v))
             } else {
                 None
@@ -139,7 +139,7 @@ impl<'a> Translator<'a> {
                 format!("int {}", v)
             }
             Some(ConstantPoolType::String { string_index: _ }) => {
-                let v = constant_pool::get_string(&self.cf.cp, idx).unwrap();
+                let v = constant_pool::get_string(&self.cf.cp, idx);
                 format!("String {}", v.escape_default())
             }
             _ => format!("todo"),

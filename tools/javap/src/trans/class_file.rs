@@ -24,11 +24,8 @@ impl<'a> Translator<'a> {
         for it in &self.cf.attrs {
             match it {
                 AttributeType::SourceFile { source_file_index } => {
-                    return constant_pool::get_utf8(&self.cf.cp, *source_file_index as usize)
-                        .map_or_else(
-                            || S_UNKNOWN.into(),
-                            |v| String::from_utf8_lossy(v.as_slice()).into(),
-                        );
+                    let v = constant_pool::get_utf8(&self.cf.cp, *source_file_index as usize);
+                    return String::from_utf8_lossy(v.as_slice()).into();
                 }
                 _ => (),
             }
@@ -38,17 +35,13 @@ impl<'a> Translator<'a> {
     }
 
     pub fn this_class(&self) -> String {
-        constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize).map_or_else(
-            || S_UNKNOWN.into(),
-            |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
-        )
+        let v = constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize);
+        String::from_utf8_lossy(v.as_slice()).replace("/", ".")
     }
 
     pub fn super_class(&self) -> String {
-        constant_pool::get_class_name(&self.cf.cp, self.cf.super_class as usize).map_or_else(
-            || S_UNKNOWN.into(),
-            |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
-        )
+        let v = constant_pool::get_class_name(&self.cf.cp, self.cf.super_class as usize);
+        String::from_utf8_lossy(v.as_slice()).replace("/", ".")
     }
 
     pub fn parent_interfaces(&self) -> Vec<String> {
@@ -56,10 +49,8 @@ impl<'a> Translator<'a> {
         let mut interfaces = Vec::with_capacity(self.cf.interfaces.len());
 
         for it in self.cf.interfaces.iter() {
-            let name = constant_pool::get_class_name(&self.cf.cp, *it as usize).map_or_else(
-                || S_UNKNOWN.into(),
-                |v| String::from_utf8_lossy(v.as_slice()).replace("/", "."),
-            );
+            let name = constant_pool::get_class_name(&self.cf.cp, *it as usize);
+            let name = String::from_utf8_lossy(name.as_slice()).replace("/", ".");
             interfaces.push(name);
         }
 
@@ -80,7 +71,7 @@ impl<'a> Translator<'a> {
 
     pub fn signature_raw(&self) -> Option<String> {
         self.cf.signature().map(|idx| {
-            let v = constant_pool::get_utf8(&self.cf.cp, idx).unwrap();
+            let v = constant_pool::get_utf8(&self.cf.cp, idx);
             let signature = String::from_utf8_lossy(v.as_slice());
             format!("Signature: #{:<28} // {}", idx, signature)
         })
@@ -88,7 +79,7 @@ impl<'a> Translator<'a> {
 
     pub fn signature(&self) -> Option<Vec<SignatureType>> {
         self.cf.signature().map(|idx| {
-            let v = constant_pool::get_utf8(&self.cf.cp, idx).unwrap();
+            let v = constant_pool::get_utf8(&self.cf.cp, idx);
             let v = ClassSignature::new(v.as_slice());
             v.items.clone()
         })
@@ -160,8 +151,7 @@ impl<'a> Translator<'a> {
                         let inner_class_info = constant_pool::get_class_name(
                             &self.cf.cp,
                             inner_class_info_index as usize,
-                        )
-                        .unwrap();
+                        );
                         let v = format!(
                             "#{}; //class {}",
                             inner_class_info_index,
@@ -173,19 +163,16 @@ impl<'a> Translator<'a> {
                             let inner_class_info = constant_pool::get_class_name(
                                 &self.cf.cp,
                                 inner_class_info_index as usize,
-                            )
-                            .unwrap();
+                            );
                             let inner_class_info =
                                 String::from_utf8_lossy(inner_class_info.as_slice());
                             let inner_name =
-                                constant_pool::get_utf8(&self.cf.cp, inner_name_index as usize)
-                                    .unwrap();
+                                constant_pool::get_utf8(&self.cf.cp, inner_name_index as usize);
                             let inner_name = String::from_utf8_lossy(inner_name.as_slice());
                             let outer_class_info = constant_pool::get_class_name(
                                 &self.cf.cp,
                                 outer_class_info_index as usize,
-                            )
-                            .unwrap();
+                            );
                             let outer_class_info =
                                 String::from_utf8_lossy(outer_class_info.as_slice());
                             let flags = flags.class_access_flags(true);

@@ -23,3 +23,8 @@ pub fn parse(data: &[u8]) -> std::result::Result<classfile::ClassFile, Error> {
     let mut r = reader::Reader::new(data.to_vec());
     class::parse_class_file(&mut r)
 }
+
+/// Alias for `parse` — kept for backward compatibility with vm crate.
+pub fn parse_class(data: &[u8]) -> std::result::Result<classfile::ClassFile, Error> {
+    parse(data)
+}

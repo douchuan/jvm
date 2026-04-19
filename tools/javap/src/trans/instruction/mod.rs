@@ -506,7 +506,7 @@ impl InstructionInfo {
 
         match cp.get(self.icp).unwrap() {
             ConstantPoolType::Class { name_index } => {
-                let class_name = constant_pool::get_utf8(cp, *name_index as usize).unwrap();
+                let class_name = constant_pool::get_utf8(cp, *name_index as usize);
                 let is_ary_class = class_name.starts_with(b"[");
                 let class_name = String::from_utf8_lossy(class_name.as_slice()).to_string();
                 if is_ary_class {
@@ -519,12 +519,12 @@ impl InstructionInfo {
                 class_index: _,
                 name_and_type_index,
             } => {
-                // let class_name = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                // let class_name = constant_pool::get_class_name(cp, *class_index as usize);
                 // let class_name = String::from_utf8_lossy(class_name.as_slice());
                 let (name, desc) =
                     constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
-                let name = name.unwrap();
-                let desc = desc.unwrap();
+                let name = name;
+                let desc = desc;
                 let name = String::from_utf8_lossy(name.as_slice());
                 let desc = String::from_utf8_lossy(desc.as_slice());
                 format!("Field {}:{}", name, desc)
@@ -533,13 +533,13 @@ impl InstructionInfo {
                 class_index,
                 name_and_type_index,
             } => {
-                let class_name = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                let class_name = constant_pool::get_class_name(cp, *class_index as usize);
                 let is_ary_class = class_name.starts_with(b"[");
                 let class_name = String::from_utf8_lossy(class_name.as_slice());
                 let (name, desc) =
                     constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
-                let name = name.unwrap();
-                let desc = desc.unwrap();
+                let name = name;
+                let desc = desc;
                 let is_ctor = name.as_slice() == b"<init>";
                 let desc = String::from_utf8_lossy(desc.as_slice());
                 if is_ctor {
@@ -554,7 +554,7 @@ impl InstructionInfo {
                 }
             }
             ConstantPoolType::String { string_index: _ } => {
-                let v = constant_pool::get_string(cp, self.icp).unwrap();
+                let v = constant_pool::get_string(cp, self.icp);
                 format!("String {}", v.escape_default())
             }
             ConstantPoolType::Float { v } => {
@@ -576,11 +576,11 @@ impl InstructionInfo {
                 class_index,
                 name_and_type_index,
             } => {
-                let class_name = constant_pool::get_class_name(cp, *class_index as usize).unwrap();
+                let class_name = constant_pool::get_class_name(cp, *class_index as usize);
                 let name_and_type =
                     constant_pool::get_name_and_type(cp, *name_and_type_index as usize);
-                let method_name = name_and_type.0.unwrap();
-                let method_type = name_and_type.1.unwrap();
+                let method_name = name_and_type.0;
+                let method_type = name_and_type.1;
                 format!(
                     "InterfaceMethod {}.{}:{}",
                     String::from_utf8_lossy(class_name.as_slice()),

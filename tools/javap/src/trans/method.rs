@@ -90,7 +90,7 @@ impl<'a> Translator<'a> {
 
 impl<'a> Translator<'a> {
     fn build_desc(&self) -> String {
-        let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize).unwrap();
+        let name = constant_pool::get_utf8(&self.cf.cp, self.method.name_index as usize);
         let mut desc = match name.as_slice() {
             b"<clinit>" => "static {}".to_string(),
             _ => {
@@ -100,8 +100,7 @@ impl<'a> Translator<'a> {
                 let name = match name.as_slice() {
                     b"<init>" => {
                         let class_name =
-                            constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize)
-                                .unwrap();
+                            constant_pool::get_class_name(&self.cf.cp, self.cf.this_class as usize);
                         String::from_utf8_lossy(class_name.as_slice()).replace("/", ".")
                     }
                     _ => String::from_utf8_lossy(name.as_slice()).to_string(),
@@ -230,7 +229,7 @@ impl<'a> Translator<'a> {
             let exs: Vec<String> = v
                 .iter()
                 .map(|it| {
-                    let name = constant_pool::get_class_name(&self.cf.cp, *it as usize).unwrap();
+                    let name = constant_pool::get_class_name(&self.cf.cp, *it as usize);
                     String::from_utf8_lossy(name.as_slice()).replace("/", ".")
                 })
                 .collect();
@@ -252,8 +251,7 @@ impl<'a> Translator<'a> {
                         "any".to_string()
                     } else {
                         let name =
-                            constant_pool::get_class_name(&self.cf.cp, ex.catch_type as usize)
-                                .unwrap();
+                            constant_pool::get_class_name(&self.cf.cp, ex.catch_type as usize);
                         format!("Class {}", String::from_utf8_lossy(name.as_slice()))
                     };
                     let v = format!(
@@ -418,7 +416,7 @@ impl<'a> Translator<'a> {
                 }
                 VerificationTypeInfo::Object { cpool_index } => {
                     let name =
-                        constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize).unwrap();
+                        constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize);
                     let name = String::from_utf8_lossy(name.as_slice());
                     let v = if name.starts_with("[") {
                         format!("class \"{}\"", name)
@@ -443,10 +441,10 @@ impl<'a> Translator<'a> {
             "Start", "Length", "Slot", "Name", "Signature"
         ));
         for it in local_vars.iter() {
-            let name = constant_pool::get_utf8(&self.cf.cp, it.name_index as usize).unwrap();
+            let name = constant_pool::get_utf8(&self.cf.cp, it.name_index as usize);
             let name = String::from_utf8_lossy(name.as_slice());
             let signature =
-                constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize).unwrap();
+                constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize);
             let signature = String::from_utf8_lossy(signature.as_slice());
             let v = format!(
                 "{:>5}  {:>6}  {:>4}  {:>5}  {}",
@@ -471,7 +469,7 @@ impl<'a> Translator<'a> {
             match it {
                 classfile::attributes::Type::Signature { signature_index } => {
                     let signature_index = *signature_index as usize;
-                    let v = constant_pool::get_utf8(&self.cf.cp, signature_index).unwrap();
+                    let v = constant_pool::get_utf8(&self.cf.cp, signature_index).clone();
                     return Some((signature_index, v));
                 }
                 _ => (),
@@ -482,7 +480,7 @@ impl<'a> Translator<'a> {
     }
 
     fn descriptor(&self) -> BytesRef {
-        constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).unwrap()
+        constant_pool::get_utf8(&self.cf.cp, self.method.desc_index as usize).clone()
     }
 
     fn method_signature(&self) -> MethodSignature {
