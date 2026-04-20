@@ -31,20 +31,3 @@ VM, Oracle continue doing it.
 The journey of a thousand miles begins with one first step. Even the sage was once an ordinary human being.
 
 Just Do It.
-
-## Running
-```shell
-# setup JDK
-# setup rust toolchain
-# clone this project
-
-# compile sample by javac
-cd jvm/sample
-javac HelloWorld.java
-cd ..
-
-# modify r.sh JAVA_HOME according to your env
-# exec sample
-cd jvm
-bash r.sh
-```
