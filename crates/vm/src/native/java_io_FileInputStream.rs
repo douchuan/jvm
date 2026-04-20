@@ -78,10 +78,8 @@ fn jvm_readBytes(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let n = if n > 0 {
         n as i32
     } else if n == -1 {
-        let ex = runtime::exception::new(
-            cls_consts::J_IOEXCEPTION,
-            Some(String::from("Read Error")),
-        );
+        let ex =
+            runtime::exception::new(cls_consts::J_IOEXCEPTION, Some(String::from("Read Error")));
         error!("jvm_readBytes read error");
         return Err(ex);
     } else {

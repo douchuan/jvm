@@ -47,10 +47,7 @@ impl Heap {
 
     /// Check if two slot IDs refer to the same object (pointer equality).
     pub fn is_same_slot(&self, a: u32, b: u32) -> bool {
-        match (
-            self.slots.get(a as usize),
-            self.slots.get(b as usize),
-        ) {
+        match (self.slots.get(a as usize), self.slots.get(b as usize)) {
             (Some(Some(a_arc)), Some(Some(b_arc))) => Arc::ptr_eq(a_arc, b_arc),
             _ => false,
         }

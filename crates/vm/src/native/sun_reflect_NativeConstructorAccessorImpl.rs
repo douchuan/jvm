@@ -17,9 +17,7 @@ fn jvm_newInstance0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let arguments = args.get(1).unwrap();
 
     let clazz = common::reflect::get_Constructor_clazz(ctor);
-    let target_cls = {
-        Oop::mirror_target(clazz.extract_ref()).unwrap()
-    };
+    let target_cls = { Oop::mirror_target(clazz.extract_ref()).unwrap() };
 
     let signature = common::reflect::get_Constructor_signature(ctor);
 

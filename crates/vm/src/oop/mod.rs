@@ -23,11 +23,11 @@ pub mod values;
 
 pub use self::ary::{ArrayOopDesc, TypeArrayDesc, TypeArrayEnum};
 pub use self::class::{Class, ClassKind};
+pub use self::heap::Heap;
 pub use self::inst::InstOopDesc;
 pub use self::mirror::MirrorOopDesc;
 pub use self::reference::{RefKind, RefKindDesc};
 pub use self::values::ValueType;
-pub use self::heap::Heap;
 
 use std::sync::Mutex;
 
@@ -97,16 +97,28 @@ impl fmt::Debug for Oop {
 
 // Primitive value factories
 impl Oop {
-    pub fn new_int(v: i32) -> Self { Oop::Int(v) }
-    pub fn new_long(v: i64) -> Self { Oop::Long(v) }
-    pub fn new_float(v: f32) -> Self { Oop::Float(v) }
-    pub fn new_double(v: f64) -> Self { Oop::Double(v) }
+    pub fn new_int(v: i32) -> Self {
+        Oop::Int(v)
+    }
+    pub fn new_long(v: i64) -> Self {
+        Oop::Long(v)
+    }
+    pub fn new_float(v: f32) -> Self {
+        Oop::Float(v)
+    }
+    pub fn new_double(v: f64) -> Self {
+        Oop::Double(v)
+    }
 }
 
 // Reference value factories (allocate into heap)
 impl Oop {
-    pub fn new_null() -> Self { Oop::Null }
-    pub fn new_const_utf8(v: BytesRef) -> Self { Oop::ConstUtf8(v) }
+    pub fn new_null() -> Self {
+        Oop::Null
+    }
+    pub fn new_const_utf8(v: BytesRef) -> Self {
+        Oop::ConstUtf8(v)
+    }
 
     pub fn new_inst(cls_obj: ClassRef) -> Oop {
         let v = InstOopDesc::new(cls_obj);
@@ -207,35 +219,72 @@ impl Oop {
     }
 
     pub fn new_byte_ary2(elms: Vec<u8>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Byte(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Byte(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_bool_ary2(elms: Vec<u8>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Bool(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Bool(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_char_ary2(elms: Vec<u16>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Char(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Char(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_short_ary2(elms: Vec<i16>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Short(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Short(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_int_ary2(elms: Vec<i32>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Int(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Int(Box::new(elms))), heap)
+        })
     }
 
     pub fn new_float_ary2(elms: Vec<f32>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Float(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Float(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_double_ary2(elms: Vec<f64>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Double(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Double(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     pub fn new_long_ary2(elms: Vec<i64>) -> Oop {
-        with_heap_mut(|heap| Self::new_ref(RefKind::TypeArray(TypeArrayDesc::Long(Box::new(elms))), heap))
+        with_heap_mut(|heap| {
+            Self::new_ref(
+                RefKind::TypeArray(TypeArrayDesc::Long(Box::new(elms))),
+                heap,
+            )
+        })
     }
 
     fn new_ref(v: RefKind, heap: &mut Heap) -> Oop {

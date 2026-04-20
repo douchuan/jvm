@@ -22,7 +22,11 @@ pub fn initialize_jvm() {
     {
         let cls = thread_cls.get_class();
         let id = cls.get_field_id(&new_br("priority"), &new_br("I"), false);
-        Class::put_field_value2(init_thread_oop.extract_ref(), id.offset, oop::Oop::new_int(5));
+        Class::put_field_value2(
+            init_thread_oop.extract_ref(),
+            id.offset,
+            oop::Oop::new_int(5),
+        );
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -42,7 +46,11 @@ pub fn initialize_jvm() {
     {
         let cls = thread_cls.get_class();
         let id = cls.get_field_id(&new_br("group"), &new_br("Ljava/lang/ThreadGroup;"), false);
-        Class::put_field_value2(init_thread_oop.extract_ref(), id.offset, main_thread_group.clone());
+        Class::put_field_value2(
+            init_thread_oop.extract_ref(),
+            id.offset,
+            main_thread_group.clone(),
+        );
     }
 
     let _ = oop::class::load_and_init(J_INPUT_STREAM);

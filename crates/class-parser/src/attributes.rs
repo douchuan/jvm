@@ -54,21 +54,15 @@ fn parse_attribute(r: &mut Reader, cp: &ConstantPool) -> Result<Type> {
         Tag::LocalVariableTable => parse_local_variable_table(r),
         Tag::LocalVariableTypeTable => parse_local_variable_type_table(r),
         Tag::Deprecated => Ok(Type::Deprecated),
-        Tag::RuntimeVisibleAnnotations => {
-            parse_runtime_visible_annotations(r, cp, length)
-        }
-        Tag::RuntimeInvisibleAnnotations => {
-            parse_runtime_invisible_annotations(r, cp, length)
-        }
+        Tag::RuntimeVisibleAnnotations => parse_runtime_visible_annotations(r, cp, length),
+        Tag::RuntimeInvisibleAnnotations => parse_runtime_invisible_annotations(r, cp, length),
         Tag::RuntimeVisibleParameterAnnotations => {
             parse_runtime_visible_parameter_annotations(r, cp, length)
         }
         Tag::RuntimeInvisibleParameterAnnotations => {
             parse_runtime_invisible_parameter_annotations(r, cp, length)
         }
-        Tag::RuntimeVisibleTypeAnnotations => {
-            parse_runtime_visible_type_annotations(r, cp, length)
-        }
+        Tag::RuntimeVisibleTypeAnnotations => parse_runtime_visible_type_annotations(r, cp, length),
         Tag::RuntimeInvisibleTypeAnnotations => {
             parse_runtime_invisible_type_annotations(r, cp, length)
         }
@@ -347,10 +341,7 @@ fn parse_annotations_list(r: &mut Reader, cp: &ConstantPool) -> Result<Vec<Annot
     Ok(annotations)
 }
 
-fn parse_type_annotations_list(
-    r: &mut Reader,
-    cp: &ConstantPool,
-) -> Result<Vec<TypeAnnotation>> {
+fn parse_type_annotations_list(r: &mut Reader, cp: &ConstantPool) -> Result<Vec<TypeAnnotation>> {
     let count = r.read_u16()?;
     let mut annotations = Vec::with_capacity(count as usize);
     for _ in 0..count {
@@ -449,11 +440,7 @@ fn parse_runtime_invisible_type_annotations(
     })
 }
 
-fn parse_annotation_default(
-    r: &mut Reader,
-    cp: &ConstantPool,
-    length: u32,
-) -> Result<Type> {
+fn parse_annotation_default(r: &mut Reader, cp: &ConstantPool, length: u32) -> Result<Type> {
     let raw = r.read_bytes(length as usize)?;
     let raw_ref = Arc::new(raw.clone());
     let mut sub = Reader::new(raw);
@@ -524,7 +511,9 @@ fn parse_element_value_type(r: &mut Reader, cp: &ConstantPool) -> Result<Element
         }
         ElementValueTag::Annotation => {
             let value = parse_annotation_entry(r, cp)?;
-            Ok(ElementValueType::Annotation(AnnotationElementValue { value }))
+            Ok(ElementValueType::Annotation(AnnotationElementValue {
+                value,
+            }))
         }
         ElementValueTag::Array => {
             let array_size = r.read_u16()?;

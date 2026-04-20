@@ -15,10 +15,7 @@ pub fn parse_constant_pool(r: &mut Reader) -> Result<Vec<Type>> {
     while i < count {
         let entry = parse_cp_entry(r)?;
 
-        let is_wide = matches!(
-            entry,
-            Type::Long { .. } | Type::Double { .. }
-        );
+        let is_wide = matches!(entry, Type::Long { .. } | Type::Double { .. });
 
         pool.push(entry);
 

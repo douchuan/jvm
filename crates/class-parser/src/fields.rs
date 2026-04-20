@@ -1,5 +1,5 @@
-use classfile::FieldInfo;
 use classfile::ConstantPool;
+use classfile::FieldInfo;
 
 use crate::attributes;
 use crate::reader::{Reader, Result};

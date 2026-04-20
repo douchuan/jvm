@@ -41,9 +41,7 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         (method_clazz, method_name, signature)
     };
 
-    let clz = {
-        Oop::mirror_target(m_clazz.extract_ref()).unwrap()
-    };
+    let clz = { Oop::mirror_target(m_clazz.extract_ref()).unwrap() };
 
     let mir = {
         let clz = clz.get_class();

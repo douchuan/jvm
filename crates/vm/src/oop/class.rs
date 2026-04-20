@@ -222,7 +222,8 @@ impl Class {
     }
 
     pub fn set_class_state(&self, s: State) {
-        self.state.store(s.into(), std::sync::atomic::Ordering::Relaxed);
+        self.state
+            .store(s.into(), std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn get_name(&self) -> BytesRef {
@@ -239,7 +240,10 @@ impl Class {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::Instance(cls_obj) => {
-                let name = classfile::constant_pool::get_class_name(&cls_obj.class_file.cp, index as usize);
+                let name = classfile::constant_pool::get_class_name(
+                    &cls_obj.class_file.cp,
+                    index as usize,
+                );
                 runtime::require_class3(None, name.as_slice())
             }
             _ => None,
@@ -251,7 +255,8 @@ impl Class {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::Instance(cls_obj) => {
-                let (name, desc) = classfile::constant_pool::get_name_and_type(&cls_obj.class_file.cp, index);
+                let (name, desc) =
+                    classfile::constant_pool::get_name_and_type(&cls_obj.class_file.cp, index);
                 Some((name.clone(), desc.clone()))
             }
             _ => None,
@@ -333,7 +338,8 @@ impl Class {
             let mut kind = self.kind_write();
             match &mut kind.deref_mut() {
                 ClassKind::Instance(class_obj) => {
-                    let super_class = class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+                    let super_class =
+                        class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
                     let n = match &super_class {
                         Some(super_cls) => {
                             let sc = super_cls.get_class();
@@ -352,12 +358,18 @@ impl Class {
                 }
                 ClassKind::ObjectArray(ary_class_obj) => {
                     let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
-                    self.super_class.write().unwrap().replace(super_class.clone());
+                    self.super_class
+                        .write()
+                        .unwrap()
+                        .replace(super_class.clone());
                     Some(super_class)
                 }
                 ClassKind::TypeArray(ary_class_obj) => {
                     let super_class = runtime::require_class3(None, consts::J_OBJECT).unwrap();
-                    self.super_class.write().unwrap().replace(super_class.clone());
+                    self.super_class
+                        .write()
+                        .unwrap()
+                        .replace(super_class.clone());
                     Some(super_class)
                 }
             }
@@ -496,9 +508,7 @@ impl Class {
 
     // Accessors for instance class data (ClassKind::Instance)
 
-    pub fn get_inst_fields(
-        &self,
-    ) -> Option<FxHashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>> {
+    pub fn get_inst_fields(&self) -> Option<FxHashMap<(BytesRef, BytesRef, BytesRef), FieldIdRef>> {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::Instance(cls_obj) => Some(cls_obj.inst_fields.clone()),
@@ -516,9 +526,7 @@ impl Class {
         }
     }
 
-    pub fn get_all_methods(
-        &self,
-    ) -> Option<FxHashMap<(BytesRef, BytesRef), MethodIdRef>> {
+    pub fn get_all_methods(&self) -> Option<FxHashMap<(BytesRef, BytesRef), MethodIdRef>> {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::Instance(cls_obj) => Some(cls_obj.all_methods.clone()),
@@ -556,7 +564,10 @@ impl Class {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::Instance(cls_obj) => {
-                let name = classfile::constant_pool::get_class_name(&cls_obj.class_file.cp, index as usize);
+                let name = classfile::constant_pool::get_class_name(
+                    &cls_obj.class_file.cp,
+                    index as usize,
+                );
                 runtime::require_class3(None, name.as_slice())
             }
             _ => None,
@@ -795,9 +806,7 @@ impl Class {
                     cls_obj.static_field_values[fid.offset].clone()
                 } else {
                     drop(kind);
-                    self.get_super_class()
-                        .unwrap()
-                        .get_static_field_value(fid)
+                    self.get_super_class().unwrap().get_static_field_value(fid)
                 }
             }
             _ => unreachable!(),

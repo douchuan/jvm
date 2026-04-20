@@ -415,8 +415,7 @@ impl<'a> Translator<'a> {
                     infos.push("UninitializedThis".to_string());
                 }
                 VerificationTypeInfo::Object { cpool_index } => {
-                    let name =
-                        constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize);
+                    let name = constant_pool::get_class_name(&self.cf.cp, *cpool_index as usize);
                     let name = String::from_utf8_lossy(name.as_slice());
                     let v = if name.starts_with("[") {
                         format!("class \"{}\"", name)
@@ -443,8 +442,7 @@ impl<'a> Translator<'a> {
         for it in local_vars.iter() {
             let name = constant_pool::get_utf8(&self.cf.cp, it.name_index as usize);
             let name = String::from_utf8_lossy(name.as_slice());
-            let signature =
-                constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize);
+            let signature = constant_pool::get_utf8(&self.cf.cp, it.signature_index as usize);
             let signature = String::from_utf8_lossy(signature.as_slice());
             let v = format!(
                 "{:>5}  {:>6}  {:>4}  {:>5}  {}",

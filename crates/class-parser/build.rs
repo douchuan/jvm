@@ -4,8 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
-        .join("tests/fixtures/src");
+    let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/src");
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // Compile all .java files to OUT_DIR
@@ -35,8 +34,5 @@ fn main() {
     }
 
     // Export the output directory so tests can find .class files
-    println!(
-        "cargo:rustc-env=FIXTURES_DIR={}",
-        out_dir.display()
-    );
+    println!("cargo:rustc-env=FIXTURES_DIR={}", out_dir.display());
 }

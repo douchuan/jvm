@@ -204,10 +204,10 @@ impl fmt::Debug for RefKind {
 
 /// The kinds of heap-allocated objects in the JVM.
 pub enum RefKind {
-    Inst(InstOopDesc),       // Java object instance
-    Array(ArrayOopDesc),     // Reference array (Object[], String[], etc.)
+    Inst(InstOopDesc),        // Java object instance
+    Array(ArrayOopDesc),      // Reference array (Object[], String[], etc.)
     TypeArray(TypeArrayDesc), // Primitive array (int[], byte[], char[], etc.)
-    Mirror(MirrorOopDesc),   // java.lang.Class mirror
+    Mirror(MirrorOopDesc),    // java.lang.Class mirror
 }
 
 impl RefKind {

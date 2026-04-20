@@ -1,10 +1,10 @@
 use classfile::ClassFile;
 
+use crate::attributes;
 use crate::constant_pool;
 use crate::fields;
 use crate::methods;
 use crate::reader::{Error, Reader, Result};
-use crate::attributes;
 
 /// Parse a Java class file from raw bytes.
 ///

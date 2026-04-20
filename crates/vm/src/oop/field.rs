@@ -49,29 +49,29 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
             None => break,
         };
         fields.1.iter().for_each(|(_, fir)| {
-                    match fir.field.value_type {
-                        ValueType::BYTE
-                        | ValueType::BOOLEAN
-                        | ValueType::CHAR
-                        | ValueType::SHORT
-                        | ValueType::INT => {
-                            field_values[fir.offset] = oop_consts::get_int0();
-                        }
-                        ValueType::LONG => {
-                            field_values[fir.offset] = oop_consts::get_long0();
-                        }
-                        ValueType::FLOAT => {
-                            field_values[fir.offset] = oop_consts::get_float0();
-                        }
-                        ValueType::DOUBLE => {
-                            field_values[fir.offset] = oop_consts::get_double0();
-                        }
-                        ValueType::OBJECT | ValueType::ARRAY => {
-                            //ignore, has been inited by NULL
-                        }
-                        ValueType::VOID => unreachable!(),
-                    }
-                });
+            match fir.field.value_type {
+                ValueType::BYTE
+                | ValueType::BOOLEAN
+                | ValueType::CHAR
+                | ValueType::SHORT
+                | ValueType::INT => {
+                    field_values[fir.offset] = oop_consts::get_int0();
+                }
+                ValueType::LONG => {
+                    field_values[fir.offset] = oop_consts::get_long0();
+                }
+                ValueType::FLOAT => {
+                    field_values[fir.offset] = oop_consts::get_float0();
+                }
+                ValueType::DOUBLE => {
+                    field_values[fir.offset] = oop_consts::get_double0();
+                }
+                ValueType::OBJECT | ValueType::ARRAY => {
+                    //ignore, has been inited by NULL
+                }
+                ValueType::VOID => unreachable!(),
+            }
+        });
 
         if cls.get_super_class().is_none() {
             break;

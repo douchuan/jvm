@@ -1,5 +1,5 @@
-use std::io::{self, Cursor, Read};
 use std::fmt;
+use std::io::{self, Cursor, Read};
 
 #[derive(Debug)]
 pub enum Error {

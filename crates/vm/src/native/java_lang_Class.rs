@@ -283,7 +283,10 @@ fn jvm_getDeclaredFields0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     //obtain inst&static fields
     let (inst_fields, static_fields) = {
         let cls = mirror_target.get_class();
-        (cls.get_inst_fields().unwrap(), cls.get_static_fields().unwrap())
+        (
+            cls.get_inst_fields().unwrap(),
+            cls.get_static_fields().unwrap(),
+        )
     };
 
     //build fields ary
@@ -394,7 +397,11 @@ fn jvm_isPrimitive(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = {
         let target = Oop::mirror_target(v.extract_ref());
-        if target.is_none() { 1 } else { 0 }
+        if target.is_none() {
+            1
+        } else {
+            0
+        }
     };
     Ok(Some(Oop::new_int(v)))
 }
@@ -437,7 +444,11 @@ fn jvm_isInterface(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = {
         match Oop::mirror_target(v.extract_ref()) {
             Some(target) => {
-                if target.get_class().is_interface() { 1 } else { 0 }
+                if target.get_class().is_interface() {
+                    1
+                } else {
+                    0
+                }
             }
             None => 0,
         }
@@ -532,9 +543,7 @@ fn jvm_isArray(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn jvm_getComponentType(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let arg0 = args.get(0).unwrap();
-    let cls = {
-        Oop::mirror_target(arg0.extract_ref()).unwrap()
-    };
+    let cls = { Oop::mirror_target(arg0.extract_ref()).unwrap() };
     let cls = cls.get_class();
     let v = if let Some(vt) = cls.get_type_array_value_type() {
         let key = unsafe { std::str::from_utf8_unchecked(vt) };
@@ -619,13 +628,17 @@ fn jvm_getDeclaringClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
         let target_ref = target.as_ref().unwrap();
         let cls = target_ref.get_class();
-        let inner_class = cls.resolve_cp_class_by_index(it.inner_class_info_index).unwrap();
+        let inner_class = cls
+            .resolve_cp_class_by_index(it.inner_class_info_index)
+            .unwrap();
 
         if Arc::ptr_eq(&inner_class, target_ref) {
             return if it.outer_class_info_index == 0 {
                 Ok(Some(Oop::Null))
             } else {
-                let outer_class = cls.resolve_cp_class_by_index(it.outer_class_info_index).unwrap();
+                let outer_class = cls
+                    .resolve_cp_class_by_index(it.outer_class_info_index)
+                    .unwrap();
                 let v = outer_class.get_class();
                 Ok(Some(v.get_mirror()))
             };
@@ -778,7 +791,9 @@ fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                     let mut inners = Vec::with_capacity(inner_classes.len());
                     for it in inner_classes {
                         if it.outer_class_info_index == this_class {
-                            let inner_clz = target_class.resolve_cp_class(it.inner_class_info_index).unwrap();
+                            let inner_clz = target_class
+                                .resolve_cp_class(it.inner_class_info_index)
+                                .unwrap();
                             let v = inner_clz.get_class().get_mirror();
                             inners.push(v);
                         }
@@ -798,25 +813,23 @@ fn jvm_getDeclaredClasses0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_getGenericSignature0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let v = match this {
-        Oop::Ref(slot_id) => {
-            oop::with_heap(|heap| {
-                let desc = heap.get(*slot_id);
-                let guard = desc.read().unwrap();
-                let mirror = guard.v.extract_mirror();
-                let vt = mirror.value_type;
-                if vt == ValueType::OBJECT {
-                    let target = mirror.target.clone().unwrap();
-                    let cls = target.get_class();
-                    let sig = cls.get_attr_signatrue();
-                    sig.map_or(Oop::Null, |v| {
-                        let sig = unsafe { std::str::from_utf8_unchecked(v.as_slice()) };
-                        util::oop::new_java_lang_string2(sig)
-                    })
-                } else {
-                    Oop::Null
-                }
-            })
-        }
+        Oop::Ref(slot_id) => oop::with_heap(|heap| {
+            let desc = heap.get(*slot_id);
+            let guard = desc.read().unwrap();
+            let mirror = guard.v.extract_mirror();
+            let vt = mirror.value_type;
+            if vt == ValueType::OBJECT {
+                let target = mirror.target.clone().unwrap();
+                let cls = target.get_class();
+                let sig = cls.get_attr_signatrue();
+                sig.map_or(Oop::Null, |v| {
+                    let sig = unsafe { std::str::from_utf8_unchecked(v.as_slice()) };
+                    util::oop::new_java_lang_string2(sig)
+                })
+            } else {
+                Oop::Null
+            }
+        }),
         _ => unreachable!(),
     };
 

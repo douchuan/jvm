@@ -161,8 +161,8 @@ impl<'a> Parser<'a> {
 
     fn parse_type(&mut self) -> Type {
         match self.peek_char() {
-            Some('B') | Some('C') | Some('D') | Some('F') | Some('I')
-            | Some('J') | Some('S') | Some('Z') | Some('V') => self.parse_primitive(),
+            Some('B') | Some('C') | Some('D') | Some('F') | Some('I') | Some('J') | Some('S')
+            | Some('Z') | Some('V') => self.parse_primitive(),
             Some('L') | Some('T') => self.parse_object(),
             Some('[') => self.parse_array(),
             Some(c) => unreachable!("bad type char: '{c}'"),
@@ -520,7 +520,9 @@ mod tests {
                 None,
             ),
         };
-        let r = MethodSignature::new(b"()Ljava/util/Set<Ljava/util/Map$Entry<TK;Ljava/util/Set<TV;>;>;>;");
+        let r = MethodSignature::new(
+            b"()Ljava/util/Set<Ljava/util/Map$Entry<TK;Ljava/util/Set<TV;>;>;>;",
+        );
         assert_eq!(r.args, expected.args);
         assert_eq!(r.retype, expected.retype);
     }

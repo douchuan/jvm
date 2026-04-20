@@ -13,12 +13,9 @@ fn fixture_dir() -> PathBuf {
 
 fn parse_fixture(name: &str) -> classfile::ClassFile {
     let path = fixture_dir().join(format!("{}.class", name));
-    let data = fs::read(&path).unwrap_or_else(|e| {
-        panic!("failed to read {}: {}", path.display(), e)
-    });
-    parse(&data).unwrap_or_else(|e| {
-        panic!("failed to parse {}: {:?}", path.display(), e)
-    })
+    let data =
+        fs::read(&path).unwrap_or_else(|e| panic!("failed to read {}: {}", path.display(), e));
+    parse(&data).unwrap_or_else(|e| panic!("failed to parse {}: {:?}", path.display(), e))
 }
 
 #[test]
@@ -64,8 +61,16 @@ fn all_types_fields() {
 #[test]
 fn all_types_constant_pool_entries() {
     let cf = parse_fixture("AllTypes");
-    let utf8_count = cf.cp.iter().filter(|e| matches!(*e, ConstantPoolType::Utf8 { .. })).count();
-    let class_count = cf.cp.iter().filter(|e| matches!(*e, ConstantPoolType::Class { .. })).count();
+    let utf8_count = cf
+        .cp
+        .iter()
+        .filter(|e| matches!(*e, ConstantPoolType::Utf8 { .. }))
+        .count();
+    let class_count = cf
+        .cp
+        .iter()
+        .filter(|e| matches!(*e, ConstantPoolType::Class { .. }))
+        .count();
     assert!(utf8_count > 10, "should have many Utf8 entries");
     assert!(class_count > 0, "should have at least one Class entry");
 }
@@ -98,7 +103,14 @@ fn constant_pool_index_zero_is_unused() {
 #[test]
 fn simple_calc_has_constant_pool() {
     let cf = parse_fixture("SimpleCalc");
-    assert!(cf.cp.len() > 5, "SimpleCalc should have a non-trivial constant pool");
-    let utf8_count = cf.cp.iter().filter(|e| matches!(*e, ConstantPoolType::Utf8 { .. })).count();
+    assert!(
+        cf.cp.len() > 5,
+        "SimpleCalc should have a non-trivial constant pool"
+    );
+    let utf8_count = cf
+        .cp
+        .iter()
+        .filter(|e| matches!(*e, ConstantPoolType::Utf8 { .. }))
+        .count();
     assert!(utf8_count > 2);
 }
