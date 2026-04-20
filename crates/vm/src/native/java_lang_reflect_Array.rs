@@ -27,8 +27,12 @@ fn jvm_newArray(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let (vt, component_cls) = {
         let rf = mirror.extract_ref();
-        let mirror = rf.extract_mirror();
-        (mirror.value_type, mirror.target.clone())
+        oop::with_heap(|heap| {
+            let desc = heap.get(rf);
+            let guard = desc.read().unwrap();
+            let mirror = guard.v.extract_mirror();
+            (mirror.value_type, mirror.target.clone())
+        })
     };
     let name = build_ary_name(vt, component_cls);
     let ary_cls = require_class3(None, name.as_slice()).unwrap();
@@ -39,15 +43,16 @@ fn jvm_newArray(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn jvm_getLength(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let ary = args.get(0).unwrap();
-    let rf = ary.extract_ref();
-    let ptr = rf.get_raw_ptr();
-    let len = unsafe {
-        match &(*ptr).v {
+    let slot_id = ary.extract_ref();
+    let len = oop::with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        match &guard.v {
             oop::RefKind::TypeArray(ary) => ary.len(),
             oop::RefKind::Array(ary) => ary.elements.len(),
             _ => unreachable!(),
         }
-    };
+    });
 
     let v = Oop::new_int(len as i32);
     Ok(Some(v))

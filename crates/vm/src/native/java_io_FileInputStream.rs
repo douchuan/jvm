@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Class, Oop, OopPtr};
+use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::consts as cls_consts;
@@ -44,7 +44,7 @@ fn jvm_open0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = {
         let v = args.get(1).unwrap();
-        OopPtr::java_lang_string(v.extract_ref())
+        Oop::java_lang_string(v.extract_ref())
     };
     let fd = unsafe {
         use std::ffi::CString;
@@ -64,27 +64,28 @@ fn jvm_readBytes(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let off = args.get(2).unwrap().extract_int();
     let len = args.get(3).unwrap().extract_int();
 
-    let n = {
-        let rf = byte_ary.extract_ref();
-        let ary = rf.extract_mut_type_array();
+    let slot_id = byte_ary.extract_ref();
+    let n = oop::with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let mut guard = desc.write().unwrap();
+        let ary = guard.v.extract_mut_type_array();
         let ary = ary.extract_mut_bytes();
+        let (slice, _) = ary.split_at_mut(off as usize);
+        let ptr = slice.as_mut_ptr() as *mut libc::c_void;
+        unsafe { libc::read(fd, ptr, len as usize) }
+    });
 
-        let (_, ptr) = ary.split_at_mut(off as usize);
-        let ptr = ptr.as_mut_ptr() as *mut libc::c_void;
-        let n = unsafe { libc::read(fd, ptr, len as usize) };
-        // error!("readBytes n = {}", n);
-        if n > 0 {
-            n as i32
-        } else if n == -1 {
-            let ex = runtime::exception::new(
-                cls_consts::J_IOEXCEPTION,
-                Some(String::from("Read Error")),
-            );
-            error!("jvm_readBytes read error");
-            return Err(ex);
-        } else {
-            -1
-        }
+    let n = if n > 0 {
+        n as i32
+    } else if n == -1 {
+        let ex = runtime::exception::new(
+            cls_consts::J_IOEXCEPTION,
+            Some(String::from("Read Error")),
+        );
+        error!("jvm_readBytes read error");
+        return Err(ex);
+    } else {
+        -1
     };
 
     Ok(Some(Oop::new_int(n)))

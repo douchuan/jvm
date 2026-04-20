@@ -2,8 +2,7 @@
 
 use crate::native;
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::class::ClassPtr;
-use crate::oop::{self, Class, Oop, OopPtr};
+use crate::oop::{self, Class, Oop};
 use crate::runtime;
 use crate::types::ClassRef;
 use class_parser::parse_class;
@@ -20,7 +19,7 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_defineClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let _loader = args.get(0).unwrap();
     let name = args.get(1).unwrap();
-    let name = OopPtr::java_lang_string(name.extract_ref());
+    let name = Oop::java_lang_string(name.extract_ref());
     let b = args.get(2).unwrap();
     let off = args.get(3).unwrap().extract_int();
     let len = args.get(4).unwrap().extract_int();
@@ -44,14 +43,18 @@ fn jvm_defineClass0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn do_parse_class(v: &Oop, off: usize, len: usize) -> ClassRef {
     let rf = v.extract_ref();
-    let ary = rf.extract_type_array();
-    let ary = ary.extract_bytes();
+    let ary = oop::with_heap(|heap| {
+        let desc = heap.get(rf);
+        let guard = desc.read().unwrap();
+        let type_ary = guard.v.extract_type_array();
+        type_ary.extract_bytes().to_vec()
+    });
     match parse_class(&ary[off..(off + len)]) {
         Ok(cf) => {
             let cfr = Arc::new(Box::new(cf));
             //fixme: setup classloader
             let class = Class::new_class(cfr, None);
-            ClassPtr::new(class)
+            Arc::new(class)
         }
         Err(e) => unreachable!("e = {:?}", e),
     }

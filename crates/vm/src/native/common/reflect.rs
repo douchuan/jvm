@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::java_lang_Class;
-use crate::oop::{self, Class, Oop, OopPtr};
+use crate::oop::{with_heap, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::types::*;
 use crate::util;
@@ -219,17 +219,15 @@ pub fn new_method_normal(mir: MethodIdRef) -> Oop {
 }
 
 pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
-    //todo: optimize, avoid obtain class
-    let cls = {
-        let rf = ctor.extract_ref();
-        let inst = rf.extract_inst();
-        inst.class.clone()
-    };
-
-    //todo: optimize, avoid obtain id
+    let slot_id = ctor.extract_ref();
+    let cls = with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        guard.v.extract_inst().class.clone()
+    });
     let cls = cls.get_class();
     let id = cls.get_field_id(&util::S_CLAZZ, &util::S_JAVA_LANG_CLASS, false);
-    Class::get_field_value(ctor.extract_ref(), id)
+    Class::get_field_value2(slot_id, id.offset)
 }
 
 /*
@@ -251,18 +249,16 @@ pub fn get_Constructor_slot(ctor: &Oop) -> i32 {
 */
 
 pub fn get_Constructor_signature(ctor: &Oop) -> String {
-    //todo: optimisze, cache Constructor cls, avoid obtain class
-    let cls = {
-        let rf = ctor.extract_ref();
-        let inst = rf.extract_inst();
-        inst.class.clone()
-    };
-
-    //todo: optimize, cache id
+    let slot_id = ctor.extract_ref();
+    let cls = with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        guard.v.extract_inst().class.clone()
+    });
     let cls = cls.get_class();
     let id = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
-    let v = Class::get_field_value(ctor.extract_ref(), id);
-    OopPtr::java_lang_string(v.extract_ref())
+    let v = Class::get_field_value2(slot_id, id.offset);
+    Oop::java_lang_string(v.extract_ref())
 }
 
 fn create_value_type(t: SignatureType) -> Oop {

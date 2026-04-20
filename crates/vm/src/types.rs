@@ -1,20 +1,22 @@
-use crate::oop::class::ClassPtr;
+use std::sync::Arc;
+
 use crate::oop::field::FieldId;
 use crate::runtime::method::MethodId;
 use crate::runtime::Frame;
 use crate::runtime::JavaThread;
 use classfile::ClassFile;
-use std::sync::Arc;
 
-pub type FieldIdRef = Arc<FieldId>;
+pub use crate::oop::class::ClassRef;
+
 pub type MethodIdRef = Arc<MethodId>;
-pub type ClassRef = Arc<ClassPtr>;
+pub type FieldIdRef = Arc<FieldId>;
 
+// Runtime string allocation
 def_ref!(ClassFileRef, ClassFile);
 def_sync_ref!(FrameRef, Frame);
 def_sync_ref!(JavaThreadRef, JavaThread);
 
-// Runtime string allocation
+// Primitive array types
 def_ptr!(ByteAry, Vec<u8>);
 def_ptr!(BoolAry, Vec<u8>);
 def_ptr!(CharAry, Vec<u16>);

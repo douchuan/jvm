@@ -79,16 +79,12 @@ pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {
                 && s_kind == oop::class::ClassKindType::TypAry
             {
                 let cls = s.get_class();
-                let (s_dimension, s_value_type) = match &cls.kind {
-                    oop::class::ClassKind::TypeArray(cls) => (cls.get_dimension(), cls.value_type),
-                    _ => unreachable!(),
-                };
+                let s_dimension = cls.get_array_dimension().unwrap();
+                let s_value_type = cls.get_type_array_value_type().unwrap();
 
                 let cls = t.get_class();
-                let (t_dimension, t_value_type) = match &cls.kind {
-                    oop::class::ClassKind::TypeArray(cls) => (cls.get_dimension(), cls.value_type),
-                    _ => unreachable!(),
-                };
+                let t_dimension = cls.get_array_dimension().unwrap();
+                let t_value_type = cls.get_type_array_value_type().unwrap();
                 return s_dimension == t_dimension && s_value_type == t_value_type;
             }
 
@@ -96,19 +92,12 @@ pub fn instance_of(s: ClassRef, t: ClassRef) -> bool {
                 && s_kind == oop::class::ClassKindType::ObjectAry
             {
                 let cls = s.get_class();
-                let (s_dimension, s_component) = match &cls.kind {
-                    oop::class::ClassKind::ObjectArray(cls) => {
-                        (cls.get_dimension(), cls.component.clone().unwrap())
-                    }
-                    _ => unreachable!(),
-                };
+                let s_dimension = cls.get_array_dimension().unwrap();
+                let s_component = cls.get_component_type_class().unwrap();
+
                 let cls = t.get_class();
-                let (t_dimension, t_component) = match &cls.kind {
-                    oop::class::ClassKind::ObjectArray(cls) => {
-                        (cls.get_dimension(), cls.component.clone().unwrap())
-                    }
-                    _ => unreachable!(),
-                };
+                let t_dimension = cls.get_array_dimension().unwrap();
+                let t_component = cls.get_component_type_class().unwrap();
                 return s_dimension == t_dimension && check_inherit(s_component, t_component);
             }
         }
@@ -126,7 +115,7 @@ pub fn check_inherit(s: ClassRef, t: ClassRef) -> bool {
             return true;
         }
 
-        let cls = { super_cls.get_class().super_class.clone() };
+        let cls = super_cls.get_class().get_super_class();
         match cls {
             Some(cls) => super_cls = cls,
             None => break,

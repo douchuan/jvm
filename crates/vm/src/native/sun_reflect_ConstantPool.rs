@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop};
+use crate::oop::Oop;
 use crate::util;
 use classfile::constant_pool;
 
@@ -20,18 +20,15 @@ fn jvm_getUTF8At0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         index.extract_int()
     };
 
-    let rf = cp_oop.extract_ref();
-    let mirror = rf.extract_mirror();
-    let target = mirror.target.clone().unwrap();
+    let target = Oop::mirror_target(cp_oop.extract_ref()).unwrap();
     let cls = target.get_class();
-    match &cls.kind {
-        oop::class::ClassKind::Instance(inst) => {
-            let cp = &inst.class_file.cp;
-            let s = constant_pool::get_utf8(cp, index as usize);
-            let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
-            let r = util::oop::new_java_lang_string2(s);
-            Ok(Some(r))
-        }
-        _ => unimplemented!(),
+    let cp = cls.get_constant_pool();
+    if let Some(cp) = cp {
+        let s = constant_pool::get_utf8(&cp, index as usize);
+        let s = unsafe { std::str::from_utf8_unchecked(s.as_slice()) };
+        let r = util::oop::new_java_lang_string2(s);
+        Ok(Some(r))
+    } else {
+        unimplemented!()
     }
 }

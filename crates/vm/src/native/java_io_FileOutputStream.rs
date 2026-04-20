@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{Class, Oop, OopPtr};
+use crate::oop::{self, Class, Oop};
 use crate::runtime::require_class3;
 use crate::util;
 
@@ -40,22 +40,25 @@ fn jvm_writeBytes(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let os = args.get(0).unwrap();
     let fd = get_file_descriptor_fd(os);
     let byte_ary = args.get(1).unwrap();
-    let off = args.get(2).unwrap().extract_int();
-    let len = args.get(3).unwrap().extract_int();
+    let off = args.get(2).unwrap().extract_int() as usize;
+    let len = args.get(3).unwrap().extract_int() as usize;
     let append = args.get(4).unwrap().extract_int();
 
-    let rf = byte_ary.extract_ref();
-    let ary = rf.extract_type_array();
-    let ary = ary.extract_bytes();
-    let (_, ary) = ary.split_at(off as usize);
-    let len = len as usize;
+    let slot_id = byte_ary.extract_ref();
+    let ary = oop::with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        let type_ary = guard.v.extract_type_array();
+        type_ary.extract_bytes().to_vec()
+    });
+    let (_, buf) = ary.split_at(off);
 
     unsafe {
         if append == 1 {
             libc::lseek(fd, 0, libc::SEEK_END);
         }
 
-        if -1 == libc::write(fd, ary.as_ptr() as *const libc::c_void, len) {
+        if -1 == libc::write(fd, buf.as_ptr() as *const libc::c_void, len) {
             panic!("write failed");
         }
     }
@@ -66,7 +69,7 @@ fn jvm_writeBytes(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_open0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let name = args.get(1).unwrap();
-    let name = OopPtr::java_lang_string(name.extract_ref());
+    let name = Oop::java_lang_string(name.extract_ref());
     let append = {
         let v = args.get(2).unwrap().extract_int();
         v == 1

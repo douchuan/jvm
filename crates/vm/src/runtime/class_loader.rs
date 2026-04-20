@@ -1,5 +1,4 @@
 use crate::native;
-use crate::oop::class::ClassPtr;
 use crate::oop::{self, Class, ValueType};
 use crate::runtime::{self, ClassPathResult};
 use crate::types::*;
@@ -81,7 +80,7 @@ impl ClassLoader {
                         match self.load_class(elm) {
                             Some(elm) => {
                                 let mut class = Class::new_object_ary(*self, elm, name);
-                                let class = ClassPtr::new(class);
+                                let class = Arc::new(class);
                                 {
                                     let this_ref = class.clone();
                                     let mut class = class.get_mut_class();
@@ -106,7 +105,7 @@ impl ClassLoader {
                         //B, Z...
                         let elm = t.into();
                         let class = Class::new_prime_ary(*self, elm);
-                        let class = ClassPtr::new(class);
+                        let class = Arc::new(class);
 
                         {
                             let this_ref = class.clone();
@@ -136,7 +135,7 @@ impl ClassLoader {
                 match self.load_array_class(down_type_name) {
                     Some(down_type) => {
                         let class = Class::new_wrapped_ary(*self, down_type);
-                        let class = ClassPtr::new(class);
+                        let class = Arc::new(class);
                         match self {
                             ClassLoader::Base => (),
                             ClassLoader::Bootstrap => {
@@ -162,7 +161,7 @@ impl ClassLoader {
                 Ok(cf) => {
                     let cfr = Arc::new(Box::new(cf));
                     let class = Class::new_class(cfr, Some(*self));
-                    Some(ClassPtr::new(class))
+                    Some(Arc::new(class))
                 }
 
                 Err(e) => unreachable!("name={}, {}", name, e),

@@ -189,7 +189,11 @@ impl JavaCall {
             } else {
                 let v = self.args.first().unwrap();
                 let v = v.extract_ref();
-                v.monitor_enter();
+                oop::with_heap(|heap| {
+                    let desc = heap.get(v);
+                    let guard = desc.read().unwrap();
+                    guard.monitor_enter();
+                });
             }
         }
     }
@@ -202,7 +206,11 @@ impl JavaCall {
             } else {
                 let v = self.args.first().unwrap();
                 let v = v.extract_ref();
-                v.monitor_exit();
+                oop::with_heap(|heap| {
+                    let desc = heap.get(v);
+                    let guard = desc.read().unwrap();
+                    guard.monitor_exit();
+                });
             }
         }
     }
@@ -283,9 +291,10 @@ impl JavaCall {
         if resolve_again {
             let this = self.args.get(0).unwrap();
             let rf = this.extract_ref();
-            let ptr = rf.get_raw_ptr();
-            unsafe {
-                if let oop::RefKind::Inst(inst) = &(*ptr).v {
+            oop::with_heap(|heap| {
+                let desc = heap.get(rf);
+                let guard = desc.read().unwrap();
+                if let oop::RefKind::Inst(inst) = &guard.v {
                     let name = self.mir.method.name.clone();
                     let desc = self.mir.method.desc.clone();
                     let cls = inst.class.get_class();
@@ -303,7 +312,7 @@ impl JavaCall {
                         }
                     }
                 }
-            }
+            });
         }
     }
 

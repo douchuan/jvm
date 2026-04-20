@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::sync::Mutex;
 
 use rustc_hash::FxHashMap;
 
@@ -31,19 +31,19 @@ impl CacheType {
 
 pub struct ConstantPoolCache {
     cp: ConstantPool,
-    cache: RefCell<FxHashMap<usize, CacheType>>,
+    cache: Mutex<FxHashMap<usize, CacheType>>,
 }
 
 impl ConstantPoolCache {
     pub fn new(cp: ConstantPool) -> Self {
         Self {
             cp,
-            cache: RefCell::new(FxHashMap::default()),
+            cache: Mutex::new(FxHashMap::default()),
         }
     }
 
     pub fn get_field(&self, idx: usize, is_static: bool) -> FieldIdRef {
-        let cache = self.cache.borrow();
+        let cache = self.cache.lock().unwrap();
         let it = cache.get(&idx);
         match it {
             Some(it) => it.extract_field(),
@@ -57,13 +57,13 @@ impl ConstantPoolCache {
     }
 
     fn cache_field(&self, k: usize, v: FieldIdRef) {
-        let mut cache = self.cache.borrow_mut();
+        let mut cache = self.cache.lock().unwrap();
         let v = CacheType::Field(v);
         cache.insert(k, v);
     }
 
     pub fn get_method(&self, idx: usize) -> MethodIdRef {
-        let cache = self.cache.borrow();
+        let cache = self.cache.lock().unwrap();
         let it = cache.get(&idx);
         match it {
             Some(it) => it.extract_method(),
@@ -77,7 +77,7 @@ impl ConstantPoolCache {
     }
 
     fn cache_method(&self, k: usize, v: MethodIdRef) {
-        let mut cache = self.cache.borrow_mut();
+        let mut cache = self.cache.lock().unwrap();
         let v = CacheType::Method(v);
         cache.insert(k, v);
     }

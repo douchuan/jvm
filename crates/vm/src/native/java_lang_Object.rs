@@ -34,28 +34,26 @@ fn jvm_clone(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn jvm_getClass(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
-    let mirror = {
-        let rf = v.extract_ref();
-        let ptr = rf.get_raw_ptr();
-        unsafe {
-            match &(*ptr).v {
-                oop::RefKind::Inst(inst) => {
-                    let cls = inst.class.get_class();
-                    cls.get_mirror()
-                }
-                oop::RefKind::Array(ary) => ary.class.get_class().get_mirror(),
-                oop::RefKind::Mirror(_mirror) => v.clone(),
-                t => unimplemented!("t = {:?}", t),
+    let slot_id = v.extract_ref();
+    let mirror = oop::with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        match &guard.v {
+            oop::RefKind::Inst(inst) => {
+                let cls = inst.class.get_class();
+                cls.get_mirror()
             }
+            oop::RefKind::Array(ary) => ary.class.get_class().get_mirror(),
+            oop::RefKind::Mirror(_mirror) => v.clone(),
+            t => unimplemented!("t = {:?}", t),
         }
-    };
+    });
     Ok(Some(mirror))
 }
 
 fn jvm_notifyAll(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
-    let rf = this.extract_ref();
-    rf.notify_all();
+    this.notify_all();
     Ok(None)
 }
 
@@ -63,11 +61,10 @@ fn jvm_wait(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let this = args.get(0).unwrap();
     let millis = args.get(1).unwrap().extract_long();
 
-    let rf = this.extract_ref();
     if millis == 0 {
-        rf.wait();
+        this.wait();
     } else {
-        rf.wait_timeout(Duration::from_millis(millis as u64));
+        this.wait_timeout(Duration::from_millis(millis as u64));
     }
 
     Ok(None)

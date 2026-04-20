@@ -1,4 +1,4 @@
-use crate::oop::{self, Class, Oop, OopPtr};
+use crate::oop::{self, Class, Oop};
 use crate::runtime::thread::thread_pool;
 use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
@@ -113,8 +113,11 @@ impl MainThread {
             Some(v) => {
                 let cls = {
                     let rf = v.extract_ref();
-                    let inst = rf.extract_inst();
-                    inst.class.clone()
+                    oop::with_heap(|heap| {
+                        let desc = heap.get(rf);
+                        let guard = desc.read().unwrap();
+                        guard.v.extract_inst().class.clone()
+                    })
                 };
 
                 let mir = {
@@ -152,8 +155,11 @@ impl MainThread {
 
         let cls = {
             let rf = ex.extract_ref();
-            let inst = rf.extract_inst();
-            inst.class.clone()
+            oop::with_heap(|heap| {
+                let desc = heap.get(rf);
+                let guard = desc.read().unwrap();
+                guard.v.extract_inst().class.clone()
+            })
         };
 
         let detail_message = {
@@ -166,7 +172,7 @@ impl MainThread {
                 )
             };
             let v = Class::get_field_value(ex.extract_ref(), fid);
-            OopPtr::java_lang_string(v.extract_ref())
+            Oop::java_lang_string(v.extract_ref())
         };
         let name = {
             let cls = cls.get_class();

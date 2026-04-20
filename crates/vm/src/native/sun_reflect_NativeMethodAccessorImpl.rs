@@ -2,7 +2,7 @@
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::new_br;
-use crate::oop::{self, Class, Oop, OopPtr};
+use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
@@ -30,21 +30,19 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
         let fid = cls.get_field_id(&util::S_NAME, &util::S_JAVA_LANG_STRING, false);
         let method_name = Class::get_field_value(method.extract_ref(), fid);
-        let method_name = OopPtr::java_lang_string(method_name.extract_ref());
+        let method_name = Oop::java_lang_string(method_name.extract_ref());
         let method_name = new_br(method_name.as_str());
 
         let fid = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
         let signature = Class::get_field_value(method.extract_ref(), fid);
-        let signature = OopPtr::java_lang_string(signature.extract_ref());
+        let signature = Oop::java_lang_string(signature.extract_ref());
         let signature = new_br(signature.as_str());
 
         (method_clazz, method_name, signature)
     };
 
     let clz = {
-        let rf = m_clazz.extract_ref();
-        let mirror = rf.extract_mirror();
-        mirror.target.clone().unwrap()
+        Oop::mirror_target(m_clazz.extract_ref()).unwrap()
     };
 
     let mir = {
@@ -66,9 +64,12 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     // }
 
     let mut args = {
-        let rf = args.extract_ref();
-        let ary = rf.extract_array();
-        ary.elements.to_vec()
+        let slot_id = args.extract_ref();
+        oop::with_heap(|heap| {
+            let desc = heap.get(slot_id);
+            let guard = desc.read().unwrap();
+            guard.v.extract_array().elements.clone()
+        })
     };
 
     if !mir.method.is_static() {

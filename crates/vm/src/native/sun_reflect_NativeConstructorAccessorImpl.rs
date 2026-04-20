@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::Oop;
+use crate::oop::{self, Oop};
 use crate::{new_br, runtime};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -18,9 +18,7 @@ fn jvm_newInstance0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let clazz = common::reflect::get_Constructor_clazz(ctor);
     let target_cls = {
-        let rf = clazz.extract_ref();
-        let mirror = rf.extract_mirror();
-        mirror.target.clone().unwrap()
+        Oop::mirror_target(clazz.extract_ref()).unwrap()
     };
 
     let signature = common::reflect::get_Constructor_signature(ctor);
@@ -33,9 +31,13 @@ fn jvm_newInstance0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     {
         match arguments {
             Oop::Null => (),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_array();
-                ctor_args.extend_from_slice(ary.elements.as_slice());
+            Oop::Ref(slot_id) => {
+                let args = oop::with_heap(|heap| {
+                    let desc = heap.get(*slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_array().elements.clone()
+                });
+                ctor_args.extend_from_slice(&args);
             }
             _ => unreachable!(),
         }

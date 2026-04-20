@@ -1,10 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::native::{self, new_fn, JNIEnv, JNINativeMethod, JNIResult};
-use crate::oop::{self, Oop, OopPtr};
+use crate::oop::{self, Oop};
 use crate::runtime::{self, thread, JavaCall};
 use crate::{new_br, util};
-use std::sync::Arc;
 use std::time::SystemTime;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
@@ -62,7 +61,7 @@ fn jvm_arraycopy(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         return Ok(None);
     }
 
-    let is_same_obj = OopPtr::is_eq(src, dest);
+    let is_same_obj = Oop::is_eq(src.extract_ref(), dest.extract_ref());
 
     if is_same_obj {
         arraycopy_same_obj(
@@ -160,11 +159,12 @@ fn jvm_initProperties(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn put_props_kv(props: &Oop, k: &str, v: &str) {
     //todo: optimize me
-    let cls = {
-        let rf = props.extract_ref();
-        let inst = rf.extract_inst();
-        inst.class.clone()
-    };
+    let cls = oop::with_heap(|heap| {
+        let slot_id = props.extract_ref();
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        guard.v.extract_inst().class.clone()
+    });
 
     let mir = {
         let cls = cls.get_class();
@@ -188,7 +188,6 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
 fn jvm_setIn0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let cls = cls.get_mut_class();
     let id = cls.get_field_id(&util::S_IN, &util::S_JAVA_IO_INPUT_STREAM, true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -197,7 +196,6 @@ fn jvm_setIn0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_setOut0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let cls = cls.get_mut_class();
     let id = cls.get_field_id(&util::S_OUT, &util::S_JAVA_IO_PRINT_STREAM, true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -206,7 +204,6 @@ fn jvm_setOut0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_setErr0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let cls = cls.get_mut_class();
     let id = cls.get_field_id(&util::S_ERR, &util::S_JAVA_IO_PRINT_STREAM, true);
     cls.put_static_field_value(id, v.clone());
     Ok(None)
@@ -214,7 +211,7 @@ fn jvm_setErr0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 
 fn jvm_mapLibraryName(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
-    let s = OopPtr::java_lang_string(v.extract_ref());
+    let s = Oop::java_lang_string(v.extract_ref());
 
     trace!("mapLibraryName libname = {}", s);
     let mut name = String::new();
@@ -286,22 +283,19 @@ fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIRe
 }
 */
 
-fn arraycopy_same_obj(buf: Arc<OopPtr>, src_pos: usize, dest_pos: usize, length: usize) {
-    let is_type_ary = {
-        let ptr = buf.get_raw_ptr();
-        unsafe {
-            match &(*ptr).v {
-                oop::RefKind::TypeArray(_) => true,
-                oop::RefKind::Array(_) => false,
-                _ => unreachable!(),
-            }
-        }
-    };
+// Copy elements within the same array object (identified by slot_id)
+fn arraycopy_same_obj(slot_id: u32, src_pos: usize, dest_pos: usize, length: usize) {
+    let is_type_ary = oop::with_heap(|heap| {
+        let desc = heap.get(slot_id);
+        let guard = desc.read().unwrap();
+        matches!(guard.v, oop::RefKind::TypeArray(_))
+    });
 
     if is_type_ary {
-        let ptr = buf.get_mut_raw_ptr();
-        unsafe {
-            match &mut (*ptr).v {
+        oop::with_heap_mut(|heap| {
+            let desc = heap.get(slot_id);
+            let mut guard = desc.write().unwrap();
+            match &mut guard.v {
                 oop::RefKind::TypeArray(ary) => match ary {
                     oop::TypeArrayDesc::Char(ary) => {
                         ary.copy_within(src_pos..(src_pos + length), dest_pos)
@@ -311,86 +305,98 @@ fn arraycopy_same_obj(buf: Arc<OopPtr>, src_pos: usize, dest_pos: usize, length:
                     }
                     t => unreachable!("t = {:?}", t),
                 },
-
                 _ => unreachable!(),
             }
-        }
+        });
     } else {
-        let tmp = {
-            let ary = buf.extract_array();
-            let mut tmp = vec![Oop::Null; length];
-
+        // Reference array: read elements, then write back
+        let tmp = oop::with_heap(|heap| {
+            let desc = heap.get(slot_id);
+            let guard = desc.read().unwrap();
+            let ary = guard.v.extract_array();
             let (_, ary) = ary.elements.split_at(src_pos);
-            tmp.clone_from_slice(&ary[..length]);
-            tmp
-        };
+            ary[..length].to_vec()
+        });
 
-        let ary = buf.extract_mut_array();
-        let (_, ary) = ary.elements.split_at_mut(dest_pos);
-        ary[..length].clone_from_slice(&tmp[..]);
+        oop::with_heap_mut(|heap| {
+            let desc = heap.get(slot_id);
+            let mut guard = desc.write().unwrap();
+            let ary = guard.v.extract_mut_array();
+            let (_, ary) = ary.elements.split_at_mut(dest_pos);
+            ary[..length].clone_from_slice(&tmp[..]);
+        });
     }
 }
 
+// Copy elements between two different array objects (identified by slot_ids)
 pub fn arraycopy_diff_obj(
-    src: Arc<OopPtr>,
+    src_slot: u32,
     src_pos: usize,
-    dest: Arc<OopPtr>,
+    dest_slot: u32,
     dest_pos: usize,
     length: usize,
 ) {
-    let is_type_ary = {
-        let ptr = src.get_raw_ptr();
-        unsafe {
-            match &(*ptr).v {
-                oop::RefKind::TypeArray(_) => true,
-                oop::RefKind::Array(_) => false,
-                _ => unreachable!(),
-            }
-        }
-    };
-
-    // error!("src={}, dest={}, length={}, is_type_ary={}", src_pos, dest_pos, length, is_type_ary);
-
-    let src_ptr = src.get_raw_ptr();
+    let is_type_ary = oop::with_heap(|heap| {
+        let desc = heap.get(src_slot);
+        let guard = desc.read().unwrap();
+        matches!(guard.v, oop::RefKind::TypeArray(_))
+    });
 
     if is_type_ary {
-        unsafe {
-            match &(*src_ptr).v {
+        oop::with_heap(|heap| {
+            let src_desc = heap.get(src_slot);
+            let src_guard = src_desc.read().unwrap();
+            match &src_guard.v {
                 oop::RefKind::TypeArray(src_ary) => match src_ary {
                     oop::TypeArrayDesc::Byte(src_ary) => {
-                        let dest_ary = dest.extract_mut_type_array();
-                        let dest_ary = dest_ary.extract_mut_bytes();
-                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                        let (_, src_ptr) = src_ary.split_at(src_pos);
-                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                        let (_, src_slice) = src_ary.split_at(src_pos);
+                        let dest_desc = heap.get(dest_slot);
+                        let mut dest_guard = dest_desc.write().unwrap();
+                        let dest_ary = dest_guard.v.extract_mut_type_array();
+                        let dest_bytes = dest_ary.extract_mut_bytes();
+                        let (_, dest_slice) = dest_bytes.split_at_mut(dest_pos);
+                        dest_slice[..length].copy_from_slice(&src_slice[..length]);
                     }
                     oop::TypeArrayDesc::Char(src_ary) => {
-                        let dest_ary = dest.extract_mut_type_array();
-                        let dest_ary = dest_ary.extract_mut_chars();
-                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                        let (_, src_ptr) = src_ary.split_at(src_pos);
-                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                        let (_, src_slice) = src_ary.split_at(src_pos);
+                        let dest_desc = heap.get(dest_slot);
+                        let mut dest_guard = dest_desc.write().unwrap();
+                        let dest_ary = dest_guard.v.extract_mut_type_array();
+                        let dest_chars = dest_ary.extract_mut_chars();
+                        let (_, dest_slice) = dest_chars.split_at_mut(dest_pos);
+                        dest_slice[..length].copy_from_slice(&src_slice[..length]);
                     }
                     oop::TypeArrayDesc::Int(src_ary) => {
-                        let dest_ary = dest.extract_mut_type_array();
-                        let dest_ary = dest_ary.extract_mut_ints();
-                        let (_, dest_ptr) = dest_ary.split_at_mut(dest_pos);
-                        let (_, src_ptr) = src_ary.split_at(src_pos);
-                        dest_ptr[..length].copy_from_slice(&src_ptr[..length]);
+                        let (_, src_slice) = src_ary.split_at(src_pos);
+                        let dest_desc = heap.get(dest_slot);
+                        let mut dest_guard = dest_desc.write().unwrap();
+                        let dest_ary = dest_guard.v.extract_mut_type_array();
+                        let dest_ints = dest_ary.extract_mut_ints();
+                        let (_, dest_slice) = dest_ints.split_at_mut(dest_pos);
+                        dest_slice[..length].copy_from_slice(&src_slice[..length]);
                     }
                     t => unreachable!("t = {:?}", t),
                 },
                 _ => unreachable!(),
             }
-        }
+        });
     } else {
-        let src = src.extract_array();
-        let dest = dest.extract_mut_array();
+        // Reference array copy
+        let tmp = oop::with_heap(|heap| {
+            let src_desc = heap.get(src_slot);
+            let src_guard = src_desc.read().unwrap();
+            let src_ary = src_guard.v.extract_array();
+            let (_, src_slice) = src_ary.elements.split_at(src_pos);
+            src_slice[..length].to_vec()
+        });
 
-        let (_, src_ptr) = src.elements.split_at(src_pos);
-        let (_, dest_ptr) = dest.elements.split_at_mut(dest_pos);
-
-        dest_ptr[..length].clone_from_slice(&src_ptr[..length]);
+        oop::with_heap_mut(|heap| {
+            let dest_desc = heap.get(dest_slot);
+            let mut dest_guard = dest_desc.write().unwrap();
+            let dest_ary = dest_guard.v.extract_mut_array();
+            let (_, dest_slice) = dest_ary.elements.split_at_mut(dest_pos);
+            dest_slice[..length].clone_from_slice(&tmp[..]);
+        });
     }
 }
 

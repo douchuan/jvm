@@ -41,9 +41,12 @@ impl ArrayOopDesc {
 
     pub fn get_dimension(&self) -> usize {
         let class = self.class.get_class();
-        match &class.kind {
-            class::ClassKind::ObjectArray(ary_class_obj) => ary_class_obj.get_dimension(),
-            class::ClassKind::TypeArray(ary_class_obj) => ary_class_obj.get_dimension(),
+        match class.get_class_kind_type() {
+            class::ClassKindType::ObjectAry | class::ClassKindType::TypAry => {
+                // Both ObjectArray and TypeArray have get_dimension via ArrayClassObject
+                // We need a helper method
+                class.get_array_dimension().unwrap()
+            }
             _ => unreachable!(),
         }
     }

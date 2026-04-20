@@ -20,13 +20,9 @@ pub fn initialize_jvm() {
 
     let init_thread_oop = oop::Oop::new_inst(thread_cls.clone());
     {
-        let mut cls = thread_cls.get_mut_class();
-        //todo: getNativeHandler
-        //        let id = util::new_field_id(J_THREAD, b"eetop", b"J");
-        //        cls.put_field_value2(init_thread_oop.clone(), id, oop::OopDesc::new_long(0));
-        //todo: define java::lang::ThreadPriority::NORMAL_PRIORITY
+        let cls = thread_cls.get_class();
         let id = cls.get_field_id(&new_br("priority"), &new_br("I"), false);
-        Class::put_field_value(init_thread_oop.extract_ref(), id, oop::Oop::new_int(5));
+        Class::put_field_value2(init_thread_oop.extract_ref(), id.offset, oop::Oop::new_int(5));
     }
 
     // JavaMainThread is created with java_thread_obj none
@@ -44,9 +40,9 @@ pub fn initialize_jvm() {
     let main_thread_group = oop::Oop::new_inst(thread_group_cls.clone());
 
     {
-        let mut cls = thread_cls.get_mut_class();
+        let cls = thread_cls.get_class();
         let id = cls.get_field_id(&new_br("group"), &new_br("Ljava/lang/ThreadGroup;"), false);
-        Class::put_field_value(init_thread_oop.extract_ref(), id, main_thread_group.clone());
+        Class::put_field_value2(init_thread_oop.extract_ref(), id.offset, main_thread_group.clone());
     }
 
     let _ = oop::class::load_and_init(J_INPUT_STREAM);
@@ -136,7 +132,7 @@ fn initialize_vm_structs() {
     //java::lang::reflect::Method::initialize
 
     {
-        let mut cls = class_obj.get_mut_class();
+        let cls = class_obj.get_class();
         let id = cls.get_field_id(&new_br("useCaches"), &new_br("Z"), true);
         cls.put_static_field_value(id, oop::Oop::new_int(1));
     }
@@ -151,7 +147,7 @@ fn hack_classes() {
     runtime::invoke::invoke_ctor(ascii_charset_cls, new_br("()V"), args);
 
     {
-        let mut cls = charset_cls.get_mut_class();
+        let cls = charset_cls.get_class();
         let id = cls.get_field_id(
             &new_br("defaultCharset"),
             &new_br("Ljava/nio/charset/Charset;"),
@@ -162,14 +158,14 @@ fn hack_classes() {
 
     let encoder = oop::class::load_and_init(b"sun/nio/cs/StreamEncoder");
     {
-        let mut cls = encoder.get_mut_class();
+        let cls = encoder.get_class();
         cls.hack_as_native(b"forOutputStreamWriter", b"(Ljava/io/OutputStream;Ljava/lang/Object;Ljava/lang/String;)Lsun/nio/cs/StreamEncoder;");
     }
 
     let system = oop::class::load_and_init(b"java/lang/System");
 
     {
-        let mut cls = system.get_mut_class();
+        let cls = system.get_class();
         cls.hack_as_native(b"load", b"(Ljava/lang/String;)V");
 
         //todo: support load lib

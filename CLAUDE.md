@@ -81,8 +81,9 @@ Entry point: `parse(&[u8]) -> Result<ClassFile>` or `parse_class` (alias).
 The core VM. Major modules:
 
 **oop/** — Object model
-- `mod.rs` — `Oop` enum, `RefKind` types
-- `heap.rs` — object allocation (slot-based model planned)
+- `mod.rs` — `Oop` enum, slot-based heap access (`with_heap`/`with_heap_mut`)
+- `heap.rs` — slot-based object allocation (`Oop::Ref(u32)`)
+- `reference.rs` — `RefKind`, `RefKindDesc`, safe `Monitor` (std Mutex+Condvar)
 - `class.rs` / `inst.rs` / `ary.rs` / `field.rs` — object kinds
 
 **runtime/** — Execution engine
@@ -116,19 +117,19 @@ The project is being rewritten from scratch in phases. Progress:
 | 1. Class-parser rewrite | Done | nom → Cursor+Read, 12 tests |
 | 2. Workspace compilation | Done | `cargo build --workspace` passes |
 | 3. Test skeleton | Done | 23 tests (12 unit + 11 integration) |
-| 4. Oop model rewrite | Next | Slot-based (`Oop::Ref(u32)`), safe GC |
-| 5. Interpreter rewrite | Planned | Per-opcode files, no macros |
+| 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
+| 5. Interpreter rewrite | Next | Per-opcode files, no macros |
 | 6. Method invocation | Planned | Adapt to new Frame/Stack |
 | 7. LLVM JIT | Planned | inkwell + alloca/mem2reg |
-| 8. GC precise-ification | Planned | bdwgc → mark-sweep-compact |
+| 8. GC precise-ification | Planned | slot-based heap → mark-sweep-compact |
 | 9. Complete features | Planned | invokedynamic, verification, threading |
 
 See `documents/jvm-implementation-challenges.md` for detailed Rust vs C++ JVM implementation analysis.
 
 ## Important Conventions
 
-- **Oop model (current)**: Uses `Arc<OopPtr>` with `Box::into_raw` — 404 unsafe calls, being rewritten to slot-based
-- **Oop model (target)**: `Oop::Ref(u32 slot_id)` with `Heap` indirection, fully safe Rust
+- **Oop model**: `Oop::Ref(u32 slot_id)` with `Heap` indirection — zero unsafe code for object access. Use `oop::with_heap(|heap| ...)` and `oop::with_heap_mut(|heap| ...)` to access heap objects
+- **Class model**: `ClassRef = Arc<Class>`, mutable fields use `RwLock` internally, accessed via accessor methods
+- **Monitor**: `RefKindDesc` uses safe `std::sync::{Mutex, Condvar}` for Java monitor semantics
 - **Exception handling**: `Result<T, JvmError>` — never panic for Java exceptions
-- **Thread sync**: `parking_lot::ReentrantMutex` for Java monitor semantics
 - **No comments** unless the WHY is non-obvious (hidden constraint, workaround for specific bug)

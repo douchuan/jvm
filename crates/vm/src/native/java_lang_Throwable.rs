@@ -127,9 +127,9 @@ fn jvm_fillInStackTrace(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             &new_br("[Ljava/lang/StackTraceElement;"),
             false,
         );
-        Class::put_field_value(throwable_oop.extract_ref(), id, Oop::Null);
+        Class::put_field_value2(throwable_oop.extract_ref(), id.offset, Oop::Null);
         let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
-        Class::put_field_value(throwable_oop.extract_ref(), id, stack_trace_ary);
+        Class::put_field_value2(throwable_oop.extract_ref(), id.offset, stack_trace_ary);
     }
 
     Ok(Some(throwable_oop.clone()))
@@ -139,8 +139,11 @@ fn jvm_getStackTraceDepth(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let throwable = args.get(0).unwrap();
     let cls = {
         let rf = throwable.extract_ref();
-        let inst = rf.extract_inst();
-        inst.class.clone()
+        oop::with_heap(|heap| {
+            let desc = heap.get(rf);
+            let guard = desc.read().unwrap();
+            guard.v.extract_inst().class.clone()
+        })
     };
     let backtrace = {
         let cls = cls.get_class();
@@ -151,8 +154,11 @@ fn jvm_getStackTraceDepth(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = match backtrace {
         Oop::Null => Oop::new_int(0),
         Oop::Ref(rf) => {
-            let ary = rf.extract_array();
-            let len = ary.elements.len();
+            let len = oop::with_heap(|heap| {
+                let desc = heap.get(rf);
+                let guard = desc.read().unwrap();
+                guard.v.extract_array().elements.len()
+            });
             Oop::new_int(len as i32)
         }
         _ => unreachable!(),
@@ -166,8 +172,11 @@ fn jvm_getStackTraceElement(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let index = args.get(1).unwrap().extract_int();
     let cls = {
         let rf = throwable.extract_ref();
-        let inst = rf.extract_inst();
-        inst.class.clone()
+        oop::with_heap(|heap| {
+            let desc = heap.get(rf);
+            let guard = desc.read().unwrap();
+            guard.v.extract_inst().class.clone()
+        })
     };
     let backtrace = {
         let cls = cls.get_class();
@@ -177,12 +186,16 @@ fn jvm_getStackTraceElement(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let v = {
         let rf = backtrace.extract_ref();
-        let ary = rf.extract_array();
-        if index >= 0 && (index as usize) < ary.elements.len() {
-            ary.elements[index as usize].clone()
-        } else {
-            Oop::Null
-        }
+        oop::with_heap(|heap| {
+            let desc = heap.get(rf);
+            let guard = desc.read().unwrap();
+            let ary = guard.v.extract_array();
+            if index >= 0 && (index as usize) < ary.elements.len() {
+                ary.elements[index as usize].clone()
+            } else {
+                Oop::Null
+            }
+        })
     };
 
     Ok(Some(v))

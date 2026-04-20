@@ -26,8 +26,8 @@ impl Frame {
     pub fn new(mir: MethodIdRef, frame_id: usize) -> Self {
         let class = mir.method.class.clone();
         let cp = {
-            let cls_obj = class.extract_inst();
-            cls_obj.class_file.cp.clone()
+            let cls_obj = class.get_class();
+            cls_obj.get_cp_clone().unwrap()
         };
         let pc = std::sync::atomic::AtomicI32::new(0);
         let ex_here = std::sync::atomic::AtomicBool::new(false);

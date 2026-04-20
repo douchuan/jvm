@@ -36,10 +36,7 @@ pub fn get_field_ref(cp: &ConstantPool, idx: usize, is_static: bool) -> FieldIdR
 pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     let n = {
         let class = class.get_class();
-        match &class.kind {
-            oop::class::ClassKind::Instance(class_obj) => class_obj.n_inst_fields,
-            _ => unreachable!(),
-        }
+        class.get_n_inst_fields().unwrap()
     };
     let mut field_values = vec![Oop::Null; n];
     let mut cur_cls = class;
@@ -47,9 +44,11 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
     loop {
         let cls = cur_cls.clone();
         let cls = cls.get_class();
-        match &cls.kind {
-            oop::class::ClassKind::Instance(cls_obj) => {
-                cls_obj.inst_fields.iter().for_each(|(_, fir)| {
+        let fields = match cls.get_inst_and_static_fields() {
+            Some(f) => f,
+            None => break,
+        };
+        fields.1.iter().for_each(|(_, fir)| {
                     match fir.field.value_type {
                         ValueType::BYTE
                         | ValueType::BOOLEAN
@@ -73,14 +72,11 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
                         ValueType::VOID => unreachable!(),
                     }
                 });
-            }
-            _ => unreachable!(),
-        }
 
-        if cls.super_class.is_none() {
+        if cls.get_super_class().is_none() {
             break;
         } else {
-            cur_cls = cls.super_class.clone().unwrap();
+            cur_cls = cls.get_super_class().unwrap();
         }
     }
 

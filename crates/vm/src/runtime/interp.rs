@@ -1,5 +1,5 @@
 use crate::oop::{
-    self, consts as oop_consts, field, Class, ClassKind, Oop, OopPtr, TypeArrayDesc, ValueType,
+    self, consts as oop_consts, field, Class, ClassKind, Oop, TypeArrayDesc, ValueType,
 };
 use crate::runtime::local::Local;
 use crate::runtime::stack::Stack;
@@ -22,7 +22,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLockReadGuard};
 
 macro_rules! array_store {
-    ($ary:ident, $pos:ident, $v:ident) => {
+    ($ary:expr, $pos:expr, $v:expr) => {
         let len = $ary.len();
         if ($pos < 0) || ($pos as usize >= len) {
             let msg = format!("length is {}, but index is {}", len, $pos);
@@ -805,8 +805,8 @@ impl<'a> Interp<'a> {
     }
 
     fn get_field_helper(&self, receiver: Oop, idx: usize, is_static: bool) {
-        let class = self.frame.class.extract_inst();
-        let fir = class.cp_cache.get_field(idx, is_static);
+        let cls = self.frame.class.get_class();
+        let fir = cls.get_cp_field(idx, is_static).unwrap();
         debug_assert_eq!(fir.field.is_static(), is_static);
         trace!("get_field_helper={:?}, is_static={}", fir.field, is_static);
         let value_type = fir.field.value_type;
@@ -854,8 +854,8 @@ impl<'a> Interp<'a> {
     }
 
     fn put_field_helper(&self, idx: usize, is_static: bool) {
-        let class = self.frame.class.extract_inst();
-        let fir = class.cp_cache.get_field(idx, is_static);
+        let cls = self.frame.class.get_class();
+        let fir = cls.get_cp_field(idx, is_static).unwrap();
         debug_assert_eq!(fir.field.is_static(), is_static);
         trace!("put_field_helper={:?}, is_static={}", fir.field, is_static);
         let value_type = fir.field.value_type;
@@ -877,8 +877,8 @@ impl<'a> Interp<'a> {
     }
 
     fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool) {
-        let class = self.frame.class.extract_inst();
-        let mir = class.cp_cache.get_method(idx);
+        let cls = self.frame.class.get_class();
+        let mir = cls.get_cp_method(idx).unwrap();
         let caller = match &mir.method.signature.retype {
             classfile::SignatureType::Void => None,
             _ => Some(&self.frame.area),
@@ -929,10 +929,11 @@ impl<'a> Interp<'a> {
                     stack.push_const0(false);
                 }
             }
-            Oop::Ref(rf) => {
-                let rf = rf.get_raw_ptr();
-                unsafe {
-                    match &(*rf).v {
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    match &guard.v {
                         oop::RefKind::Inst(inst) => {
                             let obj_cls = inst.class.clone();
                             let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
@@ -954,11 +955,6 @@ impl<'a> Interp<'a> {
                             }
                         }
                         oop::RefKind::Mirror(mirror) => {
-                            //run here codes:
-                            //$JDK_TEST/Appendable/Basic.java
-                            //Will eventually call java.security.Security.getSpiClass ("MessageDigest"):
-                            //Exception in thread "main" java.lang.ClassCastException: java.security.MessageDigestSpi cannot be cast to java.lang.Class
-
                             let obj_cls = mirror.target.clone().unwrap();
                             let target_name = target_cls.get_class().name.as_slice();
                             let r = target_name == b"java/lang/Class"
@@ -972,7 +968,7 @@ impl<'a> Interp<'a> {
                         }
                         _ => unreachable!(),
                     }
-                }
+                });
             }
             _ => unreachable!(),
         }
@@ -997,8 +993,11 @@ impl<'a> Interp<'a> {
     fn try_handle_exception(&self, ex: Oop) -> Result<(), Oop> {
         let ex_cls = {
             let rf = ex.extract_ref();
-            let inst = rf.extract_inst();
-            inst.class.clone()
+            oop::with_heap(|heap| {
+                let desc = heap.get(rf);
+                let guard = desc.read().unwrap();
+                guard.v.extract_inst().class.clone()
+            })
         };
 
         let handler = {
@@ -1090,10 +1089,19 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_ints();
-                iarray_load!(stack, ary, pos);
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_ints();
+                    (ary.clone(), ary.len())
+                });
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    stack.push_int(ary[pos as usize]);
+                }
             }
             _ => unreachable!(),
         }
@@ -1106,10 +1114,19 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_shorts();
-                iarray_load!(stack, ary, pos);
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_shorts();
+                    (ary.clone(), ary.len())
+                });
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    stack.push_int(ary[pos as usize] as i32);
+                }
             }
             _ => unreachable!(),
         }
@@ -1122,10 +1139,19 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_chars();
-                iarray_load!(stack, ary, pos);
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_chars();
+                    (ary.clone(), ary.len())
+                });
+                if (pos < 0) || (pos as usize >= len) {
+                    let msg = format!("length is {}, but index is {}", len, pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else {
+                    stack.push_int(ary[pos as usize] as i32);
+                }
             }
             _ => unreachable!(),
         }
@@ -1138,28 +1164,27 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let mut rf = (*rf).get_raw_ptr();
-                unsafe {
-                    let ary = (*rf).v.extract_type_array();
+            Oop::Ref(slot_id) => {
+                let result = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array();
                     let len = ary.len();
-
                     if (pos < 0) || (pos as usize >= len) {
-                        let msg = format!("length is {}, but index is {}", len, pos);
-                        exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                        Err(())
                     } else {
                         match ary {
-                            TypeArrayDesc::Byte(ary) => {
-                                let v = ary[pos as usize];
-                                stack.push_int(v as i32);
-                            }
-                            TypeArrayDesc::Bool(ary) => {
-                                let v = ary[pos as usize];
-                                stack.push_int(v as i32);
-                            }
+                            TypeArrayDesc::Byte(ary) => Ok(ary[pos as usize] as i32),
+                            TypeArrayDesc::Bool(ary) => Ok(ary[pos as usize] as i32),
                             t => unreachable!("t = {:?}", t),
                         }
                     }
+                });
+                if let Err(()) = result {
+                    let msg = format!("length exceeded, index={}", pos);
+                    exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
+                } else if let Ok(v) = result {
+                    stack.push_int(v);
                 }
             }
             _ => unreachable!(),
@@ -1173,16 +1198,18 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_longs();
-                let len = ary.len();
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_longs();
+                    (ary.clone(), ary.len())
+                });
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-                    let v = ary[pos as usize];
-                    stack.push_long(v);
+                    stack.push_long(ary[pos as usize]);
                 }
             }
             _ => unreachable!(),
@@ -1196,16 +1223,18 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_floats();
-                let len = ary.len();
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_floats();
+                    (ary.clone(), ary.len())
+                });
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-                    let v = ary[pos as usize];
-                    stack.push_float(v);
+                    stack.push_float(ary[pos as usize]);
                 }
             }
             _ => unreachable!(),
@@ -1219,16 +1248,18 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_type_array();
-                let ary = ary.extract_doubles();
-                let len = ary.len();
+            Oop::Ref(slot_id) => {
+                let (ary, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_type_array().extract_doubles();
+                    (ary.clone(), ary.len())
+                });
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-                    let v = ary[pos as usize];
-                    stack.push_double(v);
+                    stack.push_double(ary[pos as usize]);
                 }
             }
             _ => unreachable!(),
@@ -1242,17 +1273,18 @@ impl<'a> Interp<'a> {
         let rf = stack.pop_ref();
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_array();
-                let ary = &ary.elements;
-                let len = ary.len();
-
+            Oop::Ref(slot_id) => {
+                let (elements, len) = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    let ary = guard.v.extract_array();
+                    (ary.elements.clone(), ary.elements.len())
+                });
                 if (pos < 0) || (pos as usize >= len) {
                     let msg = format!("length is {}, but index is {}", len, pos);
                     exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, Some(msg));
                 } else {
-                    let v = ary[pos as usize].clone();
-                    stack.push_ref(v, false);
+                    stack.push_ref(elements[pos as usize].clone(), false);
                 }
             }
             _ => unreachable!(),
@@ -1269,10 +1301,11 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let mut rf = (*rf).get_mut_raw_ptr();
-                unsafe {
-                    let ary = (*rf).v.extract_mut_type_array();
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array();
                     match ary {
                         oop::TypeArrayDesc::Byte(ary) => {
                             let v = v as u8;
@@ -1284,7 +1317,7 @@ impl<'a> Interp<'a> {
                         }
                         _ => unreachable!(),
                     }
-                }
+                });
             }
             _ => unreachable!(),
         }
@@ -1300,11 +1333,14 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_chars();
+            Oop::Ref(slot_id) => {
                 let v = v as u16;
-                array_store!(ary, pos, v);
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_chars();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1320,11 +1356,14 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_shorts();
+            Oop::Ref(slot_id) => {
                 let v = v as i16;
-                array_store!(ary, pos, v);
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_shorts();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1340,10 +1379,13 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_ints();
-                array_store!(ary, pos, v);
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_ints();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1359,10 +1401,13 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_longs();
-                array_store!(ary, pos, v);
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_longs();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1378,10 +1423,13 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_floats();
-                array_store!(ary, pos, v);
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_floats();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1397,10 +1445,13 @@ impl<'a> Interp<'a> {
 
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_type_array();
-                let ary = ary.extract_mut_doubles();
-                array_store!(ary, pos, v);
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_type_array().extract_mut_doubles();
+                    array_store!(ary, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1416,10 +1467,13 @@ impl<'a> Interp<'a> {
 
         match ary_rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
-            Oop::Ref(rf) => {
-                let ary = rf.extract_mut_array();
-                let ary = &mut ary.elements;
-                array_store!(ary, pos, v);
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let mut guard = desc.write().unwrap();
+                    let ary = guard.v.extract_mut_array();
+                    array_store!(ary.elements, pos, v);
+                });
             }
             _ => unreachable!(),
         }
@@ -1918,7 +1972,7 @@ impl<'a> Interp<'a> {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
-        if OopPtr::is_eq(&v1, &v2) {
+        if Oop::is_eq(v1.extract_ref(), v2.extract_ref()) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -1931,7 +1985,7 @@ impl<'a> Interp<'a> {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v2 = stack.pop_ref();
         let v1 = stack.pop_ref();
-        if !OopPtr::is_eq(&v1, &v2) {
+        if !Oop::is_eq(v1.extract_ref(), v2.extract_ref()) {
             drop(stack);
             self.goto_by_offset_hardcoded(2);
         } else {
@@ -2330,21 +2384,18 @@ impl<'a> Interp<'a> {
                 drop(stack);
                 exception::meet_ex(cls_const::J_NPE, None)
             }
-            Oop::Ref(rf) => {
-                let v = rf.get_raw_ptr();
-                unsafe {
-                    match &(*v).v {
-                        oop::RefKind::Array(ary) => {
-                            let len = ary.elements.len();
-                            stack.push_int(len as i32);
-                        }
-                        oop::RefKind::TypeArray(ary) => {
-                            let len = ary.len();
-                            stack.push_int(len as i32);
-                        }
+            Oop::Ref(slot_id) => {
+                let slot_id = slot_id;
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    match &guard.v {
+                        oop::RefKind::Array(ary) => ary.elements.len() as i32,
+                        oop::RefKind::TypeArray(ary) => ary.len() as i32,
                         _ => unreachable!(),
                     }
-                }
+                });
+                stack.push_int(len);
             }
             _ => unreachable!(),
         }
@@ -2379,7 +2430,13 @@ impl<'a> Interp<'a> {
             Oop::Null => {
                 exception::meet_ex(cls_const::J_NPE, None);
             }
-            Oop::Ref(v) => v.monitor_enter(),
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.monitor_enter();
+                });
+            }
             _ => unreachable!(),
         }
     }
@@ -2387,14 +2444,20 @@ impl<'a> Interp<'a> {
     #[inline]
     fn monitor_exit(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
-        let mut v = stack.pop_ref();
+        let v = stack.pop_ref();
         drop(stack);
 
         match v {
             Oop::Null => {
                 exception::meet_ex(cls_const::J_NPE, None);
             }
-            Oop::Ref(v) => v.monitor_exit(),
+            Oop::Ref(slot_id) => {
+                oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.monitor_exit();
+                });
+            }
             _ => unreachable!(),
         }
     }
@@ -2493,11 +2556,7 @@ fn new_multi_object_array_helper(cls: ClassRef, lens: &[i32], idx: usize) -> Oop
 
     let down_type = {
         let cls = cls.get_class();
-        match &cls.kind {
-            oop::ClassKind::Instance(_) => unreachable!(),
-            ClassKind::ObjectArray(obj_ary) => obj_ary.down_type.clone().unwrap(),
-            ClassKind::TypeArray(typ_ary) => typ_ary.down_type.clone().unwrap(),
-        }
+        cls.get_array_down_type().unwrap()
     };
 
     if idx < lens.len() - 1 {

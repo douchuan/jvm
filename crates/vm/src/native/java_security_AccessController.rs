@@ -36,8 +36,12 @@ fn jvm_doPrivileged(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                 return Err(ex);
             }
             Oop::Ref(v) => {
-                let inst = v.extract_inst();
-                let cls = inst.class.get_class();
+                let inst = oop::with_heap(|heap| {
+                    let desc = heap.get(*v);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_inst().class.clone()
+                });
+                let cls = inst.get_class();
                 cls.get_virtual_method(&util::S_RUN, &util::S_RUN_SIG)
                     .unwrap()
             }

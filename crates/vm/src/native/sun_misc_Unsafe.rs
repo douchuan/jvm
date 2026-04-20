@@ -2,7 +2,7 @@
 
 use crate::native::{java_lang_System, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop;
-use crate::oop::{Class, Oop, OopPtr};
+use crate::oop::{Class, Oop};
 use crate::runtime::require_class3;
 use crate::util;
 use classfile::flags::ACC_STATIC;
@@ -132,7 +132,7 @@ fn jvm_compareAndSwapObject(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 
     let v_at_offset = Class::get_field_value2(owner.extract_ref(), offset as usize);
 
-    if OopPtr::is_eq(&v_at_offset, old_data) {
+    if Oop::is_eq(v_at_offset.extract_ref(), old_data.extract_ref()) {
         Class::put_field_value2(owner.extract_ref(), offset as usize, new_data.clone());
         Ok(Some(Oop::new_int(1)))
     } else {
@@ -253,13 +253,16 @@ fn jvm_setMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             }
         }
         Oop::Ref(rf) => {
-            let ary = rf.extract_mut_type_array();
-            let bytes = ary.extract_mut_bytes();
-            unsafe {
-                let addr = bytes.as_mut_ptr();
-                let addr = addr.add(offset);
-                std::ptr::write_bytes(addr, value as u8, size);
-            }
+            oop::with_heap_mut(|heap| {
+                let desc = heap.get(*rf);
+                let mut guard = desc.write().unwrap();
+                let ary = guard.v.extract_mut_type_array();
+                let bytes = ary.extract_mut_bytes();
+                unsafe {
+                    let addr = bytes.as_mut_ptr().add(offset);
+                    std::ptr::write_bytes(addr, value as u8, size);
+                }
+            });
         }
         _ => unimplemented!(),
     }
@@ -298,41 +301,49 @@ fn jvm_copyMemory(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                     }
                 }
                 //raw -> byte[]
-                Oop::Ref(dest) => {
-                    let dest = dest.extract_mut_type_array();
-                    let dest = dest.extract_mut_bytes();
-                    let dest = &mut dest[dest_offset..];
-                    let src_ptr = src_offset as *const u8;
-                    unsafe {
-                        for i in 0..size {
-                            let p = src_ptr.add(i);
-                            dest[i] = *p;
+                Oop::Ref(dest_slot) => {
+                    oop::with_heap_mut(|heap| {
+                        let desc = heap.get(*dest_slot);
+                        let mut guard = desc.write().unwrap();
+                        let dest_ary = guard.v.extract_mut_type_array();
+                        let dest = dest_ary.extract_mut_bytes();
+                        let dest = &mut dest[dest_offset..];
+                        let src_ptr = src_offset as *const u8;
+                        unsafe {
+                            for i in 0..size {
+                                let p = src_ptr.add(i);
+                                dest[i] = *p;
+                            }
                         }
-                    }
+                    });
                 }
                 _ => unimplemented!(),
             }
         }
-        Oop::Ref(src) => {
+        Oop::Ref(src_slot) => {
             match dest_obj {
                 //byte[] -> raw
                 Oop::Null => {
-                    let src = src.extract_type_array();
-                    let src = src.extract_bytes();
+                    let src_bytes = oop::with_heap(|heap| {
+                        let desc = heap.get(*src_slot);
+                        let guard = desc.read().unwrap();
+                        let src_ary = guard.v.extract_type_array();
+                        src_ary.extract_bytes().to_vec()
+                    });
                     let ptr = dest_offset as *mut u8;
                     unsafe {
                         for i in 0..size {
                             let p = ptr.add(i);
-                            *p = src[src_offset + i];
+                            *p = src_bytes[src_offset + i];
                         }
                     }
                 }
                 //byte[] -> byte[]
-                Oop::Ref(dest) => {
+                Oop::Ref(dest_slot) => {
                     java_lang_System::arraycopy_diff_obj(
-                        src.clone(),
+                        *src_slot,
                         src_offset,
-                        dest.clone(),
+                        *dest_slot,
                         dest_offset,
                         size,
                     );
@@ -367,8 +378,11 @@ fn jvm_putObject(_env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_ensureClassInitialized(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let clazz = args.get(1).unwrap();
     let rf = clazz.extract_ref();
-    let mirror = rf.extract_mirror();
-    let target = mirror.target.clone().unwrap();
+    let target = oop::with_heap(|heap| {
+        let desc = heap.get(rf);
+        let guard = desc.read().unwrap();
+        guard.v.extract_mirror().target.clone().unwrap()
+    });
     oop::class::init_class(&target);
     oop::class::init_class_fully(&target);
     Ok(None)
@@ -402,9 +416,13 @@ fn jvm_putByte(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             }
         }
         Oop::Ref(rf) => {
-            let ary = rf.extract_mut_type_array();
-            let bytes = ary.extract_mut_bytes();
-            bytes[offset] = x as u8;
+            oop::with_heap_mut(|heap| {
+                let desc = heap.get(*rf);
+                let mut guard = desc.write().unwrap();
+                let ary = guard.v.extract_mut_type_array();
+                let bytes = ary.extract_mut_bytes();
+                bytes[offset] = x as u8;
+            });
         }
         t => unimplemented!("{:?}", t),
     }
@@ -424,9 +442,13 @@ fn jvm_getByte2(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             Oop::new_int(v as i32)
         }
         Oop::Ref(rf) => {
-            let ary = rf.extract_mut_type_array();
-            let bytes = ary.extract_bytes();
-            let v = bytes[offset];
+            let v = oop::with_heap(|heap| {
+                let desc = heap.get(*rf);
+                let guard = desc.read().unwrap();
+                let ary = guard.v.extract_type_array();
+                let bytes = ary.extract_bytes();
+                bytes[offset]
+            });
             Oop::new_int(v as i32)
         }
         t => unimplemented!("{:?}", t),
