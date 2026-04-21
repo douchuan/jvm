@@ -10,6 +10,7 @@ mod common;
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
+mod java_io_PrintStream;
 mod java_io_UnixFileSystem;
 pub mod java_lang_Class;
 mod java_lang_ClassLoader;
@@ -113,6 +114,10 @@ fn create_native_fn_tables(
             "java/io/UnixFileSystem",
             java_io_UnixFileSystem::get_native_methods(),
         ),
+        (
+            "java/io/PrintStream",
+            java_io_PrintStream::get_native_methods(),
+        ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
         (
             "java/lang/ClassLoader",
@@ -147,11 +152,15 @@ fn create_native_fn_tables(
         ),
         ("sun/misc/Signal", sun_misc_Signal::get_native_methods()),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
+        // JDK 9+: Unsafe moved to jdk.internal.misc
+        ("jdk/internal/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         (
             "sun/misc/URLClassPath",
             sun_misc_URLClassPath::get_native_methods(),
         ),
         ("sun/misc/VM", sun_misc_VM::get_native_methods()),
+        // JDK 9+: VM moved to jdk/internal/misc/VM
+        ("jdk/internal/misc/VM", sun_misc_VM::get_native_methods()),
         (
             "sun/nio/cs/StreamEncoder",
             sun_nio_cs_StreamEncoder::get_native_methods(),

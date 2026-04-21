@@ -115,7 +115,10 @@ impl<'a> Interp<'a> {
                             let obj_cls = inst.class.clone();
                             let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                             if is_cast {
-                                self.op_check_cast(r, obj_cls, target_cls);
+                                if !r {
+                                    self.op_check_cast(r, obj_cls, target_cls);
+                                }
+                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }
@@ -124,7 +127,10 @@ impl<'a> Interp<'a> {
                             let obj_cls = ary.class.clone();
                             let r = cmp::instance_of(obj_cls.clone(), target_cls.clone());
                             if is_cast {
-                                self.op_check_cast(r, obj_cls, target_cls);
+                                if !r {
+                                    self.op_check_cast(r, obj_cls, target_cls);
+                                }
+                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }
@@ -135,7 +141,24 @@ impl<'a> Interp<'a> {
                             let r = target_name == b"java/lang/Class"
                                 || cmp::instance_of(obj_cls.clone(), target_cls.clone());
                             if is_cast {
-                                self.op_check_cast(r, obj_cls, target_cls);
+                                if !r {
+                                    self.op_check_cast(r, obj_cls, target_cls);
+                                }
+                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
+                            } else {
+                                self.op_instance_of(r);
+                            }
+                        }
+                        oop::RefKind::TypeArray(tary) => {
+                            use crate::runtime::require_class3;
+                            let class_name = tary.class_name();
+                            let ary_cls = require_class3(None, class_name).unwrap();
+                            let r = cmp::instance_of(ary_cls.clone(), target_cls.clone());
+                            if is_cast {
+                                if !r {
+                                    self.op_check_cast(r, ary_cls, target_cls);
+                                }
+                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }

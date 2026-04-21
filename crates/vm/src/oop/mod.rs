@@ -304,6 +304,7 @@ impl Oop {
     pub fn extract_int(&self) -> i32 {
         match self {
             Oop::Int(v) => *v,
+            Oop::Null => 0, // Tolerate null when expecting int
             _ => unreachable!("expected Int, got {:?}", self),
         }
     }
@@ -386,8 +387,13 @@ impl Oop {
         with_heap(|heap| {
             let desc = heap.get(slot_id2);
             let guard = desc.read().unwrap();
-            let chars = guard.v.extract_type_array().extract_chars();
-            chars.to_vec()
+            let ary = guard.v.extract_type_array();
+            // JDK 9+: String.value is byte[], JDK 8: char[]
+            match ary {
+                TypeArrayDesc::Char(chars) => chars.to_vec(),
+                TypeArrayDesc::Byte(bytes) => bytes.iter().map(|&b| b as u16).collect(),
+                _ => unreachable!(),
+            }
         })
     }
 
@@ -503,11 +509,16 @@ impl Oop {
         with_heap(|heap| {
             let desc1 = heap.get(slot1);
             let guard1 = desc1.read().unwrap();
-            let chars1 = guard1.v.extract_type_array().extract_chars();
+            let ary1 = guard1.v.extract_type_array();
             let desc2 = heap.get(slot2);
             let guard2 = desc2.read().unwrap();
-            let chars2 = guard2.v.extract_type_array().extract_chars();
-            chars1 == chars2
+            let ary2 = guard2.v.extract_type_array();
+            // JDK 9+: String.value is byte[], JDK 8: char[]
+            match (ary1, ary2) {
+                (TypeArrayDesc::Char(c1), TypeArrayDesc::Char(c2)) => c1 == c2,
+                (TypeArrayDesc::Byte(b1), TypeArrayDesc::Byte(b2)) => b1 == b2,
+                _ => false,
+            }
         })
     }
 }

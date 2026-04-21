@@ -62,16 +62,23 @@ impl ConstantPoolCache {
         cache.insert(k, v);
     }
 
-    pub fn get_method(&self, idx: usize) -> MethodIdRef {
+    pub fn get_method(&self, idx: usize) -> Option<MethodIdRef> {
         let cache = self.cache.lock().unwrap();
         let it = cache.get(&idx);
         match it {
-            Some(it) => it.extract_method(),
+            Some(it) => Some(it.extract_method()),
             None => {
                 drop(cache);
-                let m = runtime::method::get_method_ref(&self.cp, idx).unwrap();
-                self.cache_method(idx, m.clone());
-                m
+                match runtime::method::get_method_ref(&self.cp, idx) {
+                    Ok(m) => {
+                        self.cache_method(idx, m.clone());
+                        Some(m)
+                    }
+                    Err(()) => {
+                        warn!("Constant pool method resolution failed at idx={}", idx);
+                        None
+                    }
+                }
             }
         }
     }

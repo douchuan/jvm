@@ -6,11 +6,14 @@ use crate::oop::{Class, Oop};
 use crate::runtime::require_class3;
 use crate::util;
 use classfile::flags::ACC_STATIC;
+use classfile::BytesRef;
 use std::os::raw::c_void;
+use std::sync::Arc;
+use std::sync::atomic;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    vec![
+    let mut methods = vec![
         new_fn("registerNatives", "()V", Box::new(jvm_registerNatives)),
         new_fn(
             "arrayBaseOffset",
@@ -98,7 +101,84 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("putByte", "(Ljava/lang/Object;JB)V", Box::new(jvm_putByte)),
         new_fn("getByte", "(Ljava/lang/Object;J)B", Box::new(jvm_getByte2)),
         new_fn("park", "(ZJ)V", Box::new(jvm_park)),
-    ]
+        // JDK 9+ jdk/internal/misc/Unsafe uses "0"-suffixed names
+        new_fn(
+            "arrayBaseOffset0",
+            "(Ljava/lang/Class;)I",
+            Box::new(jvm_arrayBaseOffset),
+        ),
+        new_fn(
+            "arrayIndexScale0",
+            "(Ljava/lang/Class;)I",
+            Box::new(jvm_arrayIndexScale),
+        ),
+        new_fn(
+            "objectFieldOffset0",
+            "(Ljava/lang/reflect/Field;)J",
+            Box::new(jvm_objectFieldOffset),
+        ),
+        new_fn("allocateMemory0", "(J)J", Box::new(jvm_allocateMemory)),
+        new_fn("freeMemory0", "(J)V", Box::new(jvm_freeMemory)),
+        new_fn(
+            "getObjectVolatile0",
+            "(Ljava/lang/Object;J)Ljava/lang/Object;",
+            Box::new(jvm_getObjectVolatile),
+        ),
+        new_fn(
+            "getLongVolatile0",
+            "(Ljava/lang/Object;J)J",
+            Box::new(jvm_getLongVolatile),
+        ),
+        new_fn("addressSize0", "()I", Box::new(jvm_addressSize)),
+        new_fn("pageSize0", "()I", Box::new(jvm_pageSize)),
+        // JDK 21+ objectFieldOffset1(Class, String)
+        new_fn(
+            "objectFieldOffset1",
+            "(Ljava/lang/Class;Ljava/lang/String;)J",
+            Box::new(jvm_objectFieldOffset1),
+        ),
+        // JDK 21+ fullFence - memory fence, no-op for now
+        new_fn("fullFence", "()V", Box::new(jvm_fullFence)),
+        // JDK 21+ unpark
+        new_fn("unpark", "(Ljava/lang/Object;)V", Box::new(jvm_unpark)),
+        // JDK 21+ shouldBeInitialized0
+        new_fn(
+            "shouldBeInitialized0",
+            "(Ljava/lang/Class;)Z",
+            Box::new(jvm_shouldBeInitialized0),
+        ),
+        // JDK 21+ ensureClassInitialized0
+        new_fn(
+            "ensureClassInitialized0",
+            "(Ljava/lang/Class;)V",
+            Box::new(jvm_ensureClassInitialized0),
+        ),
+        // JDK 21+ staticFieldOffset0
+        new_fn(
+            "staticFieldOffset0",
+            "(Ljava/lang/reflect/Field;)J",
+            Box::new(jvm_staticFieldOffset),
+        ),
+        // JDK 21+ staticFieldBase0
+        new_fn(
+            "staticFieldBase0",
+            "(Ljava/lang/reflect/Field;)Ljava/lang/Object;",
+            Box::new(jvm_staticFieldBase),
+        ),
+        // JDK 21+ arrayBaseOffset0
+        new_fn(
+            "arrayBaseOffset0",
+            "(Ljava/lang/Class;)I",
+            Box::new(jvm_arrayBaseOffset),
+        ),
+        // JDK 21+ arrayIndexScale0
+        new_fn(
+            "arrayIndexScale0",
+            "(Ljava/lang/Class;)I",
+            Box::new(jvm_arrayIndexScale),
+        ),
+    ];
+    methods
 }
 
 fn jvm_registerNatives(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
@@ -121,6 +201,36 @@ fn jvm_addressSize(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
 fn jvm_objectFieldOffset(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let field = args.get(1).unwrap();
     objectFieldOffset(field, false)
+}
+
+fn jvm_objectFieldOffset1(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+    // args: [this, class, fieldName]
+    let class_oop = args.get(1).unwrap();
+    let name_oop = args.get(2).unwrap();
+    let cls_slot = class_oop.extract_ref();
+    let (cls_ref, _) = Oop::mirror_target_and_vt(cls_slot);
+    if let Some(cls_ref) = cls_ref {
+        let cls = cls_ref.get_class();
+        let name_bytes: Vec<u8> = Oop::java_lang_string_value(name_oop.extract_ref())
+            .iter().map(|&c| c as u8).collect();
+        let name_ref: BytesRef = Arc::new(name_bytes);
+        // Try to find the field with common descriptors
+        let descs: &[&[u8]] = &[b"Ljava/lang/Object;", b"Z", b"B", b"S", b"C", b"I", b"J", b"F", b"D"];
+        for desc in descs {
+            let desc_ref: BytesRef = Arc::new(desc.to_vec());
+            if let Ok(fid) = cls.get_field_id_safe(&name_ref, &desc_ref, false) {
+                return Ok(Some(Oop::new_long(fid.offset as i64)));
+            }
+        }
+        // Try static fields too
+        for desc in descs {
+            let desc_ref: BytesRef = Arc::new(desc.to_vec());
+            if let Ok(fid) = cls.get_field_id_safe(&name_ref, &desc_ref, true) {
+                return Ok(Some(Oop::new_long(fid.offset as i64)));
+            }
+        }
+    }
+    Ok(Some(Oop::new_long(-1)))
 }
 
 // fixme: The semantic requirement here is atomic operation, which needs to be re-implemented here
@@ -474,6 +584,45 @@ fn jvm_park(_env: JNIEnv, args: &[Oop]) -> JNIResult {
         }
     }
 
+    Ok(None)
+}
+
+fn jvm_fullFence(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
+    // No-op: full memory fence. For correctness, we use compiler fence.
+    atomic::compiler_fence(atomic::Ordering::SeqCst);
+    Ok(None)
+}
+
+fn jvm_unpark(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let _thread = args.get(1).unwrap();
+    // No-op: thread unpark
+    Ok(None)
+}
+
+fn jvm_shouldBeInitialized0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let clazz = args.get(1).unwrap();
+    let rf = clazz.extract_ref();
+    let (cls_ref, _) = Oop::mirror_target_and_vt(rf);
+    let initialized = cls_ref.map_or(true, |c| {
+        let state = c.get_class_state();
+        state != oop::class::State::BeingIni && state != oop::class::State::FullyIni
+    });
+    Ok(Some(Oop::new_int(if initialized { 1 } else { 0 })))
+}
+
+fn jvm_ensureClassInitialized0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+    let _this = args.get(0).unwrap();
+    let clazz = args.get(1).unwrap();
+    let rf = clazz.extract_ref();
+    let target = oop::with_heap(|heap| {
+        let desc = heap.get(rf);
+        let guard = desc.read().unwrap();
+        guard.v.extract_mirror().target.clone().unwrap()
+    });
+    oop::class::init_class(&target);
+    oop::class::init_class_fully(&target);
     Ok(None)
 }
 

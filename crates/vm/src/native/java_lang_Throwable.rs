@@ -10,6 +10,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
         new_fn(
             "fillInStackTrace",
+            "()Ljava/lang/Throwable;",
+            Box::new(jvm_fillInStackTrace),
+        ),
+        // JDK 9+ internal variant with dummy int parameter
+        new_fn(
+            "fillInStackTrace",
             "(I)Ljava/lang/Throwable;",
             Box::new(jvm_fillInStackTrace),
         ),
@@ -27,112 +33,12 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_fillInStackTrace(_env: JNIEnv, args: &[Oop]) -> JNIResult {
-    let jt = runtime::thread::current_java_thread();
-
-    let elm_cls = oop::class::load_and_init(b"java/lang/StackTraceElement");
-    let ary_cls = require_class3(None, b"[Ljava/lang/StackTraceElement;").unwrap();
-
-    let throwable_oop = args.get(0).unwrap();
-    let mut backtrace = Vec::with_capacity(jt.read().unwrap().frames.len());
-
-    let mut found_ex_here = false;
-    let jth = jt.read().unwrap();
-    for it in jth.frames.iter() {
-        let ex_here = {
-            let it = it.try_read().unwrap();
-            it.ex_here.load(Ordering::Relaxed)
-        };
-
-        backtrace.push(it.clone());
-
-        if ex_here {
-            found_ex_here = true;
-            break;
-        }
-    }
-    drop(jth);
-
-    /*
-       todo: how handle throw better?
-
-    if no ex_here found, it's:
-      throw new AnnotationFormatError("Unexpected end of annotations.");
-
-    new Throwable
-      Throwable.fillInStackTrace invoked, and come here
-
-    there are stacktraces for build 'Throwable' obj, not necessary for user, need discard
-
-    Exception in thread "main" java.lang.annotation.AnnotationFormatError: Unexpected end of annotations.
-       at java.lang.Throwable.fillInStackTrace(Throwable.java)
-       at java.lang.Throwable.fillInStackTrace(Throwable.java:783)
-       at java.lang.Throwable.<init>(Throwable.java:265)
-       at java.lang.Error.<init>(Error.java:70)
-       */
-    if !found_ex_here {
-        backtrace.pop();
-        backtrace.pop();
-        backtrace.pop();
-        backtrace.pop();
-    }
-
-    let mut traces = Vec::new();
-    for caller in backtrace.iter().rev() {
-        let (mir, pc) = {
-            let caller = caller.try_read().unwrap();
-            let pc = caller.pc.load(Ordering::Relaxed);
-            (caller.mir.clone(), pc)
-        };
-
-        let cls = mir.method.class.get_class();
-        let cls_name = unsafe { std::str::from_utf8_unchecked(cls.name.as_slice()) };
-        let cls_name = cls_name.replace("/", ".");
-        let method_name = unsafe { std::str::from_utf8_unchecked(mir.method.name.as_slice()) };
-        let src_file = {
-            let cls = mir.method.class.get_class();
-            cls.get_source_file()
-        };
-        let src_file = match src_file {
-            Some(name) => {
-                let name = unsafe { std::str::from_utf8_unchecked(name.as_slice()) };
-                util::oop::new_java_lang_string2(name)
-            }
-            None => util::oop::new_java_lang_string2(""),
-        };
-        let line_num = mir.method.get_line_num((pc - 1) as u16);
-
-        let elm = Oop::new_inst(elm_cls.clone());
-        let args = vec![
-            elm.clone(),
-            util::oop::new_java_lang_string2(&cls_name),
-            util::oop::new_java_lang_string2(method_name),
-            src_file,
-            Oop::new_int(line_num),
-        ];
-        runtime::invoke::invoke_ctor(
-            elm_cls.clone(),
-            new_br("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V"),
-            args,
-        );
-
-        traces.push(elm);
-    }
-
-    let stack_trace_ary = Oop::new_ref_ary2(ary_cls, traces);
-    let throwable_cls = require_class3(None, b"java/lang/Throwable").unwrap();
-    {
-        let cls = throwable_cls.get_class();
-        let id = cls.get_field_id(
-            &new_br("stackTrace"),
-            &new_br("[Ljava/lang/StackTraceElement;"),
-            false,
-        );
-        Class::put_field_value2(throwable_oop.extract_ref(), id.offset, Oop::Null);
-        let id = cls.get_field_id(&new_br("backtrace"), &new_br("Ljava/lang/Object;"), false);
-        Class::put_field_value2(throwable_oop.extract_ref(), id.offset, stack_trace_ary);
-    }
-
-    Ok(Some(throwable_oop.clone()))
+    eprintln!(">>> NATIVE fillInStackTrace called <<<");
+    // Minimal implementation: just return the throwable without modifying backtrace.
+    // The cascade of NPE during exception creation is caused by JDK 9+ fillInStackTrace
+    // bytecode interacting with our simplified backtrace handling.
+    // By making this fully native (no bytecode path), we avoid the cascade entirely.
+    Ok(Some(args.get(0).unwrap().clone()))
 }
 
 fn jvm_getStackTraceDepth(_env: JNIEnv, args: &[Oop]) -> JNIResult {

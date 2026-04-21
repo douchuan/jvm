@@ -16,7 +16,14 @@ impl<'a> Interp<'a> {
     ) {
         use crate::runtime;
         let cls = self.frame.class.get_class();
-        let mir = cls.get_cp_method(idx).unwrap();
+        let mir = match cls.get_cp_method(idx) {
+            Some(m) => m,
+            None => {
+                warn!("Method resolution failed at constant pool index {}", idx);
+                exception::meet_ex(cls_const::J_NSME, None);
+                return;
+            }
+        };
         let caller = match &mir.method.signature.retype {
             classfile::SignatureType::Void => None,
             _ => Some(&self.frame.area),

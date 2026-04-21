@@ -18,6 +18,13 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("isAlive", "()Z", Box::new(jvm_isAlive)),
         new_fn("start0", "()V", Box::new(jvm_start0)),
         new_fn("isInterrupted", "(Z)Z", Box::new(jvm_isInterrupted)),
+        // JDK 9+: dispatchUncaughtException calls threadState/isTerminated which aren't implemented.
+        // Implement as native to print exception and skip the cascade.
+        new_fn(
+            "dispatchUncaughtException",
+            "(Ljava/lang/Throwable;)V",
+            Box::new(jvm_dispatchUncaughtException),
+        ),
     ]
 }
 
@@ -117,4 +124,19 @@ fn jvm_isInterrupted(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     //todo: fix me
     let v = Oop::new_int(0);
     Ok(Some(v))
+}
+
+fn jvm_dispatchUncaughtException(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+    let ex = args.get(1).unwrap();
+    let cls = {
+        let rf = ex.extract_ref();
+        oop::with_heap(|heap| {
+            let desc = heap.get(rf);
+            let guard = desc.read().unwrap();
+            guard.v.extract_inst().class.clone()
+        })
+    };
+    let cls_name = String::from_utf8_lossy(cls.get_class().name.as_slice());
+    error!("Uncaught exception: {}", cls_name);
+    Ok(None)
 }

@@ -179,6 +179,19 @@ impl TypeArrayDesc {
             _ => unreachable!(),
         }
     }
+
+    pub fn class_name(&self) -> &'static [u8] {
+        match self {
+            TypeArrayDesc::Byte(_) => b"[B",
+            TypeArrayDesc::Bool(_) => b"[Z",
+            TypeArrayDesc::Char(_) => b"[C",
+            TypeArrayDesc::Short(_) => b"[S",
+            TypeArrayDesc::Int(_) => b"[I",
+            TypeArrayDesc::Long(_) => b"[J",
+            TypeArrayDesc::Float(_) => b"[F",
+            TypeArrayDesc::Double(_) => b"[D",
+        }
+    }
 }
 
 impl From<u8> for TypeArrayEnum {

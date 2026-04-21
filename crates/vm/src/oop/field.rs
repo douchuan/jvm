@@ -48,7 +48,7 @@ pub fn build_inited_field_values(class: ClassRef) -> Vec<Oop> {
             Some(f) => f,
             None => break,
         };
-        fields.1.iter().for_each(|(_, fir)| {
+        fields.0.iter().for_each(|(_, fir)| {
             match fir.field.value_type {
                 ValueType::BYTE
                 | ValueType::BOOLEAN

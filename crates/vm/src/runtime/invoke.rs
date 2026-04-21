@@ -22,7 +22,14 @@ pub struct JavaCall {
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
         let cls = cls.get_class();
-        cls.get_this_class_method(&util::S_INIT, &desc).unwrap()
+        match cls.get_this_class_method(&util::S_INIT, &desc) {
+            Ok(mir) => mir,
+            Err(()) => {
+                let cls_name = String::from_utf8_lossy(&cls.name);
+                let desc_str = String::from_utf8_lossy(&desc);
+                panic!("Constructor not found: {}.{}{}", cls_name, "<init>", desc_str);
+            }
+        }
     };
 
     let mut jc = JavaCall::new_with_args(ctor, args);
@@ -427,11 +434,12 @@ impl JavaCall {
 
     fn debug(&self) {
         info!(
-            "invoke method = {:?}, static={} native={} sync={}",
+            "invoke method = {:?}, static={} native={} sync={} acc_flags={}",
             self.mir.method,
             self.mir.method.is_static(),
             self.mir.method.is_native(),
-            self.mir.method.is_synchronized()
+            self.mir.method.is_synchronized(),
+            self.mir.method.acc_flags
         );
     }
 }

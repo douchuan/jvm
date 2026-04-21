@@ -19,6 +19,7 @@ use crate::runtime::{
     self, method, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread,
 };
 use crate::types::*;
+use crate::types::FieldIdRef;
 use crate::{native, util};
 
 /// Class reference — `Arc<Class>` for safe shared access.
@@ -170,13 +171,19 @@ pub fn init_class(class: &ClassRef) {
 
 // invoke "<clinit>"
 pub fn init_class_fully(class: &ClassRef) {
-    let need = { class.get_class_state() == State::BeingIni };
+    let name = class.name.clone();
+    let need = class.get_class_state() == State::BeingIni;
 
     if need {
-        let _l = class.clinit_mutex.lock();
+        let Ok(_l) = class.clinit_mutex.try_lock() else {
+            return;
+        };
+
+        if class.get_class_state() != State::BeingIni {
+            return;
+        }
 
         let mir = class.get_this_class_method(&util::S_CLINIT, &util::S_CLINIT_SIG);
-        let name = class.name.clone();
 
         if let Ok(mir) = mir {
             info!("call {}:<clinit>", unsafe {
@@ -184,6 +191,9 @@ pub fn init_class_fully(class: &ClassRef) {
             });
             let mut jc = JavaCall::new_with_args(mir, vec![]);
             jc.invoke(None, true);
+            class.set_class_state(State::FullyIni);
+        } else {
+            class.set_class_state(State::FullyIni);
         }
     }
 }
@@ -483,7 +493,7 @@ impl Class {
     pub fn get_cp_method(&self, idx: usize) -> Option<MethodIdRef> {
         let kind = self.kind_read();
         match kind.deref() {
-            ClassKind::Instance(cls_obj) => Some(cls_obj.cp_cache.get_method(idx)),
+            ClassKind::Instance(cls_obj) => cls_obj.cp_cache.get_method(idx),
             _ => None,
         }
     }
@@ -724,9 +734,46 @@ impl Class {
         }
         drop(kind);
 
-        self.get_super_class()
-            .unwrap()
-            .get_field_id(name, desc, is_static)
+        let super_result = self.get_super_class();
+        match super_result {
+            Some(super_cls) => super_cls.get_field_id(name, desc, is_static),
+            None => {
+                let class_name = String::from_utf8_lossy(&self.name);
+                let field_name = String::from_utf8_lossy(name);
+                let field_desc = String::from_utf8_lossy(desc);
+                panic!(
+                    "get_field_id: field {}.{}:{} not found in {} (no super class)",
+                    class_name, field_name, field_desc, class_name
+                );
+            }
+        }
+    }
+
+    pub fn get_field_id_safe(&self, name: &BytesRef, desc: &BytesRef, is_static: bool) -> Result<FieldIdRef, ()> {
+        let k = (self.name.clone(), name.clone(), desc.clone());
+
+        let kind = self.kind_read();
+        match kind.deref() {
+            ClassKind::Instance(cls_obj) => {
+                if is_static {
+                    if let Some(fid) = cls_obj.static_fields.get(&k) {
+                        return Ok(fid.clone());
+                    }
+                } else {
+                    if let Some(fid) = cls_obj.inst_fields.get(&k) {
+                        return Ok(fid.clone());
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+        drop(kind);
+
+        if let Some(super_class) = self.get_super_class() {
+            super_class.get_field_id_safe(name, desc, is_static)
+        } else {
+            Err(())
+        }
     }
 }
 
@@ -852,12 +899,13 @@ impl Class {
             ClassKind::Instance(cls) => {
                 let name_arc = Arc::new(Vec::from(name));
                 let desc_arc = Arc::new(Vec::from(desc));
-                let k = (name_arc, desc_arc);
+                let k = (name_arc.clone(), desc_arc.clone());
                 let it = cls.all_methods.get_mut(&k).unwrap();
                 let mut method = it.method.clone();
                 method.acc_flags |= ACC_NATIVE;
                 let m = method::MethodId::new(it.offset, method);
-                cls.all_methods.insert(k.clone(), m.clone());
+                cls.all_methods.insert(k, m.clone());
+                cls.v_table.insert((name_arc, desc_arc), m.clone());
 
                 info!(
                     "hack_as_native: {}:{}:{}, native={}",
