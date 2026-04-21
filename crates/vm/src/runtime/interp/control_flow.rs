@@ -205,13 +205,14 @@ impl<'a> Interp<'a> {
         let pc = &self.frame.pc;
         let codes = &self.code;
         let op_widen = self.op_widen;
-        let new_pc = if op_widen {
+        let slot_index = if op_widen {
             self.op_widen = false;
             super::read::read_u2(pc, codes)
         } else {
             super::read::read_u1(pc, codes)
         };
-        pc.store(new_pc as i32, Ordering::Relaxed);
+        let new_pc = self.local.borrow().get_int(slot_index) as i32;
+        pc.store(new_pc, Ordering::Relaxed);
     }
     pub fn table_switch(&self) {
         let pc = &self.frame.pc;

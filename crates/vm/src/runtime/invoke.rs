@@ -15,6 +15,7 @@ pub struct JavaCall {
     pub mir: MethodIdRef,
     pub args: Vec<Oop>,
     pub is_return_void: bool,
+    pub is_interface: bool,
 }
 
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
@@ -34,6 +35,7 @@ impl JavaCall {
             mir,
             args,
             is_return_void,
+            is_interface: false,
         }
     }
 
@@ -298,9 +300,14 @@ impl JavaCall {
                     let name = self.mir.method.name.clone();
                     let desc = self.mir.method.desc.clone();
                     let cls = inst.class.get_class();
-                    match cls.get_virtual_method(&name, &desc) {
-                        Ok(mir) => self.mir = mir,
-                        _ => {
+                    let resolved = if self.is_interface {
+                        cls.get_interface_method(&name, &desc).ok()
+                    } else {
+                        cls.get_virtual_method(&name, &desc).ok()
+                    };
+                    match resolved {
+                        Some(mir) => self.mir = mir,
+                        None => {
                             let cls = self.mir.method.class.get_class();
                             warn!(
                                 "resolve again failed, {}:{}:{}, acc_flags = {}",

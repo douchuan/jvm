@@ -7,7 +7,7 @@ use classfile::consts as cls_const;
 use std::sync::atomic::Ordering;
 
 impl<'a> Interp<'a> {
-    pub fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool) {
+    pub fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool, is_interface: bool) {
         use crate::runtime;
         let cls = self.frame.class.get_class();
         let mir = cls.get_cp_method(idx).unwrap();
@@ -17,6 +17,7 @@ impl<'a> Interp<'a> {
         };
         debug_assert_eq!(mir.method.is_static(), is_static);
         if let Ok(mut jc) = runtime::invoke::JavaCall::new(&self.frame.area, mir) {
+            jc.is_interface = is_interface;
             jc.invoke(caller, force_no_resolve);
         }
     }
@@ -26,21 +27,21 @@ impl<'a> Interp<'a> {
         let pc = &self.frame.pc;
         let codes = &self.code;
         let idx = super::read::read_u2(pc, codes);
-        self.invoke_helper(false, idx, false);
+        self.invoke_helper(false, idx, false, false);
     }
     #[inline]
     pub fn invoke_special(&self) {
         let pc = &self.frame.pc;
         let codes = &self.code;
         let idx = super::read::read_u2(pc, codes);
-        self.invoke_helper(false, idx, true);
+        self.invoke_helper(false, idx, true, false);
     }
     #[inline]
     pub fn invoke_static(&self) {
         let pc = &self.frame.pc;
         let codes = &self.code;
         let idx = super::read::read_u2(pc, codes);
-        self.invoke_helper(true, idx, true);
+        self.invoke_helper(true, idx, true, false);
     }
     #[inline]
     pub fn invoke_interface(&self) {
@@ -52,11 +53,12 @@ impl<'a> Interp<'a> {
         if zero != 0 {
             warn!("interpreter: invalid invokeinterface: the value of the fourth operand byte must always be zero.");
         }
-        self.invoke_helper(false, cp_idx, false);
+        self.invoke_helper(false, cp_idx, false, true);
     }
     #[inline]
     pub fn invoke_dynamic(&self) {
-        unimplemented!()
+        warn!("invokedynamic not supported");
+        exception::meet_ex(b"java/lang/UnsupportedOperationException", Some("invokedynamic not supported".to_string()));
     }
 
     #[inline]
@@ -148,13 +150,11 @@ impl<'a> Interp<'a> {
     pub fn array_length(&self) {
         let mut stack = self.frame.area.stack.borrow_mut();
         let v = stack.pop_ref();
+        drop(stack);
         match v {
-            Oop::Null => {
-                drop(stack);
-                exception::meet_ex(cls_const::J_NPE, None);
-            }
+            Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
                     let desc = heap.get(slot_id);
                     let guard = desc.read().unwrap();
                     match &guard.v {
@@ -163,6 +163,7 @@ impl<'a> Interp<'a> {
                         _ => unreachable!(),
                     }
                 });
+                self.frame.area.stack.borrow_mut().push_int(len);
             }
             _ => unreachable!(),
         }
