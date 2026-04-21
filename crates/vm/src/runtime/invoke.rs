@@ -1,6 +1,7 @@
 use crate::native;
 use crate::native::JNINativeMethodStruct;
 use crate::oop::{self, Oop, ValueType};
+use crate::runtime::jit;
 use crate::runtime::local::Local;
 use crate::runtime::{self, exception, frame::Frame, thread, DataArea, Interp};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
@@ -98,6 +99,95 @@ impl JavaCall {
         let jt = runtime::thread::current_java_thread();
         let _ = jt.write().unwrap().frames.pop();
     }
+
+    /// 执行 JIT 编译后的方法。
+    ///
+    /// JIT 编译的函数签名: `fn(locals: *mut i32, stack: *mut i32)`
+    /// JIT 代码直接读写 i32 值。调用方负责：
+    /// 1. 将方法参数拷贝到 locals 数组
+    /// 2. 分配 stack 缓冲区
+    /// 3. 调用 JIT 函数
+    /// 4. 从 stack 顶部提取返回值
+    fn invoke_jit(&self, caller: Option<&DataArea>) {
+        let jit_fn = self.mir.jit_impl.as_ref().unwrap();
+        let max_locals = self.mir.method.get_max_locals();
+        let max_stack = self.mir.method.get_max_stack();
+
+        // 构建 locals 数组（i32 缓冲区），填充方法参数
+        let mut jit_locals = vec![0i32; max_locals.max(1)];
+        self.copy_args_to_locals(&mut jit_locals);
+
+        // 分配 stack 缓冲区
+        let mut jit_stack = vec![0i32; max_stack.max(1)];
+
+        // 调用 JIT 函数
+        unsafe {
+            (jit_fn.fn_ptr)(jit_locals.as_mut_ptr(), jit_stack.as_mut_ptr());
+        }
+
+        // 如果方法有返回值且未发生异常，从 stack 顶部读取
+        if !self.is_return_void && !thread::is_meet_ex() {
+            let caller = caller.unwrap();
+            let return_type = &self.mir.method.signature.retype;
+            match return_type {
+                SignatureType::Byte
+                | SignatureType::Boolean
+                | SignatureType::Int
+                | SignatureType::Char
+                | SignatureType::Short => {
+                    // 简单方法：stack 只有一个返回值
+                    let v = jit_stack[0];
+                    set_return(caller, return_type, Oop::Int(v));
+                }
+                _ => {
+                    // 其他类型暂时回退到解释器
+                    warn!(
+                        "JIT: unsupported return type {:?}, falling back",
+                        return_type
+                    );
+                }
+            }
+        }
+    }
+
+    /// 将方法参数拷贝到 locals i32 数组。
+    /// 仅支持 int 类型参数的 MVP 版本。
+    fn copy_args_to_locals(&self, locals: &mut [i32]) {
+        let mut pos = 0;
+        // 非静态方法的第一个参数是 this（引用），跳过
+        let arg_start = if self.mir.method.is_static() { 0 } else { 1 };
+        for arg in self.args.iter().skip(arg_start) {
+            if pos >= locals.len() {
+                break;
+            }
+            if let Oop::Int(v) = arg {
+                locals[pos] = *v;
+                pos += 1;
+            }
+        }
+    }
+
+    /// 尝试通过 JIT 编译后的代码执行方法。
+    /// 返回 true 表示使用了 JIT 路径，false 表示回退到解释器。
+    fn try_jit_invoke(&mut self, caller: Option<&DataArea>) -> bool {
+        // 如果已经有编译后的实现，直接调用
+        if self.mir.jit_impl.is_some() {
+            self.invoke_jit(caller);
+            return true;
+        }
+
+        // 尝试编译
+        if let Some(compiled) = jit::try_compile(&self.mir) {
+            // 注意：这里我们无法修改 self.mir.jit_impl（因为 &self），
+            // 所以每次调用都会重新编译。后续可以通过更好的设计来缓存。
+            // MVP 阶段先用这个简单方案。
+            self.invoke_jit(caller);
+            return true;
+        }
+
+        // JIT 不可用，回退到解释器
+        false
+    }
 }
 
 impl JavaCall {
@@ -105,6 +195,13 @@ impl JavaCall {
         self.prepare_sync();
 
         let jt = runtime::thread::current_java_thread();
+
+        // 尝试 JIT 路径
+        if self.try_jit_invoke(caller) {
+            self.fin_sync();
+            return;
+        }
+
         match self.prepare_frame() {
             Ok(frame) => {
                 {

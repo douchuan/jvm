@@ -64,6 +64,11 @@ use inkwell::builder::Builder;
 // 一个 Module 可以包含多个函数，被 ExecutionEngine 编译。
 use inkwell::module::Module;
 
+// OptimizationLevel 用于控制 JIT 编译器的优化级别。
+// None = 无优化（编译最快），Aggressive = 最大优化（执行最快）。
+// MVP 使用 None，后续可以改为 Aggressive。
+use inkwell::OptimizationLevel;
+
 /// JIT 编译器主结构体。
 ///
 /// 每个线程拥有一个 JitCompiler 实例。它持有：
@@ -112,13 +117,12 @@ impl JitCompiler {
         // 类比：Builder 就像汇编器，你告诉它"生成 add 指令"，它就生成。
         let builder = leaked.create_builder();
 
-        // 创建 ExecutionEngine。这是 JIT 的核心——它负责：
-        // 1. 接收 LLVM IR（通过 module 中的函数定义）
-        // 2. 运行优化 passes（mem2reg, instcombine 等）
-        // 3. 将 IR 编译为本地机器码
-        // 4. 返回函数指针，供我们直接调用
+        // 创建 ExecutionEngine。使用 JIT 编译器模式（而非解释器模式）。
+        // create_jit_execution_engine 会设置 jit_mode = true，
+        // 使得 get_function 可以获取编译后的函数指针。
+        // create_execution_engine 默认 jit_mode = false，不能用 get_function。
         let execution_engine = module
-            .create_execution_engine()
+            .create_jit_execution_engine(OptimizationLevel::None)
             .map_err(|e| format!("Failed to create JIT execution engine: {}", e))?;
 
         Ok(Self {
@@ -190,7 +194,7 @@ impl JitCompiler {
                         unsafe extern "C" fn(*mut (), *mut ()),
                     >| {
                         // as_raw() 返回底层 unsafe 函数指针。
-                        // 我们需要将其转换为安全的 JitFn 类型（extern "C" fn）。
+                        // 我们需要将其转换为安全的 JitFn 类型（extern "C" fn(*mut i32, *mut i32)）。
                         // 这是安全的，因为 JIT 编译的代码确实是一个有效的 C ABI 函数。
                         std::mem::transmute::<unsafe extern "C" fn(*mut (), *mut ()), JitFn>(
                             f.as_raw(),
@@ -241,4 +245,80 @@ pub fn init() -> Result<(), String> {
         *guard = Some(compiler);
         Ok(())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use inkwell::context::Context;
+    use inkwell::types::BasicType;
+
+    /// 端到端测试：用 LLVM 创建并执行一个简单函数。
+    ///
+    /// 测试内容：
+    /// 1. LLVM 初始化是否正常
+    /// 2. 函数创建 → IR 生成 → ExecutionEngine 编译 → 执行 的完整链路
+    #[test]
+    fn test_llvm_pipeline() {
+        // 创建最小 LLVM 环境（类似 JIT 初始化流程）
+        let context = Context::create();
+        let leaked = Box::leak(Box::new(context));
+        let module = leaked.create_module("test_module");
+        let builder = leaked.create_builder();
+        let execution_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .expect("Failed to create execution engine");
+
+        // 创建函数: i32 fn(i32* a, i32* b)
+        let i32_type = leaked.i32_type();
+        let ptr_type = i32_type.ptr_type(inkwell::AddressSpace::default());
+        let fn_type = i32_type.fn_type(&[ptr_type.into(), ptr_type.into()], false);
+        let function = module.add_function("test_add", fn_type, None);
+
+        // 创建 entry block
+        let entry = leaked.append_basic_block(function, "entry");
+        builder.position_at_end(entry);
+
+        let a_ptr = function.get_first_param().unwrap().into_pointer_value();
+        let b_ptr = function.get_nth_param(1).unwrap().into_pointer_value();
+
+        // 加载参数值
+        let a = builder
+            .build_load(i32_type, a_ptr, "a")
+            .expect("load a failed")
+            .into_int_value();
+        let b = builder
+            .build_load(i32_type, b_ptr, "b")
+            .expect("load b failed")
+            .into_int_value();
+
+        // 相加并返回
+        let sum = builder.build_int_add(a, b, "sum").expect("add failed");
+        builder.build_return(Some(&sum)).expect("return failed");
+
+        // 验证 IR
+        assert!(function.verify(true), "IR verification failed");
+
+        // 编译并执行
+        let fn_ptr: extern "C" fn(*const i32, *const i32) -> i32 = unsafe {
+            let f: inkwell::execution_engine::JitFunction<
+                unsafe extern "C" fn(*const i32, *const i32) -> i32,
+            > = execution_engine
+                .get_function("test_add")
+                .expect("get_function failed");
+            std::mem::transmute(f.as_raw())
+        };
+
+        let a_val: i32 = 3;
+        let b_val: i32 = 4;
+        let result = fn_ptr(&a_val, &b_val);
+        assert_eq!(result, 7, "JIT function should return 3 + 4 = 7");
+    }
+
+    /// 测试 JIT 编译器初始化
+    #[test]
+    fn test_jit_init() {
+        let result = init();
+        assert!(result.is_ok(), "JIT init should succeed: {:?}", result);
+    }
 }

@@ -19,11 +19,11 @@ use std::sync::Arc;
 
 /// JIT 编译后的函数指针类型。
 ///
-/// 签名: `fn(locals: *mut Slot, stack: *mut Slot)`
-/// - `locals`: 指向本地变量数组的指针（大小 = max_locals）
-/// - `stack`: 指向操作数栈的指针（大小 = max_stack）
-/// 返回值通过修改 locals/stack 中的特定位置传递。
-pub type JitFn = extern "C" fn(*mut crate::runtime::slot::Slot, *mut crate::runtime::slot::Slot);
+/// 签名: `fn(locals: *mut i32, stack: *mut i32)`
+/// - `locals`: 指向 i32 数组的指针（大小 = max_locals）
+/// - `stack`: 指向 i32 数组的指针（大小 = max_stack）
+/// JIT 代码直接读写 i32 值，调用方负责在前后拷贝参数/提取结果。
+pub type JitFn = extern "C" fn(*mut i32, *mut i32);
 
 /// JIT 编译后的方法封装。
 pub struct JITCompiledMethod {

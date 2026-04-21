@@ -38,4 +38,9 @@ pub mod vm;
 pub fn init() {
     sys_dic::init();
     class_path_manager::init();
+    if let Err(e) = jit::init() {
+        warn!("JIT compiler initialization failed: {}, JIT disabled", e);
+    } else {
+        info!("JIT compiler initialized");
+    }
 }
