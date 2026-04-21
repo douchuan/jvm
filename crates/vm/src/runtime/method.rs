@@ -15,7 +15,7 @@ use classfile::{
 use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// JIT 编译后的函数指针类型。
 ///
@@ -64,13 +64,30 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> 
     }
 }
 
-#[derive(Clone)]
 pub struct MethodId {
     pub offset: usize,
     pub method: Method,
     pub native_impl: Option<JNINativeMethod>,
-    /// JIT 编译后的函数。None = 未编译或编译失败，回退到解释器。
-    pub jit_impl: Option<Arc<JITCompiledMethod>>,
+    /// JIT 编译后的函数。用 Mutex 保护，允许首次调用时缓存编译结果。
+    pub jit_impl: Mutex<Option<Arc<JITCompiledMethod>>>,
+}
+
+impl MethodId {
+    fn clone_with_new_jit(&self) -> Self {
+        let jit_impl = self.jit_impl.lock().unwrap();
+        Self {
+            offset: self.offset,
+            method: self.method.clone(),
+            native_impl: self.native_impl.clone(),
+            jit_impl: Mutex::new(jit_impl.clone()),
+        }
+    }
+}
+
+impl Clone for MethodId {
+    fn clone(&self) -> Self {
+        self.clone_with_new_jit()
+    }
 }
 
 impl MethodId {
@@ -88,7 +105,7 @@ impl MethodId {
             offset,
             method,
             native_impl,
-            jit_impl: None,
+            jit_impl: Mutex::new(None),
         })
     }
 }

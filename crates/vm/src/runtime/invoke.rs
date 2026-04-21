@@ -101,15 +101,12 @@ impl JavaCall {
     }
 
     /// 执行 JIT 编译后的方法。
-    ///
-    /// JIT 编译的函数签名: `fn(locals: *mut i32, stack: *mut i32)`
-    /// JIT 代码直接读写 i32 值。调用方负责：
-    /// 1. 将方法参数拷贝到 locals 数组
-    /// 2. 分配 stack 缓冲区
-    /// 3. 调用 JIT 函数
-    /// 4. 从 stack 顶部提取返回值
-    fn invoke_jit(&self, caller: Option<&DataArea>) {
-        let jit_fn = self.mir.jit_impl.as_ref().unwrap();
+    /// 调用方必须已获取 `jit_impl` 的锁。
+    fn invoke_jit_with(
+        &self,
+        caller: Option<&DataArea>,
+        jit_fn: &Arc<runtime::method::JITCompiledMethod>,
+    ) {
         let max_locals = self.mir.method.get_max_locals();
         let max_stack = self.mir.method.get_max_stack();
 
@@ -135,12 +132,10 @@ impl JavaCall {
                 | SignatureType::Int
                 | SignatureType::Char
                 | SignatureType::Short => {
-                    // 简单方法：stack 只有一个返回值
                     let v = jit_stack[0];
                     set_return(caller, return_type, Oop::Int(v));
                 }
                 _ => {
-                    // 其他类型暂时回退到解释器
                     warn!(
                         "JIT: unsupported return type {:?}, falling back",
                         return_type
@@ -170,18 +165,28 @@ impl JavaCall {
     /// 尝试通过 JIT 编译后的代码执行方法。
     /// 返回 true 表示使用了 JIT 路径，false 表示回退到解释器。
     fn try_jit_invoke(&mut self, caller: Option<&DataArea>) -> bool {
-        // 如果已经有编译后的实现，直接调用
-        if self.mir.jit_impl.is_some() {
-            self.invoke_jit(caller);
-            return true;
+        // 尝试获取已缓存的编译结果
+        {
+            let jit_impl = self.mir.jit_impl.lock().unwrap();
+            if let Some(ref compiled) = *jit_impl {
+                self.invoke_jit_with(caller, compiled);
+                return true;
+            }
         }
 
         // 尝试编译
         if let Some(compiled) = jit::try_compile(&self.mir) {
-            // 注意：这里我们无法修改 self.mir.jit_impl（因为 &self），
-            // 所以每次调用都会重新编译。后续可以通过更好的设计来缓存。
-            // MVP 阶段先用这个简单方案。
-            self.invoke_jit(caller);
+            // 缓存编译结果
+            {
+                let mut jit_impl = self.mir.jit_impl.lock().unwrap();
+                // Double-check: 可能有其他线程先编译了
+                if jit_impl.is_some() {
+                    self.invoke_jit_with(caller, jit_impl.as_ref().unwrap());
+                    return true;
+                }
+                *jit_impl = Some(compiled.clone());
+            }
+            self.invoke_jit_with(caller, &compiled);
             return true;
         }
 

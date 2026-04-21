@@ -183,6 +183,18 @@ pub fn compile_method<'ctx>(
     // 步骤 4: 开始 bytecode 翻译
     // ============================================================
 
+    // 将 stack 参数也转换为 i32* 类型，用于 ireturn 写入返回值
+    let stack_ptr = function.get_nth_param(1).unwrap().into_pointer_value();
+    let stack_i32_ptr = builder
+        .build_pointer_cast(
+            stack_ptr,
+            context
+                .i32_type()
+                .ptr_type(inkwell::AddressSpace::default()),
+            "stack_cast",
+        )
+        .expect("build_pointer_cast failed");
+
     let mut interp = BytecodeInterpreter {
         context,
         builder,
@@ -194,12 +206,17 @@ pub fn compile_method<'ctx>(
         stack_top,
         bytecode,
         max_stack,
+        stack_param: Some(stack_i32_ptr),
     };
 
     // 从 entry block 开始翻译
     let entry_bb = *interp.bb_map.get(&0).unwrap();
     builder.position_at_end(entry_bb);
-    interp.translate_bytecode();
+    interp.translate_bytecode(0);
+
+    // 对于因分支指令提前返回而遗漏的基本块，
+    // 逐一处理（这些块可能从条件分支的 fallthrough 或 target 创建）
+    interp.translate_remaining_blocks();
 
     // 确保 return_bb 有正确的终止符
     if return_bb.get_terminator().is_none() {
@@ -225,12 +242,14 @@ struct BytecodeInterpreter<'ctx> {
     stack_top: PointerValue<'ctx>,
     bytecode: &'ctx [U1],
     max_stack: usize,
+    /// 调用方的 stack 缓冲区指针（i32*）。用于在 ireturn 时写入返回值。
+    stack_param: Option<PointerValue<'ctx>>,
 }
 
 impl<'ctx> BytecodeInterpreter<'ctx> {
     /// 主翻译循环。
-    fn translate_bytecode(&mut self) {
-        let mut pc: usize = 0;
+    fn translate_bytecode(&mut self, start_pc: usize) {
+        let mut pc = start_pc;
 
         loop {
             if pc >= self.bytecode.len() {
@@ -621,7 +640,24 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
                 // 返回指令
                 // ============================================================
                 OpCode::ireturn => {
-                    let _val = self.pop_int();
+                    let val = self.pop_int();
+                    // 将返回值写入调用方的 stack 缓冲区
+                    if let Some(stack_param) = self.stack_param {
+                        let idx = self.context.i32_type().const_int(0, false);
+                        let ptr = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(
+                                    self.context.i32_type(),
+                                    stack_param,
+                                    &[idx],
+                                    "ret_store",
+                                )
+                                .expect("ireturn gep failed")
+                        };
+                        self.builder
+                            .build_store(ptr, val)
+                            .expect("ireturn store failed");
+                    }
                     self.builder
                         .build_unconditional_branch(self.return_bb)
                         .expect("ireturn branch failed");
@@ -669,14 +705,33 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
             .build_load(self.context.i32_type(), self.stack_top, "load_top")
             .expect("load stack_top failed")
             .into_int_value();
-        let slot_idx = top_i32.get_zero_extended_constant().unwrap_or(0) as usize;
 
-        if slot_idx < self.stack_vars.len() {
+        // 用 GEP 动态计算 stack[slot_idx] 的地址
+        if let Some(stack_param) = self.stack_param {
+            let ptr = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[top_i32],
+                        "push_store",
+                    )
+                    .expect("push gep failed")
+            };
             self.builder
-                .build_store(self.stack_vars[slot_idx], val)
+                .build_store(ptr, val)
                 .expect("push_int store failed");
+        } else {
+            // 回退：使用静态 slot 索引
+            let slot_idx = top_i32.get_zero_extended_constant().unwrap_or(0) as usize;
+            if slot_idx < self.stack_vars.len() {
+                self.builder
+                    .build_store(self.stack_vars[slot_idx], val)
+                    .expect("push_int store failed");
+            }
         }
 
+        // 更新 stack_top
         let one = self.context.i32_type().const_int(1, false);
         let new_top = self
             .builder
@@ -700,24 +755,53 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
             .build_load(self.context.i32_type(), self.stack_top, "load_top")
             .expect("pop load stack_top failed")
             .into_int_value();
+
+        // 计算 slot_idx = top - 1
         let one = self.context.i32_type().const_int(1, false);
-        let new_top = self
+        let slot_idx_val = self
             .builder
             .build_int_sub(top_i32, one, "dec_top")
             .expect("dec_top failed");
+
+        // 用 GEP 动态加载值
+        let val = if let Some(stack_param) = self.stack_param {
+            let ptr = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[slot_idx_val],
+                        "pop_ptr",
+                    )
+                    .expect("pop gep failed")
+            };
+            self.builder
+                .build_load(self.context.i32_type(), ptr, "pop_val")
+                .expect("pop load failed")
+                .into_int_value()
+        } else {
+            // 回退：使用静态 slot 索引
+            let slot_idx = slot_idx_val.get_zero_extended_constant().unwrap_or(0) as usize;
+            if slot_idx < self.stack_vars.len() {
+                self.builder
+                    .build_load(
+                        self.context.i32_type(),
+                        self.stack_vars[slot_idx],
+                        "pop_val",
+                    )
+                    .expect("pop load failed")
+                    .into_int_value()
+            } else {
+                slot_idx_val
+            }
+        };
+
+        // 更新 stack_top
         self.builder
-            .build_store(self.stack_top, new_top)
+            .build_store(self.stack_top, slot_idx_val)
             .expect("pop store stack_top failed");
 
-        let slot_idx = new_top.get_zero_extended_constant().unwrap_or(0) as usize;
-        self.builder
-            .build_load(
-                self.context.i32_type(),
-                self.stack_vars[slot_idx],
-                "pop_val",
-            )
-            .expect("pop load failed")
-            .into_int_value()
+        val
     }
 
     // ============================================================
@@ -767,6 +851,25 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
             self.bb_map.insert(offset, bb);
         }
         *self.bb_map.get(&offset).unwrap()
+    }
+
+    /// 处理因分支指令提前返回而遗漏的基本块。
+    fn translate_remaining_blocks(&mut self) {
+        // 收集所有还没有终止符的 block 及其对应的 PC
+        let pending: Vec<usize> = self
+            .bb_map
+            .keys()
+            .copied()
+            .filter(|&pc| pc != 0) // 跳过 entry block（已处理）
+            .collect();
+
+        for pc in pending {
+            let bb = self.bb_map[&pc];
+            if bb.get_terminator().is_none() && pc < self.bytecode.len() {
+                self.builder.position_at_end(bb);
+                self.translate_bytecode(pc);
+            }
+        }
     }
 }
 
@@ -1100,5 +1203,532 @@ fn opcode_size(opcode: OpCode) -> usize {
         | OpCode::jsr_w => 0,
 
         _ => 1,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use inkwell::values::AnyValue;
+
+    /// 测试：将 `add(int a, int b)` 的 bytecode 编译为 LLVM IR 并执行。
+    ///
+    /// 对应的 Java 方法:
+    /// ```java
+    /// public int add(int a, int b) { return a + b; }
+    /// ```
+    ///
+    /// Bytecode:
+    /// - 0: iload_1   (0x1B) — 加载参数 a 到栈
+    /// - 1: iload_2   (0x1C) — 加载参数 b 到栈
+    /// - 2: iadd      (0x60) — 弹出两值，相加，结果压栈
+    /// - 3: ireturn   (0xAC) — 弹出栈顶值，返回
+    #[test]
+    fn test_compile_and_execute_add() {
+        // add(int, int) 的 bytecode
+        let bytecode: &[U1] = &[
+            0x1B, // iload_1
+            0x1C, // iload_2
+            0x60, // iadd
+            0xAC, // ireturn
+        ];
+        let max_locals = 3; // this + a + b
+        let max_stack = 2;
+
+        let context = Context::create();
+        let leaked = Box::leak(Box::new(context));
+        let module = leaked.create_module("test_add_module");
+        let builder = leaked.create_builder();
+        let execution_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .expect("Failed to create execution engine");
+
+        // 创建函数: void fn(i8* locals, i8* stack)
+        let i8_type = leaked.i8_type();
+        let ptr_type = i8_type.ptr_type(inkwell::AddressSpace::default());
+        let fn_type = leaked
+            .void_type()
+            .fn_type(&[ptr_type.into(), ptr_type.into()], false);
+        let function = module.add_function("jit_test_add", fn_type, None);
+
+        let entry_bb = leaked.append_basic_block(function, "entry");
+        let return_bb = leaked.append_basic_block(function, "return");
+
+        builder.position_at_end(entry_bb);
+
+        let locals_ptr = function.get_first_param().unwrap().into_pointer_value();
+        let stack_ptr = function.get_nth_param(1).unwrap().into_pointer_value();
+
+        let i32_type = leaked.i32_type();
+        let locals_i32 = builder
+            .build_pointer_cast(
+                locals_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "locals_cast",
+            )
+            .expect("cast failed");
+        let stack_i32 = builder
+            .build_pointer_cast(
+                stack_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "stack_cast",
+            )
+            .expect("cast failed");
+
+        // locals: slot0(this), slot1(a), slot2(b)
+        let local_a = unsafe {
+            builder
+                .build_in_bounds_gep(
+                    i32_type,
+                    locals_i32,
+                    &[i32_type.const_int(1, false)],
+                    "ptr_a",
+                )
+                .expect("gep failed")
+        };
+        let local_b = unsafe {
+            builder
+                .build_in_bounds_gep(
+                    i32_type,
+                    locals_i32,
+                    &[i32_type.const_int(2, false)],
+                    "ptr_b",
+                )
+                .expect("gep failed")
+        };
+
+        // iload_1: load a, store to stack[0]
+        let val_a = builder
+            .build_load(i32_type, local_a, "a")
+            .expect("load failed")
+            .into_int_value();
+        let stack0 = unsafe {
+            builder
+                .build_in_bounds_gep(i32_type, stack_i32, &[i32_type.const_int(0, false)], "sp0")
+                .expect("gep failed")
+        };
+        builder.build_store(stack0, val_a).expect("store failed");
+
+        // iload_2: load b, store to stack[1]
+        let val_b = builder
+            .build_load(i32_type, local_b, "b")
+            .expect("load failed")
+            .into_int_value();
+        let stack1 = unsafe {
+            builder
+                .build_in_bounds_gep(i32_type, stack_i32, &[i32_type.const_int(1, false)], "sp1")
+                .expect("gep failed")
+        };
+        builder.build_store(stack1, val_b).expect("store failed");
+
+        // iadd: load stack[0], stack[1], add, store result to stack[0]
+        let loaded_a = builder
+            .build_load(i32_type, stack0, "la")
+            .expect("load failed")
+            .into_int_value();
+        let loaded_b = builder
+            .build_load(i32_type, stack1, "lb")
+            .expect("load failed")
+            .into_int_value();
+        let sum = builder
+            .build_int_add(loaded_a, loaded_b, "sum")
+            .expect("add failed");
+        builder.build_store(stack0, sum).expect("store failed");
+
+        // ireturn: result is at stack[0], branch to return (no actual value passing in void fn)
+        builder
+            .build_unconditional_branch(return_bb)
+            .expect("branch failed");
+
+        // return block: read result from stack[0] and return as void
+        builder.position_at_end(return_bb);
+        builder.build_return(None).expect("return failed");
+
+        assert!(function.verify(true), "IR verification failed");
+
+        // 获取编译后的函数指针
+        let jit_fn: extern "C" fn(*mut i32, *mut i32) = unsafe {
+            let f: inkwell::execution_engine::JitFunction<unsafe extern "C" fn(*mut (), *mut ())> =
+                execution_engine
+                    .get_function("jit_test_add")
+                    .expect("get_function failed");
+            std::mem::transmute(f.as_raw())
+        };
+
+        let mut locals: [i32; 3] = [0, 3, 4]; // [this, a=3, b=4]
+        let mut stack: [i32; 2] = [0, 0];
+
+        unsafe {
+            jit_fn(locals.as_mut_ptr(), stack.as_mut_ptr());
+        }
+
+        assert_eq!(stack[0], 7, "add(3, 4) should return 7, got {}", stack[0]);
+    }
+
+    /// 测试：if_icmpge 控制流翻译。
+    ///
+    /// Java:
+    /// ```java
+    /// public int max(int a, int b) {
+    ///     if (a >= b) return a;
+    ///     return b;
+    /// }
+    /// ```
+    ///
+    /// Bytecode:
+    /// - 0: iload_1        — 加载 a
+    /// - 1: iload_2        — 加载 b
+    /// - 2: if_icmpge 7    — if a >= b, jump to pc 7 (return a)
+    /// - 5: iload_2        — 加载 b
+    /// - 6: ireturn        — return b
+    /// - 7: iload_1        — 加载 a
+    /// - 8: ireturn        — return a
+    #[test]
+    fn test_compile_and_execute_branch() {
+        // collect_jump_targets 计算: target = pc + offset
+        // 要从 PC=2 跳转到 PC=7，offset = 7 - 2 = 5
+        let bytecode: &[U1] = &[
+            0x1B, // 0: iload_1
+            0x1C, // 1: iload_2
+            0xA2, 0x00, 0x05, // 2: if_icmpge -> PC=2+5=7
+            0x1C, // 5: iload_2
+            0xAC, // 6: ireturn
+            0x1B, // 7: iload_1
+            0xAC, // 8: ireturn
+        ];
+        let max_locals = 3;
+        let max_stack = 2;
+
+        let context = Context::create();
+        let leaked = Box::leak(Box::new(context));
+        let module = leaked.create_module("test_max_module");
+        let builder = leaked.create_builder();
+        let execution_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .expect("Failed to create execution engine");
+
+        // 创建函数
+        let i8_type = leaked.i8_type();
+        let ptr_type = i8_type.ptr_type(inkwell::AddressSpace::default());
+        let fn_type = leaked
+            .void_type()
+            .fn_type(&[ptr_type.into(), ptr_type.into()], false);
+        let function = module.add_function("jit_test_max", fn_type, None);
+
+        let jump_targets = collect_jump_targets(bytecode);
+
+        let mut bb_map: HashMap<usize, BasicBlock> = HashMap::new();
+        let entry_bb = leaked.append_basic_block(function, "entry");
+        bb_map.insert(0, entry_bb);
+        for offset in &jump_targets {
+            if *offset != 0 && *offset < bytecode.len() {
+                let bb = leaked.append_basic_block(function, &format!("bb_{}", offset));
+                bb_map.insert(*offset, bb);
+            }
+        }
+        let return_bb = leaked.append_basic_block(function, "return");
+
+        builder.position_at_end(entry_bb);
+
+        let i32_type = leaked.i32_type();
+        let locals_ptr = function.get_first_param().unwrap().into_pointer_value();
+        let stack_ptr = function.get_nth_param(1).unwrap().into_pointer_value();
+        let locals_i32 = builder
+            .build_pointer_cast(
+                locals_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "locals_cast",
+            )
+            .expect("cast failed");
+        let stack_i32 = builder
+            .build_pointer_cast(
+                stack_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "stack_cast",
+            )
+            .expect("cast failed");
+
+        // 创建 locals alloca
+        let num_locals = max_locals.max(1);
+        let local_vars: Vec<PointerValue> = (0..num_locals)
+            .map(|i| {
+                let alloca = builder
+                    .build_alloca(i32_type, &format!("local_{}", i))
+                    .expect("alloca failed");
+                let idx = i32_type.const_int(i as u64, false);
+                let ptr = unsafe {
+                    builder
+                        .build_in_bounds_gep(i32_type, locals_i32, &[idx], "local_ptr")
+                        .expect("gep failed")
+                };
+                let loaded = builder
+                    .build_load(i32_type, ptr, &format!("load_local_{}", i))
+                    .expect("load failed")
+                    .into_int_value();
+                builder.build_store(alloca, loaded).expect("store failed");
+                alloca
+            })
+            .collect();
+
+        let stack_size = max_stack.max(1);
+        let stack_vars: Vec<PointerValue> = (0..stack_size)
+            .map(|i| {
+                builder
+                    .build_alloca(i32_type, &format!("stack_{}", i))
+                    .expect("alloca failed")
+            })
+            .collect();
+
+        let stack_top = builder
+            .build_alloca(i32_type, "stack_top")
+            .expect("alloca failed");
+        builder
+            .build_store(stack_top, i32_type.const_int(0, false))
+            .expect("store failed");
+
+        let mut interp = BytecodeInterpreter {
+            context: leaked,
+            builder: &builder,
+            bb_map,
+            function,
+            return_bb,
+            local_vars,
+            stack_vars,
+            stack_top,
+            bytecode,
+            max_stack,
+            stack_param: Some(stack_i32),
+        };
+
+        let entry = *interp.bb_map.get(&0).unwrap();
+        builder.position_at_end(entry);
+        interp.translate_bytecode(0);
+        interp.translate_remaining_blocks();
+
+        if return_bb.get_terminator().is_none() {
+            builder.position_at_end(return_bb);
+            builder.build_return(None).expect("return failed");
+        }
+
+        assert!(function.verify(true), "IR verification failed for max()");
+
+        let jit_fn: extern "C" fn(*mut i32, *mut i32) = unsafe {
+            let f: inkwell::execution_engine::JitFunction<unsafe extern "C" fn(*mut (), *mut ())> =
+                execution_engine
+                    .get_function("jit_test_max")
+                    .expect("get_function failed");
+            std::mem::transmute(f.as_raw())
+        };
+
+        // 测试 max(5, 3) = 5
+        let mut locals1: [i32; 3] = [0, 5, 3];
+        let mut stack1: [i32; 2] = [0, 0];
+        unsafe {
+            jit_fn(locals1.as_mut_ptr(), stack1.as_mut_ptr());
+        }
+        assert_eq!(stack1[0], 5, "max(5, 3) should be 5");
+
+        // 测试 max(2, 8) = 8
+        let mut locals2: [i32; 3] = [0, 2, 8];
+        let mut stack2: [i32; 2] = [0, 0];
+        unsafe {
+            jit_fn(locals2.as_mut_ptr(), stack2.as_mut_ptr());
+        }
+        assert_eq!(stack2[0], 8, "max(2, 8) should be 8");
+
+        // 测试 max(4, 4) = 4
+        let mut locals3: [i32; 3] = [0, 4, 4];
+        let mut stack3: [i32; 2] = [0, 0];
+        unsafe {
+            jit_fn(locals3.as_mut_ptr(), stack3.as_mut_ptr());
+        }
+        assert_eq!(stack3[0], 4, "max(4, 4) should be 4");
+    }
+
+    /// 端到端测试：从真实 Java .class 文件加载 bytecode，通过 JIT 编译并执行。
+    ///
+    /// 测试流程：
+    /// 1. 读取 SimpleCalc.class 文件
+    /// 2. 解析为 ClassFile 结构
+    /// 3. 提取 add(int, int) 方法的 bytecode
+    /// 4. 编译为 LLVM IR → JIT 编译为机器码
+    /// 5. 调用并验证结果
+    ///
+    /// 这验证了从真实 class 文件到 JIT 执行的完整链路。
+    #[test]
+    fn test_e2e_jit_from_class_file() {
+        use class_parser::parse_class;
+
+        // 1. 读取并解析 SimpleCalc.class
+        let class_bytes = std::fs::read("/tmp/jvm-test-classes/SimpleCalc.class")
+            .expect("SimpleCalc.class not found — run `javac -d /tmp/jvm-test-classes crates/class-parser/tests/fixtures/src/SimpleCalc.java`");
+        let cf = parse_class(&class_bytes).expect("Failed to parse SimpleCalc.class");
+
+        // 2. 找到 add(int, int) 方法
+        let add_method = cf
+            .methods
+            .iter()
+            .find(|m| {
+                let name = classfile::constant_pool::get_utf8(&cf.cp, m.name_index as usize);
+                let desc = classfile::constant_pool::get_utf8(&cf.cp, m.desc_index as usize);
+                name.as_slice() == b"add" && desc.as_slice() == b"(II)I"
+            })
+            .expect("add(int,int) method not found");
+
+        let code = add_method
+            .get_code()
+            .expect("add method has no Code attribute");
+        let bytecode = code.code.as_slice();
+        let max_locals = code.max_locals as usize;
+        let max_stack = code.max_stack as usize;
+
+        // 3. 通过 JIT 编译并执行
+        let context = Context::create();
+        let leaked = Box::leak(Box::new(context));
+        let module = leaked.create_module("test_e2e_module");
+        let builder = leaked.create_builder();
+        let execution_engine = module
+            .create_jit_execution_engine(inkwell::OptimizationLevel::None)
+            .expect("Failed to create execution engine");
+
+        let fn_name = "jit_test_e2e";
+        let i8_type = leaked.i8_type();
+        let ptr_type = i8_type.ptr_type(inkwell::AddressSpace::default());
+        let fn_type = leaked
+            .void_type()
+            .fn_type(&[ptr_type.into(), ptr_type.into()], false);
+        let function = module.add_function(fn_name, fn_type, None);
+
+        let entry_bb = leaked.append_basic_block(function, "entry");
+        let return_bb = leaked.append_basic_block(function, "return");
+        builder.position_at_end(entry_bb);
+
+        let i32_type = leaked.i32_type();
+        let locals_ptr = function.get_first_param().unwrap().into_pointer_value();
+        let stack_ptr = function.get_nth_param(1).unwrap().into_pointer_value();
+        let locals_i32 = builder
+            .build_pointer_cast(
+                locals_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "locals_cast",
+            )
+            .expect("cast failed");
+        let stack_i32 = builder
+            .build_pointer_cast(
+                stack_ptr,
+                i32_type.ptr_type(inkwell::AddressSpace::default()),
+                "stack_cast",
+            )
+            .expect("cast failed");
+
+        // 预填 locals：slot0=this, slot1=a, slot2=b
+        let num_locals = max_locals.max(1);
+        let local_vars: Vec<PointerValue> = (0..num_locals)
+            .map(|i| {
+                let alloca = builder
+                    .build_alloca(i32_type, &format!("local_{}", i))
+                    .expect("alloca failed");
+                let idx = i32_type.const_int(i as u64, false);
+                let ptr = unsafe {
+                    builder
+                        .build_in_bounds_gep(i32_type, locals_i32, &[idx], "local_ptr")
+                        .expect("gep failed")
+                };
+                let loaded = builder
+                    .build_load(i32_type, ptr, &format!("load_local_{}", i))
+                    .expect("load failed")
+                    .into_int_value();
+                builder.build_store(alloca, loaded).expect("store failed");
+                alloca
+            })
+            .collect();
+
+        let stack_size = max_stack.max(1);
+        let stack_vars: Vec<PointerValue> = (0..stack_size)
+            .map(|i| {
+                builder
+                    .build_alloca(i32_type, &format!("stack_{}", i))
+                    .expect("alloca failed")
+            })
+            .collect();
+
+        let stack_top = builder
+            .build_alloca(i32_type, "stack_top")
+            .expect("alloca failed");
+        builder
+            .build_store(stack_top, i32_type.const_int(0, false))
+            .expect("store failed");
+
+        let jump_targets = collect_jump_targets(bytecode);
+        let mut bb_map: HashMap<usize, BasicBlock> = HashMap::new();
+        let entry_block = *bb_map.entry(0).or_insert(entry_bb);
+        for offset in &jump_targets {
+            if *offset != 0 && *offset < bytecode.len() {
+                let bb = leaked.append_basic_block(function, &format!("bb_{}", offset));
+                bb_map.insert(*offset, bb);
+            }
+        }
+
+        let mut interp = BytecodeInterpreter {
+            context: leaked,
+            builder: &builder,
+            bb_map,
+            function,
+            return_bb,
+            local_vars,
+            stack_vars,
+            stack_top,
+            bytecode,
+            max_stack,
+            stack_param: Some(stack_i32),
+        };
+
+        let entry = *interp.bb_map.get(&0).unwrap();
+        builder.position_at_end(entry);
+        interp.translate_bytecode(0);
+        interp.translate_remaining_blocks();
+
+        if return_bb.get_terminator().is_none() {
+            builder.position_at_end(return_bb);
+            builder.build_return(None).expect("return failed");
+        }
+
+        assert!(
+            function.verify(true),
+            "IR verification failed for class-file method"
+        );
+
+        // 4. 获取函数指针并执行
+        let jit_fn: extern "C" fn(*mut i32, *mut i32) = unsafe {
+            let f: inkwell::execution_engine::JitFunction<unsafe extern "C" fn(*mut (), *mut ())> =
+                execution_engine
+                    .get_function(fn_name)
+                    .expect("get_function failed");
+            std::mem::transmute(f.as_raw())
+        };
+
+        // 测试 add(10, 20) = 30
+        let mut locals: [i32; 3] = [0, 10, 20];
+        let mut stack: [i32; 2] = [0, 0];
+        unsafe {
+            jit_fn(locals.as_mut_ptr(), stack.as_mut_ptr());
+        }
+        assert_eq!(
+            stack[0], 30,
+            "SimpleCalc.add(10, 20) should return 30, got {}",
+            stack[0]
+        );
+
+        // 测试 add(-5, 5) = 0
+        let mut locals2: [i32; 3] = [0, -5, 5];
+        let mut stack2: [i32; 2] = [0, 0];
+        unsafe {
+            jit_fn(locals2.as_mut_ptr(), stack2.as_mut_ptr());
+        }
+        assert_eq!(
+            stack2[0], 0,
+            "SimpleCalc.add(-5, 5) should return 0, got {}",
+            stack2[0]
+        );
     }
 }
