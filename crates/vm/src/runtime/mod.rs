@@ -26,6 +26,7 @@ mod frame;
 mod init_vm;
 pub mod interp;
 pub mod invoke;
+pub mod jit;
 mod local;
 pub mod method;
 mod slot;

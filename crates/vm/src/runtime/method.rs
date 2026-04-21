@@ -17,6 +17,19 @@ use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::Arc;
 
+/// JIT 编译后的函数指针类型。
+///
+/// 签名: `fn(locals: *mut Slot, stack: *mut Slot)`
+/// - `locals`: 指向本地变量数组的指针（大小 = max_locals）
+/// - `stack`: 指向操作数栈的指针（大小 = max_stack）
+/// 返回值通过修改 locals/stack 中的特定位置传递。
+pub type JitFn = extern "C" fn(*mut crate::runtime::slot::Slot, *mut crate::runtime::slot::Slot);
+
+/// JIT 编译后的方法封装。
+pub struct JITCompiledMethod {
+    pub fn_ptr: JitFn,
+}
+
 pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> Result<MethodIdRef, ()> {
     let (tag, class_index, name_and_type_index) = constant_pool::get_method_ref(cp, idx);
 
@@ -56,6 +69,8 @@ pub struct MethodId {
     pub offset: usize,
     pub method: Method,
     pub native_impl: Option<JNINativeMethod>,
+    /// JIT 编译后的函数。None = 未编译或编译失败，回退到解释器。
+    pub jit_impl: Option<Arc<JITCompiledMethod>>,
 }
 
 impl MethodId {
@@ -73,6 +88,7 @@ impl MethodId {
             offset,
             method,
             native_impl,
+            jit_impl: None,
         })
     }
 }

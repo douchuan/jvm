@@ -7,7 +7,13 @@ use classfile::consts as cls_const;
 use std::sync::atomic::Ordering;
 
 impl<'a> Interp<'a> {
-    pub fn invoke_helper(&self, is_static: bool, idx: usize, force_no_resolve: bool, is_interface: bool) {
+    pub fn invoke_helper(
+        &self,
+        is_static: bool,
+        idx: usize,
+        force_no_resolve: bool,
+        is_interface: bool,
+    ) {
         use crate::runtime;
         let cls = self.frame.class.get_class();
         let mir = cls.get_cp_method(idx).unwrap();
@@ -58,7 +64,10 @@ impl<'a> Interp<'a> {
     #[inline]
     pub fn invoke_dynamic(&self) {
         warn!("invokedynamic not supported");
-        exception::meet_ex(b"java/lang/UnsupportedOperationException", Some("invokedynamic not supported".to_string()));
+        exception::meet_ex(
+            b"java/lang/UnsupportedOperationException",
+            Some("invokedynamic not supported".to_string()),
+        );
     }
 
     #[inline]

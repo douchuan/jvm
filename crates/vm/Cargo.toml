@@ -11,6 +11,7 @@ chrono = "0.4"
 classfile = { path = "../classfile", version = "0.1.0" }
 class-parser = { path="../class-parser", version="0.1.0" }
 dirs = "3.0.1"
+inkwell = { version = "0.9", features = ["llvm22-1"] }
 lazy_static = "1.4.0"
 libc = "0.2.85"
 log = "0.4"
