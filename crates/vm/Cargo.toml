@@ -1,21 +1,19 @@
 [package]
 name = "vm"
-version = "0.1.0"
-authors = ["Dou Chuan <1843657913@qq.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-chrono = "0.4"
-classfile = { path = "../classfile", version = "0.1.0" }
-class-parser = { path="../class-parser", version="0.1.0" }
-dirs = "3.0.1"
-inkwell = { version = "0.9", features = ["llvm22-1"] }
-jimage-rs = "0.0.4"
-lazy_static = "1.4.0"
-libc = "0.2.85"
-log = "0.4"
-nix = "0.19.1"
-rustc-hash = "1.1.0"
-zip = "0.5.9"
+chrono.workspace = true
+classfile.workspace = true
+class-parser.workspace = true
+dirs.workspace = true
+inkwell.workspace = true
+jimage-rs.workspace = true
+lazy_static.workspace = true
+libc.workspace = true
+log.workspace = true
+nix.workspace = true
+rustc-hash.workspace = true
+zip.workspace = true

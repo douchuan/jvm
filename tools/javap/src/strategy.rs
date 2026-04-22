@@ -18,7 +18,7 @@ pub fn setup_classpath(matches: &ArgMatches) {
         matches.value_of("classpath").unwrap(),
     ]
     .iter()
-    .for_each(|&v| {
+    .for_each(|v: &&str| {
         let paths = v.split(util::PATH_SEP);
         paths.for_each(|path| {
             if !added.contains(path) {

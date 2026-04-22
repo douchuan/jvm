@@ -323,14 +323,14 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "class-parser"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "classfile",
 ]
 
 [[package]]
 name = "classfile"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "lazy_static",
  "log",
@@ -575,7 +575,7 @@ checksum = "b8b7a7c0c47db5545ed3fef7468ee7bb5b74691498139e4b3f6a20685dc6dd8e"
 
 [[package]]
 name = "javap"
-version = "0.2.1"
+version = "0.2.0"
 dependencies = [
  "clap 2.33.1",
  "class-parser",
@@ -1289,7 +1289,7 @@ checksum = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 
 [[package]]
 name = "vm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "class-parser",

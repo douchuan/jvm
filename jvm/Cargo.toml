@@ -1,15 +1,15 @@
 [package]
 name = "jvm"
-version = "0.2.0"
-authors = ["douchuan <1843657913@qq.com>"]
-edition = "2018"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-clap = "3.0.0-beta.1"
-class-parser = { path = "../crates/class-parser", version = "0.1.0" }
-env_logger = "0.8.2"
-vm = { path = "../crates/vm", version = "0.1.0" }
+clap.workspace = true
+class-parser.workspace = true
+env_logger.workspace = true
+vm.workspace = true
 
 [dev-dependencies]
-classfile = { path = "../crates/classfile", version = "0.1.0" }
-libc = "0.2.71"
+classfile.workspace = true
+libc.workspace = true

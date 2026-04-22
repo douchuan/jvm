@@ -1,13 +1,11 @@
 [package]
 name = "classfile"
-version = "0.1.0"
-authors = ["Dou Chuan <1843657913@qq.com>"]
-edition = "2018"
-license = "MIT OR Apache-2.0"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 description = "Types for the class file format of the Java Virtual Machine."
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-log = "0.4.0"
-lazy_static = "1.4.0"
+log.workspace = true
+lazy_static.workspace = true

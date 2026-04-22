@@ -2,14 +2,10 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
-extern crate handlebars;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-
-extern crate clap;
-extern crate env_logger;
 
 mod cmd;
 mod misc;

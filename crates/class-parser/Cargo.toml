@@ -1,8 +1,8 @@
 [package]
 name = "class-parser"
-version = "0.1.0"
-authors = ["Dou Chuan <1843657913@qq.com>"]
-edition = "2021"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-classfile = { path = "../classfile", version = "0.1.0" }
+classfile.workspace = true
