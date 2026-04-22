@@ -13,6 +13,10 @@ use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 pub fn initialize_jvm() {
+    // MUST happen before initialize_vm_structs: hack certain classes' `<clinit>`
+    // as native to bypass JDK 9+ APIs (Set.of(), Map.of()) we don't implement.
+    pre_hack_clinit();
+
     initialize_vm_structs();
 
     let thread_cls = oop::class::load_and_init(J_THREAD);
@@ -46,9 +50,10 @@ pub fn initialize_jvm() {
     // Manually create PrintStream instances and set them as static fields.
     setup_system_streams();
 
-    //setup security (best effort)
-    let _ = oop::class::load_and_init(b"sun/security/provider/Sun");
-    let _ = oop::class::load_and_init(b"sun/security/rsa/SunRsaSign");
+    //setup security (best effort) — skipped: Provider.<clinit> uses invokedynamic
+    // lambdas (LambdaMetafactory) that require full java.lang.invoke infrastructure.
+    // let _ = oop::class::load_and_init(b"sun/security/provider/Sun");
+    // let _ = oop::class::load_and_init(b"sun/security/rsa/SunRsaSign");
 }
 
 fn initialize_vm_structs() {
@@ -86,6 +91,8 @@ fn initialize_vm_structs() {
 
 fn hack_classes() {
     let charset_cls = oop::class::load_and_init(b"java/nio/charset/Charset");
+
+    let charset_cls = oop::class::load_and_init(b"java/nio/charset/Charset");
     let ascii_charset_cls = oop::class::load_and_init(b"sun/nio/cs/US_ASCII");
 
     let ascii_inst = oop::Oop::new_inst(ascii_charset_cls.clone());
@@ -114,6 +121,16 @@ fn hack_classes() {
         let cls = system.get_class();
         cls.hack_as_native(b"load", b"(Ljava/lang/String;)V");
         cls.hack_as_native(b"loadLibrary", b"(Ljava/lang/String;)V");
+        // hack System.getProperty as native to bypass props access
+        // (props static field is not properly initialized in JDK 9+)
+        cls.hack_as_native(b"getProperty", b"(Ljava/lang/String;)Ljava/lang/String;");
+        cls.hack_as_native(
+            b"setProperty",
+            b"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+        );
+        cls.hack_as_native(b"clearProperty", b"(Ljava/lang/String;)Ljava/lang/String;");
+        cls.hack_as_native(b"getSecurityManager", b"()Ljava/lang/SecurityManager;");
+        cls.hack_as_native(b"setSecurityManager", b"(Ljava/lang/SecurityManager;)V");
     }
 
     // JDK 9+: fillInStackTrace() delegates to fillInStackTrace(int) internally.
@@ -181,4 +198,25 @@ fn setup_system_streams() {
         let fid = cls.get_field_id(&new_br("err"), &new_br("Ljava/io/PrintStream;"), true);
         cls.put_static_field_value(fid, ps_out.clone());
     }
+}
+
+/// Load a class WITHOUT initializing it, hack its `<clinit>` as native,
+/// then let normal initialization proceed. Must be called BEFORE any other
+/// class transitively loads the target class.
+fn hack_clinit_as_native(class_name: &[u8]) {
+    let Some(cls_ref) = runtime::require_class3(None, class_name) else {
+        return;
+    };
+    let cls = cls_ref.get_class();
+    cls.hack_as_native(b"<clinit>", b"()V");
+    oop::class::init_class(&cls_ref);
+    oop::class::init_class_fully(&cls_ref);
+}
+
+/// Pre-hack classes whose `<clinit>` calls JDK 9+ APIs we don't implement.
+fn pre_hack_clinit() {
+    // ObjectStreamClass.<clinit> calls Set.of()/Map.of()
+    hack_clinit_as_native(b"java/io/ObjectStreamClass");
+    // ReflectionFactory.<clinit> calls Set.of()
+    hack_clinit_as_native(b"jdk/internal/reflect/ReflectionFactory");
 }

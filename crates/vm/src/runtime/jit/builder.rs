@@ -773,7 +773,63 @@ impl<'ctx, 'a> BytecodeInterpreter<'ctx, 'a> {
                     pc += 1;
                 }
                 OpCode::lreturn => {
-                    let _val = self.pop_long();
+                    let val = self.pop_long();
+                    if let Some(stack_param) = self.stack_param {
+                        let i64_type = self.context.i64_type();
+                        let i32_type = self.context.i32_type();
+                        let bitcast_val = self
+                            .builder
+                            .build_bit_cast(val, i64_type, "lret_bitcast")
+                            .expect("lret bitcast failed")
+                            .into_int_value();
+                        let lo = self
+                            .builder
+                            .build_int_truncate(bitcast_val, i32_type, "lret_lo")
+                            .expect("lret lo trunc failed");
+                        let hi = self
+                            .builder
+                            .build_int_truncate(
+                                self.builder
+                                    .build_right_shift(
+                                        bitcast_val,
+                                        i64_type.const_int(32, false),
+                                        false,
+                                        "lret_hi_shift",
+                                    )
+                                    .expect("lret hi shift failed"),
+                                i32_type,
+                                "lret_hi",
+                            )
+                            .expect("lret hi trunc failed");
+                        let idx_lo = i32_type.const_int(0, false);
+                        let idx_hi = i32_type.const_int(1, false);
+                        let ptr_lo = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(
+                                    i32_type,
+                                    stack_param,
+                                    &[idx_lo],
+                                    "lret_store_lo",
+                                )
+                                .expect("lret gep failed")
+                        };
+                        let ptr_hi = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(
+                                    i32_type,
+                                    stack_param,
+                                    &[idx_hi],
+                                    "lret_store_hi",
+                                )
+                                .expect("lret gep failed")
+                        };
+                        self.builder
+                            .build_store(ptr_lo, lo)
+                            .expect("lret store lo failed");
+                        self.builder
+                            .build_store(ptr_hi, hi)
+                            .expect("lret store hi failed");
+                    }
                     self.builder
                         .build_unconditional_branch(self.return_bb)
                         .expect("lreturn branch failed");
@@ -950,14 +1006,88 @@ impl<'ctx, 'a> BytecodeInterpreter<'ctx, 'a> {
                     pc += 1;
                 }
                 OpCode::freturn => {
-                    let _val = self.pop_float();
+                    let val = self.pop_float();
+                    if let Some(stack_param) = self.stack_param {
+                        let i32_type = self.context.i32_type();
+                        let bitcast = self
+                            .builder
+                            .build_bit_cast(val, i32_type, "fret_bitcast")
+                            .expect("fret bitcast failed")
+                            .into_int_value();
+                        let idx = i32_type.const_int(0, false);
+                        let ptr = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(i32_type, stack_param, &[idx], "fret_store")
+                                .expect("fret gep failed")
+                        };
+                        self.builder
+                            .build_store(ptr, bitcast)
+                            .expect("fret store failed");
+                    }
                     self.builder
                         .build_unconditional_branch(self.return_bb)
                         .expect("freturn branch failed");
                     return;
                 }
                 OpCode::dreturn => {
-                    let _val = self.pop_double();
+                    let val = self.pop_double();
+                    if let Some(stack_param) = self.stack_param {
+                        let f64_type = self.context.f64_type();
+                        let i64_type = self.context.i64_type();
+                        let i32_type = self.context.i32_type();
+                        let bitcast_val = self
+                            .builder
+                            .build_bit_cast(val, i64_type, "dret_bitcast")
+                            .expect("dret bitcast failed")
+                            .into_int_value();
+                        let lo = self
+                            .builder
+                            .build_int_truncate(bitcast_val, i32_type, "dret_lo")
+                            .expect("dret lo trunc failed");
+                        let hi = self
+                            .builder
+                            .build_int_truncate(
+                                self.builder
+                                    .build_right_shift(
+                                        bitcast_val,
+                                        i64_type.const_int(32, false),
+                                        false,
+                                        "dret_hi_shift",
+                                    )
+                                    .expect("dret hi shift failed"),
+                                i32_type,
+                                "dret_hi",
+                            )
+                            .expect("dret hi trunc failed");
+                        let idx_lo = i32_type.const_int(0, false);
+                        let idx_hi = i32_type.const_int(1, false);
+                        let ptr_lo = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(
+                                    i32_type,
+                                    stack_param,
+                                    &[idx_lo],
+                                    "dret_store_lo",
+                                )
+                                .expect("dret gep failed")
+                        };
+                        let ptr_hi = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(
+                                    i32_type,
+                                    stack_param,
+                                    &[idx_hi],
+                                    "dret_store_hi",
+                                )
+                                .expect("dret gep failed")
+                        };
+                        self.builder
+                            .build_store(ptr_lo, lo)
+                            .expect("dret store lo failed");
+                        self.builder
+                            .build_store(ptr_hi, hi)
+                            .expect("dret store hi failed");
+                    }
                     self.builder
                         .build_unconditional_branch(self.return_bb)
                         .expect("dreturn branch failed");
@@ -968,7 +1098,19 @@ impl<'ctx, 'a> BytecodeInterpreter<'ctx, 'a> {
                 // Reference return
                 // ============================================================
                 OpCode::areturn => {
-                    let _val = self.pop_int(); // slot_id
+                    let val = self.pop_int(); // slot_id
+                    if let Some(stack_param) = self.stack_param {
+                        let i32_type = self.context.i32_type();
+                        let idx = i32_type.const_int(0, false);
+                        let ptr = unsafe {
+                            self.builder
+                                .build_in_bounds_gep(i32_type, stack_param, &[idx], "aret_store")
+                                .expect("aret gep failed")
+                        };
+                        self.builder
+                            .build_store(ptr, val)
+                            .expect("aret store failed");
+                    }
                     self.builder
                         .build_unconditional_branch(self.return_bb)
                         .expect("areturn branch failed");

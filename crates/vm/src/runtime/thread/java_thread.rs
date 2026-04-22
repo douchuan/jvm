@@ -71,4 +71,9 @@ impl JavaThread {
         set_meet_ex(false);
         self.ex.take()
     }
+
+    pub fn clear_ex(&mut self) {
+        set_meet_ex(false);
+        self.ex = None;
+    }
 }

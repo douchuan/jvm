@@ -483,6 +483,7 @@ impl Class {
         let kind = self.kind_read();
         match kind.deref() {
             ClassKind::ObjectArray(obj_ary) => obj_ary.down_type.clone(),
+            ClassKind::TypeArray(type_ary) => type_ary.down_type.clone(),
             _ => None,
         }
     }
@@ -664,6 +665,21 @@ impl Class {
                 }
             }
             _ => unreachable!(),
+        }
+    }
+
+    pub fn get_bootstrap_methods(&self) -> Option<Vec<classfile::attributes::BootstrapMethod>> {
+        let kind = self.kind_read();
+        match kind.deref() {
+            ClassKind::Instance(cls) => {
+                for attr in &cls.class_file.attrs {
+                    if let classfile::AttributeType::BootstrapMethods { methods, .. } = attr {
+                        return Some(methods.clone());
+                    }
+                }
+                None
+            }
+            _ => None,
         }
     }
 }

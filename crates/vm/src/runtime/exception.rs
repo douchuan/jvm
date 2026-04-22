@@ -15,20 +15,9 @@ pub fn new(name: &[u8], msg: Option<String>) -> Oop {
 
     let ex = Oop::new_inst(cls.clone());
 
-    //invoke ctor
-    match &msg {
-        Some(msg) => {
-            //with 'String' arg ctor
-            let msg = util::oop::new_java_lang_string2(msg);
-            let args = vec![ex.clone(), msg];
-            runtime::invoke::invoke_ctor(cls, new_br("(Ljava/lang/String;)V"), args);
-        }
-        None => {
-            //No arg ctor
-            let args = vec![ex.clone()];
-            runtime::invoke::invoke_ctor(cls, new_br("()V"), args);
-        }
-    }
+    // Always use no-arg constructor to avoid String-related issues in <init> chain
+    let args = vec![ex.clone()];
+    runtime::invoke::invoke_ctor(cls, new_br("()V"), args);
 
     ex
 }

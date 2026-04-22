@@ -26,7 +26,9 @@ mod java_lang_Throwable;
 mod java_lang_reflect_Array;
 mod java_lang_reflect_Proxy;
 mod java_security_AccessController;
+mod java_security_Provider;
 mod java_util_concurrent_atomic_AtomicLong;
+mod jdk_internal_reflect_ReflectionFactory;
 mod sun_misc_Signal;
 mod sun_misc_URLClassPath;
 mod sun_misc_Unsafe;
@@ -121,6 +123,10 @@ fn create_native_fn_tables(
             "java/io/ObjectStreamClass",
             java_io_ObjectStreamClass::get_native_methods(),
         ),
+        (
+            "jdk/internal/reflect/ReflectionFactory",
+            jdk_internal_reflect_ReflectionFactory::get_native_methods(),
+        ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
         (
             "java/lang/ClassLoader",
@@ -148,6 +154,10 @@ fn create_native_fn_tables(
         (
             "java/security/AccessController",
             java_security_AccessController::get_native_methods(),
+        ),
+        (
+            "java/security/Provider",
+            java_security_Provider::get_native_methods(),
         ),
         (
             "java/util/concurrent/atomic/AtomicLong",

@@ -1,6 +1,7 @@
 use super::Interp;
 use crate::oop::{self, Oop, TypeArrayDesc};
 use crate::runtime::exception;
+use crate::runtime::thread;
 use classfile::consts as cls_const;
 
 impl<'a> Interp<'a> {
@@ -232,21 +233,22 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                let v = v as u8;
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
-                    let ary = guard.v.extract_mut_type_array();
-                    match ary {
-                        TypeArrayDesc::Byte(ary) => {
-                            let v = v as u8;
-                            check_bounds(ary.len(), pos);
-                            ary[pos as usize] = v;
-                        }
-                        TypeArrayDesc::Bool(ary) => {
-                            let v = v as u8;
-                            check_bounds(ary.len(), pos);
-                            ary[pos as usize] = v;
-                        }
+                    match guard.v.extract_mut_type_array() {
+                        TypeArrayDesc::Byte(ary) => ary[pos as usize] = v,
+                        TypeArrayDesc::Bool(ary) => ary[pos as usize] = v,
                         _ => unreachable!(),
                     }
                 });
@@ -264,12 +266,20 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
                 let v = v as u16;
-                oop::with_heap(|heap| {
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_chars();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -286,12 +296,20 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
                 let v = v as i16;
-                oop::with_heap(|heap| {
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_shorts();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -308,11 +326,19 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_ints();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -329,11 +355,19 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_longs();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -350,11 +384,19 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_floats();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -371,11 +413,19 @@ impl<'a> Interp<'a> {
         match rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_type_array().len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_type_array().extract_mut_doubles();
-                    check_bounds(ary.len(), pos);
                     ary[pos as usize] = v;
                 });
             }
@@ -392,11 +442,19 @@ impl<'a> Interp<'a> {
         match ary_rf {
             Oop::Null => exception::meet_ex(cls_const::J_NPE, None),
             Oop::Ref(slot_id) => {
-                oop::with_heap(|heap| {
+                let len = oop::with_heap(|heap| {
+                    let desc = heap.get(slot_id);
+                    let guard = desc.read().unwrap();
+                    guard.v.extract_array().elements.len()
+                });
+                check_bounds(len, pos);
+                if thread::is_meet_ex() {
+                    return;
+                }
+                oop::with_heap_mut(|heap| {
                     let desc = heap.get(slot_id);
                     let mut guard = desc.write().unwrap();
                     let ary = guard.v.extract_mut_array();
-                    check_bounds(ary.elements.len(), pos);
                     ary.elements[pos as usize] = v;
                 });
             }
@@ -407,9 +465,6 @@ impl<'a> Interp<'a> {
 
 fn check_bounds(len: usize, pos: i32) {
     if pos < 0 || pos as usize >= len {
-        exception::meet_ex(
-            cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS,
-            Some(format!("length is {}, but index is {}", len, pos)),
-        );
+        exception::meet_ex(cls_const::J_ARRAY_INDEX_OUT_OF_BOUNDS, None);
     }
 }

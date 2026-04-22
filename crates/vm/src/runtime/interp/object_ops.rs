@@ -5,7 +5,7 @@ use crate::runtime;
 use crate::runtime::exception;
 use classfile::consts as cls_const;
 use std::sync::atomic::Ordering;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{trace, warn};
 
 impl<'a> Interp<'a> {
     pub fn invoke_helper(
@@ -71,11 +71,97 @@ impl<'a> Interp<'a> {
     }
     #[inline]
     pub fn invoke_dynamic(&self) {
-        warn!("invokedynamic not supported");
-        exception::meet_ex(
-            b"java/lang/UnsupportedOperationException",
-            Some("invokedynamic not supported".to_string()),
+        let pc = &self.frame.pc;
+        let codes = &self.code;
+        let cp_idx = super::read::read_u2(pc, codes);
+
+        let cls_name = String::from_utf8_lossy(self.frame.class.get_class().name.as_slice());
+        trace!("invokedynamic in class: {}", cls_name);
+
+        // Step 1: Resolve CONSTANT_InvokeDynamic_info
+        let (bootstrap_idx, name, desc) = {
+            let cp_item = self.cp.get(cp_idx);
+            match cp_item {
+                Some(classfile::ConstantPoolType::InvokeDynamic {
+                    bootstrap_method_attr_index,
+                    name_and_type_index,
+                }) => {
+                    let (name, desc) = classfile::constant_pool::get_name_and_type(
+                        &self.cp,
+                        *name_and_type_index as usize,
+                    );
+                    (*bootstrap_method_attr_index, name.clone(), desc.clone())
+                }
+                _ => unreachable!("Expected InvokeDynamic at cp index {}", cp_idx),
+            }
+        };
+
+        // Step 2: Get BootstrapMethod
+        let class = self.frame.class.get_class();
+        let bootstrap_methods = match class.get_bootstrap_methods() {
+            Some(bsm) => bsm,
+            None => {
+                exception::meet_ex(
+                    b"java/lang/BootstrapMethodError",
+                    Some("No BootstrapMethods attribute".to_string()),
+                );
+                return;
+            }
+        };
+
+        let bsm = match bootstrap_methods.get(bootstrap_idx as usize) {
+            Some(b) => b,
+            None => {
+                exception::meet_ex(
+                    b"java/lang/BootstrapMethodError",
+                    Some(format!(
+                        "BootstrapMethod index {} out of range (count={})",
+                        bootstrap_idx,
+                        bootstrap_methods.len()
+                    )),
+                );
+                return;
+            }
+        };
+
+        // Step 3: Resolve bootstrap method identity
+        let (ref_kind, ref_index) =
+            classfile::constant_pool::get_method_handle_ref(&self.cp, bsm.method_ref as usize);
+        let (target_class, target_name, _target_desc) =
+            classfile::constant_pool::get_method_handle_target(&self.cp, ref_index);
+
+        trace!(
+            "invokedynamic: bootstrap={} method={}:{} ref_kind={}",
+            bootstrap_idx,
+            String::from_utf8_lossy(target_class),
+            String::from_utf8_lossy(target_name),
+            ref_kind,
         );
+
+        // Step 4: Dispatch based on bootstrap method identity
+        if target_class.as_slice() == b"java/lang/invoke/StringConcatFactory"
+            && target_name.as_slice() == b"makeConcatWithConstants"
+        {
+            handle_string_concat_factory(&self.frame.area, &self.cp, bsm, &name, &desc);
+        } else if target_class.as_slice() == b"java/lang/invoke/LambdaMetafactory"
+            && target_name.as_slice() == b"metafactory"
+        {
+            handle_lambda_metafactory(&self.frame.area, &self.cp, bsm, &name, &desc);
+        } else {
+            warn!(
+                "invokedynamic: unsupported bootstrap method {}::{}",
+                String::from_utf8_lossy(target_class),
+                String::from_utf8_lossy(target_name),
+            );
+            exception::meet_ex(
+                b"java/lang/UnsupportedOperationException",
+                Some(format!(
+                    "invokedynamic: unsupported bootstrap {}::{}",
+                    String::from_utf8_lossy(target_class),
+                    String::from_utf8_lossy(target_name),
+                )),
+            );
+        }
     }
 
     #[inline]
@@ -207,18 +293,274 @@ impl<'a> Interp<'a> {
 
 fn new_multi_object_array_helper(cls: crate::types::ClassRef, lens: &[i32], idx: usize) -> Oop {
     let length = lens[idx] as usize;
-    let down_type = {
-        let cls = cls.get_class();
-        cls.get_array_down_type().unwrap()
-    };
-    if idx < lens.len() - 1 {
-        let mut elms = Vec::with_capacity(length);
-        for i in 0..length {
-            let e = new_multi_object_array_helper(down_type.clone(), lens, idx + 1);
-            elms.push(e);
+    let cls_obj = cls.get_class();
+    match cls_obj.get_array_down_type() {
+        Some(down_type) => {
+            // Has a down-type: either ObjectArray or multi-dim TypeArray
+            if idx < lens.len() - 1 {
+                let mut elms = Vec::with_capacity(length);
+                for _ in 0..length {
+                    let e = new_multi_object_array_helper(down_type.clone(), lens, idx + 1);
+                    elms.push(e);
+                }
+                Oop::new_ref_ary2(cls, elms)
+            } else {
+                // Innermost: down_type is the element type
+                let down_cls = down_type.get_class();
+                if down_cls.is_array() {
+                    // Multi-dim: e.g., innermost of int[][][] is [I
+                    Oop::new_ref_ary(down_type, length)
+                } else {
+                    // Instance class: e.g., String[]
+                    Oop::new_ref_ary(cls, length)
+                }
+            }
         }
-        Oop::new_ref_ary2(cls, elms)
-    } else {
-        Oop::new_ref_ary(cls, length)
+        None => {
+            // No down-type: single-dim primitive array like [I
+            // Create the actual primitive type array
+            let value_type = cls_obj.get_array_value_type().unwrap();
+            // Map ValueType descriptor byte to TypeArrayEnum internal code
+            let type_byte: &[u8] = value_type.into();
+            let type_code = match type_byte[0] {
+                b'B' => 8,
+                b'Z' => 4,
+                b'C' => 5,
+                b'S' => 9,
+                b'I' => 10,
+                b'J' => 11,
+                b'F' => 6,
+                b'D' => 7,
+                _ => unreachable!("unknown primitive type: {:?}", type_byte),
+            };
+            Oop::new_type_ary(type_code, length)
+        }
     }
+}
+
+fn handle_string_concat_factory(
+    caller: &runtime::DataArea,
+    cp: &classfile::ConstantPool,
+    bsm: &classfile::attributes::BootstrapMethod,
+    _method_name: &[u8],
+    method_desc: &[u8],
+) {
+    // Step 1: Parse argument types from method descriptor
+    let arg_types = parse_method_type_args(method_desc);
+
+    // Step 2: Pop arguments from operand stack (reverse order)
+    let mut args: Vec<Oop> = Vec::with_capacity(arg_types.len());
+    for ty in arg_types.iter().rev() {
+        let v = match ty {
+            classfile::SignatureType::Int
+            | classfile::SignatureType::Byte
+            | classfile::SignatureType::Boolean
+            | classfile::SignatureType::Char
+            | classfile::SignatureType::Short => Oop::Int(caller.stack.borrow_mut().pop_int()),
+            classfile::SignatureType::Long => Oop::Long(caller.stack.borrow_mut().pop_long()),
+            classfile::SignatureType::Float => Oop::Float(caller.stack.borrow_mut().pop_float()),
+            classfile::SignatureType::Double => Oop::Double(caller.stack.borrow_mut().pop_double()),
+            classfile::SignatureType::Object(_, _, _) | classfile::SignatureType::Array(_) => {
+                caller.stack.borrow_mut().pop_ref()
+            }
+            _ => unreachable!("Unsupported invokedynamic arg type: {:?}", ty),
+        };
+        args.push(v);
+    }
+    args.reverse();
+
+    // Step 3: Extract format string from bootstrap args
+    // For javac-compiled StringConcatFactory, the first arg is the format string constant.
+    let format_string = if !bsm.args.is_empty() {
+        classfile::constant_pool::get_string(cp, bsm.args[0] as usize)
+    } else {
+        String::new()
+    };
+
+    // Step 4: Build result string by replacing \u0001 placeholders
+    let result = build_concat_string(&format_string, &args);
+
+    // Step 5: Create java.lang.String and push result
+    let string_oop = crate::util::oop::new_java_lang_string_direct(&result);
+    caller.stack.borrow_mut().push_ref(string_oop, false);
+}
+
+fn parse_method_type_args(desc: &[u8]) -> Vec<classfile::SignatureType> {
+    use classfile::SignatureType;
+    use std::sync::Arc;
+
+    let mut args = Vec::new();
+    let mut i = 1; // skip '('
+    while i < desc.len() && desc[i] != b')' {
+        let (ty, consumed) = parse_one_type(desc, i);
+        args.push(ty);
+        i += consumed;
+    }
+    args
+}
+
+fn parse_one_type(desc: &[u8], i: usize) -> (classfile::SignatureType, usize) {
+    use classfile::SignatureType;
+    use std::sync::Arc;
+
+    match desc[i] {
+        b'B' => (SignatureType::Byte, 1),
+        b'C' => (SignatureType::Char, 1),
+        b'D' => (SignatureType::Double, 1),
+        b'F' => (SignatureType::Float, 1),
+        b'I' => (SignatureType::Int, 1),
+        b'J' => (SignatureType::Long, 1),
+        b'S' => (SignatureType::Short, 1),
+        b'Z' => (SignatureType::Boolean, 1),
+        b'[' => {
+            let mut end = i + 1;
+            if end < desc.len() && desc[end] == b'L' {
+                while end < desc.len() && desc[end] != b';' {
+                    end += 1;
+                }
+                end += 1;
+            } else {
+                end += 1;
+            }
+            (
+                SignatureType::Array(Arc::new(desc[i..end].to_vec())),
+                end - i,
+            )
+        }
+        b'L' => {
+            let mut end = i + 1;
+            while end < desc.len() && desc[end] != b';' {
+                end += 1;
+            }
+            (
+                SignatureType::Object(Arc::new(desc[i..=end].to_vec()), None, None),
+                end - i + 1,
+            )
+        }
+        _ => unreachable!("Invalid type descriptor at {}: {:?}", i, &desc[i..]),
+    }
+}
+
+fn build_concat_string(format: &str, args: &[Oop]) -> String {
+    let mut result = String::new();
+    let mut arg_idx = 0;
+    let placeholder = '\u{0001}';
+
+    for ch in format.chars() {
+        if ch == placeholder {
+            if arg_idx < args.len() {
+                result.push_str(&oop_to_string(&args[arg_idx]));
+                arg_idx += 1;
+            } else {
+                result.push(ch);
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+
+    result
+}
+
+fn oop_to_string(v: &Oop) -> String {
+    match v {
+        Oop::Int(val) => val.to_string(),
+        Oop::Long(val) => val.to_string(),
+        Oop::Float(val) => {
+            if val.is_infinite() {
+                if *val > 0.0 {
+                    "Infinity".to_string()
+                } else {
+                    "-Infinity".to_string()
+                }
+            } else if val.is_nan() {
+                "NaN".to_string()
+            } else {
+                val.to_string()
+            }
+        }
+        Oop::Double(val) => {
+            if val.is_infinite() {
+                if *val > 0.0 {
+                    "Infinity".to_string()
+                } else {
+                    "-Infinity".to_string()
+                }
+            } else if val.is_nan() {
+                "NaN".to_string()
+            } else {
+                val.to_string()
+            }
+        }
+        Oop::Ref(slot_id) => {
+            if Oop::is_java_lang_string(*slot_id) {
+                Oop::java_lang_string(*slot_id)
+            } else {
+                format!("<object:{}>", slot_id)
+            }
+        }
+        Oop::Null => "null".to_string(),
+        Oop::ConstUtf8(bytes) => String::from_utf8_lossy(bytes).to_string(),
+    }
+}
+
+/// Handle LambdaMetafactory.metafactory invokedynamic calls.
+/// Creates a minimal lambda proxy object that implements the SAM (Single Abstract Method)
+/// functional interface. The proxy returns default values (null/0/false) when invoked.
+fn handle_lambda_metafactory(
+    caller: &runtime::DataArea,
+    cp: &classfile::ConstantPool,
+    bsm: &classfile::attributes::BootstrapMethod,
+    _method_name: &[u8],
+    method_desc: &[u8],
+) {
+    // LambdaMetafactory.metafactory bootstrap args:
+    //   args[0]: MethodType (samMethodType - the functional interface method signature)
+    //   args[1]: MethodHandle (implMethod - the actual implementation method)
+    //   args[2]: MethodType (instantiatedMethodType)
+    //
+    // The invokedynamic descriptor tells us the return type = the functional interface type.
+    // E.g.: (Ljava/util/function/Supplier;)Ljava/util/function/Supplier;
+    //       -> return type is Ljava/util/function/Supplier;
+
+    // Extract the SAM interface type from the method descriptor return type
+    let sam_interface_desc = {
+        let mut i = 0;
+        while i < method_desc.len() && method_desc[i] != b')' {
+            i += 1;
+        }
+        // skip ')'
+        i += 1;
+        if i < method_desc.len() {
+            &method_desc[i..]
+        } else {
+            b"Ljava/lang/Object;"
+        }
+    };
+
+    // Build the internal class name from the descriptor
+    let class_name = if sam_interface_desc.starts_with(b"L") {
+        // Ljava/util/function/Supplier; -> java/util/function/Supplier
+        &sam_interface_desc[1..sam_interface_desc.len() - 1]
+    } else {
+        b"java/lang/Object"
+    };
+
+    // Try to load the SAM interface class
+    let proxy = match runtime::require_class3(None, class_name) {
+        Some(cls_ref) => {
+            oop::class::init_class(&cls_ref);
+            oop::class::init_class_fully(&cls_ref);
+            Oop::new_inst(cls_ref)
+        }
+        None => {
+            warn!(
+                "LambdaMetafactory: cannot load SAM interface {:?}",
+                String::from_utf8_lossy(class_name)
+            );
+            Oop::Null
+        }
+    };
+
+    caller.stack.borrow_mut().push_ref(proxy, false);
 }

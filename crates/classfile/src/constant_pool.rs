@@ -42,6 +42,40 @@ pub fn get_method_ref(cp: &ConstantPool, idx: usize) -> (u8, u16, u16) {
     }
 }
 
+pub fn get_method_handle_ref(cp: &ConstantPool, idx: usize) -> (u8, u16) {
+    match cp.get(idx) {
+        Some(Type::MethodHandle {
+            ref_kind,
+            ref_index,
+        }) => (*ref_kind, *ref_index),
+        _ => unreachable!("Expected MethodHandle at cp index {}", idx),
+    }
+}
+
+pub fn get_method_handle_target(
+    cp: &ConstantPool,
+    ref_index: u16,
+) -> (&BytesRef, &BytesRef, &BytesRef) {
+    match cp.get(ref_index as usize) {
+        Some(Type::MethodRef {
+            class_index,
+            name_and_type_index,
+        })
+        | Some(Type::InterfaceMethodRef {
+            class_index,
+            name_and_type_index,
+        }) => {
+            let class_name = get_class_name(cp, *class_index as usize);
+            let (name, desc) = get_name_and_type(cp, *name_and_type_index as usize);
+            (class_name, name, desc)
+        }
+        _ => unreachable!(
+            "Expected MethodRef/InterfaceMethodRef at cp index {}",
+            ref_index
+        ),
+    }
+}
+
 pub fn get_name_and_type(cp: &ConstantPool, idx: usize) -> (&BytesRef, &BytesRef) {
     match cp.get(idx) {
         Some(Type::NameAndType {

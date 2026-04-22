@@ -137,8 +137,8 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 ### Phase 1: JIT 编译器完善（优先级：高）
 - JIT 方法调用：`invokevirtual`/`invokespecial`/`invokestatic`/`invokeinterface` — Done, via runtime callout (`jit/ops.rs`)
 - JIT 控制流：`tableswitch`、`lookupswitch` — Done
-- JIT 返回值扩展：需支持 long/float/double/ref（当前仅 int）
-- JIT 参数类型扩展：`copy_args_to_locals` 当前仅处理 `Oop::Int`
+- JIT 返回值扩展：long/float/double/ref — Done (lreturn/freturn/dreturn/areturn write to stack buffer)
+- JIT 参数类型扩展：`copy_args_to_locals` — Done (already handles all types)
 - JIT 异常处理：`athrow` 暂未实现，回退到解释器
 
 ### Phase 2: 垃圾回收（优先级：高）
@@ -149,9 +149,9 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 
 ### 下一步开发顺序
 
-1. **Phase 1 收尾**：JIT 返回值/参数类型扩展（long/float/double/ref）— 线性工作，预计 1-2 天
-2. **Phase 2 GC**：从 stop-the-world mark-sweep 开始（暂不 compact），让 JVM 能长时间运行 — compact 作为后续优化
-3. **athrow**：与 GC 并行，异常对象处理与 GC 有关联
+1. **Phase 2 GC**：从 stop-the-world mark-sweep 开始（暂不 compact），让 JVM 能长时间运行 — compact 作为后续优化
+2. **athrow**：与 GC 并行，异常对象处理与 GC 有关联
+3. **Phase 1 收尾**：invokedynamic 支持 — JDK 9+ String 方法依赖它
 
 ### Phase 3: 类验证器（优先级：中）
 - 文件：`crates/class-verification/`（已有骨架）
@@ -176,7 +176,7 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 | 3. Test baseline | Done | 24 unit + 17 Java integration = 41 total, 5 pre-existing failures |
 | 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
 | 5. Interpreter rewrite | Done | Per-opcode files, 202/202 opcodes |
-| 6. Method invocation | Done | hack_as_native, v_table fix |
+| 6. Method invocation | Done | hack_as_native pattern: replaces Java method bodies with native stubs to bypass unsupported JDK features (ObjectStreamClass.<clinit>, ReflectionFactory.<clinit>, System.getProperty, PrintStream.println, Thread.dispatchUncaughtException, Throwable.fillInStackTrace) |
 | 7. LLVM JIT | Mostly complete | ~155/202 opcodes (~77%), invoke* JIT-compiled via runtime callout. Remaining: return value expansion (long/float/double/ref), parameter type expansion, athrow |
 | 8. GC precise-ification | Planned | slot-based heap → mark-sweep-compact |
 | 9. Complete features | Planned | invokedynamic, verification, threading |
@@ -188,8 +188,10 @@ See `documents/jvm-implementation-challenges.md` for detailed Rust vs C++ JVM im
 - **5 class_path_manager tests fail** — missing `test/` fixture directory (pre-existing, not a functional bug)
 - **No GC** — objects allocated via free-list but never collected
 - **Class verification skeleton** — 0 implementations
-- **invoke\* JIT 返回值/参数类型** — 当前仅支持 `int` 类型，long/float/double/ref 待扩展
+- **invokedynamic** — interpreter throws `UnsupportedOperationException`; affects JDK 9+ String methods that use invokedynamic (e.g., `String.concat`, `String.format`). HelloWorld and most tests still pass because exceptions are caught.
 - **handlebars 4.5 compatibility** — javap 依赖 handlebars，若新版 Rust 编译失败可考虑替换为 `tera` 或纯模板拼接
+- **`System.getProperty` returns null** — `java/lang/System.props` static field is not properly initialized. Hacked as native stub returning null via `hack_as_native` in `init_vm.rs`.
+- **Integration tests check stderr for errors** — tests now fail on ERROR-level uncaught exceptions (NPE, NoSuchMethodError, panic) in stderr, not just exit code. Known `UnsupportedOperationException` (invokedynamic) is excluded.
 
 ## Important Conventions
 

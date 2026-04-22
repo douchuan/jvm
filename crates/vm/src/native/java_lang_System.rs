@@ -40,8 +40,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         ),
         new_fn("nanoTime", "()J", Box::new(jvm_nanoTime)),
         new_fn("currentTimeMillis", "()J", Box::new(jvm_currentTimeMillis)),
-        //Note: just for debug
-        //        new_fn("getProperty", "(Ljava/lang/String;)Ljava/lang/String;", Box::new(jvm_getProperty)),
+        new_fn(
+            "getProperty",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            Box::new(jvm_getProperty),
+        ),
     ]
 }
 
@@ -259,42 +262,11 @@ fn jvm_identityHashCode(env: JNIEnv, args: &[Oop]) -> JNIResult {
     native::java_lang_Object::jvm_hashCode(env, args)
 }
 
-/*
-fn jvm_getProperty(jt: &mut JavaThread, env: JNIEnv, args: Vec<OopRef>) -> JNIResult {
-    let key = args.get(0).unwrap();
-
-    let str_key = util::oop::extract_str(key.clone());
-    warn!("xxxx jvm_getProperty key = {}", str_key);
-
-    let cls = require_class3(None, b"java/lang/System").unwrap();
-    let props = {
-        let cls = cls.lock().unwrap();
-        let id = cls.get_field_id(b"props", b"Ljava/util/Properties;", true);
-        cls.get_static_field_value(id)
-    };
-
-    let prop_cls = require_class3(None, b"java/util/Properties").unwrap();
-    let mir = {
-        let cls = prop_cls.lock().unwrap();
-        let id = util::new_method_id(b"getProperty", b"(Ljava/lang/String;)Ljava/lang/String;");
-        cls.get_class_method(id).unwrap()
-    };
-
-    let args = vec![props, key.clone()];
-    let mut stack = Stack::new(1);
-    let mut jc = runtime::java_call::JavaCall::new_with_args(jt, mir, args);
-    jc.invoke(jt, &mut stack, false);
-
-    let v = stack.pop_ref();
-
-    //    trace!("xxxxx 1, str_key = {}", String::from_utf8_lossy(str_key.as_slice()));
-    //    let str_v = util::oop::extract_str(v.clone());
-    //    warn!("xxxx jvm_getProperty v = {}", String::from_utf8_lossy(str_v.as_slice()));
-    //    trace!("xxxxx 2");
-
-    Ok(Some(v))
+fn jvm_getProperty(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
+    // props field is not properly initialized in our minimal JVM,
+    // so just return null for any getProperty call
+    Ok(Some(Oop::Null))
 }
-*/
 
 // Copy elements within the same array object (identified by slot_id)
 fn arraycopy_same_obj(slot_id: u32, src_pos: usize, dest_pos: usize, length: usize) {
