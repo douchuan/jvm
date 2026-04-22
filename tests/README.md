@@ -5,9 +5,6 @@ This directory contains Java source files to verify the JVM's capabilities. Each
 ## Quick Start
 
 ```bash
-# Compile and run all tests
-./tests/java/run.sh
-
 # Run a single test
 cargo run -p jvm -- --cp tests/java/out HelloWorld
 ```
@@ -42,4 +39,3 @@ cargo run -p jvm -- --cp tests/java/out HelloWorld
 
 - `.class` files are not committed. Only `.java` sources are in version control.
 - All files compile with standard `javac` (JDK 8+ compatible).
-- The `run.sh` script compiles on-the-fly and tests each class with a 30s timeout.

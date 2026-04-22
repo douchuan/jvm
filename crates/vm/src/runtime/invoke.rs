@@ -2,6 +2,7 @@ use crate::native;
 use crate::native::JNINativeMethodStruct;
 use crate::oop::{self, Oop, ValueType};
 use crate::runtime::jit;
+use crate::runtime::jit::runtime::{set_invoke_ctx, JitInvokeCtx};
 use crate::runtime::local::Local;
 use crate::runtime::{self, exception, frame::Frame, thread, DataArea, Interp};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
@@ -128,10 +129,18 @@ impl JavaCall {
         // 分配 stack 缓冲区
         let mut jit_stack = vec![0i32; max_stack.max(1)];
 
+        // 设置 JIT invoke 上下文（供 invoke* runtime 函数使用）
+        set_invoke_ctx(Some(JitInvokeCtx {
+            method_class: self.mir.method.class.clone(),
+        }));
+
         // 调用 JIT 函数
         unsafe {
             (jit_fn.fn_ptr)(jit_locals.as_mut_ptr(), jit_stack.as_mut_ptr());
         }
+
+        // 清除上下文
+        set_invoke_ctx(None);
 
         // 如果方法有返回值且未发生异常，从 stack 顶部读取
         if !self.is_return_void && !thread::is_meet_ex() {
@@ -146,7 +155,28 @@ impl JavaCall {
                     let v = jit_stack[0];
                     set_return(caller, return_type, Oop::Int(v));
                 }
-                _ => {
+                SignatureType::Long => {
+                    let lo = jit_stack[0] as i64;
+                    let hi = jit_stack[1] as i64;
+                    let v = lo | (hi << 32);
+                    set_return(caller, return_type, Oop::Long(v));
+                }
+                SignatureType::Float => {
+                    let v = f32::from_bits(jit_stack[0] as u32);
+                    set_return(caller, return_type, Oop::Float(v));
+                }
+                SignatureType::Double => {
+                    let lo = jit_stack[0] as u64;
+                    let hi = jit_stack[1] as u64;
+                    let bits = lo | (hi << 32);
+                    set_return(caller, return_type, Oop::Double(f64::from_bits(bits)));
+                }
+                SignatureType::Object(_, _, _) | SignatureType::Array(_) => {
+                    let slot_id = jit_stack[0] as u32;
+                    set_return(caller, return_type, Oop::Ref(slot_id));
+                }
+                SignatureType::Void => {}
+                t => {
                     warn!(
                         "JIT: unsupported return type {:?}, falling back",
                         return_type
@@ -157,7 +187,7 @@ impl JavaCall {
     }
 
     /// 将方法参数拷贝到 locals i32 数组。
-    /// 仅支持 int 类型参数的 MVP 版本。
+    /// 支持所有 JVM 类型参数。
     fn copy_args_to_locals(&self, locals: &mut [i32]) {
         let mut pos = 0;
         // 非静态方法的第一个参数是 this（引用），跳过
@@ -166,16 +196,49 @@ impl JavaCall {
             if pos >= locals.len() {
                 break;
             }
-            if let Oop::Int(v) = arg {
-                locals[pos] = *v;
-                pos += 1;
+            match arg {
+                Oop::Int(v) => {
+                    locals[pos] = *v;
+                    pos += 1;
+                }
+                Oop::Long(v) => {
+                    if pos + 1 < locals.len() {
+                        locals[pos] = (*v & 0xFFFFFFFF) as i32;
+                        locals[pos + 1] = ((*v >> 32) & 0xFFFFFFFF) as i32;
+                        pos += 2;
+                    }
+                }
+                Oop::Float(v) => {
+                    locals[pos] = v.to_bits() as i32;
+                    pos += 1;
+                }
+                Oop::Double(v) => {
+                    if pos + 1 < locals.len() {
+                        let bits = v.to_bits();
+                        locals[pos] = (bits & 0xFFFFFFFF) as i32;
+                        locals[pos + 1] = ((bits >> 32) & 0xFFFFFFFF) as i32;
+                        pos += 2;
+                    }
+                }
+                Oop::Ref(slot_id) => {
+                    locals[pos] = *slot_id as i32;
+                    pos += 1;
+                }
+                Oop::Null => {
+                    locals[pos] = 0;
+                    pos += 1;
+                }
+                _ => {
+                    warn!("JIT: copy_args_to_locals unsupported type {:?}", arg);
+                    pos += 1;
+                }
             }
         }
     }
 
     /// 尝试通过 JIT 编译后的代码执行方法。
     /// 返回 true 表示使用了 JIT 路径，false 表示回退到解释器。
-    fn try_jit_invoke(&mut self, caller: Option<&DataArea>) -> bool {
+    pub fn try_jit_invoke(&mut self, caller: Option<&DataArea>) -> bool {
         // 尝试获取已缓存的编译结果
         {
             let jit_impl = self.mir.jit_impl.lock().unwrap();

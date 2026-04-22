@@ -42,6 +42,10 @@ use inkwell::values::{AnyValue, FunctionValue, IntValue, PointerValue};
 use std::collections::HashMap;
 use tracing::{debug, error, info, trace, warn};
 
+/// JIT invoke 运行时外部函数签名。
+/// extern "C" fn(cp_idx: u16, locals: *mut i32, stack: *mut i32, stack_top: u32)
+type RuntimeInvokeFn<'ctx> = inkwell::values::FunctionValue<'ctx>;
+
 /// 编译单个方法，生成 LLVM IR 函数。
 ///
 /// ## 参数
@@ -51,12 +55,12 @@ use tracing::{debug, error, info, trace, warn};
 ///
 /// ## 返回
 /// 生成的 LLVM `FunctionValue`。如果编译失败（如遇到不支持的 opcode），返回 None。
-pub fn compile_method<'ctx>(
+pub fn compile_method<'a, 'ctx: 'a>(
     context: &'ctx Context,
-    module: &Module<'ctx>,
-    builder: &Builder<'ctx>,
+    module: &'a Module<'ctx>,
+    builder: &'a Builder<'ctx>,
     method: &Method,
-    bytecode: &[U1],
+    bytecode: &'a [U1],
     max_locals: usize,
     max_stack: usize,
 ) -> Option<FunctionValue<'ctx>> {
@@ -208,6 +212,7 @@ pub fn compile_method<'ctx>(
         bytecode,
         max_stack,
         stack_param: Some(stack_i32_ptr),
+        module: module as *const Module<'ctx>,
     };
 
     // 从 entry block 开始翻译
@@ -232,22 +237,24 @@ pub fn compile_method<'ctx>(
 }
 
 /// Bytecode 翻译器的上下文。
-struct BytecodeInterpreter<'ctx> {
+struct BytecodeInterpreter<'ctx, 'a> {
     context: &'ctx Context,
-    builder: &'ctx Builder<'ctx>,
+    builder: &'a Builder<'ctx>,
     bb_map: HashMap<usize, BasicBlock<'ctx>>,
     function: FunctionValue<'ctx>,
     return_bb: BasicBlock<'ctx>,
     local_vars: Vec<PointerValue<'ctx>>,
     stack_vars: Vec<PointerValue<'ctx>>,
     stack_top: PointerValue<'ctx>,
-    bytecode: &'ctx [U1],
+    bytecode: &'a [U1],
     max_stack: usize,
     /// 调用方的 stack 缓冲区指针（i32*）。用于在 ireturn 时写入返回值。
     stack_param: Option<PointerValue<'ctx>>,
+    /// 模块引用（用于声明外部函数）。
+    module: *const Module<'ctx>,
 }
 
-impl<'ctx> BytecodeInterpreter<'ctx> {
+impl<'ctx, 'a> BytecodeInterpreter<'ctx, 'a> {
     /// 主翻译循环。
     fn translate_bytecode(&mut self, start_pc: usize) {
         let mut pc = start_pc;
@@ -1328,6 +1335,38 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
                 }
 
                 // ============================================================
+                // 方法调用指令 —— 回退到运行时
+                // ============================================================
+                OpCode::invokevirtual => {
+                    let cp_idx = u16::from_be_bytes([self.bytecode[pc + 1], self.bytecode[pc + 2]]);
+                    self.call_invoke_runtime("jit_invoke_virtual", cp_idx);
+                    pc += 3;
+                }
+                OpCode::invokespecial => {
+                    let cp_idx = u16::from_be_bytes([self.bytecode[pc + 1], self.bytecode[pc + 2]]);
+                    self.call_invoke_runtime("jit_invoke_special", cp_idx);
+                    pc += 3;
+                }
+                OpCode::invokestatic => {
+                    let cp_idx = u16::from_be_bytes([self.bytecode[pc + 1], self.bytecode[pc + 2]]);
+                    self.call_invoke_runtime("jit_invoke_static", cp_idx);
+                    pc += 3;
+                }
+                OpCode::invokeinterface => {
+                    let cp_idx = u16::from_be_bytes([self.bytecode[pc + 1], self.bytecode[pc + 2]]);
+                    // 跳过 count 和 zero 字节
+                    self.call_invoke_runtime("jit_invoke_interface", cp_idx);
+                    pc += 4;
+                }
+                OpCode::invokedynamic => {
+                    warn!("JIT: invokedynamic not supported, falling back");
+                    self.builder
+                        .build_unconditional_branch(self.return_bb)
+                        .expect("fallback branch failed");
+                    return;
+                }
+
+                // ============================================================
                 // 未实现的 opcode —— 回退到解释器
                 // ============================================================
                 _ => {
@@ -1874,6 +1913,68 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
     }
 
     // ============================================================
+    // 方法调用辅助方法
+    // ============================================================
+
+    /// 生成调用 JIT invoke 运行时函数的 LLVM IR。
+    /// 签名: extern "C" fn(cp_idx: u16, locals: *mut i32, stack: *mut i32, stack_top: u32)
+    fn call_invoke_runtime(&mut self, fn_name: &str, cp_idx: u16) {
+        let i32_type = self.context.i32_type();
+        let i16_type = self.context.i16_type();
+
+        // 声明外部函数
+        let runtime_fn_type = self.context.void_type().fn_type(
+            &[
+                i16_type.into(),
+                self.context
+                    .i8_type()
+                    .ptr_type(inkwell::AddressSpace::default())
+                    .into(),
+                self.context
+                    .i8_type()
+                    .ptr_type(inkwell::AddressSpace::default())
+                    .into(),
+                i32_type.into(),
+            ],
+            false,
+        );
+        let module = unsafe { &*self.module };
+        let runtime_fn = module.add_function(fn_name, runtime_fn_type, None);
+
+        // 获取 locals 指针（即传入的第一个参数）
+        let locals_ptr = self
+            .function
+            .get_first_param()
+            .unwrap()
+            .into_pointer_value();
+        let stack_ptr = self.function.get_nth_param(1).unwrap().into_pointer_value();
+
+        // 加载当前 stack_top 值
+        let stack_top_val = self
+            .builder
+            .build_load(self.context.i32_type(), self.stack_top, "invoke_stack_top")
+            .expect("load stack_top failed")
+            .into_int_value();
+
+        // cp_idx 参数
+        let cp_idx_val = i16_type.const_int(cp_idx as u64, false);
+
+        // 调用运行时函数
+        self.builder
+            .build_call(
+                runtime_fn,
+                &[
+                    cp_idx_val.into(),
+                    locals_ptr.into(),
+                    stack_ptr.into(),
+                    stack_top_val.into(),
+                ],
+                "invoke_call",
+            )
+            .expect("invoke call failed");
+    }
+
+    // ============================================================
     // 控制流辅助方法
     // ============================================================
 
@@ -2214,8 +2315,6 @@ fn opcode_size(opcode: OpCode) -> usize {
         | OpCode::invokevirtual
         | OpCode::invokespecial
         | OpCode::invokestatic
-        | OpCode::invokeinterface
-        | OpCode::invokedynamic
         | OpCode::ifeq
         | OpCode::ifne
         | OpCode::iflt
@@ -2234,6 +2333,8 @@ fn opcode_size(opcode: OpCode) -> usize {
         | OpCode::jsr
         | OpCode::ifnull
         | OpCode::ifnonnull => 3,
+
+        OpCode::invokeinterface => 5,
 
         OpCode::sipush => 3,
 
@@ -2529,6 +2630,7 @@ mod tests {
 
         let mut interp = BytecodeInterpreter {
             context: leaked,
+            module: &module as *const Module<'_>,
             builder: &builder,
             bb_map,
             function,
@@ -2712,6 +2814,7 @@ mod tests {
 
         let mut interp = BytecodeInterpreter {
             context: leaked,
+            module: &module as *const Module<'_>,
             builder: &builder,
             bb_map,
             function,

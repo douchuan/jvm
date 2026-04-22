@@ -45,6 +45,7 @@ use tracing::{debug, error, info, trace, warn};
 
 mod builder;
 mod ops;
+pub mod runtime;
 
 // inkwell 的 Context 是 LLVM 的上下文对象，持有所有 LLVM 类型、值、模块的
 // 所有权。它是 JIT 编译器的"根"。
