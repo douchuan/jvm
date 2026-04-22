@@ -17,6 +17,8 @@ crates/
   class-verification/    # Class verification (skeleton)
 tools/
   javap/                 # Class file disassembler tool
+tests/
+  java/                  # Java test suite — 17 files covering arithmetic, OOP, arrays, exceptions, etc.
 scripts/
   dev.sh                 # Convenience script for common tasks
 documents/
@@ -47,6 +49,7 @@ edit only the root `Cargo.toml`.
 ./scripts/dev.sh run <Class> [args] # Run a Java class
 ./scripts/dev.sh test               # Run all tests
 ./scripts/dev.sh javap <classfile>  # Disassemble a class file
+./tests/java/run.sh                 # Compile & run Java test suite against the JVM
 ./scripts/dev.sh clean              # Clean build artifacts
 
 # Or use cargo directly
@@ -61,6 +64,10 @@ cargo run -p javap -- <classfile>
 ### Class parser test fixtures
 
 Java source files live in `crates/class-parser/tests/fixtures/src/` and are compiled to `.class` at build time via `build.rs`. Do **not** commit `.class` files — only `.java` sources.
+
+### Java test suite
+
+`tests/java/src/` contains 17 Java files covering the JVM's supported features. Each targets a specific domain (arithmetic, OOP, arrays, exceptions, etc.). Run with `./tests/java/run.sh`. Do **not** commit `.class` files.
 
 ## Architecture
 

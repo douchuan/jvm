@@ -10,6 +10,7 @@ mod common;
 mod java_io_FileDescriptor;
 mod java_io_FileInputStream;
 mod java_io_FileOutputStream;
+mod java_io_ObjectStreamClass;
 mod java_io_PrintStream;
 mod java_io_UnixFileSystem;
 pub mod java_lang_Class;
@@ -115,6 +116,10 @@ fn create_native_fn_tables(
         (
             "java/io/PrintStream",
             java_io_PrintStream::get_native_methods(),
+        ),
+        (
+            "java/io/ObjectStreamClass",
+            java_io_ObjectStreamClass::get_native_methods(),
         ),
         ("java/lang/Class", java_lang_Class::get_native_methods()),
         (

@@ -354,6 +354,9 @@ impl Class {
                 ClassKind::Instance(class_obj) => {
                     let super_class =
                         class_obj.link_super_class(self.name.clone(), self.class_loader.clone());
+                    if let Some(sc) = &super_class {
+                        self.super_class.write().unwrap().replace(sc.clone());
+                    }
                     let n = match &super_class {
                         Some(super_cls) => {
                             let sc = super_cls.get_class();
