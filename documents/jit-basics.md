@@ -73,6 +73,41 @@ let mut stack_ptr = 0;
 
 关键：LLVM 的 `mem2reg`（PromoteMemoryToRegister）pass 自动消除 alloca 的内存访问，将局部变量提升为 SSA register，所以不需要手动做 SSA 构造。
 
+### 长类型（long/double）处理
+
+JVM 规范中，`long` 和 `double` 占用 2 个栈槽和 2 个局部变量槽。JIT 中的处理方式：
+
+```
+// 栈操作：long 值存储在 [slot, slot+1] 两个位置
+push_long(v):
+  stack_vars[stack_ptr]   = lo_32_bits(v)
+  stack_vars[stack_ptr+1] = hi_32_bits(v)
+  stack_ptr += 2
+
+pop_long():
+  stack_ptr -= 2
+  lo = stack_vars[stack_ptr]
+  hi = stack_vars[stack_ptr+1]
+  combine_to_i64(lo, hi)
+
+// 局部变量：同理
+lload_n:  load local_vars[n] as i64, bitcast to i64
+lstore_n: store i64 to local_vars[n] (占用 n 和 n+1)
+```
+
+JIT 使用 `i64` LLVM 类型表示 long/double，通过 `bitcast` 与 `i32` 互转。LLVM 的 mem2reg 会将这些操作优化为寄存器操作。
+
+### 引用类型处理
+
+Java 对象引用在 JIT 中表示为 `i32`（堆槽位 ID）。null 表示为 slot_id = 0。
+
+```
+aconst_null → push_int(0)       // null 引用
+aload_n     → load local_vars[n] as i32  // 引用加载
+astore_n    → store i32 to local_vars[n] // 引用存储
+areturn     → pop_int(), 写入返回 slot   // 引用返回
+```
+
 ### Locals 处理
 
 JVM 的 local variables 数组在编译期已知大小（`Code.max_locals`）。MVP 策略：
@@ -117,15 +152,96 @@ invoke_java():
 
 | 操作 | 运行时函数 |
 |------|-----------|
-| `new` 对象 | `Oop::new_inst(cls) → Oop::Ref(u32)` |
-| `getfield` | `Class::get_field_value2(slot_id, offset) → Oop` |
-| `putfield` | `Class::put_field_value2(slot_id, offset, value)` |
-| 方法调用 | `JavaCall::invoke()` |
+| `new` 对象 | `jit_new_inst(cp_idx) → slot_id` |
+| `newarray` | `jit_new_array(ary_type, length) → slot_id` |
+| `anewarray` | `jit_anewarray(cp_idx, length) → slot_id` |
+| `getfield` | `jit_getfield(cp_idx, stack, stack_top)` |
+| `putfield` | `jit_putfield(cp_idx, stack, stack_top)` |
+| `getstatic` | `jit_getstatic(cp_idx, stack, stack_top)` |
+| `putstatic` | `jit_putstatic(cp_idx, stack, stack_top)` |
+| `arraylength` | `jit_array_length(obj_slot) → length` |
+| `checkcast` | `jit_checkcast(cp_idx, obj_slot)` |
+| `instanceof` | `jit_instanceof(cp_idx, obj_slot) → 0/1` |
+| `ldc` | `jit_ldc(cp_idx, stack, stack_top)` |
+| `ldc2_w` | `jit_ldc2_w(cp_idx, stack, stack_top)` |
+| 数组加载 | `jit_*aload(array, index, stack, stack_top)` |
+| 数组存储 | `jit_*astore(array, index, value)` |
+| 方法调用 | `jit_invoke_*(cp_idx, stack, stack_top)` |
 | 类型检查 | `cmp::instance_of(obj_cls, target_cls) → bool` |
 | 异常 | `exception::meet_ex(cls_name, msg)` |
-| 锁 | `RefKindDesc::monitor_enter/exit()` |
+| 锁 | `jit_monitorenter/monitorexit(obj_slot)` |
 
 JIT 生成的 IR 中，这些函数通过 `module.add_function()` 声明为 external，LLVM 执行时自动链接。
+
+### Runtime Callout vs 纯 IR 翻译
+
+JIT 编译器对不同类型的指令采用不同的翻译策略：
+
+**纯 LLVM IR 翻译**（不需要运行时状态）：
+- 算术/位运算：`iadd`, `lmul`, `fdiv`, `drem`, `iand`, `lor`, `ixor`, `ishl` 等
+- 类型转换：`i2l`, `l2i`, `f2d`, `d2i`, `i2b`, `i2c`, `i2s` 等
+- 栈操作：`pop`, `dup`, `swap` 等（操作 stack_vars 数组）
+- 局部变量：`iload`, `istore`, `aload`, `fload`, `dload` 等（操作 local_vars 数组）
+- 常量：`iconst_*`, `lconst_*`, `fconst_*`, `bipush`, `sipush`
+- 控制流：`goto`, `if*`, `tableswitch`, `lookupswitch`
+- 比较：`lcmp`, `fcmpl/g`, `dcmpl/g`, `if_acmpeq/ne`, `ifnull/nonnull`
+
+**Runtime Callout**（需要 JVM 运行时状态）：
+- 对象分配：需要堆分配器和类初始化
+- 字段访问：需要常量池解析和对象布局
+- 数组操作：需要类型数组描述符和边界检查
+- 类型检查：需要类层次结构和 `instanceof` 逻辑
+- 常量池加载（ldc）：需要解析 String/Class/Integer 等常量池项
+- 方法调用：需要虚方法解析和帧管理
+- 锁：需要 Monitor 机制
+
+## 操作码支持状态
+
+### 已支持的操作码（约 155 个）
+
+| 类别 | 操作码 |
+|------|--------|
+| **常量** | `iconst_m1~5`, `lconst_0/1`, `fconst_0/1/2`, `dconst_0/1`, `bipush`, `sipush`, `aconst_null` |
+| **局部变量 (int)** | `iload/istore`, `iload_0~3`, `istore_0~3`, `iinc` |
+| **局部变量 (long)** | `lload/lstore`, `lload_0~3`, `lstore_0~3` |
+| **局部变量 (float)** | `fload/fstore`, `fload_0~3`, `fstore_0~3` |
+| **局部变量 (double)** | `dload/dstore`, `dload_0~3`, `dstore_0~3` |
+| **局部变量 (ref)** | `aload/astore`, `aload_0~3`, `astore_0~3` |
+| **算术** | `i/l/f/d add/sub/mul/div/rem/neg` |
+| **位运算** | `i/l and/or/xor/shl/shr/ushr` |
+| **类型转换** | `i2l/i2f/i2d/l2i/l2f/l2d/f2i/f2l/f2d/d2i/d2l/d2f/i2b/i2c/i2s` |
+| **比较** | `lcmp`, `fcmpl/g`, `dcmpl/g` |
+| **控制流** | `goto`, `ifeq/ne/lt/ge/gt/le`, `if_icmp*`, `if_acmpeq/ne`, `ifnull/ifnonnull` |
+| **返回** | `ireturn/lreturn/freturn/dreturn/areturn/return_void` |
+| **栈操作** | `pop/pop2/dup/dup_x1/dup_x2/dup2/dup2_x1/dup2_x2/swap` |
+| **方法调用** | `invokevirtual/invokespecial/invokestatic/invokeinterface` |
+| **开关** | `tableswitch`, `lookupswitch` |
+| **字段访问** | `getfield/putfield`, `getstatic/putstatic` |
+| **对象分配** | `new`, `newarray`, `anewarray` |
+| **数组加载** | `iaload/laload/faload/daload/aaload/baload/caload/saload` |
+| **数组存储** | `iastore/lastore/fastore/dastore/aastore/bastore/castore/sastore` |
+| **类型检查** | `checkcast`, `instanceof` |
+| **数组长度** | `arraylength` |
+| **常量池** | `ldc`, `ldc_w`, `ldc2_w` |
+| **同步** | `monitorenter`, `monitorexit` |
+| **其他** | `nop` |
+
+### 暂未支持的操作码
+
+| 操作码 | 原因 |
+|--------|------|
+| `invokedynamic` | 复杂 bootstrap 机制，需 CallSite 链接 |
+| `goto_w` | 罕见（>32KB 方法） |
+| `jsr`, `jsr_w`, `ret` | 已废弃（Java 7+ 不再生成） |
+| `multianewarray` | 多维数组，低频 |
+| `athrow` | 回退到解释器（需要完整的异常帧展开） |
+| `wide` | 局部变量扩展前缀（interpreter 处理） |
+
+### 覆盖率统计
+
+- 总操作码数：~202（JVM 规范）
+- 已支持：~155（约 77%）
+- 回退到解释器：~47（其中多数为罕见指令）
 
 ## 槽位栈 vs 寄存器优化
 
