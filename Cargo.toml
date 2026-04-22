@@ -5,6 +5,7 @@ members = [
   "crates/class-parser",
   "crates/vm",
   "tools/javap",
+  "tests",
 ]
 resolver = "2"
 

@@ -49,13 +49,12 @@ edit only the root `Cargo.toml`.
 ./scripts/dev.sh run <Class> [args] # Run a Java class
 ./scripts/dev.sh test               # Run all tests
 ./scripts/dev.sh javap <classfile>  # Disassemble a class file
-./tests/java/run.sh                 # Compile & run Java test suite against the JVM
 ./scripts/dev.sh clean              # Clean build artifacts
 
 # Or use cargo directly
 cargo build                   # Builds all workspace members
 cargo build --workspace       # Same as above (explicit)
-cargo test --workspace
+cargo test --workspace        # Runs ALL tests: unit + class-parser + Java integration
 cargo test -p class-parser hello_world
 cargo run -p jvm -- <ClassName>
 cargo run -p javap -- <classfile>
@@ -63,11 +62,11 @@ cargo run -p javap -- <classfile>
 
 ### Class parser test fixtures
 
-Java source files live in `crates/class-parser/tests/fixtures/src/` and are compiled to `.class` at build time via `build.rs`. Do **not** commit `.class` files — only `.java` sources.
+Java source files live in `tests/java/src/` and are compiled to `.class` at build time via `build.rs` in both `class-parser` and `java-tests` packages. Do **not** commit `.class` files — only `.java` sources.
 
-### Java test suite
+### Java integration tests
 
-`tests/java/src/` contains 17 Java files covering the JVM's supported features. Each targets a specific domain (arithmetic, OOP, arrays, exceptions, etc.). Run with `./tests/java/run.sh`. Do **not** commit `.class` files.
+`tests/` is a workspace member (`java-tests` package) that runs 17 Java files against the JVM binary via `cargo test --workspace`. The `build.rs` compiles `.java` → `.class`, and `tests/tests/java_integration.rs` runs each class through the JVM.
 
 ## Architecture
 
@@ -167,7 +166,7 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 |-------|--------|-------------|
 | 1. Class-parser rewrite | Done | nom → Cursor+Read, 12 tests |
 | 2. Workspace compilation | Done | `cargo build` passes, all members compile together |
-| 3. Test skeleton | Done | 34 tests pass, 5 pre-existing failures (missing fixtures) |
+| 3. Test baseline | Done | 24 unit + 17 Java integration = 41 total, 5 pre-existing failures |
 | 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
 | 5. Interpreter rewrite | Done | Per-opcode files, 202/202 opcodes |
 | 6. Method invocation | Done | hack_as_native, v_table fix |

@@ -4,7 +4,8 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("tests/fixtures/src");
+    let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..");
+    let src_dir = root.join("tests/java/src");
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // Compile all .java files to OUT_DIR

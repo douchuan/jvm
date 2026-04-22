@@ -8,7 +8,7 @@ fn fixture_dir() -> PathBuf {
         return PathBuf::from(dir);
     }
     // Fallback for manual runs outside of build.rs
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/java/src")
 }
 
 fn parse_fixture(name: &str) -> classfile::ClassFile {
@@ -37,8 +37,8 @@ fn hello_world_has_main_method() {
 #[test]
 fn simple_calc_method_count() {
     let cf = parse_fixture("SimpleCalc");
-    // <init>, add, multiply, divide, subtract = 5 methods
-    assert_eq!(cf.methods.len(), 5);
+    // <init>, add, multiply, divide, subtract, main = 6 methods
+    assert_eq!(cf.methods.len(), 6);
 }
 
 #[test]

@@ -1,0 +1,11 @@
+[package]
+name = "java-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[[test]]
+name = "java_integration"
+harness = false
+
+[dev-dependencies]
