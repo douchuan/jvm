@@ -153,7 +153,10 @@ fn create_native_fn_tables(
         ("sun/misc/Signal", sun_misc_Signal::get_native_methods()),
         ("sun/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
         // JDK 9+: Unsafe moved to jdk.internal.misc
-        ("jdk/internal/misc/Unsafe", sun_misc_Unsafe::get_native_methods()),
+        (
+            "jdk/internal/misc/Unsafe",
+            sun_misc_Unsafe::get_native_methods(),
+        ),
         (
             "sun/misc/URLClassPath",
             sun_misc_URLClassPath::get_native_methods(),

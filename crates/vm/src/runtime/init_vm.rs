@@ -33,7 +33,10 @@ pub fn initialize_jvm() {
     // Try System.initializeSystemClass() if it exists (JDK 8)
     // In JDK 9+ this method doesn't exist and clinit handles initialization
     if let Some(cls) = require_class3(None, J_SYSTEM) {
-        if let Ok(method) = cls.get_class().get_static_method(&new_br("initializeSystemClass"), &new_br("()V")) {
+        if let Ok(method) = cls
+            .get_class()
+            .get_static_method(&new_br("initializeSystemClass"), &new_br("()V"))
+        {
             let mut jc = runtime::invoke::JavaCall::new_with_args(method, vec![]);
             jc.invoke(None, false);
         }

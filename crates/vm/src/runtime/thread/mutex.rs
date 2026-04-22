@@ -1,14 +1,13 @@
 use std::cell::UnsafeCell;
-use std::mem;
 use std::mem::MaybeUninit;
 
 /// # Safety
 pub unsafe fn raw(m: &ReentrantMutex) -> *mut libc::pthread_mutex_t {
-    m.inner.get()
+    (*m.inner.get()).as_mut_ptr()
 }
 
 pub struct ReentrantMutex {
-    inner: UnsafeCell<libc::pthread_mutex_t>,
+    inner: UnsafeCell<MaybeUninit<libc::pthread_mutex_t>>,
 }
 
 unsafe impl Send for ReentrantMutex {}
@@ -19,7 +18,7 @@ impl ReentrantMutex {
     /// todo: This function should really be documented
     pub unsafe fn uninitialized() -> ReentrantMutex {
         ReentrantMutex {
-            inner: mem::uninitialized(),
+            inner: UnsafeCell::new(MaybeUninit::uninit()),
         }
     }
 
@@ -33,7 +32,8 @@ impl ReentrantMutex {
         let result =
             libc::pthread_mutexattr_settype(ptr_attr as *mut _, libc::PTHREAD_MUTEX_RECURSIVE);
         debug_assert_eq!(result, 0);
-        let result = libc::pthread_mutex_init(self.inner.get(), ptr_attr as *const _);
+        let result =
+            libc::pthread_mutex_init((*self.inner.get()).as_mut_ptr(), ptr_attr as *const _);
         debug_assert_eq!(result, 0);
         let result = libc::pthread_mutexattr_destroy(ptr_attr as *mut _);
         debug_assert_eq!(result, 0);
@@ -42,7 +42,7 @@ impl ReentrantMutex {
     /// # Safety
     /// todo: This function should really be documented
     pub unsafe fn lock(&self) {
-        let result = libc::pthread_mutex_lock(self.inner.get());
+        let result = libc::pthread_mutex_lock((*self.inner.get()).as_mut_ptr());
         debug_assert_eq!(result, 0);
     }
 
@@ -50,20 +50,20 @@ impl ReentrantMutex {
     /// todo: This function should really be documented
     #[inline]
     pub unsafe fn try_lock(&self) -> bool {
-        libc::pthread_mutex_trylock(self.inner.get()) == 0
+        libc::pthread_mutex_trylock((*self.inner.get()).as_mut_ptr()) == 0
     }
 
     /// # Safety
     /// todo: This function should really be documented
     pub unsafe fn unlock(&self) {
-        let result = libc::pthread_mutex_unlock(self.inner.get());
+        let result = libc::pthread_mutex_unlock((*self.inner.get()).as_mut_ptr());
         debug_assert_eq!(result, 0);
     }
 
     /// # Safety
     /// todo: This function should really be documented
     pub unsafe fn destroy(&self) {
-        let result = libc::pthread_mutex_destroy(self.inner.get());
+        let result = libc::pthread_mutex_destroy((*self.inner.get()).as_mut_ptr());
         debug_assert_eq!(result, 0);
     }
 }

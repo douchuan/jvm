@@ -12,8 +12,16 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
         new_fn("println", "(D)V", Box::new(jvm_println_double)),
         new_fn("println", "(Z)V", Box::new(jvm_println_bool)),
         new_fn("println", "(C)V", Box::new(jvm_println_char)),
-        new_fn("println", "(Ljava/lang/String;)V", Box::new(jvm_println_string)),
-        new_fn("println", "(Ljava/lang/Object;)V", Box::new(jvm_println_object)),
+        new_fn(
+            "println",
+            "(Ljava/lang/String;)V",
+            Box::new(jvm_println_string),
+        ),
+        new_fn(
+            "println",
+            "(Ljava/lang/Object;)V",
+            Box::new(jvm_println_object),
+        ),
         new_fn("println", "()V", Box::new(jvm_println_void)),
         // print variants
         new_fn("print", "(I)V", Box::new(jvm_print_int)),

@@ -1,10 +1,8 @@
 #![allow(non_snake_case)]
 
 use crate::native::{new_fn, JNIEnv, JNINativeMethod, JNIResult};
+use crate::new_br;
 use crate::oop::{self, Class, Oop};
-use crate::runtime::{self, require_class3};
-use crate::{new_br, util};
-use std::sync::atomic::Ordering;
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -33,11 +31,6 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 }
 
 fn jvm_fillInStackTrace(_env: JNIEnv, args: &[Oop]) -> JNIResult {
-    eprintln!(">>> NATIVE fillInStackTrace called <<<");
-    // Minimal implementation: just return the throwable without modifying backtrace.
-    // The cascade of NPE during exception creation is caused by JDK 9+ fillInStackTrace
-    // bytecode interacting with our simplified backtrace handling.
-    // By making this fully native (no bytecode path), we avoid the cascade entirely.
     Ok(Some(args.get(0).unwrap().clone()))
 }
 

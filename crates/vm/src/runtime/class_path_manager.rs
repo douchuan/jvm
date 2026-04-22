@@ -133,8 +133,10 @@ impl ClassPathManager {
     pub fn add_jimage_path(&mut self, path: &str) -> Result<(), String> {
         let jimage = JImage::open(path).map_err(|e| format!("Failed to open JImage: {}", e))?;
         let source = JImageSource::new(jimage);
-        self.runtime_class_path
-            .push(ClassPathEntry(ClassSource::JIMAGE(source), path.to_string()));
+        self.runtime_class_path.push(ClassPathEntry(
+            ClassSource::JIMAGE(source),
+            path.to_string(),
+        ));
         Ok(())
     }
 
@@ -300,7 +302,11 @@ mod tests {
         let result = cpm.search_class("java/lang/String");
         assert!(result.is_ok(), "Should find java/lang/String: {:?}", result);
         let bytes = result.unwrap().1;
-        assert!(bytes.len() > 1000, "String.class should be large, got {} bytes", bytes.len());
+        assert!(
+            bytes.len() > 1000,
+            "String.class should be large, got {} bytes",
+            bytes.len()
+        );
         // 验证是有效的 class 文件（magic number: CAFEBABE）
         assert_eq!(&bytes[0..4], &[0xCA, 0xFE, 0xBA, 0xBE]);
 

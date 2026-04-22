@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A JVM implementation written in Rust — a learning project aiming for a complete JVM with LLVM JIT and GC. 677 commits, originally from 2021, actively being refactored.
+A JVM implementation written in Rust — a learning project aiming for a complete JVM with LLVM JIT and GC. Actively being refactored, supports JDK 9+ (JImage class loading).
 
 ## Workspace Structure
 
@@ -87,7 +87,10 @@ The core VM. Major modules:
 - `class.rs` / `inst.rs` / `ary.rs` / `field.rs` — object kinds
 
 **runtime/** — Execution engine
-- `interp.rs` — interpreter (2500-line single file, planned for rewrite)
+- `interp/` — interpreter, split into per-opcode files (no macros):
+  - `const_ops.rs` / `load_store.rs` / `arith_ops.rs` / `stack_ops.rs` / `conversion.rs`
+  - `control_flow.rs` / `compare.rs` / `object_ops.rs` / `field_ops.rs` / `array_ops.rs`
+  - `monitor_ops.rs` / `exception.rs` / `read.rs`
 - `frame.rs` / `stack.rs` / `slot.rs` / `local.rs` — call stack structures
 - `invoke.rs` — method invocation logic
 - `method.rs` — method representation
@@ -118,9 +121,9 @@ The project is being rewritten from scratch in phases. Progress:
 | 2. Workspace compilation | Done | `cargo build --workspace` passes |
 | 3. Test skeleton | Done | 23 tests (12 unit + 11 integration) |
 | 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
-| 5. Interpreter rewrite | Next | Per-opcode files, no macros |
-| 6. Method invocation | Planned | Adapt to new Frame/Stack |
-| 7. LLVM JIT | Planned | inkwell + alloca/mem2reg |
+| 5. Interpreter rewrite | Done | Per-opcode files, no macros |
+| 6. Method invocation | Done | Adapt to new Frame/Stack |
+| 7. LLVM JIT | Next | inkwell + alloca/mem2reg |
 | 8. GC precise-ification | Planned | slot-based heap → mark-sweep-compact |
 | 9. Complete features | Planned | invokedynamic, verification, threading |
 

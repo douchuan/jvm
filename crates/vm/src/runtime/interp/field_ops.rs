@@ -118,7 +118,11 @@ impl<'a> Interp<'a> {
                                 if !r {
                                     self.op_check_cast(r, obj_cls, target_cls);
                                 }
-                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
+                                self.frame
+                                    .area
+                                    .stack
+                                    .borrow_mut()
+                                    .push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }
@@ -130,7 +134,11 @@ impl<'a> Interp<'a> {
                                 if !r {
                                     self.op_check_cast(r, obj_cls, target_cls);
                                 }
-                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
+                                self.frame
+                                    .area
+                                    .stack
+                                    .borrow_mut()
+                                    .push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }
@@ -144,7 +152,11 @@ impl<'a> Interp<'a> {
                                 if !r {
                                     self.op_check_cast(r, obj_cls, target_cls);
                                 }
-                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
+                                self.frame
+                                    .area
+                                    .stack
+                                    .borrow_mut()
+                                    .push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }
@@ -158,7 +170,11 @@ impl<'a> Interp<'a> {
                                 if !r {
                                     self.op_check_cast(r, ary_cls, target_cls);
                                 }
-                                self.frame.area.stack.borrow_mut().push_ref(obj_rf_clone, false);
+                                self.frame
+                                    .area
+                                    .stack
+                                    .borrow_mut()
+                                    .push_ref(obj_rf_clone, false);
                             } else {
                                 self.op_instance_of(r);
                             }

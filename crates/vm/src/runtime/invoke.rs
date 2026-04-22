@@ -27,7 +27,10 @@ pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
             Err(()) => {
                 let cls_name = String::from_utf8_lossy(&cls.name);
                 let desc_str = String::from_utf8_lossy(&desc);
-                panic!("Constructor not found: {}.{}{}", cls_name, "<init>", desc_str);
+                panic!(
+                    "Constructor not found: {}.{}{}",
+                    cls_name, "<init>", desc_str
+                );
             }
         }
     };

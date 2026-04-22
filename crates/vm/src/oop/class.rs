@@ -18,8 +18,8 @@ use crate::runtime::thread::ReentrantMutex;
 use crate::runtime::{
     self, method, require_class2, ClassLoader, ConstantPoolCache, JavaCall, JavaThread,
 };
-use crate::types::*;
 use crate::types::FieldIdRef;
+use crate::types::*;
 use crate::{native, util};
 
 /// Class reference — `Arc<Class>` for safe shared access.
@@ -749,7 +749,12 @@ impl Class {
         }
     }
 
-    pub fn get_field_id_safe(&self, name: &BytesRef, desc: &BytesRef, is_static: bool) -> Result<FieldIdRef, ()> {
+    pub fn get_field_id_safe(
+        &self,
+        name: &BytesRef,
+        desc: &BytesRef,
+        is_static: bool,
+    ) -> Result<FieldIdRef, ()> {
         let k = (self.name.clone(), name.clone(), desc.clone());
 
         let kind = self.kind_read();

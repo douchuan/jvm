@@ -8,12 +8,12 @@ use crate::util;
 use classfile::flags::ACC_STATIC;
 use classfile::BytesRef;
 use std::os::raw::c_void;
-use std::sync::Arc;
 use std::sync::atomic;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
-    let mut methods = vec![
+    let methods = vec![
         new_fn("registerNatives", "()V", Box::new(jvm_registerNatives)),
         new_fn(
             "arrayBaseOffset",
@@ -212,10 +212,22 @@ fn jvm_objectFieldOffset1(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     if let Some(cls_ref) = cls_ref {
         let cls = cls_ref.get_class();
         let name_bytes: Vec<u8> = Oop::java_lang_string_value(name_oop.extract_ref())
-            .iter().map(|&c| c as u8).collect();
+            .iter()
+            .map(|&c| c as u8)
+            .collect();
         let name_ref: BytesRef = Arc::new(name_bytes);
         // Try to find the field with common descriptors
-        let descs: &[&[u8]] = &[b"Ljava/lang/Object;", b"Z", b"B", b"S", b"C", b"I", b"J", b"F", b"D"];
+        let descs: &[&[u8]] = &[
+            b"Ljava/lang/Object;",
+            b"Z",
+            b"B",
+            b"S",
+            b"C",
+            b"I",
+            b"J",
+            b"F",
+            b"D",
+        ];
         for desc in descs {
             let desc_ref: BytesRef = Arc::new(desc.to_vec());
             if let Ok(fid) = cls.get_field_id_safe(&name_ref, &desc_ref, false) {

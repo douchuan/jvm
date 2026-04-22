@@ -319,7 +319,7 @@ impl From<u8> for OpCode {
             91 => OpCode::dup_x2,
             92 => OpCode::dup2,
             93 => OpCode::dup2_x1,
-            94 => OpCode::dup_x2,
+            94 => OpCode::dup2_x2,
             95 => OpCode::swap,
             96 => OpCode::iadd,
             97 => OpCode::ladd,

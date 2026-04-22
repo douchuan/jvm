@@ -24,7 +24,7 @@ fn jvm_getHandle(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     Ok(Some(Oop::new_long(fd as i64)))
 }
 
-fn jvm_setHandle(_env: JNIEnv, args: &[Oop]) -> JNIResult {
+fn jvm_setHandle(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     // No-op: we don't use native file handles
     Ok(None)
 }

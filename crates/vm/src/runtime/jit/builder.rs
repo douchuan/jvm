@@ -294,14 +294,6 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
                     self.push_int(5);
                     pc += 1;
                 }
-                OpCode::lconst_0 => {
-                    self.push_int(0);
-                    pc += 1;
-                }
-                OpCode::lconst_1 => {
-                    self.push_int(1);
-                    pc += 1;
-                }
                 OpCode::bipush => {
                     let val = self.bytecode[pc + 1] as i8 as i32;
                     self.push_int(val);
@@ -417,6 +409,586 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
                 OpCode::ineg => {
                     let v = self.pop_int();
                     let result = self.builder.build_int_neg(v, "neg").expect("ineg failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+
+                // ============================================================
+                // Long arithmetic
+                // ============================================================
+                OpCode::lconst_0 => {
+                    self.push_long_val(self.context.i64_type().const_int(0, false));
+                    pc += 1;
+                }
+                OpCode::lconst_1 => {
+                    self.push_long_val(self.context.i64_type().const_int(1, false));
+                    pc += 1;
+                }
+                OpCode::lload => {
+                    let idx = self.bytecode[pc + 1] as usize;
+                    self.load_local_long(idx);
+                    pc += 2;
+                }
+                OpCode::lload_0 => {
+                    self.load_local_long(0);
+                    pc += 1;
+                }
+                OpCode::lload_1 => {
+                    self.load_local_long(1);
+                    pc += 1;
+                }
+                OpCode::lload_2 => {
+                    self.load_local_long(2);
+                    pc += 1;
+                }
+                OpCode::lload_3 => {
+                    self.load_local_long(3);
+                    pc += 1;
+                }
+                OpCode::lstore => {
+                    let idx = self.bytecode[pc + 1] as usize;
+                    self.store_local_long(idx);
+                    pc += 2;
+                }
+                OpCode::lstore_0 => {
+                    self.store_local_long(0);
+                    pc += 1;
+                }
+                OpCode::lstore_1 => {
+                    self.store_local_long(1);
+                    pc += 1;
+                }
+                OpCode::lstore_2 => {
+                    self.store_local_long(2);
+                    pc += 1;
+                }
+                OpCode::lstore_3 => {
+                    self.store_local_long(3);
+                    pc += 1;
+                }
+                OpCode::ladd => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_add(v1, v2, "ladd")
+                        .expect("ladd failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lsub => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_sub(v1, v2, "lsub")
+                        .expect("lsub failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lmul => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_mul(v1, v2, "lmul")
+                        .expect("lmul failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::ldiv => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_signed_div(v1, v2, "ldiv")
+                        .expect("ldiv failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lrem => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_signed_rem(v1, v2, "lrem")
+                        .expect("lrem failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lneg => {
+                    let v = self.pop_long();
+                    let result = self.builder.build_int_neg(v, "lneg").expect("lneg failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::land => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self.builder.build_and(v1, v2, "land").expect("land failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lor => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self.builder.build_or(v1, v2, "lor").expect("lor failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lxor => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let result = self.builder.build_xor(v1, v2, "lxor").expect("lxor failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lshl => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    // Mask: only low 6 bits are used (mask with 63)
+                    let mask = self
+                        .builder
+                        .build_and(
+                            v2,
+                            self.context.i64_type().const_int(63, false),
+                            "lshl_mask",
+                        )
+                        .expect("mask failed");
+                    let result = self
+                        .builder
+                        .build_left_shift(v1, mask, "lshl")
+                        .expect("lshl failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lshr => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let mask = self
+                        .builder
+                        .build_and(
+                            v2,
+                            self.context.i64_type().const_int(63, false),
+                            "lshr_mask",
+                        )
+                        .expect("mask failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(v1, mask, true, "lshr")
+                        .expect("lshr failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lushr => {
+                    let v2 = self.pop_long();
+                    let v1 = self.pop_long();
+                    let mask = self
+                        .builder
+                        .build_and(
+                            v2,
+                            self.context.i64_type().const_int(63, false),
+                            "lushr_mask",
+                        )
+                        .expect("mask failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(v1, mask, false, "lushr")
+                        .expect("lushr failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::lreturn => {
+                    let _val = self.pop_long();
+                    self.builder
+                        .build_unconditional_branch(self.return_bb)
+                        .expect("lreturn branch failed");
+                    return;
+                }
+
+                // ============================================================
+                // Float/Double arithmetic
+                // ============================================================
+                OpCode::fadd => {
+                    let v2 = self.pop_float();
+                    let v1 = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_add(v1, v2, "fadd")
+                        .expect("fadd failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::fsub => {
+                    let v2 = self.pop_float();
+                    let v1 = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_sub(v1, v2, "fsub")
+                        .expect("fsub failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::fmul => {
+                    let v2 = self.pop_float();
+                    let v1 = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_mul(v1, v2, "fmul")
+                        .expect("fmul failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::fdiv => {
+                    let v2 = self.pop_float();
+                    let v1 = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_div(v1, v2, "fdiv")
+                        .expect("fdiv failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::frem => {
+                    let v2 = self.pop_float();
+                    let v1 = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_rem(v1, v2, "frem")
+                        .expect("frem failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::fneg => {
+                    let v = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_neg(v, "fneg")
+                        .expect("fneg failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::dadd => {
+                    let v2 = self.pop_double();
+                    let v1 = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_add(v1, v2, "dadd")
+                        .expect("dadd failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::dsub => {
+                    let v2 = self.pop_double();
+                    let v1 = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_sub(v1, v2, "dsub")
+                        .expect("dsub failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::dmul => {
+                    let v2 = self.pop_double();
+                    let v1 = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_mul(v1, v2, "dmul")
+                        .expect("dmul failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::ddiv => {
+                    let v2 = self.pop_double();
+                    let v1 = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_div(v1, v2, "ddiv")
+                        .expect("ddiv failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::drem => {
+                    let v2 = self.pop_double();
+                    let v1 = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_rem(v1, v2, "drem")
+                        .expect("drem failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::dneg => {
+                    let v = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_neg(v, "dneg")
+                        .expect("dneg failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::freturn => {
+                    let _val = self.pop_float();
+                    self.builder
+                        .build_unconditional_branch(self.return_bb)
+                        .expect("freturn branch failed");
+                    return;
+                }
+                OpCode::dreturn => {
+                    let _val = self.pop_double();
+                    self.builder
+                        .build_unconditional_branch(self.return_bb)
+                        .expect("dreturn branch failed");
+                    return;
+                }
+
+                // ============================================================
+                // 位运算指令
+                // ============================================================
+                OpCode::iand => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let result = self.builder.build_and(v1, v2, "and").expect("iand failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::ior => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let result = self.builder.build_or(v1, v2, "or").expect("ior failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::ixor => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let result = self.builder.build_xor(v1, v2, "xor").expect("ixor failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::ishl => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let shift = self
+                        .builder
+                        .build_int_unsigned_rem(
+                            v2,
+                            self.context.i32_type().const_int(32, false),
+                            "shift_mask",
+                        )
+                        .expect("ishl mask failed");
+                    let result = self
+                        .builder
+                        .build_left_shift(v1, shift, "shl")
+                        .expect("ishl failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::ishr => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let shift = self
+                        .builder
+                        .build_int_unsigned_rem(
+                            v2,
+                            self.context.i32_type().const_int(32, false),
+                            "shift_mask",
+                        )
+                        .expect("ishr mask failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(v1, shift, true, "ashr")
+                        .expect("ishr failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::iushr => {
+                    let v2 = self.pop_int();
+                    let v1 = self.pop_int();
+                    let shift = self
+                        .builder
+                        .build_int_unsigned_rem(
+                            v2,
+                            self.context.i32_type().const_int(32, false),
+                            "shift_mask",
+                        )
+                        .expect("iushr mask failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(v1, shift, false, "ushr")
+                        .expect("iushr failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+
+                // ============================================================
+                // 类型转换指令
+                // ============================================================
+                OpCode::i2l => {
+                    let v = self.pop_int();
+                    let result = self
+                        .builder
+                        .build_int_s_extend_or_bit_cast(v, self.context.i64_type(), "i2l")
+                        .expect("i2l failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::i2f => {
+                    let v = self.pop_int();
+                    let result = self
+                        .builder
+                        .build_unsigned_int_to_float(v, self.context.f32_type(), "i2f")
+                        .expect("i2f failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::i2d => {
+                    let v = self.pop_int();
+                    let result = self
+                        .builder
+                        .build_unsigned_int_to_float(v, self.context.f64_type(), "i2d")
+                        .expect("i2d failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::l2i => {
+                    let v = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_int_truncate(v, self.context.i32_type(), "l2i")
+                        .expect("l2i failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::l2f => {
+                    let v = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_unsigned_int_to_float(v, self.context.f32_type(), "l2f")
+                        .expect("l2f failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::l2d => {
+                    let v = self.pop_long();
+                    let result = self
+                        .builder
+                        .build_unsigned_int_to_float(v, self.context.f64_type(), "l2d")
+                        .expect("l2d failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::f2i => {
+                    let v = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_to_unsigned_int(v, self.context.i32_type(), "f2i")
+                        .expect("f2i failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::f2l => {
+                    let v = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_to_unsigned_int(v, self.context.i64_type(), "f2l")
+                        .expect("f2l failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::f2d => {
+                    let v = self.pop_float();
+                    let result = self
+                        .builder
+                        .build_float_ext(v, self.context.f64_type(), "f2d")
+                        .expect("f2d failed");
+                    self.push_double_val(result);
+                    pc += 1;
+                }
+                OpCode::d2i => {
+                    let v = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_to_unsigned_int(v, self.context.i32_type(), "d2i")
+                        .expect("d2i failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::d2l => {
+                    let v = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_to_unsigned_int(v, self.context.i64_type(), "d2l")
+                        .expect("d2l failed");
+                    self.push_long_val(result);
+                    pc += 1;
+                }
+                OpCode::d2f => {
+                    let v = self.pop_double();
+                    let result = self
+                        .builder
+                        .build_float_trunc(v, self.context.f32_type(), "d2f")
+                        .expect("d2f failed");
+                    self.push_float_val(result);
+                    pc += 1;
+                }
+                OpCode::i2b => {
+                    let v = self.pop_int();
+                    // Sign-extend: shift left then arithmetic shift right
+                    let left = self
+                        .builder
+                        .build_left_shift(
+                            v,
+                            self.context.i32_type().const_int(24, false),
+                            "i2b_shl",
+                        )
+                        .expect("i2b shl failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(
+                            left,
+                            self.context.i32_type().const_int(24, false),
+                            true,
+                            "i2b_shr",
+                        )
+                        .expect("i2b shr failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::i2c => {
+                    let v = self.pop_int();
+                    // Zero-extend to 16 bits
+                    let result = self
+                        .builder
+                        .build_and(
+                            v,
+                            self.context.i32_type().const_int(0xFFFF, false),
+                            "i2c_mask",
+                        )
+                        .expect("i2c mask failed");
+                    self.push_int_val(result);
+                    pc += 1;
+                }
+                OpCode::i2s => {
+                    let v = self.pop_int();
+                    // Sign-extend: shift left then arithmetic shift right
+                    let left = self
+                        .builder
+                        .build_left_shift(
+                            v,
+                            self.context.i32_type().const_int(16, false),
+                            "i2s_shl",
+                        )
+                        .expect("i2s shl failed");
+                    let result = self
+                        .builder
+                        .build_right_shift(
+                            left,
+                            self.context.i32_type().const_int(16, false),
+                            true,
+                            "i2s_shr",
+                        )
+                        .expect("i2s shr failed");
                     self.push_int_val(result);
                     pc += 1;
                 }
@@ -671,6 +1243,83 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
                 }
 
                 // ============================================================
+                // 栈操作指令
+                // ============================================================
+                OpCode::pop => {
+                    let _val = self.pop_int();
+                    pc += 1;
+                }
+                OpCode::pop2 => {
+                    let _val = self.pop_int();
+                    let _val2 = self.pop_int();
+                    pc += 1;
+                }
+                OpCode::dup => {
+                    let val = self.pop_int();
+                    self.push_int_val(val);
+                    self.push_int_val(val);
+                    pc += 1;
+                }
+                OpCode::dup_x1 => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    self.push_int_val(val1);
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    pc += 1;
+                }
+                OpCode::dup_x2 => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    let val3 = self.pop_int();
+                    self.push_int_val(val1);
+                    self.push_int_val(val3);
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    pc += 1;
+                }
+                OpCode::dup2 => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    pc += 1;
+                }
+                OpCode::dup2_x1 => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    let val3 = self.pop_int();
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    self.push_int_val(val3);
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    pc += 1;
+                }
+                OpCode::dup2_x2 => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    let val3 = self.pop_int();
+                    let val4 = self.pop_int();
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    self.push_int_val(val4);
+                    self.push_int_val(val3);
+                    self.push_int_val(val2);
+                    self.push_int_val(val1);
+                    pc += 1;
+                }
+                OpCode::swap => {
+                    let val1 = self.pop_int();
+                    let val2 = self.pop_int();
+                    self.push_int_val(val1);
+                    self.push_int_val(val2);
+                    pc += 1;
+                }
+
+                // ============================================================
                 // nop
                 // ============================================================
                 OpCode::nop => {
@@ -742,10 +1391,319 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
             .expect("store stack_top failed");
     }
 
-    /// 将常量值推入栈的快捷方法
+    /// 将一个常量值推入栈的快捷方法
     fn push_int(&mut self, val: i32) {
         let llvm_val = self.context.i32_type().const_int(val as u64, val < 0);
         self.push_int_val(llvm_val);
+    }
+
+    /// 将一个 i64 值推入操作数栈。
+    fn push_long_val(&mut self, val: IntValue<'ctx>) {
+        let i64_type = self.context.i64_type();
+        let i32_type = self.context.i32_type();
+        let bitcast_val = self
+            .builder
+            .build_bit_cast(val, i64_type, "long_bitcast")
+            .expect("bitcast failed")
+            .into_int_value();
+        let lo = self
+            .builder
+            .build_int_truncate(bitcast_val, i32_type, "lo_trunc")
+            .expect("lo trunc failed");
+        let hi = self
+            .builder
+            .build_int_truncate(
+                self.builder
+                    .build_right_shift(
+                        bitcast_val,
+                        i64_type.const_int(32, false),
+                        false,
+                        "hi_shift",
+                    )
+                    .expect("hi shift failed"),
+                i32_type,
+                "hi_i32",
+            )
+            .expect("hi_i32 trunc failed");
+        self.push_two_slots(lo, hi);
+    }
+
+    /// 从操作数栈弹出一个 i64 值。
+    fn pop_long(&mut self) -> IntValue<'ctx> {
+        let (lo, hi) = self.pop_two_slots();
+        let i64_type = self.context.i64_type();
+        let lo_ext = self
+            .builder
+            .build_int_z_extend(lo, i64_type, "lo_ext")
+            .expect("zext failed");
+        let hi_ext = self
+            .builder
+            .build_int_z_extend(hi, i64_type, "hi_ext")
+            .expect("zext failed");
+        let combined = self
+            .builder
+            .build_or(
+                lo_ext,
+                self.builder
+                    .build_left_shift(hi_ext, i64_type.const_int(32, false), "hi_shl")
+                    .expect("shl failed"),
+                "combined",
+            )
+            .expect("or failed");
+        self.builder
+            .build_bit_cast(combined, i64_type, "long_bitcast")
+            .expect("bitcast failed")
+            .into_int_value()
+    }
+
+    /// 将一个 f32 值推入操作数栈。
+    fn push_float_val(&mut self, val: inkwell::values::FloatValue<'ctx>) {
+        let i32_type = self.context.i32_type();
+        let bitcast = self
+            .builder
+            .build_bit_cast(val, i32_type, "float_bitcast")
+            .expect("bitcast failed")
+            .into_int_value();
+        self.push_one_slot(bitcast);
+    }
+
+    /// 从操作数栈弹出一个 f32 值。
+    fn pop_float(&mut self) -> inkwell::values::FloatValue<'ctx> {
+        let val = self.pop_one_slot();
+        self.builder
+            .build_bit_cast(val, self.context.f32_type(), "float_bitcast")
+            .expect("bitcast failed")
+            .into_float_value()
+    }
+
+    /// 将一个 f64 值推入操作数栈。
+    fn push_double_val(&mut self, val: inkwell::values::FloatValue<'ctx>) {
+        let i64_type = self.context.i64_type();
+        let i32_type = self.context.i32_type();
+        let bitcast_val = self
+            .builder
+            .build_bit_cast(val, i64_type, "double_bitcast")
+            .expect("bitcast failed")
+            .into_int_value();
+        let lo = self
+            .builder
+            .build_int_truncate(bitcast_val, i32_type, "lo_trunc")
+            .expect("lo trunc failed");
+        let hi = self
+            .builder
+            .build_int_truncate(
+                self.builder
+                    .build_right_shift(
+                        bitcast_val,
+                        i64_type.const_int(32, false),
+                        false,
+                        "hi_shift",
+                    )
+                    .expect("hi shift failed"),
+                i32_type,
+                "hi_i32",
+            )
+            .expect("hi_i32 trunc failed");
+        self.push_two_slots(lo, hi);
+    }
+
+    /// 从操作数栈弹出一个 f64 值。
+    fn pop_double(&mut self) -> inkwell::values::FloatValue<'ctx> {
+        let (lo, hi) = self.pop_two_slots();
+        let i64_type = self.context.i64_type();
+        let lo_ext = self
+            .builder
+            .build_int_z_extend(lo, i64_type, "lo_ext")
+            .expect("zext failed");
+        let hi_ext = self
+            .builder
+            .build_int_z_extend(hi, i64_type, "hi_ext")
+            .expect("zext failed");
+        let combined = self
+            .builder
+            .build_or(
+                lo_ext,
+                self.builder
+                    .build_left_shift(hi_ext, i64_type.const_int(32, false), "hi_shl")
+                    .expect("shl failed"),
+                "combined",
+            )
+            .expect("or failed");
+        self.builder
+            .build_bit_cast(combined, i64_type, "double_bitcast")
+            .expect("bitcast failed")
+            .into_float_value()
+    }
+
+    /// 推入一个 i32 到栈槽。
+    fn push_one_slot(&mut self, val: IntValue<'ctx>) {
+        let top_i32 = self
+            .builder
+            .build_load(self.context.i32_type(), self.stack_top, "load_top")
+            .expect("load stack_top failed")
+            .into_int_value();
+        if let Some(stack_param) = self.stack_param {
+            let ptr = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[top_i32],
+                        "push_store",
+                    )
+                    .expect("push gep failed")
+            };
+            self.builder
+                .build_store(ptr, val)
+                .expect("push store failed");
+        }
+        let one = self.context.i32_type().const_int(1, false);
+        let new_top = self
+            .builder
+            .build_int_add(top_i32, one, "inc_top")
+            .expect("inc_top failed");
+        self.builder
+            .build_store(self.stack_top, new_top)
+            .expect("store stack_top failed");
+    }
+
+    /// 推入两个 i32 到栈槽（用于 long/double）。
+    fn push_two_slots(&mut self, lo: IntValue<'ctx>, hi: IntValue<'ctx>) {
+        let top_i32 = self
+            .builder
+            .build_load(self.context.i32_type(), self.stack_top, "load_top")
+            .expect("load stack_top failed")
+            .into_int_value();
+        if let Some(stack_param) = self.stack_param {
+            let ptr_lo = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[top_i32],
+                        "push_lo",
+                    )
+                    .expect("push gep failed")
+            };
+            self.builder
+                .build_store(ptr_lo, lo)
+                .expect("push lo store failed");
+            let one = self.context.i32_type().const_int(1, false);
+            let top_plus_one = self
+                .builder
+                .build_int_add(top_i32, one, "top_plus_one")
+                .expect("add failed");
+            let ptr_hi = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[top_plus_one],
+                        "push_hi",
+                    )
+                    .expect("push gep failed")
+            };
+            self.builder
+                .build_store(ptr_hi, hi)
+                .expect("push hi store failed");
+        }
+        let two = self.context.i32_type().const_int(2, false);
+        let new_top = self
+            .builder
+            .build_int_add(top_i32, two, "inc_top")
+            .expect("inc_top failed");
+        self.builder
+            .build_store(self.stack_top, new_top)
+            .expect("store stack_top failed");
+    }
+
+    /// 弹出一个 i32 从栈槽。
+    fn pop_one_slot(&mut self) -> IntValue<'ctx> {
+        let top_i32 = self
+            .builder
+            .build_load(self.context.i32_type(), self.stack_top, "load_top")
+            .expect("load stack_top failed")
+            .into_int_value();
+        let one = self.context.i32_type().const_int(1, false);
+        let slot_idx_val = self
+            .builder
+            .build_int_sub(top_i32, one, "dec_top")
+            .expect("dec_top failed");
+        let val = if let Some(stack_param) = self.stack_param {
+            let ptr = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[slot_idx_val],
+                        "pop_ptr",
+                    )
+                    .expect("pop gep failed")
+            };
+            self.builder
+                .build_load(self.context.i32_type(), ptr, "pop_val")
+                .expect("pop load failed")
+                .into_int_value()
+        } else {
+            slot_idx_val
+        };
+        self.builder
+            .build_store(self.stack_top, slot_idx_val)
+            .expect("pop store stack_top failed");
+        val
+    }
+
+    /// 弹出两个 i32 从栈槽（用于 long/double）。
+    fn pop_two_slots(&mut self) -> (IntValue<'ctx>, IntValue<'ctx>) {
+        let top_i32 = self
+            .builder
+            .build_load(self.context.i32_type(), self.stack_top, "load_top")
+            .expect("load stack_top failed")
+            .into_int_value();
+        let one = self.context.i32_type().const_int(1, false);
+        let two = self.context.i32_type().const_int(2, false);
+        let slot_idx_val = self
+            .builder
+            .build_int_sub(top_i32, two, "dec_top")
+            .expect("dec_top failed");
+        let hi_idx = self
+            .builder
+            .build_int_add(slot_idx_val, one, "hi_idx")
+            .expect("add failed");
+        let (lo, hi) = if let Some(stack_param) = self.stack_param {
+            let ptr_lo = unsafe {
+                self.builder
+                    .build_in_bounds_gep(
+                        self.context.i32_type(),
+                        stack_param,
+                        &[slot_idx_val],
+                        "pop_lo",
+                    )
+                    .expect("pop gep failed")
+            };
+            let loaded_lo = self
+                .builder
+                .build_load(self.context.i32_type(), ptr_lo, "pop_lo")
+                .expect("pop lo load failed")
+                .into_int_value();
+            let ptr_hi = unsafe {
+                self.builder
+                    .build_in_bounds_gep(self.context.i32_type(), stack_param, &[hi_idx], "pop_hi")
+                    .expect("pop gep failed")
+            };
+            let loaded_hi = self
+                .builder
+                .build_load(self.context.i32_type(), ptr_hi, "pop_hi")
+                .expect("pop hi load failed")
+                .into_int_value();
+            (loaded_lo, loaded_hi)
+        } else {
+            (slot_idx_val, hi_idx)
+        };
+        self.builder
+            .build_store(self.stack_top, slot_idx_val)
+            .expect("pop store stack_top failed");
+        (lo, hi)
     }
 
     /// 从操作数栈弹出一个 i32 值。
@@ -829,6 +1787,88 @@ impl<'ctx> BytecodeInterpreter<'ctx> {
             self.builder
                 .build_store(self.local_vars[idx], val)
                 .expect("store_local_int failed");
+        }
+    }
+
+    fn load_local_long(&mut self, idx: usize) {
+        // Longs occupy 2 consecutive i32 local slots
+        if idx + 1 < self.local_vars.len() {
+            let lo = self
+                .builder
+                .build_load(
+                    self.context.i32_type(),
+                    self.local_vars[idx],
+                    &format!("load_local_long_lo_{}", idx),
+                )
+                .expect("load local long lo failed")
+                .into_int_value();
+            let hi = self
+                .builder
+                .build_load(
+                    self.context.i32_type(),
+                    self.local_vars[idx + 1],
+                    &format!("load_local_long_hi_{}", idx),
+                )
+                .expect("load local long hi failed")
+                .into_int_value();
+            let i64_type = self.context.i64_type();
+            let lo_ext = self
+                .builder
+                .build_int_z_extend(lo, i64_type, "long_lo_ext")
+                .expect("zext failed");
+            let hi_ext = self
+                .builder
+                .build_int_z_extend(hi, i64_type, "long_hi_ext")
+                .expect("zext failed");
+            let combined = self
+                .builder
+                .build_or(
+                    lo_ext,
+                    self.builder
+                        .build_left_shift(hi_ext, i64_type.const_int(32, false), "long_hi_shl")
+                        .expect("shl failed"),
+                    "long_combined",
+                )
+                .expect("or failed");
+            self.push_long_val(combined);
+        }
+    }
+
+    fn store_local_long(&mut self, idx: usize) {
+        let val = self.pop_long();
+        let i64_type = self.context.i64_type();
+        let i32_type = self.context.i32_type();
+        let bitcast = self
+            .builder
+            .build_bit_cast(val, i64_type, "store_long_bitcast")
+            .expect("bitcast failed")
+            .into_int_value();
+        let lo = self
+            .builder
+            .build_int_truncate(bitcast, i32_type, "store_long_lo")
+            .expect("trunc failed");
+        let hi = self
+            .builder
+            .build_int_truncate(
+                self.builder
+                    .build_right_shift(
+                        bitcast,
+                        i64_type.const_int(32, false),
+                        false,
+                        "store_long_hi_shift",
+                    )
+                    .expect("shift failed"),
+                i32_type,
+                "store_long_hi",
+            )
+            .expect("trunc failed");
+        if idx + 1 < self.local_vars.len() {
+            self.builder
+                .build_store(self.local_vars[idx], lo)
+                .expect("store local long lo failed");
+            self.builder
+                .build_store(self.local_vars[idx + 1], hi)
+                .expect("store local long hi failed");
         }
     }
 
