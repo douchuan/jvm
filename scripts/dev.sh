@@ -6,6 +6,7 @@
 #   ./scripts/dev.sh build-release      # Build workspace (release)
 #   ./scripts/dev.sh run <Class> [args] # Run a Java class
 #   ./scripts/dev.sh test               # Run all tests
+#   ./scripts/dev.sh cov                # Run test coverage (requires cargo-tarpaulin)
 #   ./scripts/dev.sh javap <file>       # Disassemble a class file
 #   ./scripts/dev.sh clean              # Clean build artifacts
 set -euo pipefail
@@ -23,6 +24,10 @@ case "${1:-help}" in
   test)
     cargo test --workspace
     ;;
+  cov)
+    # cargo install cargo-tarpaulin
+    cargo tarpaulin --workspace --skip-clean --verbose
+    ;;
   javap)
     cargo run -p javap -- "${@:2}"
     ;;
@@ -38,6 +43,7 @@ case "${1:-help}" in
     echo "  run <Class> [args] Run a Java class"
     echo "    --classpath <p>  Set classpath"
     echo "  test               Run all tests"
+    echo "  cov                Run test coverage (requires cargo-tarpaulin)"
     echo "  javap <classfile>  Disassemble a class file"
     echo "  clean              Clean build artifacts"
     echo "  help               Show this message"

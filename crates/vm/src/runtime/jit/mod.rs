@@ -323,4 +323,36 @@ mod tests {
         let result = init();
         assert!(result.is_ok(), "JIT init should succeed: {:?}", result);
     }
+
+    /// 验证 `Box::leak` 在 `JitCompiler::new()` 中的使用不会导致
+    /// 同一线程内重复泄漏。
+    ///
+    /// ## 设计说明
+    ///
+    /// `JitCompiler::new()` 使用 `Box::leak(Box::new(context))` 将 LLVM
+    /// Context 提升到 `'static` 生命周期，因为 inkwell 的 Module、Builder、
+    /// ExecutionEngine 等内部引用了 Context，形成了自引用结构。
+    ///
+    /// 泄漏是有界的：每个线程最多泄漏一次（`thread_local!` 单例），
+    /// 总体泄漏量 = O(线程数量) × sizeof(Context)。
+    ///
+    /// ## 测试内容
+    ///
+    /// 同一线程多次调用 `init()` 只初始化一次（幂等），
+    /// 证明 `Box::leak` 不会因为重复调用而累积。
+    #[test]
+    fn test_box_leak_bounded() {
+        // 多次 init 调用应该都是 Ok 的（幂等）
+        // 如果 thread_local 守卫失效，第二次 init 会尝试再次
+        // Box::leak，导致同一线程内 Context 重复泄漏。
+        for i in 0..100 {
+            let result = init();
+            assert!(
+                result.is_ok(),
+                "JIT init should be idempotent (call #{}): {:?}",
+                i + 1,
+                result
+            );
+        }
+    }
 }

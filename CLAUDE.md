@@ -107,9 +107,10 @@ The core VM. Major modules:
   - `control_flow.rs` / `compare.rs` / `object_ops.rs` / `field_ops.rs` / `array_ops.rs`
   - `monitor_ops.rs` / `exception.rs` / `read.rs`
 - `jit/` — LLVM JIT compiler (inkwell):
-  - `mod.rs` — JIT compiler lifecycle (thread-local)
-  - `builder.rs` — bytecode → LLVM IR translation (~110 opcodes)
-  - `ops.rs` — runtime callouts for complex operations (new, invoke, field access)
+  - `mod.rs` — JIT compiler lifecycle (thread-local), `Box::leak` boundedness test
+  - `builder.rs` — bytecode → LLVM IR translation (~155/202 opcodes)
+  - `ops.rs` — runtime callouts for complex operations (new, field access, arrays, ldc)
+  - `runtime.rs` — JIT invoke context (TLS `JitInvokeCtx`), `invoke*` dispatch
 - `frame.rs` / `stack.rs` / `slot.rs` / `local.rs` — call stack structures
 - `invoke.rs` — method invocation logic (JIT first, interpreter fallback)
 - `method.rs` — method representation
@@ -134,17 +135,23 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 ## Development Roadmap
 
 ### Phase 1: JIT 编译器完善（优先级：高）
-- JIT 方法调用：`invokevirtual`/`invokespecial`/`invokestatic`/`invokeinterface` 的 LLVM IR 翻译
-  - 策略：通过 runtime callout（`jit/ops.rs`）回退到解释器路径
-- JIT 控制流：完善 `tableswitch`、`lookupswitch`、异常处理路径
-- JIT 返回值扩展：当前仅支持 int，需支持 long/float/double/ref
+- JIT 方法调用：`invokevirtual`/`invokespecial`/`invokestatic`/`invokeinterface` — Done, via runtime callout (`jit/ops.rs`)
+- JIT 控制流：`tableswitch`、`lookupswitch` — Done
+- JIT 返回值扩展：需支持 long/float/double/ref（当前仅 int）
 - JIT 参数类型扩展：`copy_args_to_locals` 当前仅处理 `Oop::Int`
+- JIT 异常处理：`athrow` 暂未实现，回退到解释器
 
 ### Phase 2: 垃圾回收（优先级：高）
 - 目标：Mark-Sweep-Compact
 - Root 收集：遍历线程栈（locals + stack）+ 静态字段
 - Mark/Sweep/Compact 三阶段
 - 触发策略：分配失败时 full GC → 后续引入分代
+
+### 下一步开发顺序
+
+1. **Phase 1 收尾**：JIT 返回值/参数类型扩展（long/float/double/ref）— 线性工作，预计 1-2 天
+2. **Phase 2 GC**：从 stop-the-world mark-sweep 开始（暂不 compact），让 JVM 能长时间运行 — compact 作为后续优化
+3. **athrow**：与 GC 并行，异常对象处理与 GC 有关联
 
 ### Phase 3: 类验证器（优先级：中）
 - 文件：`crates/class-verification/`（已有骨架）
@@ -170,7 +177,7 @@ Standalone class file disassembler. Outputs `javap`-style human-readable class d
 | 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
 | 5. Interpreter rewrite | Done | Per-opcode files, 202/202 opcodes |
 | 6. Method invocation | Done | hack_as_native, v_table fix |
-| 7. LLVM JIT | Partial | ~110 opcodes (int/long/float/double arith, bitwise, stack ops, conversions). invoke* not JIT-compiled |
+| 7. LLVM JIT | Mostly complete | ~155/202 opcodes (~77%), invoke* JIT-compiled via runtime callout. Remaining: return value expansion (long/float/double/ref), parameter type expansion, athrow |
 | 8. GC precise-ification | Planned | slot-based heap → mark-sweep-compact |
 | 9. Complete features | Planned | invokedynamic, verification, threading |
 
@@ -181,7 +188,7 @@ See `documents/jvm-implementation-challenges.md` for detailed Rust vs C++ JVM im
 - **5 class_path_manager tests fail** — missing `test/` fixture directory (pre-existing, not a functional bug)
 - **No GC** — objects allocated via free-list but never collected
 - **Class verification skeleton** — 0 implementations
-- **invoke\* not in JIT** — method calls fall back to interpreter
+- **invoke\* JIT 返回值/参数类型** — 当前仅支持 `int` 类型，long/float/double/ref 待扩展
 - **handlebars 4.5 compatibility** — javap 依赖 handlebars，若新版 Rust 编译失败可考虑替换为 `tera` 或纯模板拼接
 
 ## Important Conventions
