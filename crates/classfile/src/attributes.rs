@@ -1,5 +1,6 @@
 use crate::{BytesRef, U1, U2, U4};
 use std::sync::Arc;
+use tracing::{debug, error, info, trace, warn};
 
 #[derive(Debug, Clone)]
 pub enum Type {

@@ -4,6 +4,7 @@ use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::consts as cls_consts;
+use tracing::{debug, error, info, trace, warn};
 
 static mut FILE_INPUT_STREAM_FD: usize = 0;
 static mut FILE_DESCRIPTOR_FD: usize = 0;
@@ -24,7 +25,11 @@ fn jvm_initIDs(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     //setup: java.io.FileInputStream fd
     let cls = require_class3(None, b"java/io/FileInputStream").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(&util::S_FD, &util::S_JAVA_IO_FD, false);
+    let id = cls.get_field_id(
+        util::S_FD.get().unwrap(),
+        util::S_JAVA_IO_FD.get().unwrap(),
+        false,
+    );
     unsafe {
         FILE_INPUT_STREAM_FD = id.offset;
     }
@@ -32,7 +37,7 @@ fn jvm_initIDs(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     //setup: java.io.FileDescriptor fd
     let cls = require_class3(None, b"java/io/FileDescriptor").unwrap();
     let cls = cls.get_class();
-    let id = cls.get_field_id(&util::S_FD, &util::S_I, false);
+    let id = cls.get_field_id(util::S_FD.get().unwrap(), util::S_I.get().unwrap(), false);
     unsafe {
         FILE_DESCRIPTOR_FD = id.offset;
     }

@@ -40,6 +40,7 @@ use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::values::{AnyValue, FunctionValue, IntValue, PointerValue};
 use std::collections::HashMap;
+use tracing::{debug, error, info, trace, warn};
 
 /// 编译单个方法，生成 LLVM IR 函数。
 ///

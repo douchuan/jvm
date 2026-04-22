@@ -5,6 +5,7 @@ use crate::runtime;
 use crate::runtime::exception;
 use classfile::consts as cls_const;
 use std::sync::atomic::Ordering;
+use tracing::{debug, error, info, trace, warn};
 
 impl<'a> Interp<'a> {
     pub fn invoke_helper(

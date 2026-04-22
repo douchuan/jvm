@@ -5,29 +5,28 @@ use crate::util;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
+use tracing::{debug, error, info, trace, warn};
 use zip::ZipArchive;
 
-lazy_static! {
-    static ref CPM: Mutex<ClassPathManager> = { Mutex::new(ClassPathManager::new()) };
-}
+static CPM: OnceLock<Mutex<ClassPathManager>> = OnceLock::new();
 
 pub fn init() {
-    lazy_static::initialize(&CPM);
+    CPM.get_or_init(|| Mutex::new(ClassPathManager::new()));
 }
 
 pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
-    let cpm = CPM.lock().unwrap();
+    let cpm = CPM.get().unwrap().lock().unwrap();
     cpm.search_class(name)
 }
 
 pub fn add_path(path: &str) {
-    let mut cpm = CPM.lock().unwrap();
+    let mut cpm = CPM.get().unwrap().lock().unwrap();
     let _ = cpm.add_class_path(path);
 }
 
 pub fn add_paths(path: &str) {
-    let mut cpm = CPM.lock().unwrap();
+    let mut cpm = CPM.get().unwrap().lock().unwrap();
     cpm.add_class_paths(path);
 }
 
@@ -130,7 +129,11 @@ impl ClassPathManager {
                             class_file.push_str("!/");
                             class_file.push_str(p.as_str());
 
-                            let t = zf.last_modified().to_time().to_timespec().sec;
+                            let t = zf
+                                .last_modified()
+                                .to_time()
+                                .map(|odt| odt.unix_timestamp())
+                                .unwrap_or(0);
                             let sys_info = SysInfo {
                                 class_file,
                                 last_modified: util::format_time2(t),

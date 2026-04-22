@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex, RwLock};
 
 use rustc_hash::FxHashMap;
+use tracing::{debug, error, info, trace, warn};
 
 use classfile::{
     attributes::EnclosingMethod, attributes::InnerClass, constant_pool,
@@ -183,7 +184,10 @@ pub fn init_class_fully(class: &ClassRef) {
             return;
         }
 
-        let mir = class.get_this_class_method(&util::S_CLINIT, &util::S_CLINIT_SIG);
+        let mir = class.get_this_class_method(
+            util::S_CLINIT.get().unwrap(),
+            util::S_CLINIT_SIG.get().unwrap(),
+        );
 
         if let Ok(mir) = mir {
             info!("call {}:<clinit>", unsafe {

@@ -3,6 +3,7 @@
 use crate::runtime::thread::JavaThread;
 use std::fmt::Write;
 use std::sync::atomic::Ordering;
+use tracing::{debug, error, info, trace, warn};
 
 pub fn print_stack_trace(jt: &JavaThread) {
     let mut w = String::new();

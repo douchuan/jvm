@@ -4,6 +4,7 @@ use crate::runtime::{self, init_vm, vm, DataArea, JavaCall, JavaThread};
 use crate::types::{ClassRef, FrameRef, JavaThreadRef, MethodIdRef};
 use crate::{new_br, util};
 use std::borrow::Borrow;
+use tracing::{debug, error, info, trace, warn};
 
 pub struct MainThread {
     pub class: String,

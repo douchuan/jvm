@@ -1,17 +1,17 @@
-use clap::Clap;
+use clap::Parser;
 
-#[derive(Clap, Debug)]
-#[clap(version)]
+#[derive(Parser, Debug)]
+#[command(version)]
 pub struct Opt {
     /// class search path of directories and zip/jar files
-    #[clap(long)]
+    #[arg(long)]
     pub cp: Option<String>,
 
     /// class search path of directories and zip/jar files
-    #[clap(long)]
+    #[arg(long)]
     pub classpath: Option<String>,
 
-    #[clap(required = true)]
+    #[arg(required = true)]
     pub class: String,
 
     pub args: Vec<String>,

@@ -1,9 +1,4 @@
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
-//contains macros, must be here
+// contains macros, must be here
 #[macro_use]
 pub mod util;
 

@@ -3,6 +3,7 @@
 use crate::native::{common, new_fn, JNIEnv, JNINativeMethod, JNIResult};
 use crate::oop::{self, Oop};
 use crate::{new_br, runtime};
+use tracing::{debug, error, info, trace, warn};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(

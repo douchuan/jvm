@@ -1,12 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate serde_json;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
 mod cmd;
 mod misc;
 mod sd;
@@ -15,7 +6,7 @@ mod template;
 mod trans;
 mod util;
 
-use clap::{App, Arg};
+use clap::Parser;
 use class_parser::parse_class;
 
 /*
@@ -38,126 +29,86 @@ where possible options include:
   -classpath <path>        Specify where to find user class files
   -cp <path>               Specify where to find user class files
   -bootclasspath <path>    Override location of bootstrap class files
-
 */
 
-/*
-todo:
-    1. can clap support '-private' style option?
+#[derive(Parser, Debug)]
+#[command(about = "")]
+struct Opt {
+    #[arg(long)]
+    version: bool,
 
-    2. line_number::render_enum, Handlebars's render format looks ugly
-      custom control counts of spaces
-      try the other template engine
-*/
+    #[arg(long, short = 'v')]
+    verbose: bool,
+
+    #[arg(short = 'l')]
+    line_number: bool,
+
+    #[arg(long, conflicts_with_all = ["protected", "package", "private"])]
+    public: bool,
+
+    #[arg(long)]
+    protected: bool,
+
+    #[arg(long)]
+    package: bool,
+
+    #[arg(long, short = 'p')]
+    private: bool,
+
+    #[arg(short = 'c')]
+    disassemble: bool,
+
+    #[arg(short = 's')]
+    signatures: bool,
+
+    #[arg(long)]
+    sysinfo: bool,
+
+    #[arg(long)]
+    constants: bool,
+
+    #[arg(long, default_value = ".")]
+    cp: String,
+
+    #[arg(long, default_value = ".")]
+    classpath: String,
+
+    #[arg(required = true)]
+    classes: Vec<String>,
+}
+
 fn main() {
     init();
 
-    let matches = App::new("")
-        .arg(
-            Arg::with_name("version")
-                .long("version")
-                .help("Print this usage message"),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .long("verbose")
-                .short("v")
-                .help("Print additional information"),
-        )
-        .arg(
-            Arg::with_name("line_number")
-                .short("l")
-                .help("Print line number and local variable tables"),
-        )
-        .arg(
-            Arg::with_name("public")
-                .long("public")
-                .conflicts_with_all(&["protected", "package", "private"])
-                .help("Show only public classes and members"),
-        )
-        .arg(
-            Arg::with_name("protected")
-                .long("protected")
-                .help("Show protected/public classes and members"),
-        )
-        .arg(
-            Arg::with_name("package")
-                .long("package")
-                .help("Show package/protected/public classes\nand members (default)"),
-        )
-        .arg(
-            Arg::with_name("private")
-                .long("private")
-                .short("p")
-                .help("Show all classes and members"),
-        )
-        .arg(
-            Arg::with_name("disassemble")
-                .short("c")
-                .help("Disassemble the code"),
-        )
-        .arg(
-            Arg::with_name("signatures")
-                .short("s")
-                .help("Print internal type signatures"),
-        )
-        .arg(
-            Arg::with_name("sysinfo")
-                .long("sysinfo")
-                .help("Show system info (path, size, date, MD5 hash)\nof class being processed"),
-        )
-        .arg(
-            Arg::with_name("constants")
-                .long("constants")
-                .help("Show final constants"),
-        )
-        .arg(
-            Arg::with_name("cp")
-                .long("cp")
-                .help("Specify where to find user class files")
-                .default_value(".")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("classpath")
-                .long("classpath")
-                .help("Specify where to find user class files")
-                .default_value(".")
-                .takes_value(true),
-        )
-        .arg(Arg::with_name("classes").multiple(true).index(1))
-        .get_matches();
+    let opt = Opt::parse();
 
-    strategy::setup_classpath(&matches);
+    strategy::setup_from_opt(&opt);
 
-    if matches.is_present("version") {
+    if opt.version {
         println!(env!("CARGO_PKG_VERSION"));
     }
 
-    let commander = strategy::choose(&matches);
+    let commander = strategy::choose_from_opt(&opt);
 
-    match matches.values_of("classes") {
-        Some(classes) => {
-            for it in classes {
-                match misc::find_class(it) {
-                    Ok(r) => {
-                        if let Ok(cf) = parse_class(&r.1) {
-                            commander.run(&r.0, cf);
-                        } else {
-                            error!("parse class error: {}", it);
-                        }
-                    }
-                    Err(_e) => {
-                        println!("Error: class not found: {}", it);
-                    }
+    for it in &opt.classes {
+        match misc::find_class(it) {
+            Ok(r) => {
+                if let Ok(cf) = parse_class(&r.1) {
+                    commander.run(&r.0, cf);
+                } else {
+                    tracing::error!("parse class error: {}", it);
                 }
             }
+            Err(_e) => {
+                println!("Error: class not found: {}", it);
+            }
         }
-        None => (),
     }
 }
 
 fn init() {
-    env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
     misc::cp_manager_init();
 }

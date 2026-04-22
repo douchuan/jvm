@@ -1,6 +1,7 @@
 use super::Interp;
 use crate::oop::{self, Oop};
 use std::sync::atomic::Ordering;
+use tracing::{debug, error, info, trace, warn};
 
 impl<'a> Interp<'a> {
     pub fn try_handle_exception(&self, ex: Oop) -> Result<(), Oop> {

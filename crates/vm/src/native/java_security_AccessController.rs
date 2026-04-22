@@ -42,7 +42,7 @@ fn jvm_doPrivileged(_env: JNIEnv, args: &[Oop]) -> JNIResult {
                     guard.v.extract_inst().class.clone()
                 });
                 let cls = inst.get_class();
-                cls.get_virtual_method(&util::S_RUN, &util::S_RUN_SIG)
+                cls.get_virtual_method(util::S_RUN.get().unwrap(), util::S_RUN_SIG.get().unwrap())
                     .unwrap()
             }
             _ => unreachable!(),

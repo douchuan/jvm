@@ -36,6 +36,8 @@ mod sun_reflect_NativeConstructorAccessorImpl;
 mod sun_reflect_NativeMethodAccessorImpl;
 mod sun_reflect_Reflection;
 
+use std::sync::OnceLock;
+
 pub type JNIEnv = Arc<RwLock<Box<JNIEnvStruct>>>;
 pub type JNIResult = Result<Option<Oop>, Oop>;
 pub type NativeMethodPtr = Box<dyn Fn(JNIEnv, &[Oop]) -> JNIResult + Send + Sync>;
@@ -51,12 +53,8 @@ pub struct JNIEnvStruct {
     pub class: ClassRef,
 }
 
-lazy_static! {
-    //(class name, method name, method signature) -> JNINativeMethod
-    static ref NATIVES: FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod> = {
-        create_native_fn_tables()
-    };
-}
+static NATIVES: OnceLock<FxHashMap<(&'static str, &'static str, &'static str), JNINativeMethod>> =
+    OnceLock::new();
 
 pub fn new_fn(
     name: &'static str,
@@ -80,11 +78,11 @@ pub fn find_symbol(package: &[u8], name: &[u8], desc: &[u8]) -> Option<JNINative
     let desc = unsafe { std::str::from_utf8_unchecked(desc) };
 
     let k = (package, name, desc);
-    NATIVES.get(&k).cloned()
+    NATIVES.get().unwrap().get(&k).cloned()
 }
 
 pub fn init() {
-    lazy_static::initialize(&NATIVES);
+    NATIVES.get_or_init(create_native_fn_tables);
     java_lang_Class::init();
 }
 

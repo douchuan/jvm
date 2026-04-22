@@ -24,23 +24,21 @@ vm = { path = "crates/vm" }
 
 # Third-party
 chrono = "0.4"
-clap = "3.0.0-beta.1"
-dirs = "3.0.1"
-env_logger = "0.8.2"
-handlebars = "3.0.1"
+clap = { version = "4.5", features = ["derive"] }
+dirs = "6.0"
+handlebars = "4.5"
 inkwell = { version = "0.9", features = ["llvm22-1"] }
 jimage-rs = "0.0.4"
-lazy_static = "1.4.0"
-libc = "0.2.85"
-log = "0.4"
-md5 = "0.7.0"
-nix = "0.19.1"
-rustc-hash = "1.1.0"
-serde = "1.0.0"
-serde_derive = "1.0.75"
-serde_json = "1.0.39"
-time = "0.2.16"
-zip = "0.5.9"
+libc = "0.2"
+md5 = "0.7"
+nix = "0.29"
+rustc-hash = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+time = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zip = "0.6"
 
 #https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.release]

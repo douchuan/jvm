@@ -6,7 +6,7 @@ use crate::sd::{
 };
 use crate::template;
 use crate::trans::{self, AccessFlagHelper, SignatureTypeTranslator};
-use clap::ArgMatches;
+use crate::Opt;
 use classfile::flags as access_flags;
 use classfile::ClassFile;
 
@@ -21,16 +21,16 @@ pub struct Disassemble {
 }
 
 impl Disassemble {
-    pub fn new(m: &ArgMatches) -> Option<Self> {
-        let show_access_flags = Self::build_show_access_flags(m);
+    pub fn new(opt: &Opt) -> Self {
+        let show_access_flags = Self::build_show_access_flags(opt);
 
-        let enable_verbose = m.is_present("verbose");
-        let enable_line_number = enable_verbose || m.is_present("line_number");
-        let enable_code = enable_verbose || m.is_present("disassemble");
-        let enable_sys_info = enable_verbose || m.is_present("sysinfo");
-        let enable_inner_signature = enable_verbose || m.is_present("signatures");
+        let enable_verbose = opt.verbose;
+        let enable_line_number = enable_verbose || opt.line_number;
+        let enable_code = enable_verbose || opt.disassemble;
+        let enable_sys_info = enable_verbose || opt.sysinfo;
+        let enable_inner_signature = enable_verbose || opt.signatures;
 
-        Some(Self {
+        Self {
             show_access_flags,
 
             enable_verbose,
@@ -38,7 +38,7 @@ impl Disassemble {
             enable_code,
             enable_sys_info,
             enable_inner_signature,
-        })
+        }
     }
 }
 
@@ -95,18 +95,18 @@ impl Disassemble {
 }
 
 impl Disassemble {
-    fn build_show_access_flags(m: &ArgMatches) -> u16 {
+    fn build_show_access_flags(opt: &Opt) -> u16 {
         let mut flags = 0;
 
-        if m.is_present("public") {
+        if opt.public {
             flags = access_flags::ACC_PUBLIC;
         }
 
-        if m.is_present("protected") {
+        if opt.protected {
             flags = access_flags::ACC_PROTECTED;
         }
 
-        if m.is_present("private") {
+        if opt.private {
             flags = access_flags::ACC_PRIVATE;
         }
 

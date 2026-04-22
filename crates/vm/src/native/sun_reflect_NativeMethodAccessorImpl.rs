@@ -6,6 +6,7 @@ use crate::oop::{self, Class, Oop};
 use crate::runtime::{self, require_class3};
 use crate::util;
 use classfile::{consts as cls_consts, SignatureType};
+use tracing::{debug, error, info, trace, warn};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![new_fn(
@@ -25,15 +26,27 @@ fn jvm_invoke0(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let (m_clazz, m_name, m_signature) = {
         let cls = cls.get_class();
 
-        let fid = cls.get_field_id(&util::S_CLAZZ, &util::S_JAVA_LANG_CLASS, false);
+        let fid = cls.get_field_id(
+            util::S_CLAZZ.get().unwrap(),
+            util::S_JAVA_LANG_CLASS.get().unwrap(),
+            false,
+        );
         let method_clazz = Class::get_field_value(method.extract_ref(), fid);
 
-        let fid = cls.get_field_id(&util::S_NAME, &util::S_JAVA_LANG_STRING, false);
+        let fid = cls.get_field_id(
+            util::S_NAME.get().unwrap(),
+            util::S_JAVA_LANG_STRING.get().unwrap(),
+            false,
+        );
         let method_name = Class::get_field_value(method.extract_ref(), fid);
         let method_name = Oop::java_lang_string(method_name.extract_ref());
         let method_name = new_br(method_name.as_str());
 
-        let fid = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
+        let fid = cls.get_field_id(
+            util::S_SIGNATURE.get().unwrap(),
+            util::S_JAVA_LANG_STRING.get().unwrap(),
+            false,
+        );
         let signature = Class::get_field_value(method.extract_ref(), fid);
         let signature = Oop::java_lang_string(signature.extract_ref());
         let signature = new_br(signature.as_str());

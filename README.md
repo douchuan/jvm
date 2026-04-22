@@ -1,46 +1,97 @@
-# Rust based JVM with LLVM JIT: Reconstructing the Virtual Machine with Modern Technology
+# jvm
 
-Great goals drive technological leaps—just as the Moon Landing pushed the boundaries of aerospace, reconstructing the JVM with Rust and LLVM is our pursuit of redefining virtual machine technology.
+A JVM implementation written in Rust with an LLVM-based JIT compiler.
 
-The meaning of this project lies not only in building a functional JVM, but in leveraging modern tools to iterate on a decades-old classic: using Rust’s memory safety and system-level performance, combined with LLVM’s industrial-grade compilation capabilities, to create a more efficient, secure, and maintainable virtual machine.
+## Features
 
-Sun pioneered the JVM and HotSpot in the C++ era, laying the foundation for modern Java ecosystems. Now, with Rust—a better system programming language—we stand on the shoulders of giants to remake the JVM, integrating cutting-edge compiler and virtual machine technologies.
+- **Class loading** — directory, JAR, and JImage (JDK 9+ `lib/modules`) sources
+- **Interpreter** — all 202 JVM opcodes implemented (one file per opcode group)
+- **LLVM JIT** — ~110 opcodes translated to LLVM IR via inkwell (int/long/float/double arithmetic, bitwise, stack ops, type conversions, branching). Falls back to interpreter for uncompiled methods
+- **Object model** — slot-based heap (`Oop::Ref(u32)`), zero `unsafe` for object access. Safe `Monitor` via `std::sync::{Mutex, Condvar}`
+- **JNI** — ~30 native method implementations covering `java.lang.*`, `java.io.*`, `sun.misc.*`, `sun.reflect.*`
+- **Threading** — Java threads mapped to OS threads, with pool management
 
-## Project Value
+## Workspace Structure
 
-This is not a toy project, it is a collection of four core hard technologies: 
+```
+jvm/                     # Binary crate — CLI entry point
+crates/
+  classfile/             # JVM class file format type definitions (no dependencies)
+  class-parser/          # Bytes → ClassFile parser (Cursor + Read)
+  vm/                    # Core VM: interpreter, JIT, oop model, native methods
+  class-verification/    # Class verification (skeleton)
+tools/
+  javap/                 # Class file disassembler (javap-style output)
+```
 
-- Rust system programming
-- JVM specification implementation
-- LLVM IR compilation
-- JIT compiler design
+### Dependency Graph
 
-It aims to:
+```
+jvm (binary) → vm → class-parser → classfile
+                          ↘ classfile
+javap (tool) → class-parser → classfile
+                  ↘ classfile
+```
 
-- Combine Rust’s memory safety and zero-cost abstractions to solve the memory risks and performance overhead of traditional C++ based VMs
-- Leverage LLVM’s powerful optimization capabilities to build a high-performance JIT compiler, achieving execution speed comparable to industrial-grade VMs like HotSpot
-- Provide a modular, reusable virtual machine technology suite (split into crates) for the Rust and JVM ecosystems
+All dependencies are centralized in the root `Cargo.toml` under `[workspace.dependencies]`.
+Sub-crates reference them with `dep.workspace = true`.
 
-## Roadmap
+## Quick Start
 
-This is a long-term endeavor—Sun spent 30 years refining the JVM, and Oracle continues to iterate on it. Our roadmap is divided into 3 core phases, with clear, actionable milestones:
+```bash
+cargo build --workspace
+cargo test --workspace
+cargo run -p jvm -- --classpath /path/to/classes MyMainClass
+```
 
-### Phase 1: Foundation
+See `scripts/dev.sh` for convenience commands.
 
-- Pass TCK to achieve official Java compatibility
+## Architecture
 
-### Phase 2: Core Capabilities
+### classfile
 
-- Integrate GC (via crate) to support memory management
-- Implement interpreter & LLVM-based JIT compiler to enable mixed execution for high performance
+Pure type definitions matching the JVM class file specification. No parsing logic.
 
-### Phase 3: Expansion
+### class-parser
 
-- Split the project into modular crates, building a reusable suite of VM technologies (GC, JIT, class loading, etc)
-- Support WebAssembly to enable the JVM to run in browsers, expanding application scenarios
+Reads raw bytes and produces `ClassFile`. Uses `std::io::Cursor` + `Read`. Supports generics parsing via `signature.rs`.
 
-## Our Belief
+### vm
 
-The journey of a thousand miles begins with a single step. Even the greatest technologies start with a bold vision. We are not just recreating the JVM—we are using modern tools to make it better, safer, and more adaptable to the future.
+| Module | Description |
+|--------|-------------|
+| `oop/` | Object model — `Oop` enum, slot-based heap, instances, arrays, mirrors |
+| `runtime/interp/` | Bytecode interpreter (per-opcode files, no macros) |
+| `runtime/jit/` | LLVM JIT — bytecode → LLVM IR via stack-to-register conversion |
+| `runtime/invoke.rs` | Method dispatch (JIT first, interpreter fallback) |
+| `runtime/class_path_manager.rs` | Classpath: directories, JARs, JImage |
+| `runtime/class_loader.rs` | Class loading + system dictionary |
+| `runtime/thread/` | Thread model, thread pool, Java monitor |
+| `native/` | JNI native method implementations (~30 classes) |
 
-Just Do It. Let’s build a Rust-powered JVM for the next decade.
+### jvm
+
+CLI binary. Initializes VM (oop, runtime, native), resolves classpath, loads and runs the entry class.
+
+### javap
+
+Standalone `javap`-style disassembler. Reads class files and outputs human-readable representations including constant pool, fields, methods, bytecode, line numbers, and stack maps. Uses handlebars templates for rendering.
+
+## Status
+
+| Component | State | Notes |
+|-----------|-------|-------|
+| Class file parser | Done | nom → Cursor+Read rewrite complete |
+| Interpreter | Done | 202/202 opcodes |
+| Method invocation | Done | v_table, static, special, interface |
+| LLVM JIT | Done | ~110 opcodes, ~110 opcodes translated |
+| Oop model | Done | Slot-based, zero unsafe |
+| GC | Not implemented | Free-list allocation only, no collection |
+| Class verification | Skeleton | No verification implemented |
+| invokedynamic | Not implemented | |
+
+## Known Issues
+
+- 5 `class_path_manager` tests fail due to missing `test/` fixture directory
+- No garbage collection — objects are allocated but never reclaimed
+- `invoke*` bytecodes are not JIT-compiled; they fall back to the interpreter

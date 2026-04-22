@@ -5,6 +5,7 @@ use crate::new_br;
 use crate::oop::{self, Class, Oop};
 use crate::runtime::vm::get_vm;
 use crate::runtime::{self, vm, JavaCall, JavaThread};
+use tracing::{debug, error, info, trace, warn};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![

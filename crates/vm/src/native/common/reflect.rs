@@ -226,7 +226,11 @@ pub fn get_Constructor_clazz(ctor: &Oop) -> Oop {
         guard.v.extract_inst().class.clone()
     });
     let cls = cls.get_class();
-    let id = cls.get_field_id(&util::S_CLAZZ, &util::S_JAVA_LANG_CLASS, false);
+    let id = cls.get_field_id(
+        util::S_CLAZZ.get().unwrap(),
+        util::S_JAVA_LANG_CLASS.get().unwrap(),
+        false,
+    );
     Class::get_field_value2(slot_id, id.offset)
 }
 
@@ -256,7 +260,11 @@ pub fn get_Constructor_signature(ctor: &Oop) -> String {
         guard.v.extract_inst().class.clone()
     });
     let cls = cls.get_class();
-    let id = cls.get_field_id(&util::S_SIGNATURE, &util::S_JAVA_LANG_STRING, false);
+    let id = cls.get_field_id(
+        util::S_SIGNATURE.get().unwrap(),
+        util::S_JAVA_LANG_STRING.get().unwrap(),
+        false,
+    );
     let v = Class::get_field_value2(slot_id, id.offset);
     Oop::java_lang_string(v.extract_ref())
 }

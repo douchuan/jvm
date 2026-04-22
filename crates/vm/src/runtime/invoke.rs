@@ -11,6 +11,7 @@ use classfile::{consts as cls_const, BytesRef, SignatureType};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
+use tracing::{debug, error, info, trace, warn};
 
 pub struct JavaCall {
     pub mir: MethodIdRef,
@@ -22,7 +23,7 @@ pub struct JavaCall {
 pub fn invoke_ctor(cls: ClassRef, desc: BytesRef, args: Vec<Oop>) {
     let ctor = {
         let cls = cls.get_class();
-        match cls.get_this_class_method(&util::S_INIT, &desc) {
+        match cls.get_this_class_method(util::S_INIT.get().unwrap(), &desc) {
             Ok(mir) => mir,
             Err(()) => {
                 let cls_name = String::from_utf8_lossy(&cls.name);

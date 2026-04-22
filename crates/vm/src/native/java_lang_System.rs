@@ -5,6 +5,7 @@ use crate::oop::{self, Oop};
 use crate::runtime::{self, thread, JavaCall};
 use crate::{new_br, util};
 use std::time::SystemTime;
+use tracing::{debug, error, info, trace, warn};
 
 pub fn get_native_methods() -> Vec<JNINativeMethod> {
     vec![
@@ -188,7 +189,11 @@ fn put_props_kv(props: &Oop, k: &str, v: &str) {
 fn jvm_setIn0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let id = cls.get_field_id(&util::S_IN, &util::S_JAVA_IO_INPUT_STREAM, true);
+    let id = cls.get_field_id(
+        util::S_IN.get().unwrap(),
+        util::S_JAVA_IO_INPUT_STREAM.get().unwrap(),
+        true,
+    );
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }
@@ -196,7 +201,11 @@ fn jvm_setIn0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_setOut0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let id = cls.get_field_id(&util::S_OUT, &util::S_JAVA_IO_PRINT_STREAM, true);
+    let id = cls.get_field_id(
+        util::S_OUT.get().unwrap(),
+        util::S_JAVA_IO_PRINT_STREAM.get().unwrap(),
+        true,
+    );
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }
@@ -204,7 +213,11 @@ fn jvm_setOut0(env: JNIEnv, args: &[Oop]) -> JNIResult {
 fn jvm_setErr0(env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let cls = env.read().unwrap().class.clone();
-    let id = cls.get_field_id(&util::S_ERR, &util::S_JAVA_IO_PRINT_STREAM, true);
+    let id = cls.get_field_id(
+        util::S_ERR.get().unwrap(),
+        util::S_JAVA_IO_PRINT_STREAM.get().unwrap(),
+        true,
+    );
     cls.put_static_field_value(id, v.clone());
     Ok(None)
 }

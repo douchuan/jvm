@@ -1,4 +1,5 @@
 #![allow(unused)]
+use tracing::{debug, error, info, trace, warn};
 
 pub use class_loader::{require_class, require_class2, require_class3, ClassLoader};
 pub use class_path_manager::{
@@ -36,6 +37,7 @@ pub mod thread;
 pub mod vm;
 
 pub fn init() {
+    crate::util::consts::init();
     crate::oop::init_vm_state();
     sys_dic::init();
     class_path_manager::init();

@@ -5,16 +5,14 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-clap = { version = "2.33.1" }
+clap.workspace = true
 classfile.workspace = true
 class-parser.workspace = true
-env_logger = { version = "0.7.1" }
 handlebars.workspace = true
-lazy_static.workspace = true
-log.workspace = true
-md5 = "0.7.0"
+md5.workspace = true
 serde.workspace = true
-serde_derive.workspace = true
 serde_json.workspace = true
-time.workspace = true
+time = { version = "0.3", features = ["formatting", "macros", "parsing"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
 zip.workspace = true

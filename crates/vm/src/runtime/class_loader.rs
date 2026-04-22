@@ -6,6 +6,7 @@ use crate::util;
 use class_parser::parse_class;
 use classfile::{constant_pool, BytesRef, ConstantPool, U2};
 use std::sync::{Arc, Mutex};
+use tracing::{debug, error, info, trace, warn};
 
 #[derive(Debug, Copy, Clone)]
 pub enum ClassLoader {

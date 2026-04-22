@@ -5,6 +5,7 @@ use classfile::{
     constant_pool, constant_pool::Type as ConstantPoolType, BytesRef, ClassFile, FieldInfo,
 };
 use handlebars::Handlebars;
+use serde_json::json;
 
 pub struct FieldTranslation {
     pub desc: String,

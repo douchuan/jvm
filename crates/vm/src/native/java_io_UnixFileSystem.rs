@@ -5,6 +5,7 @@ use crate::oop::{Class, Oop};
 use crate::runtime::require_class3;
 use crate::{new_br, util};
 use std::fs;
+use tracing::{debug, error, info, trace, warn};
 
 static mut FILE_PATH: usize = 0;
 
@@ -46,7 +47,11 @@ pub fn get_native_methods() -> Vec<JNINativeMethod> {
 fn jvm_initIDs(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
     let cls = require_class3(None, b"java/io/File").unwrap();
     let cls = cls.get_class();
-    let fir = cls.get_field_id(&new_br("path"), &util::S_JAVA_LANG_STRING, false);
+    let fir = cls.get_field_id(
+        &new_br("path"),
+        util::S_JAVA_LANG_STRING.get().unwrap(),
+        false,
+    );
     unsafe {
         FILE_PATH = fir.offset;
     }

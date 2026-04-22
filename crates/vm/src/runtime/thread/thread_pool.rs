@@ -2,6 +2,7 @@ use crate::types::JavaThreadRef;
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use tracing::{debug, error, info, trace, warn};
 
 pub struct ThreadPool {
     workers: Vec<Worker>,

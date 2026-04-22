@@ -7,11 +7,12 @@ use crate::types::{ClassRef, MethodIdRef};
 use crate::util;
 use classfile::{consts as cls_consts, flags as acc};
 use rustc_hash::FxHashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, OnceLock, RwLock};
+use tracing::{debug, error, info, trace, warn};
 
 pub fn get_primitive_class_mirror(key: &str) -> Option<Oop> {
     //todo: avoid mutex lock, it's only read
-    let mirrors = PRIM_MIRROS.read().unwrap();
+    let mirrors = PRIM_MIRROS.get().unwrap().read().unwrap();
     mirrors.get(key).cloned()
 }
 
@@ -113,55 +114,50 @@ enum ClassMirrorState {
     Fixed,
 }
 
-lazy_static! {
-    static ref MIRROR_STATE: RwLock<ClassMirrorState> = RwLock::new(ClassMirrorState::NotFixed);
-    static ref PRIM_MIRROS: RwLock<FxHashMap<String, Oop>> = {
-        let hm = FxHashMap::default();
-        RwLock::new(hm)
-    };
-    static ref SIGNATURE_DIC: FxHashMap<&'static str, &'static str> = {
-        let dic: FxHashMap<&'static str, &'static str> = [
-            ("byte", "B"),
-            ("boolean", "Z"),
-            ("char", "C"),
-            ("short", "S"),
-            ("int", "I"),
-            ("float", "F"),
-            ("long", "J"),
-            ("double", "D"),
-            ("void", "V"),
-        ]
-        .iter()
-        .cloned()
-        .collect();
+static MIRROR_STATE: OnceLock<RwLock<ClassMirrorState>> = OnceLock::new();
+static PRIM_MIRROS: OnceLock<RwLock<FxHashMap<String, Oop>>> = OnceLock::new();
+static SIGNATURE_DIC: OnceLock<FxHashMap<&'static str, &'static str>> = OnceLock::new();
+static DELAYED_MIRROS: OnceLock<RwLock<Vec<String>>> = OnceLock::new();
+static DELAYED_ARY_MIRROS: OnceLock<RwLock<Vec<ClassRef>>> = OnceLock::new();
 
-        dic
-    };
-    static ref DELAYED_MIRROS: RwLock<Vec<String>> = {
-        let v = vec![
-            "I", "Z", "B", "C", "S", "F", "J", "D", "V", "[I", "[Z", "[B", "[C", "[S", "[F", "[J",
-            "[D",
-        ];
-        let v: Vec<String> = v.iter().map(|it| it.to_string()).collect();
-        RwLock::new(v)
-    };
-    static ref DELAYED_ARY_MIRROS: RwLock<Vec<ClassRef>> = {
-        let v = vec![];
-        RwLock::new(v)
-    };
+fn build_signature_dic() -> FxHashMap<&'static str, &'static str> {
+    [
+        ("byte", "B"),
+        ("boolean", "Z"),
+        ("char", "C"),
+        ("short", "S"),
+        ("int", "I"),
+        ("float", "F"),
+        ("long", "J"),
+        ("double", "D"),
+        ("void", "V"),
+    ]
+    .iter()
+    .cloned()
+    .collect()
 }
 
 pub fn init() {
-    lazy_static::initialize(&MIRROR_STATE);
-    lazy_static::initialize(&SIGNATURE_DIC);
-    lazy_static::initialize(&PRIM_MIRROS);
-    lazy_static::initialize(&DELAYED_MIRROS);
-    lazy_static::initialize(&DELAYED_ARY_MIRROS);
+    MIRROR_STATE.get_or_init(|| RwLock::new(ClassMirrorState::NotFixed));
+    SIGNATURE_DIC.get_or_init(build_signature_dic);
+    PRIM_MIRROS.get_or_init(|| RwLock::new(FxHashMap::default()));
+    DELAYED_MIRROS.get_or_init(|| {
+        RwLock::new(
+            vec![
+                "I", "Z", "B", "C", "S", "F", "J", "D", "V", "[I", "[Z", "[B", "[C", "[S", "[F",
+                "[J", "[D",
+            ]
+            .iter()
+            .map(|it| it.to_string())
+            .collect(),
+        )
+    });
+    DELAYED_ARY_MIRROS.get_or_init(|| RwLock::new(vec![]));
 }
 
 pub fn create_mirror(cls: ClassRef) {
     let is_fixed = {
-        let s = MIRROR_STATE.write().unwrap();
+        let s = MIRROR_STATE.get().unwrap().write().unwrap();
         *s == ClassMirrorState::Fixed
     };
 
@@ -178,11 +174,11 @@ pub fn create_mirror(cls: ClassRef) {
         warn!("mirror create delayed: {}", name);
         match cls.is_instance() {
             true => {
-                let mut mirrors = DELAYED_MIRROS.write().unwrap();
+                let mut mirrors = DELAYED_MIRROS.get().unwrap().write().unwrap();
                 mirrors.push(String::from(name));
             }
             false => {
-                let mut mirrors = DELAYED_ARY_MIRROS.write().unwrap();
+                let mut mirrors = DELAYED_ARY_MIRROS.get().unwrap().write().unwrap();
                 mirrors.push(cls_back);
             }
         }
@@ -194,12 +190,12 @@ called after 'java/lang/Class' inited in init_vm.rs
 */
 pub fn create_delayed_mirrors() {
     let names: Vec<String> = {
-        let mirros = DELAYED_MIRROS.read().unwrap();
+        let mirros = DELAYED_MIRROS.get().unwrap().read().unwrap();
         mirros.clone()
     };
 
     {
-        let mut s = MIRROR_STATE.write().unwrap();
+        let mut s = MIRROR_STATE.get().unwrap().write().unwrap();
         *s = ClassMirrorState::Fixed;
     }
 
@@ -225,7 +221,7 @@ pub fn create_delayed_mirrors() {
                 target.set_mirror(mirror.clone());
             }
 
-            let mut mirrors = PRIM_MIRROS.write().unwrap();
+            let mut mirrors = PRIM_MIRROS.get().unwrap().write().unwrap();
             mirrors.insert(name.to_string(), mirror);
         }
     }
@@ -236,7 +232,7 @@ called after 'java/lang/Class' inited in init_vm.rs
 */
 pub fn create_delayed_ary_mirrors() {
     let classes: Vec<ClassRef> = {
-        let mirros = DELAYED_ARY_MIRROS.read().unwrap();
+        let mirros = DELAYED_ARY_MIRROS.get().unwrap().read().unwrap();
         mirros.clone()
     };
 
@@ -261,7 +257,7 @@ fn jvm_desiredAssertionStatus0(_env: JNIEnv, _args: &[Oop]) -> JNIResult {
 fn jvm_getPrimitiveClass(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let v = args.get(0).unwrap();
     let v = Oop::java_lang_string(v.extract_ref());
-    match SIGNATURE_DIC.get(v.as_str()) {
+    match SIGNATURE_DIC.get().unwrap().get(v.as_str()) {
         Some(&s) => Ok(get_primitive_class_mirror(s)),
         _ => unreachable!("Unknown primitive type: {}", v),
     }
@@ -547,7 +543,7 @@ fn jvm_getComponentType(_env: JNIEnv, args: &[Oop]) -> JNIResult {
     let cls = cls.get_class();
     let v = if let Some(vt) = cls.get_type_array_value_type() {
         let key = unsafe { std::str::from_utf8_unchecked(vt) };
-        let mirrors = PRIM_MIRROS.read().unwrap();
+        let mirrors = PRIM_MIRROS.get().unwrap().read().unwrap();
         mirrors.get(key).cloned()
     } else if let Some(component) = cls.get_component_type_class() {
         let cls = component.get_class();
@@ -763,8 +759,11 @@ fn jvm_getConstantPool(_env: JNIEnv, args: &[Oop]) -> JNIResult {
             let cp_oop = Oop::new_inst(cp_cls.clone());
 
             let cls = cp_cls.get_class();
-            let fid =
-                cls.get_field_id(&util::S_CONSTANT_POOL_OOP, &util::S_JAVA_LANG_OBJECT, false);
+            let fid = cls.get_field_id(
+                util::S_CONSTANT_POOL_OOP.get().unwrap(),
+                util::S_JAVA_LANG_OBJECT.get().unwrap(),
+                false,
+            );
             //todo: reimpl maybe, create one JNIHandles, like jdk
             Class::put_field_value2(cp_oop.extract_ref(), fid.offset, this.clone());
 

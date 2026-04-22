@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 #[derive(Serialize)]
 pub struct ClassInfoSerde {
     pub sys_info: SysInfoSerde,

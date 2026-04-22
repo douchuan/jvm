@@ -2,7 +2,7 @@
 pub mod macros;
 
 pub mod attributes;
-mod consts;
+pub mod consts;
 pub mod debug;
 pub mod oop;
 mod sys;

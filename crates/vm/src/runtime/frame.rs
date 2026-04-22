@@ -3,6 +3,7 @@ use crate::runtime::DataArea;
 use crate::types::*;
 use classfile::{ConstantPool, U1};
 use std::sync::Arc;
+use tracing::{debug, error, info, trace, warn};
 
 pub struct Frame {
     pub frame_id: usize, //for debug

@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
 use rustc_hash::FxHashMap;
+use tracing::{debug, error, info, trace, warn};
 
 use classfile::ConstantPool;
 

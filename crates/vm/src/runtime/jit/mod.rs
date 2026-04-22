@@ -41,6 +41,7 @@ use crate::runtime::method::{JITCompiledMethod, JitFn};
 use crate::types::MethodIdRef;
 use std::cell::RefCell;
 use std::sync::Arc;
+use tracing::{debug, error, info, trace, warn};
 
 mod builder;
 mod ops;

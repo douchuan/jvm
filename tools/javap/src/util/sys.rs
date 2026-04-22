@@ -1,12 +1,15 @@
 #![allow(unused)]
 
 use std::time::SystemTime;
+use time::format_description::BorrowedFormatItem;
+use time::macros::format_description;
 use time::OffsetDateTime;
 
 pub const FILE_SEP: &str = platform::FILE_SEP;
 pub const PATH_SEP: &str = platform::PATH_SEP;
 pub const LINE_SEP: &str = "\n";
-const LAST_MODIFIED_FORMAT: &str = "%b %-d, %Y";
+const LAST_MODIFIED_FORMAT: &[BorrowedFormatItem<'_>] =
+    format_description!("[month repr:short] [day padding:space], [year]");
 
 #[cfg(unix)]
 mod platform {
@@ -37,13 +40,18 @@ pub fn format_time1(t: SystemTime) -> String {
     match t.duration_since(std::time::SystemTime::UNIX_EPOCH) {
         Ok(t) => {
             let odt = OffsetDateTime::from_unix_timestamp(t.as_secs() as i64);
-            odt.format(LAST_MODIFIED_FORMAT)
+            match odt {
+                Ok(odt) => odt.format(&LAST_MODIFIED_FORMAT).unwrap_or_default(),
+                Err(_) => String::new(),
+            }
         }
-        Err(_) => "".to_string(),
+        Err(_) => String::new(),
     }
 }
 
 pub fn format_time2(sec: i64) -> String {
-    let odt = OffsetDateTime::from_unix_timestamp(sec);
-    odt.format(LAST_MODIFIED_FORMAT)
+    match OffsetDateTime::from_unix_timestamp(sec) {
+        Ok(odt) => odt.format(&LAST_MODIFIED_FORMAT).unwrap_or_default(),
+        Err(_) => String::new(),
+    }
 }

@@ -16,6 +16,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
+use tracing::{debug, error, info, trace, warn};
 
 /// JIT 编译后的函数指针类型。
 ///

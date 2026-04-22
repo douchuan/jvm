@@ -16,7 +16,7 @@ crates/
   vm/                    # Core VM: interpreter, Oop model, native methods, threading, JIT
   class-verification/    # Class verification (skeleton)
 tools/
-  javap/                 # Class file disassembler tool (standalone)
+  javap/                 # Class file disassembler tool
 scripts/
   dev.sh                 # Convenience script for common tasks
 documents/
@@ -50,7 +50,8 @@ edit only the root `Cargo.toml`.
 ./scripts/dev.sh clean              # Clean build artifacts
 
 # Or use cargo directly
-cargo build --workspace
+cargo build                   # Builds all workspace members
+cargo build --workspace       # Same as above (explicit)
 cargo test --workspace
 cargo test -p class-parser hello_world
 cargo run -p jvm -- <ClassName>
@@ -124,17 +125,46 @@ Binary crate — CLI entry point. Parses command-line options, initializes VM, r
 
 Standalone class file disassembler. Outputs `javap`-style human-readable class dumps. Uses handlebars for template rendering.
 
+## Development Roadmap
+
+### Phase 1: JIT 编译器完善（优先级：高）
+- JIT 方法调用：`invokevirtual`/`invokespecial`/`invokestatic`/`invokeinterface` 的 LLVM IR 翻译
+  - 策略：通过 runtime callout（`jit/ops.rs`）回退到解释器路径
+- JIT 控制流：完善 `tableswitch`、`lookupswitch`、异常处理路径
+- JIT 返回值扩展：当前仅支持 int，需支持 long/float/double/ref
+- JIT 参数类型扩展：`copy_args_to_locals` 当前仅处理 `Oop::Int`
+
+### Phase 2: 垃圾回收（优先级：高）
+- 目标：Mark-Sweep-Compact
+- Root 收集：遍历线程栈（locals + stack）+ 静态字段
+- Mark/Sweep/Compact 三阶段
+- 触发策略：分配失败时 full GC → 后续引入分代
+
+### Phase 3: 类验证器（优先级：中）
+- 文件：`crates/class-verification/`（已有骨架）
+- 两阶段：结构性验证 + 字节码类型安全验证
+
+### Phase 4: invokedynamic（优先级：中）
+- BootstrapMethods 属性解析 + CallSite 链接机制
+- `java.lang.invoke.MethodHandle` native 方法
+
+### Phase 5: 工程质量（持续）
+- 修复 5 个 class_path_manager 测试（创建 test/ fixtures）
+- 清理 javap warning（未使用导入、dead_code trait 方法）
+- handlebars 替换预案（纯字符串拼接 或 tera）
+- 测试覆盖率基线（cargo-llvm-cov）
+
 ## Current Phase Status
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1. Class-parser rewrite | Done | nom → Cursor+Read, 12 tests |
-| 2. Workspace compilation | Done | `cargo build --workspace` passes |
-| 3. Test skeleton | Done | 26 tests pass (12+11+1+1+1) |
+| 2. Workspace compilation | Done | `cargo build` passes, all members compile together |
+| 3. Test skeleton | Done | 34 tests pass, 5 pre-existing failures (missing fixtures) |
 | 4. Oop model rewrite | Done | Slot-based (`Oop::Ref(u32)`), zero unsafe |
 | 5. Interpreter rewrite | Done | Per-opcode files, 202/202 opcodes |
 | 6. Method invocation | Done | hack_as_native, v_table fix |
-| 7. LLVM JIT | Done | ~110 opcodes (int/long/float/double arith, bitwise, stack ops, conversions) |
+| 7. LLVM JIT | Partial | ~110 opcodes (int/long/float/double arith, bitwise, stack ops, conversions). invoke* not JIT-compiled |
 | 8. GC precise-ification | Planned | slot-based heap → mark-sweep-compact |
 | 9. Complete features | Planned | invokedynamic, verification, threading |
 
@@ -146,6 +176,7 @@ See `documents/jvm-implementation-challenges.md` for detailed Rust vs C++ JVM im
 - **No GC** — objects allocated via free-list but never collected
 - **Class verification skeleton** — 0 implementations
 - **invoke\* not in JIT** — method calls fall back to interpreter
+- **handlebars 4.5 compatibility** — javap 依赖 handlebars，若新版 Rust 编译失败可考虑替换为 `tera` 或纯模板拼接
 
 ## Important Conventions
 

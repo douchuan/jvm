@@ -7,7 +7,7 @@ edition.workspace = true
 [dependencies]
 clap.workspace = true
 class-parser.workspace = true
-env_logger.workspace = true
+tracing-subscriber.workspace = true
 vm.workspace = true
 
 [dev-dependencies]

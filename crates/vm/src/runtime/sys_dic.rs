@@ -1,21 +1,18 @@
 use crate::types::ClassRef;
-use crate::util;
+use std::sync::{Mutex, OnceLock};
 
 use rustc_hash::FxHashMap;
-use std::sync::{Arc, Mutex};
 
 type SystemDictionary = Mutex<FxHashMap<String, ClassRef>>;
 
-lazy_static! {
-    static ref SYS_DIC: SystemDictionary = { Mutex::new(FxHashMap::default()) };
-}
+static SYS_DIC: OnceLock<SystemDictionary> = OnceLock::new();
 
 pub fn put(key: &[u8], klass: ClassRef) {
     debug_assert!(!key.contains(&b'.'));
 
     let key = Vec::from(key);
     let key = unsafe { String::from_utf8_unchecked(key) };
-    let mut dict = SYS_DIC.lock().unwrap();
+    let mut dict = SYS_DIC.get().unwrap().lock().unwrap();
     dict.insert(key, klass);
 }
 
@@ -23,10 +20,10 @@ pub fn put(key: &[u8], klass: ClassRef) {
 pub fn find(key: &[u8]) -> Option<ClassRef> {
     debug_assert!(!key.contains(&b'.'));
     let key = unsafe { std::str::from_utf8_unchecked(key) };
-    let dict = SYS_DIC.lock().unwrap();
+    let dict = SYS_DIC.get().unwrap().lock().unwrap();
     dict.get(key).cloned()
 }
 
 pub fn init() {
-    lazy_static::initialize(&SYS_DIC);
+    SYS_DIC.get_or_init(|| Mutex::new(FxHashMap::default()));
 }

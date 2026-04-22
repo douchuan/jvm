@@ -34,7 +34,11 @@ pub fn new_java_lang_string2(v: &str) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(string_cls, util::S_NEW_STRING_SIG.clone(), args);
+    runtime::invoke::invoke_ctor(
+        string_cls,
+        util::S_NEW_STRING_SIG.get().unwrap().clone(),
+        args,
+    );
 
     string_oop
 }
@@ -49,7 +53,11 @@ pub fn new_java_lang_string3(bs: &[u8]) -> Oop {
     let string_cls = require_class3(None, b"java/lang/String").unwrap();
     let string_oop = Oop::new_inst(string_cls.clone());
     let args = vec![string_oop.clone(), ary];
-    runtime::invoke::invoke_ctor(string_cls, util::S_NEW_STRING_SIG.clone(), args);
+    runtime::invoke::invoke_ctor(
+        string_cls,
+        util::S_NEW_STRING_SIG.get().unwrap().clone(),
+        args,
+    );
 
     string_oop
 }

@@ -8,6 +8,8 @@ use classfile::{
     constant_pool, BytesRef, ClassFile, MethodInfo,
 };
 use handlebars::Handlebars;
+use serde_json::json;
+use tracing::{debug, error, info, trace, warn};
 
 pub struct MethodTranslation {
     pub desc: String,

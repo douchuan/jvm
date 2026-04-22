@@ -4,35 +4,34 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufReader, Cursor, Read, Seek};
 use std::path::{self, Path};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
+use tracing::{debug, error, info, trace, warn};
 use zip::ZipArchive;
 
-lazy_static! {
-    static ref CPM: RwLock<ClassPathManager> = { RwLock::new(ClassPathManager::new()) };
-}
+static CPM: OnceLock<RwLock<ClassPathManager>> = OnceLock::new();
 
 pub fn init() {
-    lazy_static::initialize(&CPM);
+    CPM.get_or_init(|| RwLock::new(ClassPathManager::new()));
 }
 
 pub fn find_class(name: &str) -> Result<ClassPathResult, io::Error> {
-    let cpm = CPM.read().unwrap();
+    let cpm = CPM.get().unwrap().read().unwrap();
     cpm.search_class(name)
 }
 
 pub fn add_path(path: &str) {
-    let mut cpm = CPM.write().unwrap();
+    let mut cpm = CPM.get().unwrap().write().unwrap();
     cpm.add_class_path(path);
 }
 
 pub fn add_paths(path: &str) {
-    let mut cpm = CPM.write().unwrap();
+    let mut cpm = CPM.get().unwrap().write().unwrap();
     cpm.add_class_paths(path);
 }
 
 /// 添加 JImage（JDK 9+ modules 文件）作为引导类路径源。
 pub fn add_boot_jimage(path: &str) {
-    let mut cpm = CPM.write().unwrap();
+    let mut cpm = CPM.get().unwrap().write().unwrap();
     if let Err(e) = cpm.add_jimage_path(path) {
         warn!("Failed to add boot JImage path '{}': {}", path, e);
     } else {

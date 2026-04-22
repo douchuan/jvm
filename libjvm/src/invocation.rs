@@ -4,10 +4,9 @@
 //https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/invocation.html
 
 use jni_sys::{jboolean, jint, jsize, JNIInvokeInterface_, JNINativeInterface_, JavaVM};
-use lazy_static::lazy_static;
 use libc::c_void;
 use std::cell::RefCell;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use vm::runtime::thread::MainThread;
 
 use crate::native;
@@ -30,10 +29,7 @@ impl VMHolder {
 	}
 }
 
-// TODO: Hotspot doesn't supports creation of multiple JVMs per process, should we?
-lazy_static! {
-	static ref JVM: Mutex<Option<VMHolder>> = Mutex::new(None);
-}
+static JVM: OnceLock<Mutex<Option<VMHolder>>> = OnceLock::new();
 
 unsafe extern "system" fn DestroyJavaVM(_vm: *mut JavaVM) -> jint {
 	todo!();
@@ -347,7 +343,7 @@ extern "C" fn JNI_CreateJavaVM(
 	penv: *mut *mut c_void,
 	args: *const JavaVMInitArgs,
 ) -> jint {
-	let mut lock = JVM.lock().expect("jvm lock");
+	let mut lock = JVM.get_or_init(|| Mutex::new(None)).lock().expect("jvm lock");
 	// Can't have multiple VMs per process
 	if lock.is_some() {
 		-1
@@ -402,7 +398,7 @@ extern "C" fn JNI_GetCreatedJavaVMs(
 	n_vms: *mut jsize,
 ) -> jint {
 	if buf_len >= 1 {
-		let lock = JVM.lock().expect("jvm lock");
+		let lock = JVM.get_or_init(|| Mutex::new(None)).lock().expect("jvm lock");
 		if let Some(ref holder) = lock.as_ref() {
 			unsafe {
 				*vm_buf = Box::into_raw(Box::new(holder.jvm.as_ref()));
